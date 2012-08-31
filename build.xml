@@ -1,0 +1,71 @@
+<!--
+  Copyright (c) 2012, Kiran V Garimella (kiran@well.ox.ac.uk)
+                      Wellcome Trust Centre for Human Genetics
+                      University of Oxford
+  -->
+
+<project name="indiana" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <description>Compile and distribute INDIANA</description>
+
+    <property name="src.dir" value="public/java/src" />
+    <property name="lib.dir" value="lib" />
+    <property name="build.dir" value="build" />
+    <property name="dist.dir" value="dist" />
+
+	<property name="ivy.install.version" value="2.3.0-rc1" />
+	<property name="ivy.jar.dir" value="${lib.dir}" />
+	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+    <property name="ivy.settings.dir" value="settings"/>
+    <property file="${ivy.settings.dir}/ivysettings.properties"/>
+
+    <target name="install-ivy" description="install ivy">
+    	<mkdir dir="${ivy.jar.dir}"/>
+
+    	<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+             dest="${ivy.jar.file}" usetimestamp="true"/>
+
+        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
+
+    	<path id="ivy.lib.path">
+    	    <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+    	</path>
+
+    	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target>    
+
+    <target name="resolve" depends="install-ivy" unless="skip.download" description="locate and download library dependencies">
+        <property name="ivy.conf" value="default"/>
+
+        <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
+    </target>
+
+    <target name="init" depends="resolve">
+        <tstamp>
+            <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
+        </tstamp>
+    </target>
+
+    <target name="dist" depends="init" description="compile distribution">
+        <mkdir dir="${build.dir}" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" />
+
+        <mkdir dir="${dist.dir}" />
+        <jar jarfile="${dist.dir}/indiana.jar">
+            <fileset dir="${build.dir}">
+                <include name="**/*.class" />
+            </fileset>
+
+            <manifest>
+                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="clean" description="clean the project">
+        <delete includeemptydirs="true" quiet="true">
+            <fileset dir="${lib.dir}" />
+            <fileset dir="${build.dir}" />
+            <fileset dir="${dist.dir}" />
+    	</delete>
+    </target>
+</project>

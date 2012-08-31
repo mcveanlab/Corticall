@@ -1,0 +1,18 @@
+<ivy-module version="1.0">
+    <info organisation="uk.ac.ox.well" module="indiana"/>
+
+    <configurations defaultconfmapping="test->default">
+        <conf name="default" description="the core dependencies for INDIANA"/>
+        <conf name="test" extends="default" description="external dependencies used for testing and metrics" />
+    </configurations>
+
+    <dependencies defaultconf="default">
+        <!-- Logging dependency -->
+        <dependency org="log4j" name="log4j" rev="1.2.15"/>
+
+        <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
+        <exclude org="javax.servlet" />
+        <exclude org="javax.jms" />
+        <exclude org="com.sun.*" />
+    </dependencies>
+</ivy-module>
