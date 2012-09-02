@@ -10,6 +10,8 @@
     <property name="src.dir" value="public/java/src" />
     <property name="lib.dir" value="lib" />
     <property name="build.dir" value="build" />
+    <property name="jars.dir" value="build/jars" />
+    <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
 
 	<property name="ivy.install.version" value="2.3.0-rc1" />
@@ -45,19 +47,21 @@
         </tstamp>
 
         <mkdir dir="${build.dir}" />
+        <mkdir dir="${jars.dir}" />
+        <mkdir dir="${staging.dir}" />
         <mkdir dir="${dist.dir}" />
 
-        <copy todir="${dist.dir}">
+        <copy todir="${jars.dir}">
             <fileset dir="${lib.dir}" includes="*.jar"/>
         </copy>
 
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
-            <fileset dir="${dist.dir}" includes="*.jar"/>
+            <fileset dir="${jars.dir}" includes="*.jar"/>
         </pathconvert>
     </target>
 
-    <target name="dist" depends="init" description="compile distribution">
+    <target name="compile" depends="init" description="compile distribution">
         <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
             <classpath>  
                 <fileset dir="${lib.dir}">  
@@ -66,7 +70,7 @@
             </classpath>
         </javac>
 
-        <jar jarfile="${dist.dir}/indiana.jar">
+        <jar jarfile="${jars.dir}/indiana.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
             </fileset>
@@ -78,10 +82,35 @@
         </jar>
     </target>
 
+    <target name="stage" description="stage files for distribution">
+        <unjar dest="${staging.dir}" overwrite="false">
+            <fileset dir="${jars.dir}"/>
+        </unjar>
+
+        <unjar dest="${staging.dir}" overwrite="true">
+            <fileset dir="${jars.dir}" includes="**/indiana.jar"/>
+        </unjar>
+    </target>
+
+    <target name="dist" depends="compile,stage" description="bundle up an executable for distribution">
+        <mkdir dir="${dist.dir}" />
+
+        <jar jarfile="${dist.dir}/indiana.jar">
+            <fileset dir="${staging.dir}">
+                <include name="**/*.class" />
+            </fileset>
+
+            <manifest>
+                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.IndianaMain" />
+            </manifest>
+        </jar>
+    </target>
+
     <target name="clean" description="clean the project">
         <delete includeemptydirs="true" quiet="true">
             <fileset dir="${lib.dir}" />
             <fileset dir="${build.dir}" />
+            <fileset dir="${staging.dir}" />
             <fileset dir="${dist.dir}" />
     	</delete>
     </target>
