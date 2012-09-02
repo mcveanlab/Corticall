@@ -24,13 +24,13 @@
     	<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
              dest="${ivy.jar.file}" usetimestamp="true"/>
 
-        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
-
     	<path id="ivy.lib.path">
     	    <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
     	</path>
 
     	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+
+        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
     </target>    
 
     <target name="resolve" depends="install-ivy" unless="skip.download" description="locate and download library dependencies">
@@ -43,20 +43,37 @@
         <tstamp>
             <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
         </tstamp>
+
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${dist.dir}" />
+
+        <copy todir="${dist.dir}">
+            <fileset dir="${lib.dir}" includes="*.jar"/>
+        </copy>
+
+        <pathconvert property="jar.classpath" pathsep=" ">
+            <flattenmapper/>
+            <fileset dir="${dist.dir}" includes="*.jar"/>
+        </pathconvert>
     </target>
 
     <target name="dist" depends="init" description="compile distribution">
-        <mkdir dir="${build.dir}" />
-        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
+            <classpath>  
+                <fileset dir="${lib.dir}">  
+                    <include name="**/*.jar" />  
+                </fileset>
+            </classpath>
+        </javac>
 
-        <mkdir dir="${dist.dir}" />
         <jar jarfile="${dist.dir}/indiana.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
             </fileset>
 
             <manifest>
-                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.IndianaMain" />
             </manifest>
         </jar>
     </target>

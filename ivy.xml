@@ -3,12 +3,14 @@
 
     <configurations defaultconfmapping="test->default">
         <conf name="default" description="the core dependencies for INDIANA"/>
-        <conf name="test" extends="default" description="external dependencies used for testing and metrics" />
     </configurations>
 
     <dependencies defaultconf="default">
         <!-- Logging dependency -->
-        <dependency org="log4j" name="log4j" rev="1.2.15"/>
+        <dependency org="log4j" name="log4j" rev="1.2.15" />
+
+        <!-- Reflections dependency -->
+        <dependency org="org.reflections" name="reflections" rev="0.9.8" />
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
