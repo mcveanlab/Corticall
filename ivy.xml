@@ -12,6 +12,9 @@
         <!-- Reflections dependency -->
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
 
+        <!-- Apache commons CLI: command line argument parser -->
+        <dependency org="commons-cli" name="commons-cli" rev="1.2" />
+
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />

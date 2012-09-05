@@ -62,7 +62,7 @@
     </target>
 
     <target name="compile" depends="init" description="compile distribution">
-        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
             <classpath>  
                 <fileset dir="${lib.dir}">  
                     <include name="**/*.jar" />  
