@@ -15,6 +15,9 @@
         <!-- Apache commons CLI: command line argument parser -->
         <dependency org="commons-cli" name="commons-cli" rev="1.2" />
 
+        <!-- Processing -->
+        <dependency org="org.processing" name="core" rev="2.0b3" />
+
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />
