@@ -12,11 +12,12 @@ public class CortexSketch extends Sketch {
     public void setup() {
         System.out.println(CORTEX_GRAPH);
 
-        for (int i = 0; i < 10; i++) {
-            CortexRecord cr = CORTEX_GRAPH.next();
-
-            System.out.println(cr);
+        int i = 0;
+        for (CortexRecord cr : CORTEX_GRAPH) {
+            i++;
         }
+
+        System.out.println("Saw " + i + " records.");
 
         size(400, 400);
     }

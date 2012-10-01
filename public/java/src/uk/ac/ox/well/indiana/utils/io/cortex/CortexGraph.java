@@ -2,13 +2,14 @@ package uk.ac.ox.well.indiana.utils.io.cortex;
 
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public class CortexGraph { //implements Iterable<CortexRecord> {
+public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
     private File cortexFile;
     private BinaryFile in;
 
@@ -18,6 +19,8 @@ public class CortexGraph { //implements Iterable<CortexRecord> {
     private int numColors;
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private long dataOffset;
+
+    private CortexRecord nextRecord = null;
 
     public CortexGraph(String cortexFilePath) {
         this.cortexFile = new File(cortexFilePath);
@@ -96,6 +99,8 @@ public class CortexGraph { //implements Iterable<CortexRecord> {
             }
 
             dataOffset = in.getFilePointer();
+
+            nextRecord = getNextRecord();
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
@@ -103,33 +108,19 @@ public class CortexGraph { //implements Iterable<CortexRecord> {
         }
     }
 
-    public File getCortexFile() {
-        return cortexFile;
-    }
+    public File getCortexFile() { return cortexFile; }
 
-    public int getVersion() {
-        return version;
-    }
+    public int getVersion() { return version; }
 
-    public int getKmerSize() {
-        return kmerSize;
-    }
+    public int getKmerSize() { return kmerSize; }
 
-    public int getKmerBits() {
-        return kmerBits;
-    }
+    public int getKmerBits() { return kmerBits; }
 
-    public int getNumColors() {
-        return numColors;
-    }
+    public int getNumColors() { return numColors; }
 
-    public ArrayList<CortexColor> getColors() {
-        return colors;
-    }
+    public ArrayList<CortexColor> getColors() { return colors; }
 
-    public long getDataOffset() {
-        return dataOffset;
-    }
+    public long getDataOffset() { return dataOffset; }
 
     public String toString() {
         String info = "file: " + cortexFile.getAbsolutePath() + "\n"
@@ -153,11 +144,25 @@ public class CortexGraph { //implements Iterable<CortexRecord> {
         }
 
         info += "----" + "\n";
+        info += "kmers: " + getNumRecords() + "\n";
+        info += "----" + "\n";
 
         return info;
     }
 
-    public CortexRecord next() {
+    public long getNumRecords() {
+        try {
+            long size = in.getChannel().size();
+
+            long dataSize = size - dataOffset;
+
+            return dataSize / (8*kmerBits + 4*numColors + 1*numColors);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to determine number of Cortex records present: " + e);
+        }
+    }
+
+    private CortexRecord getNextRecord() {
         try {
             long[] binaryKmer = new long[kmerBits];
             for (int bits = 0; bits < kmerBits; bits++) {
@@ -175,45 +180,41 @@ public class CortexGraph { //implements Iterable<CortexRecord> {
             }
 
             return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
-
-            /*
-            byte[] kmer = new byte[kmerSize];
-            for (int i = kmerSize - 1; i >= 0; i--) {
-                kmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
-                shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
-            }
-            String kmerString = new String(kmer);
-
-            byte[] str = {'a', 'c', 'g', 't', 'A', 'C', 'G', 'T'};
-            String[] edges = new String[numColors];
-            for (int color = 0; color < numColors; color++) {
-                byte edge = (byte) in.readUnsignedByte();
-
-                int left = (edge >> 4);
-                int right = (edge & 0xf);
-
-                byte[] edgeStr = new byte[8];
-
-                for (int i = 0; i < 4; i++) {
-                    int leftEdge = (left & (0x1 << (3-i)));
-                    edgeStr[i] = (byte) ((leftEdge != 0) ? str[i] : '.');
-
-                    int rightEdge = (right & (0x1 << i));
-                    edgeStr[i+4] = (byte) ((rightEdge != 0) ? str[i+4] : '.');
-                }
-
-                edges[color] = new String(edgeStr);
-            }
-
-            System.out.println("Record:");
-            System.out.println("\t" + kmerString);
-            for (int color = 0; color < numColors; color++) {
-                System.out.println("\t" + coverages[color]);
-                System.out.println("\t" + edges[color]);
-            }
-            */
+        } catch (EOFException e) {
+            return null;
         } catch (IOException e) {
-            throw new RuntimeException("Error while parsing Cortex record");
+            throw new RuntimeException("Error while parsing Cortex record: " + e);
         }
+    }
+
+    public Iterator<CortexRecord> iterator() {
+        return this;
+    }
+
+    public boolean hasNext() {
+        return nextRecord != null;
+    }
+
+    public CortexRecord next() {
+        try {
+            CortexRecord currentRecord = nextRecord;
+
+            nextRecord = getNextRecord();
+            if (nextRecord == null) {
+                close();
+            }
+
+            return currentRecord;
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    public void close() throws IOException {
+        this.in.close();
     }
 }
