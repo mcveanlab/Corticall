@@ -18,6 +18,9 @@
         <!-- Processing -->
         <dependency org="org.processing" name="core" rev="2.0b3" />
 
+        <!-- JGraphT -->
+        <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
+
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />
