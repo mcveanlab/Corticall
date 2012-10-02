@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
@@ -18,8 +19,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private int kmerSize;
     private int kmerBits;
     private int numColors;
-    private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private long dataOffset;
+
+    private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
+    private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
     private CortexRecord nextRecord = null;
 
@@ -89,8 +92,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 in.read(sampleName);
 
                 sampleName = fixStringsWithEarlyTerminators(sampleName);
+                String sampleNameStr = new String(sampleName);
 
-                colors.get(color).setSampleName(new String(sampleName));
+                colors.get(color).setSampleName(sampleNameStr);
+                nameToColor.put(sampleNameStr, color);
             }
 
             // Todo: fix this at some point - we're not actually getting the error rate properly
@@ -242,5 +247,27 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     public void close() throws IOException {
         this.in.close();
+    }
+
+    public boolean hasColor(int color) {
+        return (color < colors.size());
+    }
+
+    public CortexColor getColor(int color) {
+        return colors.get(color);
+    }
+
+    public int getColorForSampleName(String sampleName) {
+        int sampleColor = -1;
+        int sampleCopies = 0;
+
+        for (int color = 0; color < colors.size(); color++) {
+            if (colors.get(color).getSampleName().equalsIgnoreCase(sampleName)) {
+                sampleColor = color;
+                sampleCopies++;
+            }
+        }
+
+        return (sampleCopies == 1) ? sampleColor : -1;
     }
 }

@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 public class CortexRecord {
     private long[] binaryKmer;
+    private byte[] rawKmer;
     private int[] coverages;
     private byte[] edges;
 
@@ -38,13 +39,21 @@ public class CortexRecord {
         binaryKmer[0] >>= 2;
     }
 
-    public String getKmer() {
-        byte[] kmer = new byte[kmerSize];
-        for (int i = kmerSize - 1; i >= 0; i--) {
-            kmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
-            shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
+    public byte[] getKmer() {
+        if (rawKmer == null) {
+            rawKmer = new byte[kmerSize];
+
+            for (int i = kmerSize - 1; i >= 0; i--) {
+                rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
+                shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
+            }
         }
-        return new String(kmer);
+
+        return rawKmer;
+    }
+
+    public String getKmerString() {
+        return new String(getKmer());
     }
 
     public String[] getEdges() {
@@ -79,7 +88,7 @@ public class CortexRecord {
     }
 
     public String toString() {
-        String info = getKmer();
+        String info = getKmerString();
 
         for (int coverage : getCoverages()) {
             info += " " + coverage;
