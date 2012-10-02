@@ -24,6 +24,9 @@
         <!-- SAM-JDK (local repo) -->
         <dependency org="net.sf.picard" name="sam" rev="latest" />
 
+        <!-- Picard (local repo) -->
+        <dependency org="net.sf.picard" name="picard" rev="latest" />
+
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />
