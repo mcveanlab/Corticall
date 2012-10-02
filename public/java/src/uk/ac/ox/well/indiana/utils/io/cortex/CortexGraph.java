@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
@@ -32,6 +33,22 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         loadCortexGraph(this.cortexFile);
     }
 
+    private byte[] fixStringsWithEarlyTerminators(byte[] string) {
+        // Sometimes the names have an early terminator character (a bug in the CORTEX output format).
+        int earlyTerminatorPosition = string.length - 1;
+        for (int i = string.length - 1; i >= 0; i--) {
+            if (string[i] == 0x0) {
+                earlyTerminatorPosition = i;
+            }
+        }
+
+        if (earlyTerminatorPosition != string.length - 1) {
+            return Arrays.copyOfRange(string, 0, earlyTerminatorPosition);
+        }
+
+        return string;
+    }
+
     private void loadCortexGraph(File cortexFile) {
         try {
             in = new BinaryFile(cortexFile, "r");
@@ -45,6 +62,11 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             }
 
             version = in.readUnsignedInt();
+
+            if (version != 6) {
+                throw new RuntimeException("The file '" + cortexFile.getAbsolutePath() + "' is not a version 6 Cortex graph");
+            }
+
             kmerSize = in.readUnsignedInt();
             kmerBits = in.readUnsignedInt();
             numColors = in.readUnsignedInt();
@@ -66,6 +88,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 byte[] sampleName = new byte[sampleNameLength];
                 in.read(sampleName);
 
+                sampleName = fixStringsWithEarlyTerminators(sampleName);
+
                 colors.get(color).setSampleName(new String(sampleName));
             }
 
@@ -86,6 +110,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 int graphNameLength = in.readUnsignedInt();
                 byte[] graphName = new byte[graphNameLength];
                 in.read(graphName);
+
+                graphName = fixStringsWithEarlyTerminators(graphName);
 
                 colors.get(color).setCleanedAgainstGraphName(new String(graphName));
             }

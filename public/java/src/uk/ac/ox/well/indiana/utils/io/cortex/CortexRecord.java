@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.utils.io.cortex;
 
+import java.util.Arrays;
+
 public class CortexRecord {
     private long[] binaryKmer;
     private int[] coverages;
@@ -42,9 +44,7 @@ public class CortexRecord {
             kmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
             shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
         }
-        String kmerString = new String(kmer);
-
-        return kmerString;
+        return new String(kmer);
     }
 
     public String[] getEdges() {
@@ -81,16 +81,18 @@ public class CortexRecord {
     public String toString() {
         String info = getKmer();
 
-        int[] coverages = getCoverages();
-        for (int color = 0; color < coverages.length; color++) {
-            info += " " + coverages[color];
+        for (int coverage : getCoverages()) {
+            info += " " + coverage;
         }
 
-        String[] edges = getEdges();
-        for (int color = 0; color < edges.length; color++) {
-            info += " " + edges[color];
+        for (String edge : getEdges()) {
+            info += " " + edge;
         }
 
         return info;
+    }
+
+    public int hashCode() {
+        return Arrays.hashCode(binaryKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 }

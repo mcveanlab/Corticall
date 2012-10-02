@@ -5,19 +5,20 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 
+import java.util.HashSet;
+
 public class CortexSketch extends Sketch {
     @Argument(fullName="cortexGraph", shortName="cg", doc="A binary Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
+    private HashSet<CortexRecord> records = new HashSet<CortexRecord>();
+
     public void setup() {
         System.out.println(CORTEX_GRAPH);
 
-        int i = 0;
         for (CortexRecord cr : CORTEX_GRAPH) {
-            i++;
+            System.out.println(cr);
         }
-
-        System.out.println("Saw " + i + " records.");
 
         size(400, 400);
     }
