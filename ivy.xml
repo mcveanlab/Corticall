@@ -15,11 +15,14 @@
         <!-- Apache commons CLI: command line argument parser -->
         <dependency org="commons-cli" name="commons-cli" rev="1.2" />
 
-        <!-- Processing -->
-        <dependency org="org.processing" name="core" rev="2.0b3" />
-
         <!-- JGraphT -->
         <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
+
+        <!-- Processing (local repo) -->
+        <dependency org="org.processing" name="core" rev="2.0b3" />
+
+        <!-- SAM-JDK (local repo) -->
+        <dependency org="net.sf.picard" name="sam" rev="latest" />
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
