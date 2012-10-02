@@ -6,6 +6,8 @@ import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 
@@ -27,6 +29,17 @@ public class ArgumentParser {
                         Boolean hasArgument = !field.getType().equals(Boolean.class);
 
                         Option option = new Option(arg.shortName(), arg.fullName(), hasArgument, description);
+                        option.setType(field.getType());
+                        options.addOption(option);
+                    } else if (annotation.annotationType().equals(Output.class)) {
+                        // Todo: this redundancy is fugly
+
+                        Output out = (Output) annotation;
+
+                        String description = out.doc() + " [default: " + field.get(instance) + "]";
+                        Boolean hasArgument = !field.getType().equals(Boolean.class);
+
+                        Option option = new Option(out.shortName(), out.fullName(), hasArgument, description);
                         option.setType(field.getType());
                         options.addOption(option);
                     }
@@ -56,6 +69,18 @@ public class ArgumentParser {
                             } else if (arg.required()) {
                                 // do something else here
                             }
+                        }
+                    } else if (annotation.annotationType().equals(Output.class)) {
+                        Output out = (Output) annotation;
+
+                        if (field.getType().equals(PrintStream.class)) {
+                            String value = cmd.getOptionValue(out.fullName());
+
+                            if (value == null) {
+                                value = "/dev/stdout";
+                            }
+
+                            handleArgumentTypes(instance, field, value);
                         }
                     }
                 }
@@ -91,11 +116,15 @@ public class ArgumentParser {
                 field.set(instance, new CortexGraph(value));
             } else if (type.equals(FastaSequenceFile.class)) {
                 field.set(instance, new FastaSequenceFile(new File(value), false));
+            } else if (type.equals(PrintStream.class)) {
+                field.set(instance, new PrintStream(value));
             } else {
                 throw new RuntimeException("Don't know how to automatically handle field type '" + type.getSimpleName() + "' for field '" + field.getName() + "'");
             }
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Unable to access field '" + field.getName() + "' in module '" + instance.getClass().getSimpleName() + "'");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Unable to open file: " + e);
         }
     }
 }

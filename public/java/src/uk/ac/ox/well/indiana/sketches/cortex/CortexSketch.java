@@ -5,10 +5,12 @@ import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexColor;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +22,9 @@ public class CortexSketch extends Tool {
 
     @Argument(fullName="genesFasta", shortName="gf", doc="A FASTA-format genes file")
     public FastaSequenceFile GENES_FASTA;
+
+    @Output
+    public PrintStream out;
 
     private byte[] getReverseComplement(byte[] kmer) {
         byte[] rc = new byte[kmer.length];
@@ -57,7 +62,10 @@ public class CortexSketch extends Tool {
         HashMap<String, Integer> kmerCoverageMap = new HashMap<String, Integer>();
 
         ReferenceSequence seq;
+        int totalSequenceLength = 0;
         while ((seq = genes.nextSequence()) != null) {
+            totalSequenceLength += seq.length();
+
             String[] namePieces = seq.getName().split("\\s+");
             String geneName = namePieces[0];
 
@@ -74,57 +82,97 @@ public class CortexSketch extends Tool {
             }
         }
 
+        //System.out.println("Total sequence length: " + totalSequenceLength);
+        //System.out.println("Total kmers loaded (before pruning multi-copy kmers): " + kmerMap.size());
+
         for (String kmer : kmerCoverageMap.keySet()) {
             if (kmerCoverageMap.get(kmer) > 1) {
                 kmerMap.remove(kmer);
             }
         }
 
+        //System.out.println("Total kmers loaded (after pruning multi-copy kmers): " + kmerMap.size());
+
         return kmerMap;
+    }
+
+    public HashMap<String, Integer> getKmerCountsPerGene(HashMap<String, String> kmerMap) {
+        HashMap<String, Integer> kmerCountsPerGene = new HashMap<String, Integer>();
+
+        for (String kmer : kmerMap.keySet()) {
+            String gene = kmerMap.get(kmer);
+            if (!kmerCountsPerGene.containsKey(gene)) {
+                kmerCountsPerGene.put(gene, 1);
+            } else {
+                kmerCountsPerGene.put(gene, kmerCountsPerGene.get(gene) + 1);
+            }
+        }
+
+        return kmerCountsPerGene;
     }
 
     public int execute() {
         HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
+        HashMap<String, Integer> totalKmerCountsPerGene = getKmerCountsPerGene(kmerMap);
 
-        System.out.println("Total kmers loaded: " + kmerMap.size());
+        HashMap<String, HashMap<String, Integer>> kmerCountsPerGenePerColor = new HashMap<String, HashMap<String, Integer>>();
 
-        for (CortexRecord cr : CORTEX_GRAPH) {
-            int color = CORTEX_GRAPH.getColorForSampleName("genes");
+        int genesColor = CORTEX_GRAPH.getColorForSampleName("genes");
 
-            if (color >= 0) {
-                if (cr.getCoverages()[color] == 1) {
+        if (genesColor >= 0) {
+            for (CortexRecord cr : CORTEX_GRAPH) {
+                if (cr.getCoverages()[genesColor] == 1) {
                     String kmer = cr.getKmerString();
 
                     if (kmerMap.containsKey(kmer)) {
                         String geneName = kmerMap.get(kmer);
+                        //System.out.println(geneName + " " + cr);
 
-                        System.out.println(geneName + " " + cr);
+                        for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
+                            if (cr.getCoverages()[color] == 1) {
+                                String sampleName = CORTEX_GRAPH.getColor(color).getSampleName();
+
+                                if (!kmerCountsPerGenePerColor.containsKey(sampleName)) {
+                                    kmerCountsPerGenePerColor.put(sampleName, new HashMap<String, Integer>());
+                                }
+
+                                if (!kmerCountsPerGenePerColor.get(sampleName).containsKey(geneName)) {
+                                    kmerCountsPerGenePerColor.get(sampleName).put(geneName, 1);
+                                } else {
+                                    kmerCountsPerGenePerColor.get(sampleName).put(geneName, kmerCountsPerGenePerColor.get(sampleName).get(geneName) + 1);
+                                }
+                            }
+                        }
+
                     }
                 }
             }
+        } else {
+            // yell at user
+        }
+
+        out.print("gene\ttotal\t");
+
+        String[] sampleNames = kmerCountsPerGenePerColor.keySet().toArray(new String[0]);
+        for (String sampleName : sampleNames) {
+            out.print("\t" + sampleName);
+        }
+        out.println();
+
+        for (String geneName : totalKmerCountsPerGene.keySet()) {
+            out.print(geneName + "\t" + totalKmerCountsPerGene.get(geneName));
+
+            for (String sampleName : sampleNames) {
+                if (kmerCountsPerGenePerColor.containsKey(sampleName) && kmerCountsPerGenePerColor.get(sampleName).containsKey(geneName)) {
+                    out.print("\t" + kmerCountsPerGenePerColor.get(sampleName).get(geneName));
+                } else {
+                    out.print("\t" + -1);
+                }
+            }
+
+            out.println();
         }
 
         return 0;
     }
-
-    /*
-    public void setup() {
-        HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
-
-//        System.out.println(CORTEX_GRAPH);
-//        System.out.println(GENES_FASTA);
-
-//        for (CortexRecord cr : CORTEX_GRAPH) {
-//            System.out.println(cr);
-//        }
-
-        size(400, 400);
-    }
-
-    public void draw() {
-        if (mousePressed) {
-            ellipse(mouseX, mouseY, 20, 20);
-        }
-    }
-    */
 }
