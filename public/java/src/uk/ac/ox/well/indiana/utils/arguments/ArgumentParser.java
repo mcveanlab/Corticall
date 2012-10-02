@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.arguments;
 
+import net.sf.picard.reference.FastaSequenceFile;
 import org.apache.commons.cli.*;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -88,6 +89,8 @@ public class ArgumentParser {
                 field.set(instance, value);
             } else if (type.equals(CortexGraph.class)) {
                 field.set(instance, new CortexGraph(value));
+            } else if (type.equals(FastaSequenceFile.class)) {
+                field.set(instance, new FastaSequenceFile(new File(value), false));
             } else {
                 throw new RuntimeException("Don't know how to automatically handle field type '" + type.getSimpleName() + "' for field '" + field.getName() + "'");
             }
