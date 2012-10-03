@@ -61,13 +61,24 @@ public class CortexSketch extends Tool {
         HashMap<String, String> kmerMap = new HashMap<String, String>();
         HashMap<String, Integer> kmerCoverageMap = new HashMap<String, Integer>();
 
+        HashSet<String> geneNames = new HashSet<String>();
+
         ReferenceSequence seq;
         int totalSequenceLength = 0;
+        int numGenes = 0;
+        int tinyGenes = 0;
         while ((seq = genes.nextSequence()) != null) {
             totalSequenceLength += seq.length();
 
             String[] namePieces = seq.getName().split("\\s+");
             String geneName = namePieces[0];
+
+            geneNames.add(geneName);
+
+            if (seq.length() < kmerSize) {
+                System.out.println("Gene '" + geneName + "' is smaller than the kmer size");
+                tinyGenes++;
+            }
 
             for (int i = 0; i < seq.length() - kmerSize; i++) {
                 String kmer = new String(getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
@@ -80,7 +91,20 @@ public class CortexSketch extends Tool {
                     kmerCoverageMap.put(kmer, kmerCoverageMap.get(kmer) + 1);
                 }
             }
+
+            numGenes++;
         }
+
+        HashSet<String> genesInMap = new HashSet<String>();
+        for (String kmer : kmerMap.keySet()) {
+            genesInMap.add(kmerMap.get(kmer));
+        }
+
+        System.out.println("Number of gene names: " + geneNames.size());
+        System.out.println("Number of genes seen: " + numGenes);
+        System.out.println("Number of genes smaller than kmer size: " + tinyGenes);
+        System.out.println("Number of remaining genes: " + (numGenes - tinyGenes));
+        System.out.println("Number of genes in map: " + genesInMap.size());
 
         //System.out.println("Total sequence length: " + totalSequenceLength);
         //System.out.println("Total kmers loaded (before pruning multi-copy kmers): " + kmerMap.size());
@@ -88,6 +112,19 @@ public class CortexSketch extends Tool {
         for (String kmer : kmerCoverageMap.keySet()) {
             if (kmerCoverageMap.get(kmer) > 1) {
                 kmerMap.remove(kmer);
+            }
+        }
+
+        genesInMap.clear();
+        for (String kmer : kmerMap.keySet()) {
+            genesInMap.add(kmerMap.get(kmer));
+        }
+
+        System.out.println("Number of genes in map after pruning: " + genesInMap.size());
+
+        for (String geneName : geneNames) {
+            if (!genesInMap.contains(geneName)) {
+                System.out.println("Gene '" + geneName + "' was removed from the gene list.");
             }
         }
 
@@ -115,6 +152,8 @@ public class CortexSketch extends Tool {
         HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
         HashMap<String, Integer> totalKmerCountsPerGene = getKmerCountsPerGene(kmerMap);
 
+        System.out.println("Number of genes in map: " + totalKmerCountsPerGene.size());
+
         HashMap<String, HashMap<String, Integer>> kmerCountsPerGenePerColor = new HashMap<String, HashMap<String, Integer>>();
 
         int genesColor = CORTEX_GRAPH.getColorForSampleName("genes");
@@ -122,9 +161,17 @@ public class CortexSketch extends Tool {
         if (genesColor >= 0) {
             for (CortexRecord cr : CORTEX_GRAPH) {
                 if (cr.getCoverages()[genesColor] == 1) {
-                    String kmer = cr.getKmerString();
+                    String fw = cr.getKmerString();
+                    String rc = new String(getReverseComplement(cr.getKmer()));
 
-                    if (kmerMap.containsKey(kmer)) {
+                    String kmer = null;
+                    if (kmerMap.containsKey(fw)) {
+                        kmer = fw;
+                    } else if (kmerMap.containsKey(rc)) {
+                        kmer = rc;
+                    }
+
+                    if (kmer != null && kmerMap.containsKey(kmer)) {
                         String geneName = kmerMap.get(kmer);
                         //System.out.println(geneName + " " + cr);
 
@@ -143,7 +190,6 @@ public class CortexSketch extends Tool {
                                 }
                             }
                         }
-
                     }
                 }
             }
