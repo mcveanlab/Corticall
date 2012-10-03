@@ -18,6 +18,9 @@
         <!-- JGraphT -->
         <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
 
+        <!-- TestNG -->
+        <dependency org="org.testng" name="testng" rev="6.8" />
+
         <!-- Processing (local repo) -->
         <dependency org="org.processing" name="core" rev="2.0b3" />
 

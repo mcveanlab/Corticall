@@ -7,12 +7,13 @@
 <project name="indiana" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute INDIANA</description>
 
-    <property name="src.dir" value="public/java/src" />
+    <property name="src.dir" value="public/java" />
     <property name="lib.dir" value="lib" />
     <property name="build.dir" value="build" />
     <property name="jars.dir" value="build/jars" />
     <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
+    <property name="testng.dir" value="test" />
 
 	<property name="ivy.install.version" value="2.3.0-rc1" />
 	<property name="ivy.jar.dir" value="${lib.dir}" />
@@ -20,6 +21,7 @@
     <property name="ivy.settings.dir" value="settings"/>
     <property file="${ivy.settings.dir}/ivysettings.properties"/>
 
+    <!-- If we don't have ivy already, download and install it -->
     <target name="install-ivy" description="install ivy">
     	<mkdir dir="${ivy.jar.dir}"/>
 
@@ -35,12 +37,14 @@
         <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
     </target>    
 
+    <!-- Configure ivy for dependency resolution -->
     <target name="resolve" depends="install-ivy" unless="skip.download" description="locate and download library dependencies">
         <property name="ivy.conf" value="default"/>
 
         <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
     </target>
 
+    <!-- Set things up (directories, file copies, etc.) -->
     <target name="init" depends="resolve">
         <tstamp>
             <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
@@ -61,6 +65,7 @@
         </pathconvert>
     </target>
 
+    <!-- Compile everything into individual jar files -->
     <target name="compile" depends="init" description="compile distribution">
         <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
             <classpath>  
@@ -82,6 +87,7 @@
         </jar>
     </target>
 
+    <!-- Prepare to make a jar file with all the INDIANA code and dependencies -->
     <target name="stage" description="stage files for distribution">
         <unjar dest="${staging.dir}" overwrite="false">
             <fileset dir="${jars.dir}"/>
@@ -92,6 +98,7 @@
         </unjar>
     </target>
 
+    <!-- Create a single executable jar with all of the INDIANA and dependency code wrapped up -->
     <target name="dist" depends="compile,stage" description="bundle up an executable for distribution">
         <mkdir dir="${dist.dir}" />
 
@@ -106,12 +113,40 @@
         </jar>
     </target>
 
+    <!-- Unit tests -->
+    <target name="test" depends="compile">
+        <mkdir dir="${testng.dir}"/>
+
+        <taskdef name="testng" classname="org.testng.TestNGAntTask">
+            <classpath>
+                <pathelement location="${jars.dir}/testng-6.8.jar"/>
+            </classpath>
+        </taskdef>
+ 
+        <testng outputDir="${testng.dir}" haltOnFailure="true" verbose="2">
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="**/*.jar"/>
+                </fileset>
+                <fileset dir="${build.dir}">
+                    <include name="**/*Test.class"/>
+                </fileset>
+            </classpath>
+
+            <!--<classfileset dir="${build.dir}" includes="**/*Test.class" />-->
+
+            <xmlfileset dir="." includes="testng.xml"/>
+        </testng>
+    </target>
+
+    <!-- Clean everything up -->
     <target name="clean" description="clean the project">
         <delete includeemptydirs="true" quiet="true">
             <fileset dir="${lib.dir}" />
             <fileset dir="${build.dir}" />
             <fileset dir="${staging.dir}" />
             <fileset dir="${dist.dir}" />
+            <fileset dir="${testng.dir}" />
     	</delete>
     </target>
 </project>

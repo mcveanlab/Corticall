@@ -197,7 +197,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         try {
             long[] binaryKmer = new long[kmerBits];
             for (int bits = 0; bits < kmerBits; bits++) {
-                binaryKmer[bits] = in.readUnsignedLong();
+                binaryKmer[bits] = in.readLong();
             }
 
             int[] coverages = new int[numColors];
