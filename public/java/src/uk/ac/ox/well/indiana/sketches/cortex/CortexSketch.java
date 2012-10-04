@@ -161,15 +161,17 @@ public class CortexSketch extends Tool {
         if (genesColor >= 0) {
             for (CortexRecord cr : CORTEX_GRAPH) {
                 if (cr.getCoverages()[genesColor] == 1) {
-                    String fw = cr.getKmerString();
-                    String rc = new String(getReverseComplement(cr.getKmer()));
+                    String kmer = cr.getKmerString();
 
-                    String kmer = null;
-                    if (kmerMap.containsKey(fw)) {
-                        kmer = fw;
-                    } else if (kmerMap.containsKey(rc)) {
-                        kmer = rc;
-                    }
+//                    String fw = cr.getKmerString();
+//                    String rc = new String(getReverseComplement(cr.getKmer()));
+//
+//                    String kmer = null;
+//                    if (kmerMap.containsKey(fw)) {
+//                        kmer = fw;
+//                    } else if (kmerMap.containsKey(rc)) {
+//                        kmer = rc;
+//                    }
 
                     if (kmer != null && kmerMap.containsKey(kmer)) {
                         String geneName = kmerMap.get(kmer);
