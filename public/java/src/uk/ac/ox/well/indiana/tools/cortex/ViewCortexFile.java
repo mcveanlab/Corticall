@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.tools.examples;
+package uk.ac.ox.well.indiana.tools.cortex;
 
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

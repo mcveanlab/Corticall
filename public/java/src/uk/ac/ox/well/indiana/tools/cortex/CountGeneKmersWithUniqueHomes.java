@@ -1,22 +1,20 @@
-package uk.ac.ox.well.indiana.sketches.cortex;
+package uk.ac.ox.well.indiana.tools.cortex;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexColor;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class CortexSketch extends Tool {
+public class CountGeneKmersWithUniqueHomes extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="A binary Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
@@ -25,37 +23,6 @@ public class CortexSketch extends Tool {
 
     @Output
     public PrintStream out;
-
-    private byte[] getReverseComplement(byte[] kmer) {
-        byte[] rc = new byte[kmer.length];
-
-        for (int i = 0; i < kmer.length; i++) {
-            byte rcBase = 'N';
-            switch (kmer[i]) {
-                case 'A':
-                    rcBase = 'T'; break;
-                case 'C':
-                    rcBase = 'G'; break;
-                case 'G':
-                    rcBase = 'C'; break;
-                case 'T':
-                    rcBase = 'A'; break;
-            }
-
-            rc[kmer.length - 1 - i] = rcBase;
-        }
-
-        return rc;
-    }
-
-    private byte[] getCortexCompatibleOrientation(byte[] kmer) {
-        byte[] rc = getReverseComplement(kmer);
-
-        String kmerStr = new String(kmer);
-        String rcStr = new String(rc);
-
-        return (kmerStr.compareTo(rcStr) < 0) ? kmer : rc;
-    }
 
     private HashMap<String, String> loadGeneKmers(FastaSequenceFile genes, int kmerSize) {
         HashMap<String, String> kmerMap = new HashMap<String, String>();
@@ -81,14 +48,17 @@ public class CortexSketch extends Tool {
             }
 
             for (int i = 0; i < seq.length() - kmerSize; i++) {
-                String kmer = new String(getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
+                String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
 
-                kmerMap.put(kmer, geneName);
+                kmer = kmer.toUpperCase();
+                if (!kmer.contains("N") && !kmer.contains(".")) {
+                    kmerMap.put(kmer, geneName);
 
-                if (!kmerCoverageMap.containsKey(kmer)) {
-                    kmerCoverageMap.put(kmer, 1);
-                } else {
-                    kmerCoverageMap.put(kmer, kmerCoverageMap.get(kmer) + 1);
+                    if (!kmerCoverageMap.containsKey(kmer)) {
+                        kmerCoverageMap.put(kmer, 1);
+                    } else {
+                        kmerCoverageMap.put(kmer, kmerCoverageMap.get(kmer) + 1);
+                    }
                 }
             }
 
@@ -163,19 +133,8 @@ public class CortexSketch extends Tool {
                 if (cr.getCoverages()[genesColor] == 1) {
                     String kmer = cr.getKmerString();
 
-//                    String fw = cr.getKmerString();
-//                    String rc = new String(getReverseComplement(cr.getKmer()));
-//
-//                    String kmer = null;
-//                    if (kmerMap.containsKey(fw)) {
-//                        kmer = fw;
-//                    } else if (kmerMap.containsKey(rc)) {
-//                        kmer = rc;
-//                    }
-
                     if (kmer != null && kmerMap.containsKey(kmer)) {
                         String geneName = kmerMap.get(kmer);
-                        //System.out.println(geneName + " " + cr);
 
                         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                             if (cr.getCoverages()[color] == 1) {

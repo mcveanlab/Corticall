@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-public class CortexRecord {
+public class CortexRecord implements Comparable<CortexRecord> {
     private long[] binaryKmer;
     private byte[] rawKmer;
     private int[] coverages;
@@ -127,5 +127,9 @@ public class CortexRecord {
 
     public int hashCode() {
         return Arrays.hashCode(binaryKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+    }
+
+    public int compareTo(CortexRecord cortexRecord) {
+        return getKmerString().compareTo(cortexRecord.getKmerString());
     }
 }

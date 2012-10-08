@@ -1,11 +1,15 @@
 package uk.ac.ox.well.indiana.utils.io.cortex;
 
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
+import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
 
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,6 +28,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
+    private MappedByteBuffer mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
 
     public CortexGraph(String cortexFilePath) {
@@ -130,6 +135,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             }
 
             dataOffset = in.getFilePointer();
+            mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, in.getChannel().size() - dataOffset);
 
             nextRecord = getNextRecord();
         } catch (FileNotFoundException e) {
@@ -176,6 +182,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
         info += "----" + "\n";
         info += "kmers: " + getNumRecords() + "\n";
+        info += "record size: " + (8*kmerBits + 4*numColors + 1*numColors) + " bytes" + "\n";
         info += "----" + "\n";
 
         return info;
@@ -185,7 +192,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         try {
             long size = in.getChannel().size();
 
-            long dataSize = size - dataOffset;
+            long dataSize = size - getDataOffset();
 
             return dataSize / (8*kmerBits + 4*numColors + 1*numColors);
         } catch (IOException e) {
@@ -194,6 +201,26 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     private CortexRecord getNextRecord() {
+        long[] binaryKmer = new long[kmerBits];
+        for (int bits = 0; bits < kmerBits; bits++) {
+            binaryKmer[bits] = mappedRecordBuffer.getLong();
+        }
+
+        int[] coverages = new int[numColors];
+        for (int color = 0; color < numColors; color++) {
+            byte[] coverage = new byte[4];
+            mappedRecordBuffer.get(coverage);
+            coverages[color] = BinaryUtils.toUnsignedInt(coverage);
+        }
+
+        byte[] edges = new byte[numColors];
+        for (int color = 0; color < numColors; color++) {
+            edges[color] = mappedRecordBuffer.get();
+        }
+        return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
+    }
+
+    private CortexRecord oldGetNextRecord() {
         try {
             long[] binaryKmer = new long[kmerBits];
             for (int bits = 0; bits < kmerBits; bits++) {
