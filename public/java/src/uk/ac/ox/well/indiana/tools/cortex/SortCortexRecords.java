@@ -22,35 +22,32 @@ public class SortCortexRecords extends Tool {
         TreeSet<CortexRecord> sortedRecords = new TreeSet<CortexRecord>();
 
         long recordsSeen = 0;
+        long recordsWritten = 0;
         long recordsTotal = CORTEX_GRAPH.getNumRecords();
-
-        Date startDate = new Date();
 
         for (CortexRecord cr : CORTEX_GRAPH) {
             sortedRecords.add(cr);
 
             recordsSeen++;
             if (recordsSeen % 100000 == 0) {
-                Date date = new Date();
-                System.out.println(date +  ": records seen: " + recordsSeen + "/" + recordsTotal);
-                System.out.println(cr);
-            }
-
-            if (recordsSeen > 1000000) {
-                break;
+                System.out.println("records seen: " + recordsSeen + "/" + recordsTotal);
             }
         }
 
-        Date endDate = new Date();
-        long dateDiff = endDate.getTime() - startDate.getTime();
+        System.out.println("loaded " + recordsSeen + "/" + recordsTotal);
 
-        System.out.println("loaded " + recordsSeen + "/" + recordsTotal + " in " + dateDiff + " milliseconds.");
+        out.println(CORTEX_GRAPH);
 
-//        out.println(CORTEX_GRAPH);
-//
-//        for (CortexRecord cr : sortedRecords) {
-//            out.println(cr);
-//        }
+        for (CortexRecord cr : sortedRecords) {
+            out.println(cr);
+
+            recordsWritten++;
+            if (recordsWritten % 100000 == 0) {
+                System.out.println("records written: " + recordsWritten + "/" + recordsTotal);
+            }
+        }
+
+        System.out.println("wrote " + recordsWritten + "/" + recordsTotal);
 
         return 0;
     }
