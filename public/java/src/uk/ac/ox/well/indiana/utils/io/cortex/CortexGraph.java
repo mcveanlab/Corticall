@@ -24,7 +24,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private int kmerSize;
     private int kmerBits;
     private int numColors;
-    private long dataOffset;
+    private long numRecords;
+    //private long dataOffset;
 
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
@@ -135,7 +136,11 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 throw new RuntimeException("We didn't see a proper header terminator at the expected place in Cortex graph '" + cortexFile.getAbsolutePath() + "'");
             }
 
-            dataOffset = in.getFilePointer();
+            long size = in.getChannel().size();
+            long dataOffset = in.getFilePointer();
+            long dataSize = size - dataOffset;
+            numRecords = dataSize / (8*kmerBits + 4*numColors + 1*numColors);
+
             mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, in.getChannel().size() - dataOffset);
 
             nextRecord = getNextRecord();
@@ -157,8 +162,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     public int getNumColors() { return numColors; }
 
     public ArrayList<CortexColor> getColors() { return colors; }
-
-    public long getDataOffset() { return dataOffset; }
 
     public String toString() {
         String info = "file: " + cortexFile.getAbsolutePath() + "\n"
@@ -183,22 +186,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
         info += "----" + "\n";
         info += "kmers: " + getNumRecords() + "\n";
-        info += "record size: " + (8*kmerBits + 4*numColors + 1*numColors) + " bytes" + "\n";
         info += "----" + "\n";
 
         return info;
     }
 
     public long getNumRecords() {
-        try {
-            long size = in.getChannel().size();
-
-            long dataSize = size - getDataOffset();
-
-            return dataSize / (8*kmerBits + 4*numColors + 1*numColors);
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to determine number of Cortex records present: " + e);
-        }
+        return numRecords;
     }
 
     private CortexRecord getNextRecord() {

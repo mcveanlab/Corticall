@@ -36,7 +36,7 @@ public class SortCortexRecords extends Tool {
 
         System.out.println("loaded " + recordsSeen + "/" + recordsTotal);
 
-        out.println(CORTEX_GRAPH);
+        //out.println(CORTEX_GRAPH);
 
         for (CortexRecord cr : sortedRecords) {
             out.println(cr);
