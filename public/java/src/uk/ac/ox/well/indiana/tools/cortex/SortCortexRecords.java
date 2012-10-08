@@ -14,6 +14,9 @@ public class SortCortexRecords extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
+    @Argument(fullName="genesSampleName", shortName="gsn", doc="Sample name for genes color in Cortex file")
+    public String GENES_SAMPLE_NAME = "genes";
+
     @Output
     public PrintStream out;
 
@@ -25,12 +28,16 @@ public class SortCortexRecords extends Tool {
         long recordsWritten = 0;
         long recordsTotal = CORTEX_GRAPH.getNumRecords();
 
-        for (CortexRecord cr : CORTEX_GRAPH) {
-            sortedRecords.add(cr);
+        int genesColor = CORTEX_GRAPH.getColorForSampleName(GENES_SAMPLE_NAME);
 
-            recordsSeen++;
-            if (recordsSeen % 100000 == 0) {
-                System.out.println("records seen: " + recordsSeen + "/" + recordsTotal);
+        for (CortexRecord cr : CORTEX_GRAPH) {
+            if (cr.getCoverages()[genesColor] > 0) {
+                sortedRecords.add(cr);
+
+                recordsSeen++;
+                if (recordsSeen % 100000 == 0) {
+                    System.out.println("records seen: " + recordsSeen + "/" + recordsTotal);
+                }
             }
         }
 
