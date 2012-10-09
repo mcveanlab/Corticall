@@ -5,15 +5,20 @@ import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class ExtractTranscriptsFromFasta extends Tool {
     @Argument(fullName="fasta", shortName="f", doc="Fasta file from which sequences should be extracted")
     public FastaSequenceFile FASTA;
+
+    @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
+    public Integer KMER_SIZE;
 
     @Argument(fullName="gff", shortName="gff", doc="The GFF file with the transcript definitions")
     public File REGIONS;
@@ -94,8 +99,32 @@ public class ExtractTranscriptsFromFasta extends Tool {
     public int execute() {
         HashMap<String, ArrayList<Transcript>> transcripts = loadGFFFile(REGIONS);
 
-        ReferenceSequence contig;
-        while ((contig = FASTA.nextSequence()) != null) {
+        ArrayList<ReferenceSequence> contigs = new ArrayList<ReferenceSequence>();
+        HashMap<Integer, Integer> kmerHash = new HashMap<Integer, Integer>();
+
+        ReferenceSequence c;
+        while ((c = FASTA.nextSequence()) != null) {
+            System.out.println(c);
+            contigs.add(c);
+
+            byte[] b = c.getBases();
+            for (int i = 0; i < b.length - KMER_SIZE; i++) {
+                byte[] b1 = Arrays.copyOfRange(b, i, i + KMER_SIZE);
+
+                String b2 = new String(SequenceUtils.getCortexCompatibleOrientation(b1));
+                int b2hashCode = b2.hashCode();
+
+                if (!kmerHash.containsKey(b2hashCode)) {
+                    kmerHash.put(b2hashCode, 1);
+                } else {
+                    kmerHash.put(b2hashCode, kmerHash.get(b2hashCode) + 1);
+                }
+            }
+        }
+
+        for (ReferenceSequence contig : contigs) {
+            System.out.println(contig);
+
             String[] name = contig.getName().split("\\s+");
             String contigName = name[0];
 
@@ -103,12 +132,16 @@ public class ExtractTranscriptsFromFasta extends Tool {
 
             if (transcripts.containsKey(contigName)) {
                 for (Transcript t : transcripts.get(contigName)) {
-                    //out.println(t);
-
                     byte[] transcriptBases = Arrays.copyOfRange(bases, t.getStart()-1, t.getStop());
 
-                    out.println(">" + t.getName());
-                    out.println(new String(transcriptBases));
+                    for (int i = 0; i < transcriptBases.length - KMER_SIZE; i++) {
+                        String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(transcriptBases, i, i + KMER_SIZE)));
+
+                        if (kmerHash.containsKey(kmer.hashCode()) && kmerHash.get(kmer.hashCode()) == 1) {
+                            out.println(">" + t.getName() + "." + kmer.hashCode());
+                            out.println(kmer);
+                        }
+                    }
                 }
             }
         }
