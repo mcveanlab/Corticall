@@ -127,10 +127,11 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
         HashMap<String, HashMap<String, Integer>> kmerCountsPerGenePerColor = new HashMap<String, HashMap<String, Integer>>();
 
         int genesColor = CORTEX_GRAPH.getColorForSampleName("genes");
+        int p3D7Color = CORTEX_GRAPH.getColorForSampleName("3D7");
 
         if (genesColor >= 0) {
             for (CortexRecord cr : CORTEX_GRAPH) {
-                if (cr.getCoverages()[genesColor] == 1) {
+                if (cr.getCoverages()[genesColor] == 1 && cr.getCoverages()[p3D7Color] == 1) {
                     String kmer = cr.getKmerString();
 
                     if (kmer != null && kmerMap.containsKey(kmer)) {
