@@ -35,7 +35,7 @@ public class SortCortexRecords extends Tool {
         while ((seq = fasta.nextSequence()) != null) {
             String[] names = seq.getName().split("\\s+");
 
-            if (GENE_NAME == null || names[0].equalsIgnoreCase(GENE_NAME)) {
+            if (GENE_NAME == null || names[0].equalsIgnoreCase(geneName)) {
                 for (int i = 0; i < seq.length() - kmerSize; i++) {
                     String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i+kmerSize)));
 
@@ -50,6 +50,10 @@ public class SortCortexRecords extends Tool {
     @Override
     public int execute() {
         HashMap<String, String> geneMap = loadGenesMap(GENES_FASTA, GENE_NAME, CORTEX_GRAPH.getKmerSize());
+
+        for (String kmer : geneMap.keySet()) {
+            System.out.println(kmer + " " + geneMap.get(kmer));
+        }
 
         TreeSet<CortexRecord> sortedRecords = new TreeSet<CortexRecord>();
 
