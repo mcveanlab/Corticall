@@ -21,10 +21,6 @@
         <!-- TestNG -->
         <dependency org="org.testng" name="testng" rev="6.8" />
 
-        <!-- BioJava (local repo) -->
-        <dependency org="org.biojava" name="biojava3-core" rev="3.0.4" />
-        <dependency org="org.biojava" name="biojava3-genome" rev="3.0.4" />
-
         <!-- Processing (local repo) -->
         <dependency org="org.processing" name="core" rev="2.0b3" />
 

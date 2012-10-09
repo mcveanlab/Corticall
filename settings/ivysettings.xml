@@ -8,7 +8,6 @@
                 <ivy pattern="${repository.dir}/[organisation]/[module]-[revision].xml" />
             </filesystem>
             <ibiblio name="maven" root="http://repo1.maven.org/maven2" m2compatible="true" />
-            <ibiblio name="biojava" root="http://biojava.org/download/maven" m2compatible="true" />
         </chain>
     </resolvers>
 </ivysettings>
