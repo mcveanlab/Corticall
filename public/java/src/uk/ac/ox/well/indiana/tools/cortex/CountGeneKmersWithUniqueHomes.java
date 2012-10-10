@@ -21,6 +21,12 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
     @Argument(fullName="genesFasta", shortName="gf", doc="A FASTA-format genes file")
     public FastaSequenceFile GENES_FASTA;
 
+    @Argument(fullName="coverageMin", shortName="covmin", doc="Minimum coverage level to look for")
+    public Integer COVERAGE_MIN = 1;
+
+    @Argument(fullName="coverageMax", shortName="covmax", doc="Minimum coverage level to look for")
+    public Integer COVERAGE_MAX = 1;
+
     @Output
     public PrintStream out;
 
@@ -138,7 +144,7 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
                         String geneName = kmerMap.get(kmer);
 
                         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
-                            if (cr.getCoverages()[color] == 1) {
+                            if (cr.getCoverages()[color] >= COVERAGE_MIN && cr.getCoverages()[color] <= COVERAGE_MAX) {
                                 String sampleName = CORTEX_GRAPH.getColor(color).getSampleName();
 
                                 if (!kmerCountsPerGenePerColor.containsKey(sampleName)) {
