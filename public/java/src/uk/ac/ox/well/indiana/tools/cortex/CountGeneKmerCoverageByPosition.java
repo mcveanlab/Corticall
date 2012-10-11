@@ -21,8 +21,8 @@ public class CountGeneKmerCoverageByPosition extends Tool {
     @Argument(fullName="genesFasta", shortName="gf", doc="Genes fasta file")
     public FastaSequenceFile GENES_FASTA;
 
-    @Argument(fullName="geneName", shortName="gn", doc="Gene name")
-    public String GENE_NAME;
+    //@Argument(fullName="geneName", shortName="gn", doc="Gene name")
+    //public String GENE_NAME;
 
     @Output
     public PrintStream out;
@@ -32,7 +32,7 @@ public class CountGeneKmerCoverageByPosition extends Tool {
         public int pos;
     }
 
-    private HashMap<Integer, GeneNameAndPosition> loadGeneKmers(FastaSequenceFile genesFasta, int kmerSize, String geneName) {
+    private HashMap<Integer, GeneNameAndPosition> loadGeneKmers(FastaSequenceFile genesFasta, int kmerSize) {
         HashMap<Integer, GeneNameAndPosition> geneKmers = new HashMap<Integer, GeneNameAndPosition>();
 
         ReferenceSequence seq;
@@ -40,18 +40,16 @@ public class CountGeneKmerCoverageByPosition extends Tool {
             String[] names = seq.getName().split("\\s+");
             String name = names[0];
 
-            if (name.equalsIgnoreCase(geneName)) {
-                byte[] b = seq.getBases();
+            byte[] b = seq.getBases();
 
-                for (int i = 0; i < b.length - kmerSize; i++) {
-                    String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
+            for (int i = 0; i < b.length - kmerSize; i++) {
+                String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
 
-                    GeneNameAndPosition gnp = new GeneNameAndPosition();
-                    gnp.geneName = name;
-                    gnp.pos = i;
+                GeneNameAndPosition gnp = new GeneNameAndPosition();
+                gnp.geneName = name;
+                gnp.pos = i;
 
-                    geneKmers.put(kmer.hashCode(), gnp);
-                }
+                geneKmers.put(kmer.hashCode(), gnp);
             }
         }
 
@@ -60,7 +58,7 @@ public class CountGeneKmerCoverageByPosition extends Tool {
 
     @Override
     public int execute() {
-        HashMap<Integer, GeneNameAndPosition> geneKmers = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize(), GENE_NAME);
+        HashMap<Integer, GeneNameAndPosition> geneKmers = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
         HashMap<String, TreeMap<Integer, HashMap<String, Integer>>> kmerCoverage = new HashMap<String, TreeMap<Integer, HashMap<String, Integer>>>();
 
         int colorGenes = CORTEX_GRAPH.getColorForSampleName("genes");
@@ -81,17 +79,17 @@ public class CountGeneKmerCoverageByPosition extends Tool {
                         GeneNameAndPosition gnp = geneKmers.get(kmer.hashCode());
 
                         if (!kmerCoverage.containsKey(gnp.geneName)) {
-                            kmerCoverage.put(GENE_NAME, new TreeMap<Integer, HashMap<String, Integer>>());
+                            kmerCoverage.put(gnp.geneName, new TreeMap<Integer, HashMap<String, Integer>>());
                         }
 
-                        if (!kmerCoverage.get(GENE_NAME).containsKey(gnp.pos)) {
-                            kmerCoverage.get(GENE_NAME).put(gnp.pos, new HashMap<String, Integer>());
+                        if (!kmerCoverage.get(gnp.geneName).containsKey(gnp.pos)) {
+                            kmerCoverage.get(gnp.geneName).put(gnp.pos, new HashMap<String, Integer>());
                         }
 
                         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                             String sampleName = CORTEX_GRAPH.getColor(color).getSampleName();
 
-                            kmerCoverage.get(GENE_NAME).get(gnp.pos).put(sampleName, cr.getCoverages()[color]);
+                            kmerCoverage.get(gnp.geneName).get(gnp.pos).put(sampleName, cr.getCoverages()[color]);
                         }
                     }
                 }
