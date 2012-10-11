@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.tools.cortex;
+package uk.ac.ox.well.indiana.tools.old;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
