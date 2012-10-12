@@ -21,8 +21,8 @@ public class CountGeneKmerCoverageByPosition extends Tool {
     @Argument(fullName="genesFasta", shortName="gf", doc="Genes fasta file")
     public FastaSequenceFile GENES_FASTA;
 
-    //@Argument(fullName="geneName", shortName="gn", doc="Gene name")
-    //public String GENE_NAME;
+    @Argument(fullName="geneName", shortName="gn", doc="Gene name")
+    public String GENE_NAME;
 
     @Output
     public PrintStream out;
@@ -40,16 +40,18 @@ public class CountGeneKmerCoverageByPosition extends Tool {
             String[] names = seq.getName().split("\\s+");
             String name = names[0];
 
-            byte[] b = seq.getBases();
+            if (name.contains(GENE_NAME)) {
+                byte[] b = seq.getBases();
 
-            for (int i = 0; i < b.length - kmerSize; i++) {
-                String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
+                for (int i = 0; i < b.length - kmerSize; i++) {
+                    String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
 
-                GeneNameAndPosition gnp = new GeneNameAndPosition();
-                gnp.geneName = name;
-                gnp.pos = i;
+                    GeneNameAndPosition gnp = new GeneNameAndPosition();
+                    gnp.geneName = name;
+                    gnp.pos = i;
 
-                geneKmers.put(kmer.hashCode(), gnp);
+                    geneKmers.put(kmer.hashCode(), gnp);
+                }
             }
         }
 
