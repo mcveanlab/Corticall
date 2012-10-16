@@ -5,6 +5,7 @@ import uk.ac.ox.well.indiana.tools.Tool;
 public class IRunner {
     private IRunner() {}
 
+    @SuppressWarnings("unchecked")
     public static void main(String moduleName, String[] moduleArgs) {
         try {
             Class<? extends Tool> module = (Class<? extends Tool>) Class.forName(moduleName);

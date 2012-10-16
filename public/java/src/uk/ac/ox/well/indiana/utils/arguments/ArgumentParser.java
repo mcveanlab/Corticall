@@ -5,11 +5,12 @@ import org.apache.commons.cli.*;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 public class ArgumentParser {
     private ArgumentParser() {}
@@ -36,7 +37,7 @@ public class ArgumentParser {
 
                         Output out = (Output) annotation;
 
-                        String description = out.doc() + " [default: " + field.get(instance) + "]";
+                        String description = out.doc() + " [default: /dev/stdout]";
                         Boolean hasArgument = !field.getType().equals(Boolean.class);
 
                         Option option = new Option(out.shortName(), out.fullName(), hasArgument, description);
@@ -97,6 +98,50 @@ public class ArgumentParser {
             throw new RuntimeException("Error when accessing field: " + e);
         }
     }
+
+    /*
+    private static void handleArgumentTypes(IndianaModule instance, Field field, String value) {
+       try {
+           Class<?> type = field.getType();
+
+           //if (type.isArray()) {
+           if (Collection.class.isAssignableFrom(type)) {
+               ArrayList<String> values = new ArrayList<String>();
+
+               File valueAsFile = new File(value);
+               if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
+                   BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
+
+                   String line;
+                   while ((line = reader.readLine()) != null) {
+                       values.add(line);
+                   }
+               } else if (value.contains(",")) {
+                   values.addAll(Arrays.asList(value.split(",")));
+               }
+
+
+
+               System.out.println(type.getComponentType());
+               System.out.println(arrayInstance.getClass().getComponentType());
+
+               for (int i = 0; i < arrayInstance.length; i++) {
+                   //arrayInstance[i] = (Object) values.get(i);
+               }
+
+               field.set(instance, arrayInstance);
+           } else {
+
+           }
+       } catch (FileNotFoundException e) {
+           e.printStackTrace();
+       } catch (IOException e) {
+           e.printStackTrace();
+       } catch (IllegalAccessException e) {
+           e.printStackTrace();
+       }
+    }
+    */
 
     private static void handleArgumentTypes(IndianaModule instance, Field field, String value) {
         try {

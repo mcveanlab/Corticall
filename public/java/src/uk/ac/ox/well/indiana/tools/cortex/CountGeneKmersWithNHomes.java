@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.tools.old;
+package uk.ac.ox.well.indiana.tools.cortex;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class CountGeneKmersWithUniqueHomes extends Tool {
+public class CountGeneKmersWithNHomes extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="A binary Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
@@ -37,21 +37,11 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
         HashSet<String> geneNames = new HashSet<String>();
 
         ReferenceSequence seq;
-        int totalSequenceLength = 0;
-        int numGenes = 0;
-        int tinyGenes = 0;
         while ((seq = genes.nextSequence()) != null) {
-            totalSequenceLength += seq.length();
-
             String[] namePieces = seq.getName().split("\\s+");
             String geneName = namePieces[0];
 
             geneNames.add(geneName);
-
-            if (seq.length() < kmerSize) {
-                System.out.println("Gene '" + geneName + "' is smaller than the kmer size");
-                tinyGenes++;
-            }
 
             for (int i = 0; i < seq.length() - kmerSize; i++) {
                 String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
@@ -67,23 +57,12 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
                     }
                 }
             }
-
-            numGenes++;
         }
 
         HashSet<String> genesInMap = new HashSet<String>();
         for (String kmer : kmerMap.keySet()) {
             genesInMap.add(kmerMap.get(kmer));
         }
-
-        System.out.println("Number of gene names: " + geneNames.size());
-        System.out.println("Number of genes seen: " + numGenes);
-        System.out.println("Number of genes smaller than kmer size: " + tinyGenes);
-        System.out.println("Number of remaining genes: " + (numGenes - tinyGenes));
-        System.out.println("Number of genes in map: " + genesInMap.size());
-
-        //System.out.println("Total sequence length: " + totalSequenceLength);
-        //System.out.println("Total kmers loaded (before pruning multi-copy kmers): " + kmerMap.size());
 
         for (String kmer : kmerCoverageMap.keySet()) {
             if (kmerCoverageMap.get(kmer) > 1) {
@@ -96,15 +75,11 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
             genesInMap.add(kmerMap.get(kmer));
         }
 
-        System.out.println("Number of genes in map after pruning: " + genesInMap.size());
-
         for (String geneName : geneNames) {
             if (!genesInMap.contains(geneName)) {
                 System.out.println("Gene '" + geneName + "' was removed from the gene list.");
             }
         }
-
-        //System.out.println("Total kmers loaded (after pruning multi-copy kmers): " + kmerMap.size());
 
         return kmerMap;
     }
@@ -127,8 +102,6 @@ public class CountGeneKmersWithUniqueHomes extends Tool {
     public int execute() {
         HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
         HashMap<String, Integer> totalKmerCountsPerGene = getKmerCountsPerGene(kmerMap);
-
-        System.out.println("Number of genes in map: " + totalKmerCountsPerGene.size());
 
         HashMap<String, HashMap<String, Integer>> kmerCountsPerGenePerColor = new HashMap<String, HashMap<String, Integer>>();
 
