@@ -90,31 +90,29 @@ public class CountGloballyUniqueGeneKmers extends Tool {
 
         for (CortexRecord cr : CORTEX_GRAPH) {
             if (cr.getCoverages()[colorGenes] == 1 && cr.getCoverages()[color3D7] == 1) {
-                String geneName = kmerMap.get(cr.getKmerString());
+                if (kmerMap.containsKey(cr.getKmerString())) {
+                    String geneName = kmerMap.get(cr.getKmerString());
 
-                boolean globallyUnique = true;
+                    boolean globallyUnique = true;
 
-                for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
-                    if (cr.getCoverages()[color] != 1) {
-                        globallyUnique = false;
-                        break;
+                    for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
+                        if (cr.getCoverages()[color] != 1) {
+                            globallyUnique = false;
+                            break;
+                        }
                     }
-                }
 
-                if (globallyUnique) {
-                    if (!globallyUniqueKmers.containsKey(geneName)) {
-                        globallyUniqueKmers.put(geneName, 1);
+                    if (!totalKmers.containsKey(geneName)) {
+                        totalKmers.put(geneName, 1);
+                        globallyUniqueKmers.put(geneName, 0);
                     } else {
+                        totalKmers.put(geneName, totalKmers.get(geneName) + 1);
+                    }
+
+                    if (globallyUnique) {
                         globallyUniqueKmers.put(geneName, globallyUniqueKmers.get(geneName) + 1);
                     }
                 }
-
-                if (!totalKmers.containsKey(geneName)) {
-                    totalKmers.put(geneName, 1);
-                } else {
-                    totalKmers.put(geneName, totalKmers.get(geneName) + 1);
-                }
-
             }
         }
 
