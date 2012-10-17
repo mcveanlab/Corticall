@@ -116,7 +116,7 @@ public class CountGloballyUniqueGeneKmers extends Tool {
             }
         }
 
-        out.printf("%s %s %s\n", "gene", "totalKmers", "globallyUniqueKmers");
+        out.printf("gene totalKmers.%d globallyUniqueKmers.%d\n", CORTEX_GRAPH.getKmerSize(), CORTEX_GRAPH.getKmerSize());
         for (String geneName : totalKmers.keySet()) {
             out.printf("%s %d %d\n", geneName, totalKmers.get(geneName), globallyUniqueKmers.get(geneName));
         }
