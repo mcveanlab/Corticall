@@ -7,7 +7,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -99,77 +99,79 @@ public class ArgumentParser {
         }
     }
 
-    /*
-    private static void handleArgumentTypes(IndianaModule instance, Field field, String value) {
-       try {
-           Class<?> type = field.getType();
-
-           //if (type.isArray()) {
-           if (Collection.class.isAssignableFrom(type)) {
-               ArrayList<String> values = new ArrayList<String>();
-
-               File valueAsFile = new File(value);
-               if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
-                   BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
-
-                   String line;
-                   while ((line = reader.readLine()) != null) {
-                       values.add(line);
-                   }
-               } else if (value.contains(",")) {
-                   values.addAll(Arrays.asList(value.split(",")));
-               }
-
-
-
-               System.out.println(type.getComponentType());
-               System.out.println(arrayInstance.getClass().getComponentType());
-
-               for (int i = 0; i < arrayInstance.length; i++) {
-                   //arrayInstance[i] = (Object) values.get(i);
-               }
-
-               field.set(instance, arrayInstance);
-           } else {
-
-           }
-       } catch (FileNotFoundException e) {
-           e.printStackTrace();
-       } catch (IOException e) {
-           e.printStackTrace();
-       } catch (IllegalAccessException e) {
-           e.printStackTrace();
-       }
-    }
-    */
-
     private static void handleArgumentTypes(IndianaModule instance, Field field, String value) {
         try {
             Class<?> type = field.getType();
 
-            if (type.equals(File.class)) {
-                field.set(instance, new File(value));
-            } else if (type.equals(Integer.class)) {
-                field.set(instance, Integer.valueOf(value));
-            } else if (type.equals(Float.class)) {
-                field.set(instance, Float.valueOf(value));
-            } else if (type.equals(Double.class)) {
-                field.set(instance, Double.valueOf(value));
-            } else if (type.equals(String.class)) {
-                field.set(instance, value);
-            } else if (type.equals(CortexGraph.class)) {
-                field.set(instance, new CortexGraph(value));
-            } else if (type.equals(FastaSequenceFile.class)) {
-                field.set(instance, new FastaSequenceFile(new File(value), false));
-            } else if (type.equals(PrintStream.class)) {
-                field.set(instance, new PrintStream(value));
+            if (Collection.class.isAssignableFrom(type)) {
+                ArrayList<String> values = new ArrayList<String>();
+
+                File valueAsFile = new File(value);
+                if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
+                    BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        values.add(line);
+                    }
+                } else if (value.contains(",")) {
+                    values.addAll(Arrays.asList(value.split(",")));
+                }
+
+                Object o = field.getType().newInstance();
+
+                String containerType = field.getGenericType().toString();
+                String genericType = containerType.substring(containerType.indexOf("<") + 1, containerType.lastIndexOf(">"));
+
+                for (String v : values) {
+                    Method add = Collection.class.getDeclaredMethod("add", Object.class);
+                    add.invoke(o, handleArgumentTypes(Class.forName(genericType), v));
+                }
+
+                field.set(instance, o);
             } else {
-                throw new RuntimeException("Don't know how to automatically handle field type '" + type.getSimpleName() + "' for field '" + field.getName() + "'");
+                field.set(instance, handleArgumentTypes(type, value));
             }
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Unable to access field '" + field.getName() + "' in module '" + instance.getClass().getSimpleName() + "'");
         } catch (FileNotFoundException e) {
-            throw new RuntimeException("Unable to open file: " + e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    private static Object handleArgumentTypes(Class<?> type, String value) {
+        try {
+            if (type.equals(File.class)) {
+                return new File(value);
+            } else if (type.equals(Integer.class)) {
+                return Integer.valueOf(value);
+            } else if (type.equals(Float.class)) {
+                return Float.valueOf(value);
+            } else if (type.equals(Double.class)) {
+                return Double.valueOf(value);
+            } else if (type.equals(String.class)) {
+                return value;
+            } else if (type.equals(CortexGraph.class)) {
+                return new CortexGraph(value);
+            } else if (type.equals(FastaSequenceFile.class)) {
+                return new FastaSequenceFile(new File(value), false);
+            } else if (type.equals(PrintStream.class)) {
+                return new PrintStream(value);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }
