@@ -17,6 +17,8 @@ public class PrintLists extends Tool {
 
     @Override
     public int execute() {
+        log.info("This is a PrintLists test");
+
         for (CortexGraph entry : LIST) {
             out.println(entry.getCortexFile().getName());
         }

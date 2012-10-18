@@ -1,5 +1,14 @@
 package uk.ac.ox.well.indiana;
 
+import ch.qos.logback.classic.Level;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+
 import processing.core.PApplet;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
@@ -11,7 +20,11 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class IndianaMain {
+    private static Logger log = configureLogger();
+
     public static void main(String[] args) throws Exception {
+        log.debug("Started up");
+
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help") || args[0].equals("-H")) {
             showPrimaryHelp();
         } else if (args.length > 0) {
@@ -32,6 +45,45 @@ public class IndianaMain {
                 }
             }
         }
+    }
+
+    private static Logger configureLogger() {
+        Logger rootLogger = (Logger) LoggerFactory.getLogger(IndianaMain.class);
+
+        // we are not interested in auto-configuration
+        LoggerContext loggerContext = rootLogger.getLoggerContext();
+        loggerContext.reset();
+
+        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+        encoder.setContext(loggerContext);
+        encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} %class{0}.%M:%L]: %message%n");
+        encoder.start();
+
+        ConsoleAppender<ILoggingEvent> appender = new ConsoleAppender<ILoggingEvent>();
+        appender.setContext(loggerContext);
+        appender.setEncoder(encoder);
+        appender.start();
+
+        rootLogger.addAppender(appender);
+
+        String logLevel = System.getProperty("indiana.loglevel");
+        if (logLevel != null) {
+            if      (logLevel.equalsIgnoreCase("OFF"))   { rootLogger.setLevel(Level.OFF);   }
+            else if (logLevel.equalsIgnoreCase("TRACE")) { rootLogger.setLevel(Level.TRACE); }
+            else if (logLevel.equalsIgnoreCase("DEBUG")) { rootLogger.setLevel(Level.DEBUG); }
+            else if (logLevel.equalsIgnoreCase("INFO"))  { rootLogger.setLevel(Level.INFO);  }
+            else if (logLevel.equalsIgnoreCase("WARN"))  { rootLogger.setLevel(Level.WARN);  }
+            else if (logLevel.equalsIgnoreCase("ERROR")) { rootLogger.setLevel(Level.ERROR); }
+            else if (logLevel.equalsIgnoreCase("ALL"))   { rootLogger.setLevel(Level.ALL);   }
+        } else {
+            rootLogger.setLevel(Level.INFO);
+        }
+
+        return rootLogger;
+    }
+
+    public static Logger getLogger() {
+        return log;
     }
 
     private static void showPrimaryHelp() {

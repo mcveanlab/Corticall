@@ -7,7 +7,10 @@
 
     <dependencies defaultconf="default">
         <!-- Logging dependency -->
-        <dependency org="log4j" name="log4j" rev="1.2.15" />
+        <dependency org="ch.qos.logback" name="logback-classic" rev="1.0.6" />
+
+        <!-- Performance checking -->
+        <!--<dependency org="org.perf4j" name="perf4j" rev="0.9.16" />-->
 
         <!-- Reflections dependency -->
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
