@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.arguments;
 
 import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.commons.cli.*;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -49,7 +50,8 @@ public class ArgumentParser {
 
             options.addOption("h", "help", false, "Show this help message");
 
-            CommandLineParser parser = new PosixParser();
+            //CommandLineParser parser = new PosixParser();
+            CommandLineParser parser = new IndianaParser();
             CommandLine cmd = parser.parse(options, args);
 
             for (Field field : fields) {
@@ -106,16 +108,18 @@ public class ArgumentParser {
             if (Collection.class.isAssignableFrom(type)) {
                 ArrayList<String> values = new ArrayList<String>();
 
-                File valueAsFile = new File(value);
-                if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
-                    BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
+                for (String avalue : value.split(",")) {
+                    File valueAsFile = new File(avalue);
+                    if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
+                        BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
 
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        values.add(line);
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            values.add(line);
+                        }
+                    } else {
+                        values.add(avalue);
                     }
-                } else if (value.contains(",")) {
-                    values.addAll(Arrays.asList(value.split(",")));
                 }
 
                 Object o = field.getType().newInstance();
@@ -165,6 +169,8 @@ public class ArgumentParser {
                 return new CortexGraph(value);
             } else if (type.equals(FastaSequenceFile.class)) {
                 return new FastaSequenceFile(new File(value), false);
+            } else if (type.equals(IndexedFastaSequenceFile.class)) {
+                return new IndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {
                 return new PrintStream(value);
             }

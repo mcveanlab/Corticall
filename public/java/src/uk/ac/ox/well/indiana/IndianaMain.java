@@ -25,7 +25,7 @@ public class IndianaMain {
     public static void main(String[] args) throws Exception {
         log.debug("Started up");
 
-        if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help") || args[0].equals("-H")) {
+        if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
         } else if (args.length > 0) {
             String moduleName = args[0];
@@ -50,7 +50,6 @@ public class IndianaMain {
     private static Logger configureLogger() {
         Logger rootLogger = (Logger) LoggerFactory.getLogger(IndianaMain.class);
 
-        // we are not interested in auto-configuration
         LoggerContext loggerContext = rootLogger.getLoggerContext();
         loggerContext.reset();
 

@@ -6,11 +6,12 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public class PrintLists extends Tool {
     @Argument(fullName="list", shortName="l", doc="A list to load and print")
-    public HashSet<CortexGraph> LIST;
+    public ArrayList<String> LIST;
 
     @Output
     public PrintStream out;
@@ -19,8 +20,12 @@ public class PrintLists extends Tool {
     public int execute() {
         log.info("This is a PrintLists test");
 
-        for (CortexGraph entry : LIST) {
-            out.println(entry.getCortexFile().getName());
+//        for (CortexGraph entry : LIST) {
+//            out.println(entry.getCortexFile().getName());
+//        }
+
+        for (String entry : LIST) {
+            out.println(entry);
         }
 
         return 0;
