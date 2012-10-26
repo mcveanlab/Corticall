@@ -7,7 +7,6 @@ import org.apache.commons.cli.Parser;
 import org.apache.commons.cli.UnrecognizedOptionException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 public class IndianaParser extends Parser {
@@ -26,7 +25,7 @@ public class IndianaParser extends Parser {
                         arguments.put(currentOption, new ArrayList<String>());
                     }
                 } else {
-                    throw new RuntimeException("The option '" + token + "' is not a recognized option.");
+                    throw new RuntimeException("The option '" + token + "' is not a recognized option");
                 }
             } else {
                 if (currentOption != null) {

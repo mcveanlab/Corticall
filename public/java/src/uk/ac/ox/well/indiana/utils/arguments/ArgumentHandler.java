@@ -84,7 +84,7 @@ public class ArgumentHandler {
                             if (value != null) {
                                 handleArgumentTypes(instance, field, value);
                             } else if (arg.required()) {
-                                // do something else here
+                                throw new RuntimeException("The argument '--" + arg.fullName() + "' was not specified and is required");
                             }
                         }
                     } else if (annotation.annotationType().equals(Output.class)) {
