@@ -104,6 +104,7 @@ public class IndianaMain {
         for (Class s : sketch) {
             System.out.println("   " + s.getSimpleName());
         }
+        System.out.println();
 
         System.exit(1);
     }

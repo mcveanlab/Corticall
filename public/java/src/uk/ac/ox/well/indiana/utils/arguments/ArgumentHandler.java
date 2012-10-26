@@ -107,6 +107,7 @@ public class ArgumentHandler {
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.setWidth(100);
                 formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
+                System.out.println();
                 System.exit(1);
             }
         } catch (ParseException e) {
