@@ -89,7 +89,8 @@ public class IndianaMain {
         Set<Class<? extends Tool>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClasses();
         Set<Class<? extends Sketch>> sketch = new PackageInspector<Sketch>(Sketch.class).getExtendingClasses();
 
-        System.out.println("usage: java -jar indiana.jar [-h|--help|-H]");
+        System.out.println();
+        System.out.println("usage: java -jar indiana.jar [-h|--help]");
         System.out.println("                             <command> [<args>]");
         System.out.println();
 
@@ -103,7 +104,6 @@ public class IndianaMain {
         for (Class s : sketch) {
             System.out.println("   " + s.getSimpleName());
         }
-        System.out.println();
 
         System.exit(1);
     }

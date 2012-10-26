@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.arguments;
 
+import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.commons.cli.*;
@@ -13,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class ArgumentParser {
-    private ArgumentParser() {}
+public class ArgumentHandler {
+    private ArgumentHandler() {}
 
     public static void parse(IndianaModule instance, String[] args) {
         try {
@@ -27,7 +28,21 @@ public class ArgumentParser {
                     if (annotation.annotationType().equals(Argument.class)) {
                         Argument arg = (Argument) annotation;
 
-                        String description = arg.doc() + " [default: " + field.get(instance) + "]";
+                        ArrayList<String> descElements = new ArrayList<String>();
+
+                        if (field.get(instance) != null) {
+                            descElements.add("default: " + field.get(instance));
+                        }
+
+                        if (Collection.class.isAssignableFrom(field.getType())) {
+                            descElements.add("can be specified more than once");
+                        }
+
+                        String description = arg.doc();
+                        if (descElements.size() > 0) {
+                            description += " [" + Joiner.on(" ").join(descElements) + "]";
+                        }
+
                         Boolean hasArgument = !field.getType().equals(Boolean.class);
 
                         Option option = new Option(arg.shortName(), arg.fullName(), hasArgument, description);
@@ -50,7 +65,6 @@ public class ArgumentParser {
 
             options.addOption("h", "help", false, "Show this help message");
 
-            //CommandLineParser parser = new PosixParser();
             CommandLineParser parser = new IndianaParser();
             CommandLine cmd = parser.parse(options, args);
 
@@ -91,6 +105,7 @@ public class ArgumentParser {
 
             if (cmd.hasOption("help") || args.length == 0) {
                 HelpFormatter formatter = new HelpFormatter();
+                formatter.setWidth(100);
                 formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
                 System.exit(1);
             }
