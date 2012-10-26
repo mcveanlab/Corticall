@@ -10,7 +10,7 @@
         <dependency org="ch.qos.logback" name="logback-classic" rev="1.0.6" />
 
         <!-- Performance checking -->
-        <!--<dependency org="org.perf4j" name="perf4j" rev="0.9.16" />-->
+        <dependency org="org.perf4j" name="perf4j" rev="0.9.16" />
 
         <!-- Reflections dependency -->
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
@@ -32,6 +32,9 @@
 
         <!-- Picard (local repo) -->
         <dependency org="net.sf.picard" name="picard" rev="latest" />
+
+        <!-- JAHMM (local repo) -->
+        <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
