@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Parser;
+import org.apache.commons.cli.UnrecognizedOptionException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +26,7 @@ public class IndianaParser extends Parser {
                         arguments.put(currentOption, new ArrayList<String>());
                     }
                 } else {
-                    currentOption = null;
+                    throw new RuntimeException("The option '" + token + "' is not a recognized option.");
                 }
             } else {
                 if (currentOption != null) {
@@ -39,8 +40,6 @@ public class IndianaParser extends Parser {
             args.add("--" + option.getLongOpt());
             args.add(Joiner.on(",").join(arguments.get(option)));
         }
-
-        System.out.println(Joiner.on(" ").join(args));
 
         return args.toArray(new String[args.size()]);
     }
