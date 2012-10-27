@@ -11,7 +11,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 
 public class ExtractTranscriptsFromFasta extends Tool {
     @Argument(fullName="fasta", shortName="f", doc="Fasta file from which sequences should be extracted")
@@ -111,7 +110,7 @@ public class ExtractTranscriptsFromFasta extends Tool {
             for (int i = 0; i < b.length - KMER_SIZE; i++) {
                 byte[] b1 = Arrays.copyOfRange(b, i, i + KMER_SIZE);
 
-                String b2 = new String(SequenceUtils.getCortexCompatibleOrientation(b1));
+                String b2 = new String(SequenceUtils.getAlphanumericallyLowestOrientation(b1));
                 int b2hashCode = b2.hashCode();
 
                 if (!kmerHash.containsKey(b2hashCode)) {
@@ -135,7 +134,7 @@ public class ExtractTranscriptsFromFasta extends Tool {
                     byte[] transcriptBases = Arrays.copyOfRange(bases, t.getStart()-1, t.getStop());
 
                     for (int i = 0; i < transcriptBases.length - KMER_SIZE; i++) {
-                        String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(transcriptBases, i, i + KMER_SIZE)));
+                        String kmer = new String(SequenceUtils.getAlphanumericallyLowestOrientation(Arrays.copyOfRange(transcriptBases, i, i + KMER_SIZE)));
 
                         if (kmerHash.containsKey(kmer.hashCode()) && kmerHash.get(kmer.hashCode()) == 1) {
                             out.println(">" + t.getName() + "." + kmer.hashCode());

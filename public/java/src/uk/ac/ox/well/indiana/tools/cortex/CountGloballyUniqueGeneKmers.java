@@ -38,7 +38,7 @@ public class CountGloballyUniqueGeneKmers extends Tool {
             geneNames.add(geneName);
 
             for (int i = 0; i < seq.length() - kmerSize; i++) {
-                String kmer = new String(SequenceUtils.getCortexCompatibleOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
+                String kmer = new String(SequenceUtils.getAlphanumericallyLowestOrientation(Arrays.copyOfRange(seq.getBases(), i, i + kmerSize)));
 
                 kmer = kmer.toUpperCase();
                 if (!kmer.contains("N") && !kmer.contains(".")) {
