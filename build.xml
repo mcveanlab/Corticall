@@ -14,6 +14,7 @@
     <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
     <property name="testng.dir" value="test" />
+    <property name="release.dir" value="release" />
 
 	<property name="ivy.install.version" value="2.3.0-rc1" />
 	<property name="ivy.jar.dir" value="${lib.dir}" />
@@ -22,7 +23,7 @@
     <property file="${ivy.settings.dir}/ivysettings.properties"/>
 
     <!-- If we don't have ivy already, download and install it -->
-    <target name="install-ivy" description="install ivy">
+    <target name="install-ivy" unless="skip.download" description="install ivy">
     	<mkdir dir="${ivy.jar.dir}"/>
 
     	<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
@@ -114,29 +115,32 @@
     </target>
 
     <!-- Unit tests -->
-    <target name="test" depends="compile">
-        <mkdir dir="${testng.dir}"/>
+    <target name="test" depends="dist">
+        <mkdir dir="${testng.dir}" />
 
-        <taskdef name="testng" classname="org.testng.TestNGAntTask">
-            <classpath>
-                <pathelement location="${jars.dir}/testng-6.8.jar"/>
-            </classpath>
-        </taskdef>
+        <taskdef name="testng" classname="org.testng.TestNGAntTask" classpath="${jars.dir}/testng-6.8.jar" />
  
-        <testng outputDir="${testng.dir}" haltOnFailure="true" verbose="2">
-            <classpath>
-                <fileset dir="${lib.dir}">
-                    <include name="**/*.jar"/>
-                </fileset>
-                <fileset dir="${build.dir}">
-                    <include name="**/*Test.class"/>
-                </fileset>
-            </classpath>
-
-            <!--<classfileset dir="${build.dir}" includes="**/*Test.class" />-->
-
-            <xmlfileset dir="." includes="testng.xml"/>
+        <testng outputDir="${testng.dir}" haltOnFailure="false" verbose="2">
+            <classpath location="${dist.dir}/indiana.jar" />
+            <classfileset dir="${build.dir}/uk/ac/ox/well/indiana/" includes="**/*.class" />
         </testng>
+    </target>
+
+    <!-- Get a version number for the executable -->
+    <target name="git.version">
+        <exec executable="git" outputproperty="git.version.output" resultproperty="git.version.exit.value" failonerror="false">
+            <arg line="rev-parse --short=4 HEAD" />
+        </exec>
+        <condition property="git.version.succeeded">
+            <equals arg1="${git.version.exit.value}" arg2="0" />
+        </condition>
+    </target>
+
+    <!-- Make a fully tested release jar -->
+    <target name="release" depends="test,git.version">
+        <mkdir dir="${release.dir}" />
+
+        <copy file="${dist.dir}/indiana.jar" tofile="${release.dir}/indiana-${git.version.output}.jar" />
     </target>
 
     <!-- Clean everything up -->
@@ -147,6 +151,7 @@
             <fileset dir="${staging.dir}" />
             <fileset dir="${dist.dir}" />
             <fileset dir="${testng.dir}" />
+            <fileset dir="${release.dir}" />
     	</delete>
     </target>
 </project>
