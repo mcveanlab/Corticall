@@ -5,9 +5,12 @@ import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
+import java.lang.reflect.Modifier;
 import java.net.URL;
-import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class PackageInspector<ClassType> {
     private Reflections reflections;
@@ -25,11 +28,20 @@ public class PackageInspector<ClassType> {
     }
 
     public Set<Class<? extends ClassType>> getExtendingClasses() {
-        return reflections.getSubTypesOf(classType);
+        Set<Class<? extends ClassType>> extendingClasses = reflections.getSubTypesOf(classType);
+        Set<Class<? extends ClassType>> nonAbstractClasses = new HashSet<Class<? extends ClassType>>();
+
+        for (Class<? extends ClassType> c : extendingClasses) {
+            if (!Modifier.isAbstract(c.getModifiers())) {
+                nonAbstractClasses.add(c);
+            }
+        }
+
+        return nonAbstractClasses;
     }
 
-    public HashMap<String, Class<? extends ClassType>> getExtendingClassesMap() {
-        HashMap<String, Class<? extends ClassType>> classHashMap = new HashMap<String, Class<? extends ClassType>>();
+    public Map<String, Class<? extends ClassType>> getExtendingClassesMap() {
+        Map<String, Class<? extends ClassType>> classHashMap = new TreeMap<String, Class<? extends ClassType>>();
 
         for (Class<? extends ClassType> c : getExtendingClasses()) {
             classHashMap.put(c.getSimpleName(), c);

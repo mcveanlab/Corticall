@@ -1,14 +1,12 @@
 package uk.ac.ox.well.indiana;
 
 import ch.qos.logback.classic.Level;
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-
+import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
@@ -16,8 +14,7 @@ import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.Map;
 
 public class IndianaMain {
     private static Logger log = configureLogger();
@@ -31,7 +28,7 @@ public class IndianaMain {
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
-            HashMap<String, Class<? extends IndianaModule>> modules = new PackageInspector<IndianaModule>(IndianaModule.class).getExtendingClassesMap();
+            Map<String, Class<? extends IndianaModule>> modules = new PackageInspector<IndianaModule>(IndianaModule.class).getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
@@ -86,8 +83,8 @@ public class IndianaMain {
     }
 
     private static void showPrimaryHelp() {
-        Set<Class<? extends Tool>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClasses();
-        Set<Class<? extends Sketch>> sketch = new PackageInspector<Sketch>(Sketch.class).getExtendingClasses();
+        Map<String, Class<? extends Tool>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClassesMap();
+        Map<String, Class<? extends Sketch>> sketch = new PackageInspector<Sketch>(Sketch.class).getExtendingClassesMap();
 
         System.out.println();
         System.out.println("usage: java -jar indiana.jar [-h|--help]");
@@ -95,14 +92,14 @@ public class IndianaMain {
         System.out.println();
 
         System.out.println("tools:");
-        for (Class t : tools) {
-            System.out.println("   " + t.getSimpleName());
+        for (String t : tools.keySet()) {
+            System.out.println("   " + t);
         }
         System.out.println();
 
-        System.out.println("sketch:");
-        for (Class s : sketch) {
-            System.out.println("   " + s.getSimpleName());
+        System.out.println("sketches:");
+        for (String s : sketch.keySet()) {
+            System.out.println("   " + s);
         }
         System.out.println();
 

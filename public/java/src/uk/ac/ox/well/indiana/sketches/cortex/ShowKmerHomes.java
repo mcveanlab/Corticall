@@ -7,7 +7,8 @@ import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.TreeMap;
 
 public class ShowKmerHomes extends Sketch {
     @Argument(fullName="fasta", shortName="f", doc="Reference fasta file")

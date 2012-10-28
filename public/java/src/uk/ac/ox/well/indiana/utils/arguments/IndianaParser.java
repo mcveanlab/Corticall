@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Parser;
-import org.apache.commons.cli.UnrecognizedOptionException;
 
 import java.util.ArrayList;
 import java.util.HashMap;

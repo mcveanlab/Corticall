@@ -18,6 +18,9 @@
         <!-- Apache commons CLI: command line argument parser -->
         <dependency org="commons-cli" name="commons-cli" rev="1.2" />
 
+        <!-- Apache commons JEXL: Java expression language -->
+        <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1" />
+
         <!-- JGraphT -->
         <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
 

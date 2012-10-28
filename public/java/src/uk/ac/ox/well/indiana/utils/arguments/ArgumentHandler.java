@@ -4,24 +4,36 @@ import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.commons.cli.*;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public class ArgumentHandler {
+    private static JexlEngine je;
+
     private ArgumentHandler() {}
 
     public static void parse(IndianaModule instance, String[] args) {
         try {
             Options options = new Options();
 
-            Field[] fields = instance.getClass().getDeclaredFields();
+            Field[] instanceFields = instance.getClass().getDeclaredFields();
+            Field[] superFields = instance.getClass().getSuperclass().getDeclaredFields();
+
+            List<Field> fields = new ArrayList<Field>();
+            fields.addAll(Arrays.asList(instanceFields));
+            fields.addAll(Arrays.asList(superFields));
 
             for (Field field : fields) {
                 for (Annotation annotation : field.getDeclaredAnnotations()) {
@@ -68,6 +80,14 @@ public class ArgumentHandler {
             CommandLineParser parser = new IndianaParser();
             CommandLine cmd = parser.parse(options, args);
 
+            if (cmd.hasOption("help") || args.length == 0) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.setWidth(100);
+                formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
+                System.out.println();
+                System.exit(1);
+            }
+
             for (Field field : fields) {
                 for (Annotation annotation : field.getDeclaredAnnotations()) {
                     if (annotation.annotationType().equals(Argument.class)) {
@@ -82,7 +102,7 @@ public class ArgumentHandler {
                             String value = cmd.getOptionValue(arg.fullName());
 
                             if (value != null) {
-                                handleArgumentTypes(instance, field, value);
+                                processArgument(instance, field, value);
                             } else if (arg.required()) {
                                 throw new RuntimeException("The argument '--" + arg.fullName() + "' was not specified and is required");
                             }
@@ -97,18 +117,10 @@ public class ArgumentHandler {
                                 value = "/dev/stdout";
                             }
 
-                            handleArgumentTypes(instance, field, value);
+                            processArgument(instance, field, value);
                         }
                     }
                 }
-            }
-
-            if (cmd.hasOption("help") || args.length == 0) {
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.setWidth(100);
-                formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
-                System.out.println();
-                System.exit(1);
             }
         } catch (ParseException e) {
             throw new RuntimeException("Error when parsing command-line arguments: " + e);
@@ -117,7 +129,7 @@ public class ArgumentHandler {
         }
     }
 
-    private static void handleArgumentTypes(IndianaModule instance, Field field, String value) {
+    private static void processArgument(IndianaModule instance, Field field, String value) {
         try {
             Class<?> type = field.getType();
 
@@ -189,11 +201,26 @@ public class ArgumentHandler {
                 return new IndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {
                 return new PrintStream(value);
+            } else if (type.equals(Expression.class)) {
+                initializeJexlEngine();
+
+                return je.createExpression(value);
+            } else {
+                throw new RuntimeException("Unable to automatically handle argument of type '" + type.getSimpleName() + "'");
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
         return null;
+    }
+
+    private static void initializeJexlEngine() {
+        if (je == null) {
+            je = new JexlEngine();
+            je.setCache(512);
+            je.setLenient(false);
+            je.setSilent(false);
+        }
     }
 }

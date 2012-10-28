@@ -1,5 +1,13 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
+import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class SequenceUtils {
     private SequenceUtils() {}
 
@@ -36,4 +44,41 @@ public class SequenceUtils {
 
         return (kmerStr.compareTo(rcStr) < 0) ? sequence : rc;
     }
+
+    public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(List<FastaSequenceFile> fastas, int kmerSize) {
+        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+
+        for (FastaSequenceFile fasta : fastas) {
+            kmerHash.putAll(loadSequenceCodesAsAlphanumericallyLowestKmers(fasta, kmerSize));
+        }
+
+        return kmerHash;
+    }
+
+    public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(FastaSequenceFile fasta, int kmerSize) {
+        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+
+        ReferenceSequence seq;
+        while ((seq = fasta.nextSequence()) != null) {
+            kmerHash.putAll(loadSequenceCodesAsAlphanumericallyLowestKmers(seq, kmerSize));
+        }
+
+        return kmerHash;
+    }
+
+    public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(ReferenceSequence seq, int kmerSize) {
+        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+
+        byte[] contig = seq.getBases();
+        String[] name = seq.getName().split("\\s+");
+
+        for (int i = 0; i < contig.length - kmerSize; i++) {
+            String kmer = new String(getAlphanumericallyLowestOrientation(Arrays.copyOfRange(contig, i, i + kmerSize)));
+
+            kmerHash.put(kmer.hashCode(), name[0]);
+        }
+
+        return kmerHash;
+    }
+
 }
