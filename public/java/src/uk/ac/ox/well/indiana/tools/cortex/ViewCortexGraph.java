@@ -14,7 +14,13 @@ public class ViewCortexGraph extends ViewCortexBase {
         } else {
             for (CortexRecord cr : CORTEX_GRAPH) {
                 if (satisfiesConstraints(cr)) {
-                    out.println(cr);
+                    String homeName = getKmerHomeContigName(cr);
+
+                    if (homeName == null) {
+                        out.println(cr);
+                    } else {
+                        out.println(homeName + " " + cr);
+                    }
                 }
             }
         }
