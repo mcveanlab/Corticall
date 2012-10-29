@@ -45,6 +45,27 @@ public class ViewCortexCoverage extends ViewCortexBase {
                         stats.get("total").get(color).push(coverage);
                     }
                 }
+
+                if (home != null) {
+                    kmerMap.remove(cr.getKmerString().hashCode());
+                }
+            }
+        }
+
+        for (int kmerCode : kmerMap.keySet()) {
+            String home = kmerMap.get(kmerCode);
+
+            for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
+                if (!stats.containsKey(home)) {
+                    stats.put(home, new HashMap<Integer, StatisticsOnStream>());
+                }
+
+                if (!stats.get(home).containsKey(color)) {
+                    stats.get(home).put(color, new StatisticsOnStream());
+                }
+
+                stats.get(home).get(color).push(0);
+                stats.get("total").get(color).push(0);
             }
         }
 

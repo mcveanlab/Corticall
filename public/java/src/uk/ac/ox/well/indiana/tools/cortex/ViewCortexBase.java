@@ -28,7 +28,7 @@ public abstract class ViewCortexBase extends Tool {
     @Output
     public PrintStream out;
 
-    private Map<Integer, String> kmerMap = null;
+    protected Map<Integer, String> kmerMap = null;
 
     public boolean satisfiesConstraints(CortexRecord cr) {
         if (TARGETS_OF_INTEREST != null && kmerMap == null) {
