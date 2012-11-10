@@ -81,4 +81,17 @@ public class SequenceUtils {
         return kmerHash;
     }
 
+    public static int numSegregatingSites(String s1, String s2) {
+        if (s1.length() != s2.length()) {
+            throw new RuntimeException("Cannot compute number of segreating sites between sequences of different lengths (" + s1.length() + " vs " + s2.length() + ")");
+        }
+
+        int S = 0;
+        for (int i = 0; i < s1.length(); i++) {
+            S += (s1.charAt(i) != s2.charAt(i)) ? 1 : 0;
+        }
+
+        return S;
+    }
+
 }
