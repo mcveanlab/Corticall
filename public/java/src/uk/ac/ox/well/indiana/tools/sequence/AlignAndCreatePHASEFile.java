@@ -125,6 +125,32 @@ public class AlignAndCreatePHASEFile extends Tool {
             }
         }
 
+        log.info("Mutations: {}, Biallelic mutations: {}", mutationMap.size(), biallelicLoci.size());
+
+        for (Integer pos : mutationMap.keySet()) {
+            out.print("\tloc_" + pos);
+        }
+
+        out.println();
+
+        for (String name : sequences.keySet()) {
+            out.print(name);
+
+            for (Integer pos : mutationMap.keySet()) {
+                String allele = mutationMap.get(pos).get(name);
+
+                if (allele == null) {
+                    out.print("\t0");
+                } else {
+                    out.print("\t" + allele.hashCode());
+                }
+
+            }
+
+            out.println();
+        }
+
+        /*
         out.println("0");
         out.println(sequences.size());
         out.println(biallelicLoci.size());
@@ -146,6 +172,7 @@ public class AlignAndCreatePHASEFile extends Tool {
             }
             out.println();
         }
+        */
 
         return 0;
     }
