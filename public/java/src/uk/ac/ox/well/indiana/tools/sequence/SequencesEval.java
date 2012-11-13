@@ -69,13 +69,21 @@ public class SequencesEval extends Tool {
 
         HashMap<Integer, ArrayList<SequenceRecord>> data = loadData(FASTA, METADATA);
 
-        HashMap<Integer, HashMap<String, HashMap<String, Integer>>> comparisonMatrix = new HashMap<Integer, HashMap<String, HashMap<String, Integer>>>();
-
         for (int segmentNumber : data.keySet()) {
+            log.info("Sequence: {}", segmentNumber);
+
             ArrayList<SequenceRecord> records = data.get(segmentNumber);
 
+            HashMap<String, HashMap<String, Integer>> comparisonMatrix = new HashMap<String, HashMap<String, Integer>>();
+
             for (int i = 0; i < records.size(); i++) {
+                //if (i % (records.size() / 10) == 0) {
+                    log.info("Sequence {}/{}", i, records.size());
+                //}
+
                 for (int j = i + 1; j < records.size(); j++) {
+                    log.info("\tSequence {}/{}", j, records.size());
+
                     SequenceRecord si = records.get(i);
                     SequenceRecord sj = records.get(j);
 
@@ -84,18 +92,29 @@ public class SequencesEval extends Tool {
                     int score = nw.getAlignmentScore();
                     String[] alignment = nw.getAlignment();
 
-                    log.info("{} {}:", si.strainId, sj.strainId);
-                    log.info("score: {}", score);
-                    log.info("si: {}", alignment[0]);
-                    log.info("sj: {}", alignment[1]);
-                    log.info("L: {}, S: {}", alignment[0].length(), SequenceUtils.numSegregatingSites(alignment[0], alignment[1]));
+//                    log.info("{} {}:", si.strainId, sj.strainId);
+//                    log.info("score: {}", score);
+//                    log.info("si: {}", alignment[0]);
+//                    log.info("sj: {}", alignment[1]);
+//                    log.info("L: {}, S: {}", alignment[0].length(), SequenceUtils.numSegregatingSites(alignment[0], alignment[1]));
 
-                    //if (!comparisonMatrix.containsKey(segmentNumber))
+                    if (!comparisonMatrix.containsKey(si.strainId)) {
+                        comparisonMatrix.put(si.strainId, new HashMap<String, Integer>());
+                    }
+
+                    comparisonMatrix.get(si.strainId).put(sj.strainId, SequenceUtils.numSegregatingSites(alignment[0], alignment[1]));
+                }
+            }
+
+            for (String strainId1 : comparisonMatrix.keySet()) {
+                for (String strainId2 : comparisonMatrix.get(strainId1).keySet()) {
+                    out.printf("%d\t%s\t%s\t%d\n", segmentNumber, strainId1, strainId2, comparisonMatrix.get(strainId1).get(strainId2));
                 }
             }
         }
 
-        log.info(PerformanceUtils.getMemoryUsageStats());
+
+//        log.info(PerformanceUtils.getMemoryUsageStats());
 
         return 0;
     }

@@ -11,7 +11,7 @@ public class TableReader extends LineReader implements Iterator<HashMap<String, 
     public TableReader(File fileToRead) {
         super(fileToRead);
 
-        header = this.nextRecord.split("\\s+");
+        header = this.nextRecord.split("\t");
         try {
             this.nextRecord = br.readLine();
         } catch (IOException e) {
@@ -21,7 +21,7 @@ public class TableReader extends LineReader implements Iterator<HashMap<String, 
 
     public HashMap<String, String> next() {
         String line = this.getNextRecord();
-        String[] fields = line.split("\\s+");
+        String[] fields = line.split("\t");
 
         HashMap<String, String> entry = new HashMap<String, String>();
         for (int i = 0; i < fields.length; i++) {
