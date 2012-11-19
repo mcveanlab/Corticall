@@ -142,7 +142,7 @@ public class AlignAndCreatePHASEFile extends Tool {
                 if (allele == null) {
                     out.print("\t0");
                 } else {
-                    out.print("\t" + allele);
+                    out.print("\t" + allele.hashCode());
                 }
 
             }

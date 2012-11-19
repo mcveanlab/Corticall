@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="com.modestmaps" module="modestmaps" revision="latest" />
+</ivy-module>

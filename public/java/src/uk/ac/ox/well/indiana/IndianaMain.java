@@ -13,6 +13,7 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -38,7 +39,12 @@ public class IndianaMain {
                 if (Tool.class.isAssignableFrom(module)) {
                     IRunner.main(module.getName(), moduleArgs);
                 } else if (Sketch.class.isAssignableFrom(module)) {
-                    PApplet.main(module.getName(), moduleArgs);
+                    //PApplet.main(module.getName(), moduleArgs);
+                    ArrayList<String> newArgs = new ArrayList<String>();
+                    newArgs.add(module.getName());
+                    newArgs.addAll(Arrays.asList(moduleArgs));
+
+                    PApplet.main(newArgs.toArray(new String[newArgs.size()]));
                 }
             }
         }

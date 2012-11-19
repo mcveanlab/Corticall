@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="de.fhpotsdam.unfolding" module="unfolding" revision="0.9.beta" />
+</ivy-module>

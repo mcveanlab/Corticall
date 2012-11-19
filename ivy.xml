@@ -24,6 +24,9 @@
         <!-- JGraphT -->
         <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
 
+        <!-- Stuff for making interactive maps -->
+        <dependency org="org.xerial" name="sqlite-jdbc" rev="3.6.16" />
+
         <!-- TestNG -->
         <dependency org="org.testng" name="testng" rev="6.8" />
 
@@ -38,6 +41,25 @@
 
         <!-- JAHMM (local repo) -->
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
+
+        <!-- Modest Maps (local repo) -->
+        <dependency org="com.modestmaps" name="modestmaps" rev="latest" />
+
+        <!-- Unfolding - a library to create interactive maps and geovisualizations in Processing and Java -->
+        <!--
+        <dependency org="org.jogamp.jogl" name="jogl-all" rev="2.0-rc11" />
+        <dependency org="org.jogamp.gluegen" name="gluegen-rt" rev="2.0-rc11" />
+        <dependency org="org.processing" name="core" rev="1.5.1" />
+        <dependency org="de.fhpotsdam.unfolding" name="unfolding" rev="0.9.beta" />
+        <dependency org="de.fhpotsdam.unfolding" name="sqlitejdbc" rev="v056" />
+        <dependency org="de.fhpotsdam.unfolding" name="log4j" rev="1.2.15" />
+        <dependency org="de.fhpotsdam.unfolding" name="libTUIO" rev="unknown" />
+        <dependency org="de.fhpotsdam.unfolding" name="json4processing" rev="unknown" />
+        <dependency org="de.fhpotsdam.unfolding" name="glgraphics" rev="unknown" />
+        <dependency org="de.fhpotsdam.unfolding" name="opengl" rev="unknown" />
+        <dependency org="de.fhpotsdam.unfolding" name="gluegen-rt" rev="unknown" />
+        <dependency org="de.fhpotsdam.unfolding" name="jogl" rev="unknown" />
+        -->
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
