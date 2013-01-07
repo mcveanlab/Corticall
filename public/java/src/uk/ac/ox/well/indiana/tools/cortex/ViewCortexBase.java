@@ -19,7 +19,7 @@ public abstract class ViewCortexBase extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
-    @Argument(fullName="constraint", shortName="c", doc="A JEXL constraint to apply when selecting kmers to consider")
+    @Argument(fullName="constraint", shortName="c", doc="A JEXL constraint to apply when selecting kmers to consider", required=false)
     public ArrayList<Expression> CONSTRAINTS;
 
     @Argument(fullName="targetsOfInterest", shortName="toi", doc="One or more fasta file of targets to find", required=false)
@@ -46,12 +46,14 @@ public abstract class ViewCortexBase extends Tool {
         }
 
         boolean allConstraintsSatisfied = true;
-        for (Expression e : CONSTRAINTS) {
-            Boolean constraintSatisfied = (Boolean) e.evaluate(jexlContext);
+        if (CONSTRAINTS != null && !CONSTRAINTS.isEmpty()) {
+            for (Expression e : CONSTRAINTS) {
+                Boolean constraintSatisfied = (Boolean) e.evaluate(jexlContext);
 
-            if (!constraintSatisfied) {
-                allConstraintsSatisfied = false;
-                break;
+                if (!constraintSatisfied) {
+                    allConstraintsSatisfied = false;
+                    break;
+                }
             }
         }
 

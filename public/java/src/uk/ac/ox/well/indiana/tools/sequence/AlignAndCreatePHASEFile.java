@@ -63,9 +63,9 @@ public class AlignAndCreatePHASEFile extends Tool {
 
         int seqIndex = 0;
         for (String name : sequences.keySet()) {
-            if (seqIndex % (sequences.size() / 100) == 0) {
+            //if (seqIndex % (sequences.size() / 100) == 0) {
                 log.info("Processing sequence {}/{}", seqIndex, sequences.size());
-            }
+            //}
             seqIndex++;
 
             String sequence = sequences.get(name);
@@ -142,7 +142,8 @@ public class AlignAndCreatePHASEFile extends Tool {
                 if (allele == null) {
                     out.print("\t0");
                 } else {
-                    out.print("\t" + allele.hashCode());
+                    //out.print("\t" + allele.hashCode());
+                    out.print("\t" + allele);
                 }
 
             }

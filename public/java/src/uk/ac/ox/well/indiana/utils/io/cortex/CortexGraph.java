@@ -24,7 +24,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private int kmerBits;
     private int numColors;
     private long numRecords;
-    //private long dataOffset;
+
+    private long recordSize;
+    private long sizeOfBuffer;
+    private long recordsSeen = 0;
 
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
@@ -138,9 +141,17 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             long size = in.getChannel().size();
             long dataOffset = in.getFilePointer();
             long dataSize = size - dataOffset;
-            numRecords = dataSize / (8*kmerBits + 4*numColors + 1*numColors);
 
-            mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, in.getChannel().size() - dataOffset);
+            recordSize = (8*kmerBits + 4*numColors + 1*numColors);
+            numRecords = dataSize / recordSize;
+
+            if (in.getChannel().size() - dataOffset < Integer.MAX_VALUE) {
+                sizeOfBuffer = in.getChannel().size() - dataOffset;
+            } else {
+                sizeOfBuffer = recordSize * (Integer.MAX_VALUE / recordSize);
+            }
+
+            mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, sizeOfBuffer);
 
             nextRecord = getNextRecord();
         } catch (FileNotFoundException e) {
@@ -175,7 +186,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             info += "-- Color " + color + " --\n"
                  +  "  sample name: '" + cortexColor.getSampleName() + "'\n"
                  +  "  mean read length: " + cortexColor.getMeanReadLength() + "\n"
-                 +  "  total sequence loaded: " + cortexColor.getTotalSequence() + "\n"
+                 +  "  total sequence loaded: " + "(not parsed)" + "\n"
                  +  "  sequence error rate: " + "(not parsed)" + "\n"
                  +  "  tip clipping: " + (cortexColor.isTopClippingApplied() ? "yes" : "no") + "\n"
                  +  "  remove_low_coverage_supernodes: " + (cortexColor.isLowCovgSupernodesRemoved() ? "yes" : "no") + "\n"
@@ -195,27 +206,49 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     private CortexRecord getNextRecord() {
-        try {
-            long[] binaryKmer = new long[kmerBits];
-            for (int bits = 0; bits < kmerBits; bits++) {
-                binaryKmer[bits] = mappedRecordBuffer.getLong();
-            }
+        for (int retryIndex = 0; retryIndex <= 1; retryIndex++) {
+            try {
+                long[] binaryKmer = new long[kmerBits];
+                for (int bits = 0; bits < kmerBits; bits++) {
+                    binaryKmer[bits] = mappedRecordBuffer.getLong();
+                }
 
-            int[] coverages = new int[numColors];
-            for (int color = 0; color < numColors; color++) {
-                byte[] coverage = new byte[4];
-                mappedRecordBuffer.get(coverage);
-                coverages[color] = BinaryUtils.toUnsignedInt(coverage);
-            }
+                int[] coverages = new int[numColors];
+                for (int color = 0; color < numColors; color++) {
+                    byte[] coverage = new byte[4];
+                    mappedRecordBuffer.get(coverage);
+                    coverages[color] = BinaryUtils.toUnsignedInt(coverage);
+                }
 
-            byte[] edges = new byte[numColors];
-            for (int color = 0; color < numColors; color++) {
-                edges[color] = mappedRecordBuffer.get();
+                byte[] edges = new byte[numColors];
+                for (int color = 0; color < numColors; color++) {
+                    edges[color] = mappedRecordBuffer.get();
+                }
+                recordsSeen++;
+
+                return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
+            } catch (BufferUnderflowException e) {
+                if (retryIndex == 0) {
+                    try {
+                        if (recordsSeen < numRecords) {
+                            long recordsRemaining = numRecords - recordsSeen;
+
+                            if (recordSize * recordsRemaining < sizeOfBuffer) {
+                                mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, in.getChannel().position(), recordSize * recordsRemaining);
+                            } else {
+                                mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, in.getChannel().position(), sizeOfBuffer);
+                            }
+                        }
+                    } catch (IOException e1) {
+                        throw new RuntimeException("Unable to instantiate a new buffer for large Cortex file: " + e1);
+                    }
+                } else {
+                    return null;
+                }
             }
-            return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
-        } catch (BufferUnderflowException e) {
-            return null;
         }
+
+        return null;
     }
 
     private CortexRecord oldGetNextRecord() {
