@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 public @interface Output {
     String shortName() default "o";
     String fullName() default "out";
-    String doc() default "the output file";
+    String doc() default "The output file";
     //boolean required() default false;
 }

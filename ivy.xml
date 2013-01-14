@@ -21,8 +21,11 @@
         <!-- Apache commons JEXL: Java expression language -->
         <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1" />
 
+        <!-- DSI Utils -->
+        <dependency org="it.unimi.dsi" name="dsiutils" rev="2.0.10" />
+
         <!-- JGraphT -->
-        <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />
+        <dependency org="org.jgrapht" name="jgrapht" rev="0.8.3" />
 
         <!-- Stuff for making interactive maps -->
         <dependency org="org.xerial" name="sqlite-jdbc" rev="3.6.16" />

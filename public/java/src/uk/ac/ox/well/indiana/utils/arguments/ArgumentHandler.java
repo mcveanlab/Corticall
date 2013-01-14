@@ -103,7 +103,7 @@ public class ArgumentHandler {
 
                             if (value != null) {
                                 processArgument(instance, field, value);
-                            } else if (arg.required()) {
+                            } else if (arg.required() && field.get(instance) == null) {
                                 throw new RuntimeException("The argument '--" + arg.fullName() + "' was not specified and is required");
                             }
                         }
@@ -116,6 +116,10 @@ public class ArgumentHandler {
                             if (value == null) {
                                 value = "/dev/stdout";
                             }
+
+                            processArgument(instance, field, value);
+                        } else {
+                            String value = cmd.getOptionValue(out.fullName());
 
                             processArgument(instance, field, value);
                         }

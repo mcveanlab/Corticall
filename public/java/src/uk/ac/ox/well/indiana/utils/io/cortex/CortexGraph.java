@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.cortex;
 
+import it.unimi.dsi.io.ByteBufferInputStream;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
 
@@ -8,6 +9,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -32,7 +34,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
-    private MappedByteBuffer mappedRecordBuffer = null;
+    //private MappedByteBuffer mappedRecordBuffer = null;
+    private ByteBufferInputStream mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
 
     public CortexGraph(String cortexFilePath) {
@@ -151,7 +154,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 sizeOfBuffer = recordSize * (Integer.MAX_VALUE / recordSize);
             }
 
-            mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, sizeOfBuffer);
+            //mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, sizeOfBuffer);
+            mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
+            mappedRecordBuffer.position(dataOffset);
 
             nextRecord = getNextRecord();
         } catch (FileNotFoundException e) {
@@ -206,45 +211,41 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     private CortexRecord getNextRecord() {
-        for (int retryIndex = 0; retryIndex <= 1; retryIndex++) {
+        if (recordsSeen < numRecords) {
             try {
                 long[] binaryKmer = new long[kmerBits];
                 for (int bits = 0; bits < kmerBits; bits++) {
-                    binaryKmer[bits] = mappedRecordBuffer.getLong();
+                    //binaryKmer[bits] = mappedRecordBuffer.getLong();
+
+                    byte[] b = new byte[8];
+
+                    mappedRecordBuffer.read(b);
+
+                    ByteBuffer bb = ByteBuffer.wrap(b);
+                    binaryKmer[bits] = bb.getLong();
                 }
 
                 int[] coverages = new int[numColors];
                 for (int color = 0; color < numColors; color++) {
                     byte[] coverage = new byte[4];
-                    mappedRecordBuffer.get(coverage);
+                    //mappedRecordBuffer.get(coverage);
+                    mappedRecordBuffer.read(coverage);
+
                     coverages[color] = BinaryUtils.toUnsignedInt(coverage);
                 }
 
                 byte[] edges = new byte[numColors];
-                for (int color = 0; color < numColors; color++) {
-                    edges[color] = mappedRecordBuffer.get();
-                }
+                //for (int color = 0; color < numColors; color++) {
+                    //edges[color] = mappedRecordBuffer.get();
+                    //mappedRecordBuffer.read(edges[color]);
+                //}
+                mappedRecordBuffer.read(edges);
+
                 recordsSeen++;
 
                 return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
-            } catch (BufferUnderflowException e) {
-                if (retryIndex == 0) {
-                    try {
-                        if (recordsSeen < numRecords) {
-                            long recordsRemaining = numRecords - recordsSeen;
-
-                            if (recordSize * recordsRemaining < sizeOfBuffer) {
-                                mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, in.getChannel().position(), recordSize * recordsRemaining);
-                            } else {
-                                mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, in.getChannel().position(), sizeOfBuffer);
-                            }
-                        }
-                    } catch (IOException e1) {
-                        throw new RuntimeException("Unable to instantiate a new buffer for large Cortex file: " + e1);
-                    }
-                } else {
-                    return null;
-                }
+            } catch (IOException e) {
+                return null;
             }
         }
 

@@ -45,6 +45,10 @@ public class SequenceUtils {
         return (kmerStr.compareTo(rcStr) < 0) ? sequence : rc;
     }
 
+    public static String getAlphanumericallyLowestOrientation(String sequence) {
+        return new String(getAlphanumericallyLowestOrientation(sequence.getBytes()));
+    }
+
     public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(List<FastaSequenceFile> fastas, int kmerSize) {
         Map<Integer, String> kmerHash = new HashMap<Integer, String>();
 

@@ -16,15 +16,6 @@ public class ViewCortexGraph extends ViewCortexBase {
             for (CortexRecord cr : CORTEX_GRAPH) {
                 i++;
 
-                if (i % (CORTEX_GRAPH.getNumRecords()/10) == 0) {
-                    log.info("{}/{} records processed", i, CORTEX_GRAPH.getNumRecords());
-                }
-
-                if (i > 6860970 - 10 && i < 6860970 + 10) {
-                    log.info("{}: {}", i, cr);
-                }
-
-                /*
                 if (satisfiesConstraints(cr)) {
                     String homeName = getKmerHomeContigName(cr);
 
@@ -34,7 +25,6 @@ public class ViewCortexGraph extends ViewCortexBase {
                         out.println(homeName + " " + cr);
                     }
                 }
-                */
             }
 
             log.info("Loaded {}/{} records total", i, CORTEX_GRAPH.getNumRecords());
