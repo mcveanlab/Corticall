@@ -164,17 +164,4 @@ public class CortexGraphTest {
             index++;
         }
     }
-
-    @Test
-    public void parseLargeFile() {
-        CortexGraph cg = new CortexGraph("testdata/largegraph.ctx");
-
-        int numRecords = 0;
-
-        for (CortexRecord cr : cg) {
-            numRecords++;
-        }
-
-        Assert.assertEquals(cg.getNumRecords(), numRecords);
-    }
 }
