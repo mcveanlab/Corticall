@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 
 public class CortexGraphTest {
-    class SimpleCortexRecord {
+    private class SimpleCortexRecord {
         public String kmer;
         public int[] coverage;
         public String[] edges;

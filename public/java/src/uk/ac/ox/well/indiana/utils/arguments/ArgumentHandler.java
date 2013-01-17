@@ -8,6 +8,7 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
@@ -199,6 +200,8 @@ public class ArgumentHandler {
                 return value;
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
+            } else if (type.equals(GFF3.class)) {
+                return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {
                 return new FastaSequenceFile(new File(value), false);
             } else if (type.equals(IndexedFastaSequenceFile.class)) {
