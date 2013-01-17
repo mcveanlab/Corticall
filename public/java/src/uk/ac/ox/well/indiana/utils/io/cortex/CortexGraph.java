@@ -34,7 +34,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
     private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
-    //private MappedByteBuffer mappedRecordBuffer = null;
     private ByteBufferInputStream mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
 

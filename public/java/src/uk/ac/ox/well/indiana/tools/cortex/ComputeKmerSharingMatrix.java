@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.sketches.cortex;
+package uk.ac.ox.well.indiana.tools.cortex;
 
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
@@ -14,7 +14,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class ShowKmerSharing extends Tool {
+public class ComputeKmerSharingMatrix extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

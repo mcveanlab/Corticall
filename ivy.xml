@@ -35,6 +35,8 @@
 
         <!-- Processing (local repo) -->
         <dependency org="org.processing" name="core" rev="2.0b3" />
+        <dependency org="org.processing" name="pdf" rev="2.0b3" />
+        <dependency org="org.processing" name="itext" rev="2.0b3" />
 
         <!-- SAM-JDK (local repo) -->
         <dependency org="net.sf.picard" name="sam" rev="latest" />
