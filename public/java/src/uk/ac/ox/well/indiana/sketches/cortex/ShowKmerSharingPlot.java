@@ -118,12 +118,13 @@ public class ShowKmerSharingPlot extends Sketch {
         // Set display properties
         int verticalMargin = 70;
         int horizontalMargin = 50;
+        int labelMargin = 260;
         int exonHeight = 50;
 
         int windowWidth = longestGeneLength + horizontalMargin;
         int windowHeight = GENES.size() * verticalMargin;
 
-        size(windowWidth, windowHeight, PGraphicsPDF.PDF, out.getAbsolutePath());
+        size(labelMargin + windowWidth, windowHeight, PGraphicsPDF.PDF, out.getAbsolutePath());
 
         // Load up kmers
         HashMap<String, KmerMetaData> kmerData = new HashMap<String, KmerMetaData>();
@@ -142,10 +143,13 @@ public class ShowKmerSharingPlot extends Sketch {
 
                     int geneLength = geneRecord.getEnd() - geneRecord.getStart();
 
-                    int xpos0 = (horizontalMargin/2);
-                    int xpos1 = (horizontalMargin/2) + geneLength;
+                    int xpos0 = labelMargin + (horizontalMargin/2);
+                    int xpos1 = labelMargin + (horizontalMargin/2) + geneLength;
                     int ypos = (geneIndex*verticalMargin)+(verticalMargin/2);
 
+                    textSize(32);
+                    fill(0, 0, 0);
+                    text(gene, 10, ypos);
                     line(xpos0, ypos, xpos1, ypos);
 
                     String seq = new String(FASTA.getSubsequenceAt(record.getSeqid(), record.getStart(), record.getEnd()).getBases());
@@ -166,11 +170,12 @@ public class ShowKmerSharingPlot extends Sketch {
                     if ("exon".equalsIgnoreCase(record.getType())) {
                         int exonLength = record.getEnd() - record.getStart();
 
-                        int xpos0 = (horizontalMargin/2) + (record.getStart() - geneRecord.getStart());
+                        int xpos0 = labelMargin + (horizontalMargin/2) + (record.getStart() - geneRecord.getStart());
                         int ypos0 = (geneIndex*verticalMargin)+(verticalMargin/2)-(exonHeight/2);
                         int width = exonLength;
                         int height = exonHeight;
 
+                        fill(255, 255, 255);
                         rect(xpos0, ypos0, width, height);
                     }
                 }
@@ -184,30 +189,54 @@ public class ShowKmerSharingPlot extends Sketch {
             int[] coverages = cr.getCoverages();
 
             boolean hasCoverage = false;
+            boolean allCoverageIsInROI = false;
             int numColorsWithKmer = 0;
             boolean hasZeroOrUnitCoverageInColors = true;
+
+            int totalCoverageInROI = 0;
 
             for (int color : COLORS) {
                 hasCoverage |= (coverages[color] > 0);
                 numColorsWithKmer += coverages[color] == 0 ? 0 : 1;
                 hasZeroOrUnitCoverageInColors &= (coverages[color] <= 1);
+                totalCoverageInROI += coverages[color];
             }
 
-            if (hasCoverage && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors && kmerData.containsKey(cr.getKmerString())) {
+            allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
+
+            if (kmerData.containsKey(cr.getKmerString())) {
                 KmerMetaData kmd = kmerData.get(cr.getKmerString());
 
-                for (int i = 0; i < kmd.xpos.size(); i++) {
-                    int xpos = kmd.xpos.get(i);
-                    int ypos = kmd.ypos.get(i);
-                    boolean isExonic = kmd.isExonic.get(i);
+                if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors) {
+                    for (int i = 0; i < kmd.xpos.size(); i++) {
+                        int xpos = kmd.xpos.get(i);
+                        int ypos = kmd.ypos.get(i);
+                        boolean isExonic = kmd.isExonic.get(i);
 
-                    stroke(kmd.color.getRed(), kmd.color.getGreen(), kmd.color.getBlue());
+                        stroke(kmd.color.getRed(), kmd.color.getGreen(), kmd.color.getBlue());
 
-                    if (isExonic) {
-                        line(xpos, ypos-(exonHeight/2)+1, xpos, ypos+(exonHeight/2)-1);
-                    } else {
-                        line(xpos, ypos-(exonHeight/4)+1, xpos, ypos+(exonHeight/4)-1);
+                        if (isExonic) {
+                            line(xpos, ypos-(exonHeight/2)+1, xpos, ypos+(exonHeight/2)-1);
+                        } else {
+                            line(xpos, ypos-(exonHeight/4)+1, xpos, ypos+(exonHeight/4)-1);
+                        }
                     }
+                } else {
+                    /*
+                    for (int i = 0; i < kmd.xpos.size(); i++) {
+                        int xpos = kmd.xpos.get(i);
+                        int ypos = kmd.ypos.get(i);
+                        boolean isExonic = kmd.isExonic.get(i);
+
+                        stroke(220, 220, 220);
+
+                        if (isExonic) {
+                            line(xpos, ypos-(exonHeight/2)+1, xpos, ypos+(exonHeight/2)-1);
+                        } else {
+                            line(xpos, ypos-(exonHeight/4)+1, xpos, ypos+(exonHeight/4)-1);
+                        }
+                    }
+                    */
                 }
             }
 
