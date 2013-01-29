@@ -1,31 +1,23 @@
 package uk.ac.ox.well.indiana.sketches.cortex;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTree;
 import net.sf.picard.util.IntervalTreeMap;
-import org.apache.commons.jexl2.Expression;
-import org.apache.commons.jexl2.JexlContext;
-import org.apache.commons.jexl2.MapContext;
-import org.geotools.brewer.color.ColorBrewer;
-import org.geotools.brewer.color.StyleGenerator;
+import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.gff.*;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-
-import processing.pdf.PGraphicsPDF;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 public class ShowKmerSharingPlot extends Sketch {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
@@ -132,7 +124,7 @@ public class ShowKmerSharingPlot extends Sketch {
         Color[] colors = generateColors(allGeneRecords.size());
 
         int geneIndex = 0;
-        for (String gene : allGeneRecords.keySet()) {
+        for (String gene : GENES) {
             Gene theGene = genes.get(gene);
 
             GFF3Record geneRecord = null;
@@ -168,6 +160,8 @@ public class ShowKmerSharingPlot extends Sketch {
             if (geneRecord != null) {
                 for (GFF3Record record : allGeneRecords.get(gene)) {
                     if ("exon".equalsIgnoreCase(record.getType())) {
+                        log.info("{}: {}", gene, record.getStrand());
+
                         int exonLength = record.getEnd() - record.getStart();
 
                         int xpos0 = labelMargin + (horizontalMargin/2) + (record.getStart() - geneRecord.getStart());
@@ -183,6 +177,8 @@ public class ShowKmerSharingPlot extends Sketch {
 
             geneIndex++;
         }
+
+        strokeCap(PROJECT);
 
         int recordNum = 0;
         for (CortexRecord cr : CORTEX_GRAPH) {
@@ -218,25 +214,9 @@ public class ShowKmerSharingPlot extends Sketch {
                         if (isExonic) {
                             line(xpos, ypos-(exonHeight/2)+1, xpos, ypos+(exonHeight/2)-1);
                         } else {
-                            line(xpos, ypos-(exonHeight/4)+1, xpos, ypos+(exonHeight/4)-1);
+                            line(xpos, ypos-(exonHeight/5)+1, xpos, ypos+(exonHeight/5)-1);
                         }
                     }
-                } else {
-                    /*
-                    for (int i = 0; i < kmd.xpos.size(); i++) {
-                        int xpos = kmd.xpos.get(i);
-                        int ypos = kmd.ypos.get(i);
-                        boolean isExonic = kmd.isExonic.get(i);
-
-                        stroke(220, 220, 220);
-
-                        if (isExonic) {
-                            line(xpos, ypos-(exonHeight/2)+1, xpos, ypos+(exonHeight/2)-1);
-                        } else {
-                            line(xpos, ypos-(exonHeight/4)+1, xpos, ypos+(exonHeight/4)-1);
-                        }
-                    }
-                    */
                 }
             }
 

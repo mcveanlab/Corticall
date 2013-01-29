@@ -5,7 +5,7 @@ import com.google.common.base.Joiner;
 import java.util.TreeMap;
 
 public class GFF3Record {
-    private enum Strand { POSITIVE, NEGATIVE }
+    public enum Strand { POSITIVE, NEGATIVE }
 
     private String seqid;
     private String source;
