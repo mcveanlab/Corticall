@@ -38,16 +38,22 @@ public class ComputeKmerSharingMatrix extends Tool {
             int[] coverages = cr.getCoverages();
 
             boolean hasCoverage = false;
+            boolean allCoverageIsInROI = false;
             int numColorsWithKmer = 0;
             boolean hasZeroOrUnitCoverageInColors = true;
+
+            int totalCoverageInROI = 0;
 
             for (int color : COLORS) {
                 hasCoverage |= (coverages[color] > 0);
                 numColorsWithKmer += coverages[color] == 0 ? 0 : 1;
                 hasZeroOrUnitCoverageInColors &= (coverages[color] <= 1);
+                totalCoverageInROI += coverages[color];
             }
 
-            if (hasCoverage && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors) {
+            allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
+
+            if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors) {
                 ArrayList<String> fields = new ArrayList<String>();
                 fields.add(cr.getKmerString());
 
