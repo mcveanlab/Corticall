@@ -11,6 +11,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
@@ -34,6 +35,12 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
     @Argument(fullName="genes", shortName="genes", doc="IDs of genes to evaluate")
     public ArrayList<String> GENES;
+
+    @Argument(fullName="pca", shortName="pca", doc="PCA table", required=false)
+    public File PCA;
+
+    @Argument(fullName="pcaOn", shortName="pcaOn", doc="Is the PCA on genes or kmers?", required=false)
+    public String PCA_ON = "KMERS";
 
     @Output
     public File out;
@@ -217,7 +224,41 @@ public class ShowKmerSharingPlot2 extends Sketch {
     private GeneViews geneViews = new GeneViews();
 
     public void setup() {
+        HashMap<String, HashMap<String, String>> pcaTable = new HashMap<String, HashMap<String, String>>();
+
+        if (PCA != null) {
+            TableReader tr = new TableReader(PCA);
+            for (HashMap<String, String> fields : tr) {
+                log.info("{}", fields.get(""));
+
+                pcaTable.put(fields.get(""), fields);
+            }
+        }
+
         Color[] colors = generateColors(GENES.size());
+
+        if (PCA_ON.equalsIgnoreCase("genes")) {
+            String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+
+            Color[] newcolors = generateColors(10);
+
+            for (int geneIndex = 0; geneIndex < GENES.size(); geneIndex++) {
+                String gene = GENES.get(geneIndex);
+
+                float maxValue = 0.0f;
+                int maxIndex = 0;
+                for (int i = 0; i < columns.length; i++) {
+                    float value = Math.abs(Float.parseFloat(pcaTable.get(gene).get(columns[i])));
+
+                    if (value > maxValue) {
+                        maxValue = value;
+                        maxIndex = i;
+                    }
+                }
+
+                colors[geneIndex] = newcolors[maxIndex];
+            }
+        }
 
         int geneIndex = 0;
         for (String gene : GENES) {
@@ -228,6 +269,10 @@ public class ShowKmerSharingPlot2 extends Sketch {
             geneViews.add(new GeneView(GFF.getContained(record), seq, CORTEX_GRAPH.getKmerSize(), colors[geneIndex]));
 
             geneIndex++;
+        }
+
+        if (PCA != null) {
+            colors = generateColors(10);
         }
 
         int crindex = 0;
@@ -250,7 +295,25 @@ public class ShowKmerSharingPlot2 extends Sketch {
             boolean allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
 
             if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors && geneViews.kmers.containsKey(cr.getKmerString())) {
-                geneViews.kmers.get(cr.getKmerString()).display = true;
+                String kmer = cr.getKmerString();
+                geneViews.kmers.get(kmer).display = true;
+
+                if (PCA != null && PCA_ON.equalsIgnoreCase("kmers") && pcaTable.containsKey(kmer)) {
+                    String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+
+                    float maxValue = 0.0f;
+                    int maxIndex = 0;
+                    for (int i = 0; i < columns.length; i++) {
+                        float value = Math.abs(Float.parseFloat(pcaTable.get(kmer).get(columns[i])));
+
+                        if (value > maxValue) {
+                            maxValue = value;
+                            maxIndex = i;
+                        }
+                    }
+
+                    geneViews.kmers.get(kmer).color = colors[maxIndex];
+                }
             }
 
             if (crindex % (CORTEX_GRAPH.getNumRecords() / 10) == 0) {

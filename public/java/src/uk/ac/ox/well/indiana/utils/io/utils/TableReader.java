@@ -24,8 +24,18 @@ public class TableReader extends LineReader implements Iterator<HashMap<String, 
         String[] fields = line.split("\t");
 
         HashMap<String, String> entry = new HashMap<String, String>();
-        for (int i = 0; i < fields.length; i++) {
-            entry.put(header[i], fields[i]);
+
+        if (fields.length == header.length) {
+            for (int i = 0; i < fields.length; i++) {
+                entry.put(header[i], fields[i]);
+            }
+        } else if (fields.length == header.length + 1) {
+            entry.put("", fields[0]);
+            for (int i = 1; i < fields.length; i++) {
+                entry.put(header[i-1], fields[i]);
+            }
+        } else {
+            throw new RuntimeException("Unable to load table: header has " + header.length + " fields but data has " + fields.length + ".");
         }
 
         return entry;
