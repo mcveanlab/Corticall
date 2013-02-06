@@ -52,11 +52,14 @@ public class ShowKmerSharingPlot2 extends Sketch {
         private String seq;
         private int kmerSize;
         private Color color;
+        private ArrayList<GFF3Record> domains;
+        private HashMap<String, Color> domainColors;
 
-        public GeneView(Collection<GFF3Record> records, String seq, int kmerSize, Color color) {
+        public GeneView(Collection<GFF3Record> records, String seq, int kmerSize, Color color, ArrayList<GFF3Record> domains) {
             this.seq = seq;
             this.kmerSize = kmerSize;
             this.color = color;
+            this.domains = domains;
 
             for (GFF3Record record : records) {
                 if ("gene".equalsIgnoreCase(record.getType())) {
@@ -67,6 +70,26 @@ public class ShowKmerSharingPlot2 extends Sketch {
                     exonIntervals.put(new Interval(record.getSeqid(), record.getStart(), record.getEnd()), true);
                 }
             }
+
+            domainColors = new HashMap<String, Color>();
+
+            domainColors.put("ATS", new Color(93, 46, 140));
+            domainColors.put("CIDRa", new Color(5, 199, 242));
+            domainColors.put("CIDRb", new Color(5, 199, 242));
+            domainColors.put("CIDRd", new Color(5, 199, 242));
+            domainColors.put("CIDRg", new Color(5, 199, 242));
+            domainColors.put("CIDRpam", new Color(5, 199, 242));
+            domainColors.put("DBLa", new Color(242, 29, 47));
+            domainColors.put("DBLb", new Color(242, 29, 47));
+            domainColors.put("DBLd", new Color(242, 29, 47));
+            domainColors.put("DBLe", new Color(242, 29, 47));
+            domainColors.put("DBLg", new Color(242, 29, 47));
+            domainColors.put("DBLpam1", new Color(242, 29, 47));
+            domainColors.put("DBLpam2", new Color(242, 29, 47));
+            domainColors.put("DBLpam3", new Color(242, 29, 47));
+            domainColors.put("DBLz", new Color(242, 29, 47));
+            domainColors.put("NTS", new Color(242, 110, 34));
+            domainColors.put("NTSpam", new Color(242, 110, 34));
         }
 
         public GFF3Record getGene() {
@@ -95,9 +118,9 @@ public class ShowKmerSharingPlot2 extends Sketch {
             textSize(32);
             text(gene.getAttributes().get("ID"), 10, ypos);
 
+            stroke(0, 0, 0);
+            strokeWeight(1);
             line(xpos0, ypos, xpos0 + this.getGeneLength(), ypos);
-
-            fill(255, 255, 255);
 
             for (GFF3Record exon : exons) {
                 int exonLength = exon.getEnd() - exon.getStart();
@@ -110,7 +133,23 @@ public class ShowKmerSharingPlot2 extends Sketch {
                     expos0 = xpos0 + gene.getEnd() - exon.getEnd();
                 }
 
+                stroke(0, 0, 0);
+                strokeWeight(1);
+                fill(255, 255, 255);
                 rect(expos0, eypos0, exonLength, exonHeight);
+            }
+
+            for (GFF3Record domain : domains) {
+                int domainLength = domain.getEnd() - domain.getStart();
+
+                int dxpos0 = domain.getStart() - gene.getStart();
+                int dypos = ypos + (exonHeight/2) + 15;
+
+                Color c = domainColors.get(domain.getAttributes().get("DOMAIN_TYPE"));
+
+                stroke(c.getRed(), c.getGreen(), c.getBlue());
+                strokeWeight(7);
+                line(xpos0 + dxpos0, dypos, xpos0 + dxpos0 + domainLength, dypos);
             }
         }
     }
@@ -138,7 +177,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
         }
 
         private int horizontalMargin = 50;
-        private int verticalMargin = 70;
+        private int verticalMargin = 90;
         private int labelMargin = 260;
         private int exonHeight = 50;
 
@@ -188,6 +227,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
             }
 
             strokeCap(PROJECT);
+            strokeWeight(1);
 
             for (String kmer : kmers.keySet()) {
                 KmerMetaData kmd = kmers.get(kmer);
@@ -210,6 +250,53 @@ public class ShowKmerSharingPlot2 extends Sketch {
         }
     }
 
+    private class Legend {
+        private int xpos = 0;
+        private int ypos = 0;
+
+        //private int horizontalMargin = 50;
+        private int verticalMargin = 40;
+        private int lineLength = 20;
+        private int lineAndLabelMargin = 10;
+
+        ArrayList<String> labels = new ArrayList<String>();
+        ArrayList<Color> colors = new ArrayList<Color>();
+
+        public Legend(int xpos, int ypos) {
+            this.xpos = xpos;
+            this.ypos = ypos;
+        }
+
+        public void addElement(String label, Color color) {
+            labels.add(label);
+            colors.add(color);
+        }
+
+        public void display() {
+            for (int i = 0; i < labels.size(); i++) {
+                int ypos1 = ypos + i*verticalMargin;
+
+                strokeWeight(7);
+                strokeCap(PROJECT);
+                stroke(colors.get(i).getRed(), colors.get(i).getGreen(), colors.get(i).getBlue());
+                line(xpos, ypos1, xpos + lineLength, ypos1);
+
+                fill(0, 0, 0);
+                textMode(SHAPE);
+                textSize(32);
+                text(labels.get(i), xpos + lineLength + lineAndLabelMargin, ypos1 + (verticalMargin / 2));
+            }
+        }
+
+        public int getDisplayWidth() {
+            return (lineLength + lineAndLabelMargin + 500);
+        }
+
+        public int getDisplayHeight() {
+            return labels.size()*verticalMargin;
+        }
+    }
+
     // Taken from http://stackoverflow.com/questions/223971/how-to-generate-spectrum-color-palettes/223981#223981
     private Color[] generateColors(int n) {
         Color[] cols = new Color[n];
@@ -229,7 +316,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
         if (PCA != null) {
             TableReader tr = new TableReader(PCA);
             for (HashMap<String, String> fields : tr) {
-                log.info("{}", fields.get(""));
+                //log.info("{}", fields.get(""));
 
                 pcaTable.put(fields.get(""), fields);
             }
@@ -266,7 +353,17 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
             String seq = new String(FASTA.getSubsequenceAt(record.getSeqid(), record.getStart(), record.getEnd()).getBases());
 
-            geneViews.add(new GeneView(GFF.getContained(record), seq, CORTEX_GRAPH.getKmerSize(), colors[geneIndex]));
+            Collection<GFF3Record> records = GFF.getOverlapping(record);
+
+            ArrayList<GFF3Record> domains = new ArrayList<GFF3Record>();
+
+            for (GFF3Record r : records) {
+                if ("domain".equalsIgnoreCase(r.getType())) {
+                    domains.add(r);
+                }
+            }
+
+            geneViews.add(new GeneView(GFF.getContained(record), seq, CORTEX_GRAPH.getKmerSize(), colors[geneIndex], domains));
 
             geneIndex++;
         }
@@ -322,9 +419,35 @@ public class ShowKmerSharingPlot2 extends Sketch {
             crindex++;
         }
 
-        size(geneViews.getDisplayWidth(), geneViews.getDisplayHeight(), PGraphicsPDF.PDF, out.getAbsolutePath());
+        Legend legend = new Legend(geneViews.getDisplayWidth(), geneViews.verticalMargin);
+        if (PCA != null) {
+            String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+
+            for (int i = 0; i < columns.length; i++) {
+                legend.addElement(columns[i], colors[i]);
+            }
+        } else {
+            for (int i = 0; i < GENES.size(); i++) {
+                legend.addElement(GENES.get(i), colors[i]);
+            }
+        }
+
+        Legend domainLegend = new Legend(geneViews.getDisplayWidth(), legend.getDisplayHeight() + 5*geneViews.verticalMargin);
+
+        domainLegend.addElement("ATS", new Color(93, 46, 140));
+        domainLegend.addElement("CIDR", new Color(5, 199, 242));
+        domainLegend.addElement("DBL", new Color(242, 29, 47));
+        domainLegend.addElement("NTS", new Color(242, 110, 34));
+
+        log.info("Gene display: {}x{}", geneViews.getDisplayWidth(), geneViews.getDisplayHeight());
+        log.info("Legend display: {}x{}", legend.getDisplayWidth(), legend.getDisplayHeight());
+
+        size(geneViews.getDisplayWidth() + legend.getDisplayWidth(), geneViews.getDisplayHeight(), PGraphicsPDF.PDF, out.getAbsolutePath());
 
         geneViews.display();
+
+        legend.display();
+        domainLegend.display();
 
         exit();
     }
