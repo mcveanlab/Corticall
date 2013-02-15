@@ -37,6 +37,7 @@
         <dependency org="org.processing" name="core" rev="2.0b3" />
         <dependency org="org.processing" name="pdf" rev="2.0b3" />
         <dependency org="org.processing" name="itext" rev="2.0b3" />
+        <dependency org="org.gicentre" name="gicentreUtils" rev="3.2.0" />
 
         <!-- SAM-JDK (local repo) -->
         <dependency org="net.sf.picard" name="sam" rev="latest" />
@@ -49,6 +50,9 @@
 
         <!-- Modest Maps (local repo) -->
         <dependency org="com.modestmaps" name="modestmaps" rev="latest" />
+
+        <!-- Colt -->
+        <dependency org="colt" name="colt" rev="1.2.0" />
 
         <!-- Unfolding - a library to create interactive maps and geovisualizations in Processing and Java -->
         <!--
