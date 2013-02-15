@@ -166,4 +166,16 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     public GFF3Record getRecord(String id) {
         return idrecords.get(id);
     }
+
+    public Collection<GFF3Record> getType(String type, Collection<GFF3Record> records) {
+        ArrayList<GFF3Record> subsetOfRecords = new ArrayList<GFF3Record>();
+
+        for (GFF3Record r : records) {
+            if (type.equalsIgnoreCase(r.getType())) {
+                subsetOfRecords.add(r);
+            }
+        }
+
+        return subsetOfRecords;
+    }
 }

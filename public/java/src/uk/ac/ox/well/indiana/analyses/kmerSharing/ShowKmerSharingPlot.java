@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.sketches.cortex;
+package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
@@ -160,7 +160,7 @@ public class ShowKmerSharingPlot extends Sketch {
             if (geneRecord != null) {
                 for (GFF3Record record : allGeneRecords.get(gene)) {
                     if ("exon".equalsIgnoreCase(record.getType())) {
-                        log.info("{}: {}", gene, record.getStrand());
+                        //log.info("{}: {}", gene, record.getStrand());
 
                         int exonLength = record.getEnd() - record.getStart();
 

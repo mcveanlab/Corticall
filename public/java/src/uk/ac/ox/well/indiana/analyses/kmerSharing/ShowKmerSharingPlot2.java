@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.sketches.cortex;
+package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
@@ -113,9 +113,12 @@ public class ShowKmerSharingPlot2 extends Sketch {
         }
 
         public void display(int xpos0, int ypos, int exonHeight) {
+            //background(Color.WHITE.getRGB());
+
             fill(0, 0, 0);
             textMode(SHAPE);
-            textSize(32);
+            textSize(33);
+            textAlign(LEFT, CENTER);
             text(gene.getAttributes().get("ID"), 10, ypos);
 
             stroke(0, 0, 0);
@@ -142,14 +145,20 @@ public class ShowKmerSharingPlot2 extends Sketch {
             for (GFF3Record domain : domains) {
                 int domainLength = domain.getEnd() - domain.getStart();
 
-                int dxpos0 = domain.getStart() - gene.getStart();
+                int dxpos0 = xpos0 + domain.getStart() - gene.getStart();
+                //int dypos0 = ypos - (exonHeight/2);
                 int dypos = ypos + (exonHeight/2) + 15;
 
                 Color c = domainColors.get(domain.getAttributes().get("DOMAIN_TYPE"));
 
-                stroke(c.getRed(), c.getGreen(), c.getBlue());
-                strokeWeight(7);
-                line(xpos0 + dxpos0, dypos, xpos0 + dxpos0 + domainLength, dypos);
+                stroke(c.getRGB());
+                strokeWeight(8);
+                line(dxpos0, dypos, dxpos0 + domainLength, dypos);
+
+                //fill(c.getRGB(), 20);
+                //stroke(c.getRGB());
+                //strokeWeight(8);
+                //rect(dxpos0, dypos0, domainLength, exonHeight);
             }
         }
     }
@@ -179,7 +188,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
         private int horizontalMargin = 50;
         private int verticalMargin = 90;
         private int labelMargin = 260;
-        private int exonHeight = 50;
+        private int exonHeight = 30;
 
         private int longestGeneLength = 0;
         private HashMap<String, KmerMetaData> kmers = new HashMap<String, KmerMetaData>();
@@ -284,7 +293,8 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 fill(0, 0, 0);
                 textMode(SHAPE);
                 textSize(32);
-                text(labels.get(i), xpos + lineLength + lineAndLabelMargin, ypos1 + (verticalMargin / 2));
+                textAlign(LEFT, CENTER);
+                text(labels.get(i), xpos + lineLength + lineAndLabelMargin, ypos1);
             }
         }
 
@@ -324,10 +334,13 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
         Color[] colors = generateColors(GENES.size());
 
-        if (PCA_ON.equalsIgnoreCase("genes")) {
-            String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+        String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6" };
 
-            Color[] newcolors = generateColors(10);
+        if (PCA_ON.equalsIgnoreCase("genes")) {
+            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
+
+            Color[] newcolors = generateColors(columns.length);
 
             for (int geneIndex = 0; geneIndex < GENES.size(); geneIndex++) {
                 String gene = GENES.get(geneIndex);
@@ -396,7 +409,8 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 geneViews.kmers.get(kmer).display = true;
 
                 if (PCA != null && PCA_ON.equalsIgnoreCase("kmers") && pcaTable.containsKey(kmer)) {
-                    String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+                    //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+                    //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
 
                     float maxValue = 0.0f;
                     int maxIndex = 0;
@@ -421,7 +435,8 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
         Legend legend = new Legend(geneViews.getDisplayWidth(), geneViews.verticalMargin);
         if (PCA != null) {
-            String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
+            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
 
             for (int i = 0; i < columns.length; i++) {
                 legend.addElement(columns[i], colors[i]);
