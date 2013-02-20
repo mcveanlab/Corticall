@@ -148,6 +148,8 @@ public class ShowCircularKmerSharingPlot extends Sketch {
 
         float colorIncrement = (Math.abs(ct.getMinIndex()) + Math.abs(ct.getMaxIndex())) / MAX_PRINCIPAL_COMPONENTS;
 
+        TreeMap<Integer, TreeSet<String>> colorOrderMap = new TreeMap<Integer, TreeSet<String>>();
+
         for (int color = 1; color < CORTEX_GRAPH.getNumColors(); color++) {
             String sample = CORTEX_GRAPH.getColor(color).getSampleName();
 
@@ -166,7 +168,17 @@ public class ShowCircularKmerSharingPlot extends Sketch {
 
             sampleColor.put(sample, ct.findColour(colorIndex));
 
+            if (!colorOrderMap.containsKey(maxPCIndex)) {
+                colorOrderMap.put(maxPCIndex, new TreeSet<String>());
+            }
+            colorOrderMap.get(maxPCIndex).add(sample);
+
             log.info("\tsample={}, color={}", sample, colorIndex);
+        }
+
+        ArrayList<Integer> colorOrder = new ArrayList<Integer>();
+        for (Integer pcIndex : colorOrderMap.keySet()) {
+            //TreeSet<String> samples
         }
 
         size(displayHeight - 100, displayHeight - 100);
@@ -192,7 +204,7 @@ public class ShowCircularKmerSharingPlot extends Sketch {
 
             fill(Color.BLACK.getRGB());
             textAlign(CENTER);
-            text(String.format("PC%d", i+1), -width/2 + 50 + legendElementWidth*i + legendElementWidth + legendElementWidth/2, height/2 - 100 - legendElementWidth/2);
+            text(String.format("PC%d", i + 1), -width / 2 + 50 + legendElementWidth * i + legendElementWidth + legendElementWidth / 2, height / 2 - 100 - legendElementWidth / 2);
         }
     }
 
