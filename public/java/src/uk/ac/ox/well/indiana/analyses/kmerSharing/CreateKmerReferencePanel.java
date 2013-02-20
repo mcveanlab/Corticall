@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -88,6 +87,8 @@ public class CreateKmerReferencePanel extends Tool {
     @Override
     public int execute() {
         HashMap<String, KmerInfo> kmers = getGeneKmersAndInfo();
+
+        out.println("kmer\tgenes\tdomains");
 
         int recordNum = 0;
         for (CortexRecord cr : CORTEX_GRAPH) {

@@ -33,14 +33,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     private void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {
-        /*
-        for(int i = bitfields - 1; i > 0; i--) {
-            binaryKmer[i] >>= 2;
-            binaryKmer[i] |= (binaryKmer[i-1] << 62); // & 0x3
-        }
-        binaryKmer[0] >>= 2;
-        */
-
         for(int i = bitfields - 1; i > 0; i--) {
             binaryKmer[i] >>>= 2;
             binaryKmer[i] |= (binaryKmer[i-1] << 62); // & 0x3
@@ -66,8 +58,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
             for (int i = kmerSize - 1; i >= 0; i--) {
                 rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
-
-                //System.out.printf("%d %d %s %s %c\n", i, kmerBits-1, Long.toBinaryString(binaryKmer[kmerBits - 1]), Long.toBinaryString(binaryKmer[kmerBits - 1] & 0x3), (char) rawKmer[i]);
 
                 shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
             }

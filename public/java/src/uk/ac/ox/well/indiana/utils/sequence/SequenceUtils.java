@@ -28,12 +28,21 @@ public class SequenceUtils {
 
                 case 'T': rcBase = 'A'; break;
                 case 't': rcBase = 'a'; break;
+
+                case 'N': rcBase = 'N'; break;
+                case 'n': rcBase = 'n'; break;
+
+                case '.': rcBase = '.'; break;
             }
 
             rc[sequence.length - 1 - i] = rcBase;
         }
 
         return rc;
+    }
+
+    public static String getReverseComplement(String sequence) {
+        return new String(getReverseComplement(sequence.getBytes()));
     }
 
     public static byte[] getAlphanumericallyLowestOrientation(byte[] sequence) {
