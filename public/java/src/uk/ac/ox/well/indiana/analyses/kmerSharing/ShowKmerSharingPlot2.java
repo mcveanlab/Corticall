@@ -42,6 +42,9 @@ public class ShowKmerSharingPlot2 extends Sketch {
     @Argument(fullName="pcaOn", shortName="pcaOn", doc="Is the PCA on genes or kmers?", required=false)
     public String PCA_ON = "KMERS";
 
+    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel to color")
+    public File KMER_REFERENCE_PANEL;
+
     @Output
     public File out;
 

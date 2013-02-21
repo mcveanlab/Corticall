@@ -76,9 +76,11 @@ public class FindRelatedSequences extends Tool {
     }
 
     public String getSuperNode(String startingKmer, int color, HashMap<String, CortexRecord> records) {
-        String superNode = startingKmer;
+        String superNode = null;
 
         if (records.containsKey(startingKmer)) {
+            superNode = startingKmer;
+
             CortexRecord startingRecord = records.get(startingKmer);
             String startingEdges = startingRecord.getEdges()[color];
 
@@ -185,11 +187,13 @@ public class FindRelatedSequences extends Tool {
             for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                 String superNode = getSuperNode(kmer, color, records);
 
-                if (!superNodes.containsKey(color)) {
-                    superNodes.put(color, new HashMap<String, String>());
-                }
+                if (superNode != null) {
+                    if (!superNodes.containsKey(color)) {
+                        superNodes.put(color, new HashMap<String, String>());
+                    }
 
-                superNodes.get(color).put(kmer, superNode);
+                    superNodes.get(color).put(kmer, superNode);
+                }
             }
         }
 
