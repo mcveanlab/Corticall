@@ -26,6 +26,9 @@ public class CreateKmerReferencePanel extends Tool {
     @Argument(fullName="cg", shortName="cortexGraph", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
+    @Argument(fullName="type", shortName="t", doc="Type of panel to create (UNIQUE or SHARED)")
+    public String TYPE;
+
     @Output
     public PrintStream out;
 
@@ -84,8 +87,35 @@ public class CreateKmerReferencePanel extends Tool {
         return (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors);
     }
 
+    private boolean isUniqueKmer(CortexRecord cr) {
+        int[] coverages = cr.getCoverages();
+
+        boolean hasCoverage = false;
+        int numColorsWithKmer = 0;
+        int totalCoverageInROI = 0;
+        boolean hasUnitCoverageInColor = false;
+
+        for (int color = 1; color < CORTEX_GRAPH.getNumColors(); color++) {
+            hasCoverage |= (coverages[color] > 0);
+            numColorsWithKmer += coverages[color] == 0 ? 0 : 1;
+            totalCoverageInROI += coverages[color];
+
+            if (coverages[color] == 1) {
+                hasUnitCoverageInColor = true;
+            }
+        }
+
+        boolean allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
+
+        return (hasCoverage && allCoverageIsInROI && numColorsWithKmer == 1 && hasUnitCoverageInColor);
+    }
+
     @Override
     public int execute() {
+        if (!TYPE.equalsIgnoreCase("SHARED") && !TYPE.equalsIgnoreCase("UNIQUE")) {
+            throw new RuntimeException("Argument for -type must be either SHARED or UNIQUE");
+        }
+
         HashMap<String, KmerInfo> kmers = getGeneKmersAndInfo();
 
         out.println("kmer\tgenes\tdomains");
@@ -97,7 +127,8 @@ public class CreateKmerReferencePanel extends Tool {
             }
             recordNum++;
 
-            if (isSharedKmer(cr) && kmers.containsKey(cr.getKmerString())) {
+            if ( (TYPE.equalsIgnoreCase("SHARED") && isSharedKmer(cr) && kmers.containsKey(cr.getKmerString())) ||
+                 (TYPE.equalsIgnoreCase("UNIQUE") && isUniqueKmer(cr) && kmers.containsKey(cr.getKmerString())) ) {
                 String kmer = cr.getKmerString();
                 KmerInfo ki = kmers.get(kmer);
 
