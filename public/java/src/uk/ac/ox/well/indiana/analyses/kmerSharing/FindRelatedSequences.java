@@ -213,9 +213,10 @@ public class FindRelatedSequences extends Tool {
         log.info("Getting supernodes");
         HashMap<Integer, HashMap<String, String>> superNodes = getSuperNodes(panel, records);
 
+        out.println("color\tkmer\tgenes\tdomains\tsuperNode");
         for (Integer color : superNodes.keySet()) {
             for (String kmer : superNodes.get(color).keySet()) {
-                out.format("color=%d kmer=%s genes=%s domains=%s superNodeLength=%d superNode=%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNodes.get(color).get(kmer).length(), superNodes.get(color).get(kmer));
+                out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNodes.get(color).get(kmer));
             }
         }
 

@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class ShowKmerSharingPlot2 extends Sketch {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
@@ -42,7 +43,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
     @Argument(fullName="pcaOn", shortName="pcaOn", doc="Is the PCA on genes or kmers?", required=false)
     public String PCA_ON = "KMERS";
 
-    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel to color")
+    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel to color", required=false)
     public File KMER_REFERENCE_PANEL;
 
     @Output
@@ -323,8 +324,21 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
     private GeneViews geneViews = new GeneViews();
 
+    private HashSet<String> loadKmerReferencePanel() {
+        HashSet<String> krp = new HashSet<String>();
+
+        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
+
+        for (HashMap<String, String> entry : tr) {
+            krp.add(entry.get("kmer"));
+        }
+
+        return krp;
+    }
+
     public void setup() {
         HashMap<String, HashMap<String, String>> pcaTable = new HashMap<String, HashMap<String, String>>();
+        HashSet<String> krp = loadKmerReferencePanel();
 
         if (PCA != null) {
             TableReader tr = new TableReader(PCA);
@@ -390,6 +404,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
 
         int crindex = 0;
         for (CortexRecord cr : CORTEX_GRAPH) {
+            /*
             int[] coverages = cr.getCoverages();
 
             boolean hasCoverage = false;
@@ -406,9 +421,13 @@ public class ShowKmerSharingPlot2 extends Sketch {
             }
 
             boolean allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
+            */
 
-            if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors && geneViews.kmers.containsKey(cr.getKmerString())) {
-                String kmer = cr.getKmerString();
+            //if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors && geneViews.kmers.containsKey(cr.getKmerString())) {
+
+            String kmer = cr.getKmerString();
+
+            if (krp.contains(kmer) && geneViews.kmers.containsKey(cr.getKmerString())) {
                 geneViews.kmers.get(kmer).display = true;
 
                 if (PCA != null && PCA_ON.equalsIgnoreCase("kmers") && pcaTable.containsKey(kmer)) {
