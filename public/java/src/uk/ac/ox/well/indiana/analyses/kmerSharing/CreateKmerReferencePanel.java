@@ -23,7 +23,7 @@ public class CreateKmerReferencePanel extends Tool {
     @Argument(fullName="gff", shortName="gff", doc="GFF")
     public GFF3 GFF;
 
-    @Argument(fullName="cg", shortName="cortexGraph", doc="Cortex graph")
+    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
     @Argument(fullName="type", shortName="t", doc="Type of panel to create (UNIQUE or SHARED)")
