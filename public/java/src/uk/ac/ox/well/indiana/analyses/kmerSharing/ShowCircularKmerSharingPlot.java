@@ -1,7 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import cern.colt.matrix.DoubleMatrix1D;
-import cern.colt.matrix.linalg.SingularValueDecomposition;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
 import org.gicentre.utils.colour.ColourTable;
@@ -24,20 +23,6 @@ public class ShowCircularKmerSharingPlot extends Sketch {
     @Argument(fullName="maxPrincipalCompoents", shortName="maxPC", doc="Maximum number of PCs to use when coloring kmer sharing plot")
     public Integer MAX_PRINCIPAL_COMPONENTS = 5;
 
-    /*
-    @Argument(fullName="colors", shortName="c", doc="Colors to process")
-    public ArrayList<Integer> COLORS;
-
-    @Argument(fullName="reference", shortName="R", doc="Reference genome")
-    public IndexedFastaSequenceFile FASTA;
-
-    @Argument(fullName="gff", shortName="gff", doc="GFF of regions of interest")
-    public GFF3 GFF;
-
-    @Argument(fullName="genes", shortName="genes", doc="IDs of genes to evaluate")
-    public ArrayList<String> GENES;
-    */
-
     @Output
     public PrintStream out;
 
@@ -45,7 +30,6 @@ public class ShowCircularKmerSharingPlot extends Sketch {
     public IntervalTreeMap<TreeSet<String>> coordMapX = new IntervalTreeMap<TreeSet<String>>();
     public IntervalTreeMap<TreeSet<String>> coordMapY = new IntervalTreeMap<TreeSet<String>>();
     public HashMap<String, ScreenCoordinate> coords = new HashMap<String, ScreenCoordinate>();
-    public SingularValueDecomposition svd;
 
     private class KmerSharingMatrix {
         public HashMap<String, HashMap<String, Integer>> matrix = new HashMap<String, HashMap<String, Integer>>();
@@ -176,10 +160,10 @@ public class ShowCircularKmerSharingPlot extends Sketch {
             log.info("\tsample={}, color={}", sample, colorIndex);
         }
 
-        ArrayList<Integer> colorOrder = new ArrayList<Integer>();
-        for (Integer pcIndex : colorOrderMap.keySet()) {
+        //ArrayList<Integer> colorOrder = new ArrayList<Integer>();
+        //for (Integer pcIndex : colorOrderMap.keySet()) {
             //TreeSet<String> samples
-        }
+        //}
 
         size(displayHeight - 100, displayHeight - 100);
 
@@ -260,7 +244,7 @@ public class ShowCircularKmerSharingPlot extends Sketch {
 
         for (int color = 1; color < CORTEX_GRAPH.getNumColors(); color++) {
             rotate(angleDelta);
-            //fill(Color.BLACK.getRGB());
+
             fill(sampleColor.get(CORTEX_GRAPH.getColor(color).getSampleName()));
             textAlign(LEFT, CENTER);
             text(CORTEX_GRAPH.getColor(color).getSampleName(), radius + 10, 0);
@@ -295,7 +279,6 @@ public class ShowCircularKmerSharingPlot extends Sketch {
 
         Collection<String> genes = intersectingElements(genesX, genesY);
 
-        //stroke(Color.BLACK.getRGB(), 150.0f);
         strokeCap(SQUARE);
         noFill();
 

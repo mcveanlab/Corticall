@@ -21,13 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public class ShowKmerSharingPlot2 extends Sketch {
-    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
-    public CortexGraph CORTEX_GRAPH;
-
-    @Argument(fullName="colors", shortName="c", doc="Colors to process")
-    public ArrayList<Integer> COLORS;
-
+public class ShowKmerPlot extends Sketch {
     @Argument(fullName="reference", shortName="R", doc="Reference genome")
     public IndexedFastaSequenceFile FASTA;
 
@@ -117,8 +111,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
         }
 
         public void display(int xpos0, int ypos, int exonHeight) {
-            //background(Color.WHITE.getRGB());
-
             fill(0, 0, 0);
             textMode(SHAPE);
             textSize(33);
@@ -150,7 +142,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 int domainLength = domain.getEnd() - domain.getStart();
 
                 int dxpos0 = xpos0 + domain.getStart() - gene.getStart();
-                //int dypos0 = ypos - (exonHeight/2);
                 int dypos = ypos + (exonHeight/2) + 15;
 
                 Color c = domainColors.get(domain.getAttributes().get("DOMAIN_TYPE"));
@@ -158,11 +149,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 stroke(c.getRGB());
                 strokeWeight(8);
                 line(dxpos0, dypos, dxpos0 + domainLength, dypos);
-
-                //fill(c.getRGB(), 20);
-                //stroke(c.getRGB());
-                //strokeWeight(8);
-                //rect(dxpos0, dypos0, domainLength, exonHeight);
             }
         }
     }
@@ -192,7 +178,7 @@ public class ShowKmerSharingPlot2 extends Sketch {
         private int horizontalMargin = 50;
         private int verticalMargin = 90;
         private int labelMargin = 260;
-        private int exonHeight = 30;
+        private int exonHeight = 25;
 
         private int longestGeneLength = 0;
         private HashMap<String, KmerMetaData> kmers = new HashMap<String, KmerMetaData>();
@@ -267,7 +253,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
         private int xpos = 0;
         private int ypos = 0;
 
-        //private int horizontalMargin = 50;
         private int verticalMargin = 40;
         private int lineLength = 20;
         private int lineAndLabelMargin = 10;
@@ -322,8 +307,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
         return cols;
     }
 
-    private GeneViews geneViews = new GeneViews();
-
     private HashSet<String> loadKmerReferencePanel() {
         HashSet<String> krp = new HashSet<String>();
 
@@ -336,15 +319,22 @@ public class ShowKmerSharingPlot2 extends Sketch {
         return krp;
     }
 
-    public void setup() {
-        HashMap<String, HashMap<String, String>> pcaTable = new HashMap<String, HashMap<String, String>>();
-        HashSet<String> krp = loadKmerReferencePanel();
+    private int getKmerSize(HashSet<String> krp) {
+        return krp.iterator().next().length();
+    }
 
+    private GeneViews geneViews = null;
+    private Legend legend = null;
+    private Legend domainLegend = null;
+
+    public void setup() {
+        HashSet<String> krp = loadKmerReferencePanel();
+        int kmerSize = getKmerSize(krp);
+
+        HashMap<String, HashMap<String, String>> pcaTable = new HashMap<String, HashMap<String, String>>();
         if (PCA != null) {
             TableReader tr = new TableReader(PCA);
             for (HashMap<String, String> fields : tr) {
-                //log.info("{}", fields.get(""));
-
                 pcaTable.put(fields.get(""), fields);
             }
         }
@@ -354,9 +344,6 @@ public class ShowKmerSharingPlot2 extends Sketch {
         String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6" };
 
         if (PCA_ON.equalsIgnoreCase("genes")) {
-            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
-            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
-
             Color[] newcolors = generateColors(columns.length);
 
             for (int geneIndex = 0; geneIndex < GENES.size(); geneIndex++) {
@@ -377,6 +364,8 @@ public class ShowKmerSharingPlot2 extends Sketch {
             }
         }
 
+        geneViews = new GeneViews();
+
         int geneIndex = 0;
         for (String gene : GENES) {
             GFF3Record record = GFF.getRecord(gene);
@@ -393,47 +382,42 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 }
             }
 
-            geneViews.add(new GeneView(GFF.getContained(record), seq, CORTEX_GRAPH.getKmerSize(), colors[geneIndex], domains));
+            geneViews.add(new GeneView(GFF.getContained(record), seq, kmerSize, colors[geneIndex], domains));
 
             geneIndex++;
         }
+
+        legend = new Legend(geneViews.getDisplayWidth(), geneViews.verticalMargin);
+        if (PCA != null) {
+            for (int i = 0; i < columns.length; i++) {
+                legend.addElement(columns[i], colors[i]);
+            }
+        } else {
+            for (int i = 0; i < GENES.size(); i++) {
+                legend.addElement(GENES.get(i), colors[i]);
+            }
+        }
+
+        domainLegend = new Legend(geneViews.getDisplayWidth(), legend.getDisplayHeight() + 5*geneViews.verticalMargin);
+
+        domainLegend.addElement("ATS", new Color(93, 46, 140));
+        domainLegend.addElement("CIDR", new Color(5, 199, 242));
+        domainLegend.addElement("DBL", new Color(242, 29, 47));
+        domainLegend.addElement("NTS", new Color(242, 110, 34));
+
+        size(geneViews.getDisplayWidth() + legend.getDisplayWidth(), geneViews.getDisplayHeight(), PGraphicsPDF.PDF, out.getAbsolutePath());
+        noLoop();
 
         if (PCA != null) {
             colors = generateColors(10);
         }
 
-        int crindex = 0;
-        for (CortexRecord cr : CORTEX_GRAPH) {
-            /*
-            int[] coverages = cr.getCoverages();
-
-            boolean hasCoverage = false;
-            int numColorsWithKmer = 0;
-            boolean hasZeroOrUnitCoverageInColors = true;
-
-            int totalCoverageInROI = 0;
-
-            for (int color : COLORS) {
-                hasCoverage |= (coverages[color] > 0);
-                numColorsWithKmer += coverages[color] == 0 ? 0 : 1;
-                hasZeroOrUnitCoverageInColors &= (coverages[color] <= 1);
-                totalCoverageInROI += coverages[color];
-            }
-
-            boolean allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
-            */
-
-            //if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors && geneViews.kmers.containsKey(cr.getKmerString())) {
-
-            String kmer = cr.getKmerString();
-
-            if (krp.contains(kmer) && geneViews.kmers.containsKey(cr.getKmerString())) {
+        int krpIndex = 0;
+        for (String kmer : krp) {
+            if (geneViews.kmers.containsKey(kmer)) {
                 geneViews.kmers.get(kmer).display = true;
 
                 if (PCA != null && PCA_ON.equalsIgnoreCase("kmers") && pcaTable.containsKey(kmer)) {
-                    //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
-                    //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
-
                     float maxValue = 0.0f;
                     int maxIndex = 0;
                     for (int i = 0; i < columns.length; i++) {
@@ -449,43 +433,22 @@ public class ShowKmerSharingPlot2 extends Sketch {
                 }
             }
 
-            if (crindex % (CORTEX_GRAPH.getNumRecords() / 10) == 0) {
-                log.info("Processed {}/{} records", crindex, CORTEX_GRAPH.getNumRecords());
+            if (krpIndex % (krp.size() / 10) == 0) {
+                log.info("Processed {}/{} records", krpIndex, krp.size());
             }
-            crindex++;
+            krpIndex++;
         }
-
-        Legend legend = new Legend(geneViews.getDisplayWidth(), geneViews.verticalMargin);
-        if (PCA != null) {
-            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10" };
-            //String[] columns = new String[] { "PC1", "PC2", "PC3", "PC4", "PC5" };
-
-            for (int i = 0; i < columns.length; i++) {
-                legend.addElement(columns[i], colors[i]);
-            }
-        } else {
-            for (int i = 0; i < GENES.size(); i++) {
-                legend.addElement(GENES.get(i), colors[i]);
-            }
-        }
-
-        Legend domainLegend = new Legend(geneViews.getDisplayWidth(), legend.getDisplayHeight() + 5*geneViews.verticalMargin);
-
-        domainLegend.addElement("ATS", new Color(93, 46, 140));
-        domainLegend.addElement("CIDR", new Color(5, 199, 242));
-        domainLegend.addElement("DBL", new Color(242, 29, 47));
-        domainLegend.addElement("NTS", new Color(242, 110, 34));
 
         log.info("Gene display: {}x{}", geneViews.getDisplayWidth(), geneViews.getDisplayHeight());
         log.info("Legend display: {}x{}", legend.getDisplayWidth(), legend.getDisplayHeight());
+    }
 
-        size(geneViews.getDisplayWidth() + legend.getDisplayWidth(), geneViews.getDisplayHeight(), PGraphicsPDF.PDF, out.getAbsolutePath());
-
+    public void draw() {
         geneViews.display();
-
         legend.display();
         domainLegend.display();
 
         exit();
+
     }
 }
