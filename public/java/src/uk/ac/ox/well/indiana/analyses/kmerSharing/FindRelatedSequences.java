@@ -94,6 +94,8 @@ public class FindRelatedSequences extends Tool {
                 }
             }
 
+            HashSet<String> seenKmers = new HashSet<String>();
+
             while (inRawKmers.size() == 1) {
                 String inRawKmer = inRawKmers.get(0);
                 inRawKmers.clear();
@@ -102,7 +104,7 @@ public class FindRelatedSequences extends Tool {
 
                 String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inRawKmer);
 
-                if (records.containsKey(fw)) {
+                if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                     String rc = SequenceUtils.getReverseComplement(fw);
 
                     String currentKmer = null;
@@ -124,6 +126,8 @@ public class FindRelatedSequences extends Tool {
                             }
                         }
                     }
+
+                    seenKmers.add(currentKmer);
                 }
             }
 
@@ -137,6 +141,8 @@ public class FindRelatedSequences extends Tool {
                 }
             }
 
+            seenKmers.clear();
+
             while (outRawKmers.size() == 1) {
                 String outRawKmer = outRawKmers.get(0);
                 outRawKmers.clear();
@@ -145,7 +151,7 @@ public class FindRelatedSequences extends Tool {
 
                 String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outRawKmer);
 
-                if (records.containsKey(fw)) {
+                if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                     String rc = SequenceUtils.getReverseComplement(fw);
 
                     String currentKmer = null;
@@ -167,6 +173,8 @@ public class FindRelatedSequences extends Tool {
                             }
                         }
                     }
+
+                    seenKmers.add(currentKmer);
                 }
             }
         }
@@ -174,8 +182,8 @@ public class FindRelatedSequences extends Tool {
         return superNode;
     }
 
-    private HashMap<Integer, HashMap<String, String>> getSuperNodes(HashMap<String, KmerInfo> panel, HashMap<String, CortexRecord> records) {
-        HashMap<Integer, HashMap<String, String>> superNodes = new HashMap<Integer, HashMap<String, String>>();
+    private void getSuperNodes(HashMap<String, KmerInfo> panel, HashMap<String, CortexRecord> records) {
+        out.println("color\tkmer\tgenes\tdomains\tsuperNode");
 
         int numKmers = 0;
         for (String kmer : panel.keySet()) {
@@ -187,17 +195,9 @@ public class FindRelatedSequences extends Tool {
             for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                 String superNode = getSuperNode(kmer, color, records);
 
-                if (superNode != null) {
-                    if (!superNodes.containsKey(color)) {
-                        superNodes.put(color, new HashMap<String, String>());
-                    }
-
-                    superNodes.get(color).put(kmer, superNode);
-                }
+                out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNode);
             }
         }
-
-        return superNodes;
     }
 
     @Override
@@ -211,14 +211,7 @@ public class FindRelatedSequences extends Tool {
         HashMap<String, CortexRecord> records = loadCortexRecords();
 
         log.info("Getting supernodes");
-        HashMap<Integer, HashMap<String, String>> superNodes = getSuperNodes(panel, records);
-
-        out.println("color\tkmer\tgenes\tdomains\tsuperNode");
-        for (Integer color : superNodes.keySet()) {
-            for (String kmer : superNodes.get(color).keySet()) {
-                out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNodes.get(color).get(kmer));
-            }
-        }
+        getSuperNodes(panel, records);
 
         log.info("[performance] {}", PerformanceUtils.getMemoryUsageStats());
 

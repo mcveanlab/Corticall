@@ -449,6 +449,5 @@ public class ShowKmerPlot extends Sketch {
         domainLegend.display();
 
         exit();
-
     }
 }
