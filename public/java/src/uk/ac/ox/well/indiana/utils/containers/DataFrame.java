@@ -2,15 +2,12 @@ package uk.ac.ox.well.indiana.utils.containers;
 
 import com.google.common.base.Joiner;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.*;
 
 public class DataFrame<R, C, D> {
-    private HashMap<R, HashMap<C, D>> data = new HashMap<R, HashMap<C, D>>();
+    private LinkedHashMap<R, LinkedHashMap<C, D>> data = new LinkedHashMap<R, LinkedHashMap<C, D>>();
 
-    private TreeSet<C> colNames = new TreeSet<C>();
+    private LinkedHashSet<C> colNames = new LinkedHashSet<C>();
 
     private D zeroValue;
 
@@ -22,11 +19,7 @@ public class DataFrame<R, C, D> {
         colNames.add(colName);
 
         if (!data.containsKey(rowName)) {
-            data.put(rowName, new HashMap<C, D>());
-        }
-
-        if (!data.get(rowName).containsKey(colName)) {
-            data.get(rowName).put(colName, zeroValue);
+            data.put(rowName, new LinkedHashMap<C, D>());
         }
 
         data.get(rowName).put(colName, datum);
@@ -42,6 +35,10 @@ public class DataFrame<R, C, D> {
 
     public int getNumRows() { return data.size(); }
     public int getNumCols() { return colNames.size(); }
+
+    public boolean hasValue(R rowName, C colName) {
+        return (data.containsKey(rowName) && data.get(rowName).containsKey(colName));
+    }
 
     public D get(R rowName, C colName) {
         if (data.containsKey(rowName) && data.get(rowName).containsKey(colName)) {
