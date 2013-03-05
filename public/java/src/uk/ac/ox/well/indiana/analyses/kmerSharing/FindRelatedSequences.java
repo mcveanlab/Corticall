@@ -195,7 +195,9 @@ public class FindRelatedSequences extends Tool {
             for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                 String superNode = getSuperNode(kmer, color, records);
 
-                out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNode);
+                if (superNode != null) {
+                    out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNode);
+                }
             }
         }
     }

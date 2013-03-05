@@ -39,7 +39,6 @@ public class IndianaMain {
                 if (Tool.class.isAssignableFrom(module)) {
                     IRunner.main(module.getName(), moduleArgs);
                 } else if (Sketch.class.isAssignableFrom(module)) {
-                    //PApplet.main(module.getName(), moduleArgs);
                     ArrayList<String> newArgs = new ArrayList<String>();
                     newArgs.add(module.getName());
                     newArgs.addAll(Arrays.asList(moduleArgs));
