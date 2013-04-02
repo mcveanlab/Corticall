@@ -36,6 +36,18 @@ public class GFF3Record {
         }
     }
 
+    public GFF3Record(GFF3Record record) {
+        this.seqid = record.seqid;
+        this.source = record.source;
+        this.type = record.type;
+        this.start = record.start;
+        this.end = record.end;
+        this.score = record.score;
+        this.strand = record.strand;
+        this.phase = record.phase;
+        this.attributes = record.attributes;
+    }
+
     public String getSeqid()  { return seqid;  }
     public String getSource() { return source; }
     public String getType()   { return type;   }
@@ -44,7 +56,20 @@ public class GFF3Record {
     public String getScore()  { return score;  }
     public Strand getStrand() { return strand; }
     public String getPhase()  { return phase;  }
+    public boolean hasAttribute(String key) { return attributes.containsKey(key); }
+    public String getAttribute(String key) { return attributes.get(key); }
     public TreeMap<String, String> getAttributes() { return attributes; }
+
+    public void setSeqid(String seqid) { this.seqid = seqid; }
+    public void setSource(String source) { this.source = source; }
+    public void setType(String type) { this.type = type; }
+    public void setStart(int start) { this.start = start; }
+    public void setEnd(int end) { this.end = end; }
+    public void setScore(String score) { this.score = score; }
+    public void setStrand(Strand strand) { this.strand = strand; }
+    public void setPhase(String phase) { this.phase = phase; }
+    public void setAttribute(String key, String value) { this.attributes.put(key, value); }
+    public void setAttributes(TreeMap<String, String> attributes) { this.attributes = attributes; }
 
     public String toString() {
         return seqid  + "\t" +
