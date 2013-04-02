@@ -6,21 +6,26 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
+import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Map;
 
 public class IndianaMain {
     private static Logger log = configureLogger();
 
     public static void main(String[] args) throws Exception {
+        Date startTime = new Date();
+
         log.debug("Started up");
 
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
@@ -47,6 +52,12 @@ public class IndianaMain {
                 }
             }
         }
+
+        Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
+
+        log.info("Performance:");
+        log.info("\ttime: {}", DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()));
+        log.info("\t mem: {}", PerformanceUtils.getCompactMemoryUsageStats());
     }
 
     private static Logger configureLogger() {
