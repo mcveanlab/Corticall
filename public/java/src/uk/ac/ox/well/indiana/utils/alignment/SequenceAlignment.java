@@ -1,11 +1,17 @@
 package uk.ac.ox.well.indiana.utils.alignment;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Paul Reiners
  *
  */
 public abstract class SequenceAlignment extends DynamicProgramming {
-
     protected int match;
     protected int mismatch;
     protected int space;
@@ -15,8 +21,7 @@ public abstract class SequenceAlignment extends DynamicProgramming {
         this(sequence1, sequence2, 1, -1, -1);
     }
 
-    public SequenceAlignment(String sequence1, String sequence2, int match,
-                             int mismatch, int gap) {
+    public SequenceAlignment(String sequence1, String sequence2, int match, int mismatch, int gap) {
         super(sequence1, sequence2);
 
         this.match = match;
@@ -28,6 +33,7 @@ public abstract class SequenceAlignment extends DynamicProgramming {
         StringBuffer align1Buf = new StringBuffer();
         StringBuffer align2Buf = new StringBuffer();
         Cell currentCell = getTracebackStartingCell();
+
         while (traceBackIsNotDone(currentCell)) {
             if (currentCell.getRow() - currentCell.getPrevCell().getRow() == 1) {
                 align2Buf.insert(0, sequence2.charAt(currentCell.getRow() - 1));
@@ -42,8 +48,7 @@ public abstract class SequenceAlignment extends DynamicProgramming {
             currentCell = currentCell.getPrevCell();
         }
 
-        String[] alignments = new String[] { align1Buf.toString(),
-                align2Buf.toString() };
+        String[] alignments = new String[] { align1Buf.toString(), align2Buf.toString() };
 
         return alignments;
     }
@@ -75,6 +80,81 @@ public abstract class SequenceAlignment extends DynamicProgramming {
         ensureTableIsFilledIn();
         alignments = (String[]) getTraceback();
         return alignments;
+    }
+
+    public int getAlignmentStart() {
+        String[] aligned = getAlignment();
+
+        int initialSoftClipLength = sequence2.indexOf(aligned[1].replaceAll("-", ""));
+
+        int alignmentStart = sequence1.indexOf(aligned[0].replaceAll("-", "")) - sequence2.indexOf(aligned[1].replaceAll("-", "")) + initialSoftClipLength;
+
+        return alignmentStart;
+    }
+
+    public String getSequenceAlignedToUnmodifiedReference() {
+        StringBuilder sb = new StringBuilder();
+
+        String[] aligned = getAlignment();
+        for (int i = 0; i < aligned[0].length(); i++) {
+            if (aligned[0].charAt(i) == '-') {
+                // insertion
+            } else if (aligned[1].charAt(i) == '-') {
+                // deletion
+                sb.append("-");
+            } else {
+                sb.append(aligned[1].charAt(i));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    public Cigar getCigar() {
+        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+
+        String[] aligned = getAlignment();
+
+        int initialSoftClipLength = sequence2.indexOf(aligned[1].replaceAll("-", ""));
+        if (initialSoftClipLength > 0) {
+            cigarElements.add(new CigarElement(initialSoftClipLength, CigarOperator.SOFT_CLIP));
+        }
+
+        int currentElementLength = 0;
+        CigarOperator currentElementOperator = null;
+
+        for (int i = 0; i < aligned[0].length(); i++) {
+            CigarOperator nextElementOperator;
+
+            if (aligned[0].charAt(i) == '-') {
+                nextElementOperator = CigarOperator.INSERTION;
+            } else if (aligned[1].charAt(i) == '-') {
+                nextElementOperator = CigarOperator.DELETION;
+            } else {
+                nextElementOperator = CigarOperator.MATCH_OR_MISMATCH;
+            }
+
+            if (currentElementOperator == null) {
+                currentElementOperator = nextElementOperator;
+                currentElementLength = 0;
+            } else if (currentElementOperator != nextElementOperator) {
+                cigarElements.add(new CigarElement(currentElementLength, currentElementOperator));
+
+                currentElementOperator = nextElementOperator;
+                currentElementLength = 0;
+            }
+
+            currentElementLength++;
+        }
+
+        cigarElements.add(new CigarElement(currentElementLength, currentElementOperator));
+
+        int remainingSoftClipLength = sequence2.length() - (initialSoftClipLength + aligned[1].replaceAll("-", "").length());
+        if (remainingSoftClipLength > 0) {
+            cigarElements.add(new CigarElement(remainingSoftClipLength, CigarOperator.SOFT_CLIP));
+        }
+
+        return new Cigar(cigarElements);
     }
 
     protected abstract Cell getTracebackStartingCell();
