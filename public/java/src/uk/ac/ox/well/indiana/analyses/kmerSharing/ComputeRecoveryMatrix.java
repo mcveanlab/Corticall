@@ -37,7 +37,7 @@ public class ComputeRecoveryMatrix extends Tool {
             if (!table.equals(REFERENCE_TABLE)) {
                 TableReader tableReader = new TableReader(table);
 
-                log.info(table.getAbsolutePath());
+                log.info("Loading '{}'", table.getName());
 
                 String sampleName = table.getName().replaceAll("relatedSequences.", "").replaceAll(".table", "");
                 for (HashMap<String, String> entry : tableReader) {

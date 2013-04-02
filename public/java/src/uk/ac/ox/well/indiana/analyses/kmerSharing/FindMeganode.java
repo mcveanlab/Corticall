@@ -1,81 +1,132 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
-import com.google.common.base.Joiner;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
-import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class FindRelatedSequences extends Tool {
+public class FindMeganode extends Tool {
+    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
+    public CortexGraph CORTEX_GRAPH;
+
+    @Argument(fullName="stoppingThreshold", shortName="st", doc="Number of variants to allow before we stop")
+    public Integer STOPPING_THRESHOLD = 1;
+
     @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel")
     public File KMER_REFERENCE_PANEL;
-
-    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph to process")
-    public CortexGraph CORTEX_GRAPH;
 
     @Output
     public PrintStream out;
 
-    private class KmerInfo {
-        public HashSet<String> genes = new HashSet<String>();
-        public HashSet<String> domains = new HashSet<String>();
-
-        public String getGenes() {
-            return Joiner.on(",").join(genes);
-        }
-
-        public String getDomains() {
-            return Joiner.on(",").join(domains);
-        }
-    }
-
-    private HashMap<String, KmerInfo> loadKmerReferencePanel() {
-        HashMap<String, KmerInfo> panel = new HashMap<String, KmerInfo>();
-
-        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
-
-        for (HashMap<String, String> entry : tr) {
-            String kmer = entry.get("kmer");
-            String[] genes = entry.get("genes").split(",");
-            String[] domains = entry.get("domains").split(",");
-
-            KmerInfo ki = new KmerInfo();
-            ki.genes.addAll(Arrays.asList(genes));
-            ki.domains.addAll(Arrays.asList(domains));
-
-            panel.put(kmer, ki);
-        }
-
-        return panel;
-    }
-
-    private HashMap<String, CortexRecord> loadCortexRecords() {
-        HashMap<String, CortexRecord> records = new HashMap<String, CortexRecord>();
+    @Override
+    public int execute() {
+        HashMap<String, CortexRecord> kmers = new HashMap<String, CortexRecord>();
 
         int numRecords = 0;
         for (CortexRecord cr : CORTEX_GRAPH) {
-            if (numRecords % (CORTEX_GRAPH.getNumRecords()/10) == 0) {
-                log.info("processed {}/{} records", numRecords, CORTEX_GRAPH.getNumRecords());
+            if (numRecords % (CORTEX_GRAPH.getNumRecords() / 10) == 0) {
+                log.info("Processed {}/{} records", numRecords, CORTEX_GRAPH.getNumRecords());
             }
             numRecords++;
 
-            String kmer = cr.getKmerString();
-
-            records.put(kmer, cr);
+            kmers.put(cr.getKmerString(), cr);
         }
 
-        return records;
+        TableReader table = new TableReader(KMER_REFERENCE_PANEL);
+        for (HashMap<String, String> entry : table) {
+            String kmer = entry.get("kmer");
+
+            log.info("kmer: {}", kmer);
+
+            String supernode = getSupernode(kmer, 0, kmers);
+            log.info("supernode: {}", supernode);
+
+            getMeganode(0, kmer, kmers, STOPPING_THRESHOLD);
+            log.info("");
+        }
+
+        return 0;
     }
 
-    public String getSuperNode(String startingKmer, int color, HashMap<String, CortexRecord> records) {
+    public void getMeganode(int color, String startingKmer, HashMap<String, CortexRecord> records, int stoppingThreshold) {
+        HashSet<String> seenKmers = new HashSet<String>();
+
+        Set<String> branches = walkGraphToLeft(color, startingKmer, records, stoppingThreshold, seenKmers);
+
+        for (String branch : branches) {
+            log.info("branch: {}", branch);
+        }
+    }
+
+    private Set<String> walkGraphToLeft(int color, String supernode, HashMap<String, CortexRecord> records, int stoppingThreshold, HashSet<String> seenKmers) {
+        Set<String> branches = new HashSet<String>();
+
+        String kmer = supernode.substring(0, CORTEX_GRAPH.getKmerSize());
+        String fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
+
+        while (fw != null && !seenKmers.contains(fw) && records.containsKey(fw)) {
+            String rc = SequenceUtils.getReverseComplement(fw);
+
+            CortexRecord cr = records.get(fw);
+            String edges = cr.getEdges()[color];
+
+            if (rc.equalsIgnoreCase(kmer)) {
+                edges = SequenceUtils.getReverseComplement(edges);
+            }
+
+            List<String> inKmers = new ArrayList<String>();
+
+            for (int i = 0; i < 4; i++) {
+                if (edges.charAt(i) != '.') {
+                    String newKmer = (edges.charAt(i) + kmer.substring(0, kmer.length() - 1)).toUpperCase();
+
+                    inKmers.add(newKmer);
+                }
+            }
+
+            seenKmers.add(fw);
+
+            if (inKmers.size() == 1) {
+                String inKmer = inKmers.get(0);
+                supernode = inKmer.charAt(0) + supernode;
+
+                kmer = supernode.substring(0, CORTEX_GRAPH.getKmerSize());
+                fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
+            } else {
+                fw = null;
+
+                //branches.add(supernode);
+
+                if (stoppingThreshold > 0) {
+                    for (String inKmer : inKmers) {
+                        //Set<String> subBranches = walkGraphToLeft(color, inKmer, records, stoppingThreshold - 1, seenKmers);
+                        Set<String> subBranches = walkGraphToLeft(color, inKmer, records, stoppingThreshold - 1, new HashSet<String>());
+                        branches.addAll(subBranches);
+                    }
+                }
+            }
+        }
+
+        branches.add(supernode);
+
+        return branches;
+    }
+
+    public void walkGraphToRight(String supernode, HashMap<String, CortexRecord> records, int stoppingThreshold) {
+
+    }
+
+    public String getSupernode(String startingKmer, int color, HashMap<String, CortexRecord> records) {
         String superNode = null;
 
         if (records.containsKey(startingKmer)) {
@@ -104,10 +155,6 @@ public class FindRelatedSequences extends Tool {
 
                 String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inRawKmer);
 
-                if (seenKmers.contains(fw)) {
-                    log.info("in kmer '{}' has already been seen", fw);
-                }
-
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                     String rc = SequenceUtils.getReverseComplement(fw);
 
@@ -133,10 +180,6 @@ public class FindRelatedSequences extends Tool {
 
                     seenKmers.add(currentKmer);
                 }
-
-                if (inRawKmers.size() > 1) {
-                    log.info("in kmer '{}' has more than one edge ({})", fw, inRawKmers);
-                }
             }
 
             // Now do out kmers
@@ -158,10 +201,6 @@ public class FindRelatedSequences extends Tool {
                 superNode = superNode + outRawKmer.charAt(outRawKmer.length() - 1);
 
                 String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outRawKmer);
-
-                if (seenKmers.contains(fw)) {
-                    log.info("out kmer '{}' has already been seen", fw);
-                }
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                     String rc = SequenceUtils.getReverseComplement(fw);
@@ -188,51 +227,9 @@ public class FindRelatedSequences extends Tool {
 
                     seenKmers.add(currentKmer);
                 }
-
-                if (outRawKmers.size() > 1) {
-                    log.info("out kmer '{}' has more than one edge ({})", fw, outRawKmers);
-                }
             }
         }
 
         return superNode;
-    }
-
-    private void getSuperNodes(HashMap<String, KmerInfo> panel, HashMap<String, CortexRecord> records) {
-        out.println("color\tkmer\tgenes\tdomains\tsuperNode");
-
-        int numKmers = 0;
-        for (String kmer : panel.keySet()) {
-            //if (numKmers % (panel.keySet().size()/10) == 0) {
-            //    log.info("processed {}/{} kmers", numKmers, panel.keySet().size());
-            //}
-            //numKmers++;
-
-            for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
-                String superNode = getSuperNode(kmer, color, records);
-
-                if (superNode != null) {
-                    out.format("%d\t%s\t%s\t%s\t%s\n", color, kmer, panel.get(kmer).getGenes(), panel.get(kmer).getDomains(), superNode);
-                }
-            }
-        }
-    }
-
-    @Override
-    public int execute() {
-        log.info("[performance] {}", PerformanceUtils.getMemoryUsageStats());
-
-        log.info("Loading kmer reference panel from '{}'", KMER_REFERENCE_PANEL.getAbsolutePath());
-        HashMap<String, KmerInfo> panel = loadKmerReferencePanel();
-
-        log.info("Loading Cortex records from '{}'", CORTEX_GRAPH.getCortexFile().getAbsolutePath());
-        HashMap<String, CortexRecord> records = loadCortexRecords();
-
-        log.info("Getting supernodes");
-        getSuperNodes(panel, records);
-
-        log.info("[performance] {}", PerformanceUtils.getMemoryUsageStats());
-
-        return 0;
     }
 }
