@@ -28,12 +28,13 @@ public class SmithWaterman extends SequenceAlignment {
         int rowSpaceScore = cellAbove.getScore() + space;
         int colSpaceScore = cellToLeft.getScore() + space;
         int matchOrMismatchScore = cellAboveLeft.getScore();
-        if (sequence2.charAt(currentCell.getRow() - 1) == sequence1
-                .charAt(currentCell.getCol() - 1)) {
+
+        if (sequence2.charAt(currentCell.getRow() - 1) == sequence1.charAt(currentCell.getCol() - 1)) {
             matchOrMismatchScore += match;
         } else {
             matchOrMismatchScore += mismatch;
         }
+
         if (rowSpaceScore >= colSpaceScore) {
             if (matchOrMismatchScore >= rowSpaceScore) {
                 if (matchOrMismatchScore > 0) {
@@ -59,6 +60,7 @@ public class SmithWaterman extends SequenceAlignment {
                 }
             }
         }
+
         if (currentCell.getScore() > highScoreCell.getScore()) {
             highScoreCell = currentCell;
         }
