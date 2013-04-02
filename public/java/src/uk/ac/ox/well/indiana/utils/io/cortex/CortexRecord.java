@@ -97,6 +97,10 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return edgesString;
     }
 
+    public String getEdges(int color) {
+        return getEdges()[color];
+    }
+
     public int[] getCoverages() {
         return coverages;
     }
