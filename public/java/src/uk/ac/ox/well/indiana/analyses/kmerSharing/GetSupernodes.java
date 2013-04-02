@@ -50,12 +50,6 @@ public class GetSupernodes extends Tool {
             panel.put(entry.get("kmer"), entry.get("genes"));
         }
 
-        if (panel.containsKey("GCACGAAGTTTTGCAGATATAGGCGATATTA")) {
-            log.info("Panel contains kmer: {}", panel.get("GCACGAAGTTTTGCAGATATAGGCGATATTA"));
-        } else {
-            log.info("Panel is missing kmer???");
-        }
-
         return panel;
     }
 
@@ -69,16 +63,10 @@ public class GetSupernodes extends Tool {
         String[] header = { "color", "genes", "superNode" };
         out.println(Joiner.on("\t").join(header));
 
-        boolean debug = false;
-
         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
             Collection<String> supernodes = cgw.getReferenceGuidedSupernodes(color, panel.keySet());
 
             for (String supernode : supernodes) {
-                if (supernode.equalsIgnoreCase("GCACGAAGTTTTGCAGATATAGGCGATATTA")) {
-                    debug = true;
-                }
-
                 Set<String> genes = new HashSet<String>();
 
                 for (int i = 0; i <= supernode.length() - CORTEX_GRAPH.getKmerSize(); i++) {
@@ -86,21 +74,11 @@ public class GetSupernodes extends Tool {
 
                     if (panel.containsKey(fw)) {
                         genes.add(panel.get(fw));
-
-                        if (debug) {
-                            log.debug("fw: {} {}", fw, panel.get(fw));
-                        }
-                    } else {
-                        if (debug) {
-                            log.debug("fw: {} missing", fw);
-                        }
                     }
                 }
 
                 String[] entry = { String.valueOf(color), Joiner.on(",").join(genes), supernode };
                 out.println(Joiner.on("\t").join(entry));
-
-                debug = false;
             }
         }
 
