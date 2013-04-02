@@ -14,6 +14,10 @@ public abstract class Sketch extends PApplet implements IndianaModule {
     public void init() {
         ArgumentHandler.parse(this, args);
 
+        initialize();
+
         super.init();
     }
+
+    public void initialize() {}
 }
