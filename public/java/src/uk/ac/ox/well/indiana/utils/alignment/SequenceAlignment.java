@@ -92,24 +92,6 @@ public abstract class SequenceAlignment extends DynamicProgramming {
         return alignmentStart;
     }
 
-    public String getSequenceAlignedToUnmodifiedReference() {
-        StringBuilder sb = new StringBuilder();
-
-        String[] aligned = getAlignment();
-        for (int i = 0; i < aligned[0].length(); i++) {
-            if (aligned[0].charAt(i) == '-') {
-                // insertion
-            } else if (aligned[1].charAt(i) == '-') {
-                // deletion
-                sb.append("-");
-            } else {
-                sb.append(aligned[1].charAt(i));
-            }
-        }
-
-        return sb.toString();
-    }
-
     public Cigar getCigar() {
         List<CigarElement> cigarElements = new ArrayList<CigarElement>();
 
