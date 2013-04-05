@@ -24,13 +24,13 @@ public class IndianaMain {
     private static Logger log = configureLogger();
 
     public static void main(String[] args) throws Exception {
-        Date startTime = new Date();
-
         log.debug("Started up");
 
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
         } else if (args.length > 0) {
+            Date startTime = new Date();
+
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
@@ -51,13 +51,15 @@ public class IndianaMain {
                     PApplet.main(newArgs.toArray(new String[newArgs.size()]));
                 }
             }
+
+            Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
+
+            log.info("Performance:");
+            log.info("\ttime: {}", DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()));
+            log.info("\t mem: {}", PerformanceUtils.getCompactMemoryUsageStats());
         }
 
-        Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
-
-        log.info("Performance:");
-        log.info("\ttime: {}", DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()));
-        log.info("\t mem: {}", PerformanceUtils.getCompactMemoryUsageStats());
+        log.debug("Finished");
     }
 
     private static Logger configureLogger() {
@@ -99,8 +101,8 @@ public class IndianaMain {
     }
 
     private static void showPrimaryHelp() {
-        Map<String, Class<? extends Tool>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClassesMap();
-        Map<String, Class<? extends Sketch>> sketch = new PackageInspector<Sketch>(Sketch.class).getExtendingClassesMap();
+        Map<String, Map<String, Class<? extends Tool>>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClassTree();
+        Map<String, Map<String, Class<? extends Sketch>>> sketches = new PackageInspector<Sketch>(Sketch.class).getExtendingClassTree();
 
         System.out.println();
         System.out.println("usage: java -jar indiana.jar [-h|--help]");
@@ -108,18 +110,24 @@ public class IndianaMain {
         System.out.println();
 
         System.out.println("tools:");
-        for (String t : tools.keySet()) {
-            System.out.println("   " + t);
+        for (String p : tools.keySet()) {
+            System.out.println("   " + p);
+
+            for (String t : tools.get(p).keySet()) {
+                System.out.println("      " + t);
+            }
         }
         System.out.println();
 
         System.out.println("sketches:");
-        for (String s : sketch.keySet()) {
-            System.out.println("   " + s);
+        for (String p : sketches.keySet()) {
+            System.out.println("   " + p);
+
+            for (String t : sketches.get(p).keySet()) {
+                System.out.println("      " + t);
+            }
         }
         System.out.println();
-
-        System.exit(1);
     }
 
     private static void showInvalidModuleMessage(String module) {

@@ -13,11 +13,13 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class PackageInspector<ClassType> {
+    private final String packageName = "uk.ac.ox.well.indiana";
+
     private Reflections reflections;
     private Class<ClassType> classType;
 
     public PackageInspector(Class<ClassType> classType) {
-        Set<URL> classPath = ClasspathHelper.forPackage("uk.ac.ox.well.indiana");
+        Set<URL> classPath = ClasspathHelper.forPackage(packageName);
 
         ConfigurationBuilder config = new ConfigurationBuilder();
         config.setUrls(classPath);
@@ -48,5 +50,22 @@ public class PackageInspector<ClassType> {
         }
 
         return classHashMap;
+    }
+
+    public Map<String, Map<String, Class<? extends ClassType>>> getExtendingClassTree() {
+        Map<String, Map<String, Class<? extends ClassType>>> classTree = new TreeMap<String, Map<String, Class<? extends ClassType>>>();
+
+        for (Class<? extends ClassType> c : getExtendingClasses()) {
+            String baseName = c.getPackage().getName().replaceAll(packageName + ".", "");
+            String className = c.getSimpleName();
+
+            if (!classTree.containsKey(baseName)) {
+                classTree.put(baseName, new TreeMap<String, Class<? extends ClassType>>());
+            }
+
+            classTree.get(baseName).put(className, c);
+        }
+
+        return classTree;
     }
 }
