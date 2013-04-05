@@ -5,15 +5,13 @@ package uk.ac.ox.well.indiana.utils.alignment;
  *
  */
 public class SmithWaterman extends SequenceAlignment {
-
     private Cell highScoreCell;
 
     public SmithWaterman(String sequence1, String sequence2) {
         super(sequence1, sequence2);
     }
 
-    public SmithWaterman(String sequence1, String sequence2, int match,
-                         int mismatch, int gap) {
+    public SmithWaterman(String sequence1, String sequence2, int match, int mismatch, int gap) {
         super(sequence1, sequence2, match, mismatch, gap);
     }
 
@@ -23,8 +21,7 @@ public class SmithWaterman extends SequenceAlignment {
         highScoreCell = scoreTable[0][0];
     }
 
-    protected void fillInCell(Cell currentCell, Cell cellAbove, Cell cellToLeft,
-                              Cell cellAboveLeft) {
+    protected void fillInCell(Cell currentCell, Cell cellAbove, Cell cellToLeft, Cell cellAboveLeft) {
         int rowSpaceScore = cellAbove.getScore() + space;
         int colSpaceScore = cellToLeft.getScore() + space;
         int matchOrMismatchScore = cellAboveLeft.getScore();
@@ -73,8 +70,7 @@ public class SmithWaterman extends SequenceAlignment {
     */
     @Override
     public String toString() {
-        return "[NeedlemanWunsch: sequence1=" + sequence1 + ", sequence2="
-                + sequence2 + "]";
+        return "[NeedlemanWunsch: sequence1=" + sequence1 + ", sequence2=" + sequence2 + "]";
     }
 
     @Override

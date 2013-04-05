@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.analyses.supernodes;
 
 import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.tools.Tool;
@@ -60,10 +60,11 @@ public class GetSupernodes extends Tool {
 
         CortexGraphWalker cgw = new CortexGraphWalker(records);
 
-        String[] header = { "color", "genes", "superNode" };
+        String[] header = { "color", "sample", "genes", "supernode" };
         out.println(Joiner.on("\t").join(header));
 
         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
+            String sample = CORTEX_GRAPH.getColor(color).getSampleName();
             Collection<String> supernodes = cgw.getReferenceGuidedSupernodes(color, panel.keySet());
 
             for (String supernode : supernodes) {
@@ -77,7 +78,7 @@ public class GetSupernodes extends Tool {
                     }
                 }
 
-                String[] entry = { String.valueOf(color), Joiner.on(",").join(genes), supernode };
+                String[] entry = { String.valueOf(color), sample, Joiner.on(",").join(genes), supernode };
                 out.println(Joiner.on("\t").join(entry));
             }
         }
