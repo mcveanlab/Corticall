@@ -28,7 +28,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private long numRecords;
 
     private long recordSize;
-    private long sizeOfBuffer;
+    //private long sizeOfBuffer;
     private long recordsSeen = 0;
 
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
@@ -49,14 +49,14 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     private byte[] fixStringsWithEarlyTerminators(byte[] string) {
         // Sometimes the names have an early terminator character (a bug in the CORTEX output format).
-        int earlyTerminatorPosition = string.length - 1;
+        int earlyTerminatorPosition = string.length;
         for (int i = string.length - 1; i >= 0; i--) {
             if (string[i] == 0x0) {
                 earlyTerminatorPosition = i;
             }
         }
 
-        if (earlyTerminatorPosition != string.length - 1) {
+        if (earlyTerminatorPosition < string.length) {
             return Arrays.copyOfRange(string, 0, earlyTerminatorPosition);
         }
 
@@ -147,11 +147,11 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             recordSize = (8*kmerBits + 4*numColors + 1*numColors);
             numRecords = dataSize / recordSize;
 
-            if (in.getChannel().size() - dataOffset < Integer.MAX_VALUE) {
-                sizeOfBuffer = in.getChannel().size() - dataOffset;
-            } else {
-                sizeOfBuffer = recordSize * (Integer.MAX_VALUE / recordSize);
-            }
+            //if (in.getChannel().size() - dataOffset < Integer.MAX_VALUE) {
+            //    sizeOfBuffer = in.getChannel().size() - dataOffset;
+            //} else {
+            //    sizeOfBuffer = recordSize * (Integer.MAX_VALUE / recordSize);
+            //}
 
             //mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, sizeOfBuffer);
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
