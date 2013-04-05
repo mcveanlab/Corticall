@@ -57,10 +57,18 @@ public class CortexGraphTest {
     }
 
     @Test
-    public void getSampleName() {
+    public void getLongSampleNames() {
         CortexGraph cg = new CortexGraph("testdata/test_gene_for_sn_reconstruction.ctx");
 
         Assert.assertEquals("test_sample_with_long_name", cg.getColor(0).getSampleName());
+    }
+
+    @Test
+    public void getShortSampleNames() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        Assert.assertEquals("ref", cg.getColor(0).getSampleName());
+        Assert.assertEquals("ref_ss", cg.getColor(1).getSampleName());
     }
 
     @Test
