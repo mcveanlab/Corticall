@@ -83,7 +83,12 @@ public class ArgumentHandler {
 
             if (cmd.hasOption("help") || args.length == 0) {
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.setWidth(100);
+
+                System.out.println("columns: " + System.getenv("COLUMNS"));
+
+                int width = System.getenv("COLUMNS") == null ? 100 : Integer.valueOf(System.getenv("COLUMNS"));
+
+                formatter.setWidth(width);
                 formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
                 System.out.println();
                 System.exit(1);
