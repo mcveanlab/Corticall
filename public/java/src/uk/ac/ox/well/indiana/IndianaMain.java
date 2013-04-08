@@ -20,9 +20,18 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 
+/**
+ * Main class for INDIANA.  Sets up the logger, handles help message, selects the module to run and passes through command-line arguments.
+ */
 public class IndianaMain {
     private static Logger log = configureLogger();
 
+    /**
+     * Main method for INDIANA.  First argument must be the module to run.  All other arguments are passed through to the module for processing.
+     *
+     * @param args  Command-line arguments
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         log.debug("Started up");
 
@@ -62,6 +71,11 @@ public class IndianaMain {
         log.debug("Finished");
     }
 
+    /**
+     * Configure a logger that contains the log level, timestamp, module, method, and line number of the logging statement.
+     *
+     * @return  A fully-configured logger
+     */
     private static Logger configureLogger() {
         Logger rootLogger = (Logger) LoggerFactory.getLogger(IndianaMain.class);
 
@@ -96,10 +110,18 @@ public class IndianaMain {
         return rootLogger;
     }
 
+    /**
+     * Get the configured logger.
+     *
+     * @return  A fully-configured logger
+     */
     public static Logger getLogger() {
         return log;
     }
 
+    /**
+     * List all of the available modules, grouped by package.
+     */
     private static void showPrimaryHelp() {
         Map<String, Map<String, Class<? extends Tool>>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClassTree();
         Map<String, Map<String, Class<? extends Sketch>>> sketches = new PackageInspector<Sketch>(Sketch.class).getExtendingClassTree();
@@ -130,6 +152,11 @@ public class IndianaMain {
         System.out.println();
     }
 
+    /**
+     * Show error message when a requested module is not available.
+     *
+     * @param module  The name of the requested module
+     */
     private static void showInvalidModuleMessage(String module) {
         System.out.println("indiana: '" + module + "' is not a valid INDIANA module. See 'java -jar indiana.jar --help'.");
 

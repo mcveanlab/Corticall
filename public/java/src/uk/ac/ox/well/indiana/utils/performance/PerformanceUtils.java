@@ -1,8 +1,16 @@
 package uk.ac.ox.well.indiana.utils.performance;
 
+/**
+ * A set of utilities for measuring performance metrics.
+ */
 public class PerformanceUtils {
     private PerformanceUtils() {}
 
+    /**
+     * Get a string containing memory usage stats (used, free, total, and maximum available memory).
+     *
+     * @return  a string with memory usage stats
+     */
     public static String getMemoryUsageStats() {
         int mb = 1024*1024;
 
@@ -16,6 +24,11 @@ public class PerformanceUtils {
         return String.format("Used: %dmb; Free: %dmb; Total: %dmb; Max: %dmb", usedMemory, freeMemory, totalMemory, maxMemory);
     }
 
+    /**
+     * Get a compact string containing memory usage stats (used, free, total, and maximum available memory).
+     *
+     * @return  a compact string with memory usage stats
+     */
     public static String getCompactMemoryUsageStats() {
         int mb = 1024*1024;
 
