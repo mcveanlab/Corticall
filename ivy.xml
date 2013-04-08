@@ -54,6 +54,11 @@
         <!-- Modest Maps (local repo) -->
         <dependency org="com.modestmaps" name="modestmaps" rev="latest" />
 
+        <!-- Casper datasets (local repo) -->
+        <dependency org="net.casper" name="casperdatasets" rev="2.1.0" />
+        <dependency org="net.casper" name="casperdatasets-io" rev="2.2.0" />
+        <dependency org="net.casper" name="casperdatasets-ext" rev="2.2.0" />
+
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />

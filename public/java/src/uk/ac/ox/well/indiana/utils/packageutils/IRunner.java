@@ -2,9 +2,21 @@ package uk.ac.ox.well.indiana.utils.packageutils;
 
 import uk.ac.ox.well.indiana.tools.Tool;
 
+/**
+ * Instantiates a module and passes it command-line arguments.
+ */
 public class IRunner {
+    /**
+     * Private constructor - this class cannot be instantiated!
+     */
     private IRunner() {}
 
+    /**
+     * Main method for instantiating INDIANA modules
+     *
+     * @param moduleName  the name of the module
+     * @param moduleArgs  the arguments for the module
+     */
     @SuppressWarnings("unchecked")
     public static void main(String moduleName, String[] moduleArgs) {
         try {

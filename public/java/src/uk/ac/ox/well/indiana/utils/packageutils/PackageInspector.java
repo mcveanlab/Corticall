@@ -12,12 +12,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+/**
+ * Inspects the package by reflection and finds classes that extend a specific class.
+ *
+ * @param <ClassType>  the type of class to look for in the package
+ */
 public class PackageInspector<ClassType> {
     private final String packageName = "uk.ac.ox.well.indiana";
 
     private Reflections reflections;
     private Class<ClassType> classType;
 
+    /**
+     * Create a package inspector that looks for the specified type.
+     *
+     * @param classType  the type of class to look for in the package
+     */
     public PackageInspector(Class<ClassType> classType) {
         Set<URL> classPath = ClasspathHelper.forPackage(packageName);
 
@@ -29,6 +39,11 @@ public class PackageInspector<ClassType> {
         this.classType = classType;
     }
 
+    /**
+     * Get the set of classes that extend the specified type.
+     *
+     * @return  the set of classes that extend the type
+     */
     public Set<Class<? extends ClassType>> getExtendingClasses() {
         Set<Class<? extends ClassType>> extendingClasses = reflections.getSubTypesOf(classType);
         Set<Class<? extends ClassType>> nonAbstractClasses = new HashSet<Class<? extends ClassType>>();
@@ -42,6 +57,11 @@ public class PackageInspector<ClassType> {
         return nonAbstractClasses;
     }
 
+    /**
+     * Get the map of class name to class object that extend the specified type.
+     *
+     * @return  the set of classes that extend the type
+     */
     public Map<String, Class<? extends ClassType>> getExtendingClassesMap() {
         Map<String, Class<? extends ClassType>> classHashMap = new TreeMap<String, Class<? extends ClassType>>();
 
@@ -52,6 +72,11 @@ public class PackageInspector<ClassType> {
         return classHashMap;
     }
 
+    /**
+     * Get the tree of package and class name to class object that extend the specified type.
+     *
+     * @return  the tree of classes that extend the type
+     */
     public Map<String, Map<String, Class<? extends ClassType>>> getExtendingClassTree() {
         Map<String, Map<String, Class<? extends ClassType>>> classTree = new TreeMap<String, Map<String, Class<? extends ClassType>>>();
 

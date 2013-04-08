@@ -8,22 +8,46 @@ import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 
 import java.util.HashMap;
 
+/**
+ * Perform a principal components analysis on a dataset.
+ *
+ * @param <R>  The data type for the rows
+ * @param <C>  The data type for the columns
+ */
 public class PCA<R, C> {
     private SingularValueDecomposition svd;
 
     private HashMap<R, Integer> rowMapping = new HashMap<R, Integer>();
     private HashMap<C, Integer> colMapping = new HashMap<C, Integer>();
 
+    /**
+     * Compute a PCA on the provided data frame.
+     *
+     * @param d  the data frame upon which the PCA should be performed
+     */
     public PCA(DataFrame<R, C, Float> d) {
         computePCA(d, true, true);
     }
 
+    /**
+     * Compute a PCA on the provided data frame, optionally centering and scaling the data.
+     *
+     * @param d  the data frame upon which the PCA should be performed
+     * @param center  true if the data should be centered, false otherwise
+     * @param scale  true if the data should be scaled, false otherwise
+     */
     public PCA(DataFrame<R, C, Float> d, boolean center, boolean scale) {
         computePCA(d, center, scale);
     }
 
+    /**
+     * Compute the actual PCA.
+     *
+     * @param d  the data frame upon which the PCA should be performed
+     * @param center  true if the data should be centered, false otherwise
+     * @param scale  true if the data should be scaled, false otherwise
+     */
     private void computePCA(DataFrame<R, C, Float> d, boolean center, boolean scale) {
-        //DoubleMatrix2D m = DoubleFactory2D.dense.make(d.getNumRows(), d.getNumCols());
         DoubleMatrix2D m = DoubleFactory2D.sparse.make(d.getNumRows(), d.getNumCols());
 
         int r = 0;
@@ -92,14 +116,21 @@ public class PCA<R, C> {
         svd = new SingularValueDecomposition(m);
     }
 
-    public SingularValueDecomposition getSVD() {
-        return svd;
-    }
-
+    /**
+     * Return an eigenvector associated with the specified column.
+     *
+     * @param colName  the column name for which the eigenvector should be returned
+     * @return  the eigenvector
+     */
     public DoubleMatrix1D getEigenvector(C colName) {
         return svd.getV().viewRow(colMapping.get(colName));
     }
 
+    /**
+     * Return the rotation matrix of the PCA.
+     *
+     * @return  the rotation matrix
+     */
     public DataFrame<C, String, Float> getRotationMatrix() {
         DataFrame<C, String, Float> d = new DataFrame<C, String, Float>(0.0f);
 
@@ -117,6 +148,11 @@ public class PCA<R, C> {
         return d;
     }
 
+    /**
+     * Return the standard deviations of the PCA.
+     *
+     * @return  the standard deviations
+     */
     public double[] getStandardDeviations() {
         double[] sds = svd.getSingularValues();
 
