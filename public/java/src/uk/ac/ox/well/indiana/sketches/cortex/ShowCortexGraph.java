@@ -79,7 +79,7 @@ public class ShowCortexGraph extends Tool {
         }
     }
 
-    public int execute() {
+    public void execute() {
         DirectedGraph<String, DefaultEdge> directedGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
         CortexAttributeProvider cap = new CortexAttributeProvider();
 
@@ -208,7 +208,5 @@ public class ShowCortexGraph extends Tool {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        return 0;
     }
 }

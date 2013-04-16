@@ -66,7 +66,7 @@ public class AlignSupernodes extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         Map<String, String> panel = loadReferencePanel();
 
         SAMFileHeader samHeader = new SAMFileHeader();
@@ -176,7 +176,5 @@ public class AlignSupernodes extends Tool {
         }
 
         sfw.close();
-
-        return 0;
     }
 }

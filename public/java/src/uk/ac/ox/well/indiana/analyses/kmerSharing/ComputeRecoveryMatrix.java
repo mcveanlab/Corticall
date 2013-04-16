@@ -22,7 +22,7 @@ public class ComputeRecoveryMatrix extends Tool {
     public PrintStream out;
 
     @Override
-    public int execute() {
+    public void execute() {
         DataFrame<String, String, Integer> recovery = new DataFrame<String, String, Integer>(0);
 
         TableReader refTableReader = new TableReader(REFERENCE_TABLE);
@@ -61,7 +61,5 @@ public class ComputeRecoveryMatrix extends Tool {
         }
 
         out.println(recoveryFraction);
-
-        return 0;
     }
 }

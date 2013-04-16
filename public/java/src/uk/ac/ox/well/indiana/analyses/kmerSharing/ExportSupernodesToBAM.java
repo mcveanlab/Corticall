@@ -41,7 +41,7 @@ public class ExportSupernodesToBAM extends Tool {
     public PrintStream gffOut;
 
     @Override
-    public int execute() {
+    public void execute() {
         TreeMap<String, TreeMap<String, TreeSet<String>>> relatedSequences = loadRelatedSequences(RELATED_SEQUENCES);
 
         gffOut.println("##gff-version\t3");
@@ -177,8 +177,6 @@ public class ExportSupernodesToBAM extends Tool {
         }
 
         sfw.close();
-
-        return 0;
     }
 
     private TreeMap<String, TreeMap<String, TreeSet<String>>> loadRelatedSequences(File relatedSequenceFile) {

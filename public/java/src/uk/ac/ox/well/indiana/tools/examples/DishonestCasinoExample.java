@@ -69,7 +69,7 @@ public class DishonestCasinoExample extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         // Initialize a hidden markov model with two hidden states (fair vs. loaded)
         Hmm<ObservationDiscrete<Die>> hmm = buildTrueHmm();
 
@@ -115,7 +115,5 @@ public class DishonestCasinoExample extends Tool {
         log.info(seq);
         log.info(states);
         log.info(trueStates);
-
-        return 0;
     }
 }

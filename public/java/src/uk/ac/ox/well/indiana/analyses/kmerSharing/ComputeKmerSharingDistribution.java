@@ -70,7 +70,7 @@ public class ComputeKmerSharingDistribution extends Tool {
         }
     }
 
-    public int execute() {
+    public void execute() {
         HashMap<String, ArrayList<KmerInfo>> kmerInfoMap = new HashMap<String, ArrayList<KmerInfo>>();
 
         for (String gene : getGeneList(GFF, GENES)) {
@@ -167,7 +167,5 @@ public class ComputeKmerSharingDistribution extends Tool {
         }
 
         o2.println();
-
-        return 0;
     }
 }

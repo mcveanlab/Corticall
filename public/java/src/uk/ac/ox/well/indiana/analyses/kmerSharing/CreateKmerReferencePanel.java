@@ -111,7 +111,7 @@ public class CreateKmerReferencePanel extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         if (!TYPE.equalsIgnoreCase("SHARED") && !TYPE.equalsIgnoreCase("UNIQUE")) {
             throw new RuntimeException("Argument for -type must be either SHARED or UNIQUE");
         }
@@ -138,7 +138,5 @@ public class CreateKmerReferencePanel extends Tool {
                 out.println(kmer + "\t" + genes + "\t" + domains);
             }
         }
-
-        return 0;
     }
 }

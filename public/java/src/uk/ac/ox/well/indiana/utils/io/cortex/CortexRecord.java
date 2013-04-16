@@ -105,6 +105,10 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return coverages;
     }
 
+    public int getCoverage(int color) {
+        return getCoverages()[color];
+    }
+
     public String toString() {
         String info = getKmerString();
 

@@ -52,7 +52,7 @@ public class CreateReferencePanel extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         Map<String, Integer> kmers = loadKmers();
 
         for (GFF3Record r : GFF) {
@@ -81,7 +81,5 @@ public class CreateReferencePanel extends Tool {
                 }
             }
         }
-
-        return 0;
     }
 }

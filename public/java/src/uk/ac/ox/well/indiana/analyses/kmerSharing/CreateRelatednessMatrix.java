@@ -28,7 +28,7 @@ public class CreateRelatednessMatrix extends Tool {
     public PrintStream pcaOut;
 
     @Override
-    public int execute() {
+    public void execute() {
         DataFrame<String, String, Float> relatedness = new DataFrame<String, String, Float>(0.0f);
 
         for (File table : TABLES) {
@@ -74,7 +74,5 @@ public class CreateRelatednessMatrix extends Tool {
         for (int i = 0; i < sds.length; i++) {
             pcaOut.println(i + " " + sds[i]);
         }
-
-        return 0;
     }
 }

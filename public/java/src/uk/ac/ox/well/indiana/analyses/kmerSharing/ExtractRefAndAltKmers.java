@@ -21,7 +21,7 @@ public class ExtractRefAndAltKmers extends Tool {
     public PrintStream out;
 
     @Override
-    public int execute() {
+    public void execute() {
         TableWriter tw = new TableWriter();
 
         tw.addPrimaryKey("kmer", "unknown");
@@ -53,7 +53,5 @@ public class ExtractRefAndAltKmers extends Tool {
         }
 
         out.println(tw);
-
-        return 0;
     }
 }

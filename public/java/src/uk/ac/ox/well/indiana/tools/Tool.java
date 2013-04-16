@@ -15,5 +15,5 @@ public abstract class Tool implements IndianaModule {
         ArgumentHandler.parse(this, args);
     }
 
-    public abstract int execute();
+    public abstract void execute();
 }

@@ -64,7 +64,7 @@ public class SequencesEval extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         log.info(PerformanceUtils.getMemoryUsageStats());
 
         HashMap<Integer, ArrayList<SequenceRecord>> data = loadData(FASTA, METADATA);
@@ -113,9 +113,6 @@ public class SequencesEval extends Tool {
             }
         }
 
-
 //        log.info(PerformanceUtils.getMemoryUsageStats());
-
-        return 0;
     }
 }

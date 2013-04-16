@@ -20,7 +20,7 @@ public class ComputeKmerSharingMatrix extends Tool {
     @Output
     public PrintStream out;
 
-    public int execute() {
+    public void execute() {
         ArrayList<String> header = new ArrayList<String>();
         header.add("");
 
@@ -60,7 +60,5 @@ public class ComputeKmerSharingMatrix extends Tool {
                 out.println(Joiner.on("\t").join(fields));
             }
         }
-
-        return 0;
     }
 }

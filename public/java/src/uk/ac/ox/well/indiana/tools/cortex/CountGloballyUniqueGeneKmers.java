@@ -79,7 +79,7 @@ public class CountGloballyUniqueGeneKmers extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
 
         int colorGenes = CORTEX_GRAPH.getColorForSampleName("genes");
@@ -120,7 +120,5 @@ public class CountGloballyUniqueGeneKmers extends Tool {
         for (String geneName : totalKmers.keySet()) {
             out.printf("%s %d %d\n", geneName, totalKmers.get(geneName), globallyUniqueKmers.get(geneName));
         }
-
-        return 0;
     }
 }

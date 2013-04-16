@@ -99,7 +99,7 @@ public class CountGeneKmersWithNHomes extends Tool {
         return kmerCountsPerGene;
     }
 
-    public int execute() {
+    public void execute() {
         HashMap<String, String> kmerMap = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
         HashMap<String, Integer> totalKmerCountsPerGene = getKmerCountsPerGene(kmerMap);
 
@@ -159,7 +159,5 @@ public class CountGeneKmersWithNHomes extends Tool {
 
             out.println();
         }
-
-        return 0;
     }
 }

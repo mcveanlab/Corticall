@@ -12,7 +12,7 @@ public class ViewCortexCoverage extends ViewCortexBase {
     private HashMap<String, HashMap<Integer, StatisticsOnStream>> stats = new HashMap<String, HashMap<Integer, StatisticsOnStream>>();
 
     @Override
-    public int execute() {
+    public void execute() {
         stats.put("total", new HashMap<Integer, StatisticsOnStream>());
 
         for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
@@ -94,7 +94,5 @@ public class ViewCortexCoverage extends ViewCortexBase {
 
             out.println(Joiner.on("\t").useForNull("0").join(entry));
         }
-
-        return 0;
     }
 }
