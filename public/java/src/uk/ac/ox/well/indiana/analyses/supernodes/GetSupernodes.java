@@ -54,7 +54,7 @@ public class GetSupernodes extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         Map<String, String> panel = loadKmerReferencePanel();
         Map<String, CortexRecord> records = loadCortexRecords();
 
@@ -82,7 +82,5 @@ public class GetSupernodes extends Tool {
                 out.println(Joiner.on("\t").join(entry));
             }
         }
-
-        return 0;
     }
 }

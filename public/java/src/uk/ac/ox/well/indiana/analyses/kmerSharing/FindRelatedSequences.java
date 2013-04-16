@@ -219,7 +219,7 @@ public class FindRelatedSequences extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         log.info("[performance] {}", PerformanceUtils.getMemoryUsageStats());
 
         log.info("Loading kmer reference panel from '{}'", KMER_REFERENCE_PANEL.getAbsolutePath());
@@ -232,7 +232,5 @@ public class FindRelatedSequences extends Tool {
         getSuperNodes(panel, records);
 
         log.info("[performance] {}", PerformanceUtils.getMemoryUsageStats());
-
-        return 0;
     }
 }

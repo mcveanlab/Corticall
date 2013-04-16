@@ -68,7 +68,7 @@ public class CountGeneKmerCoverage extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         HashMap<Integer, String> geneKmers = loadGeneKmers(GENES_FASTA, CORTEX_GRAPH.getKmerSize());
 
         HashMap<String, GeneCoverage> geneCoverage = new HashMap<String, GeneCoverage>();
@@ -157,7 +157,5 @@ public class CountGeneKmerCoverage extends Tool {
                 out.println(value);
             }
         }
-
-        return 0;
     }
 }

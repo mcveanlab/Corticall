@@ -29,7 +29,7 @@ public class FindMeganode extends Tool {
     public PrintStream out;
 
     @Override
-    public int execute() {
+    public void execute() {
         HashMap<String, CortexRecord> kmers = new HashMap<String, CortexRecord>();
 
         int numRecords = 0;
@@ -54,8 +54,6 @@ public class FindMeganode extends Tool {
             getMeganode(0, kmer, kmers, STOPPING_THRESHOLD);
             log.info("");
         }
-
-        return 0;
     }
 
     public void getMeganode(int color, String startingKmer, HashMap<String, CortexRecord> records, int stoppingThreshold) {

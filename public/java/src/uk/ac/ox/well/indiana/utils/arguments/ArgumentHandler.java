@@ -36,9 +36,13 @@ public class ArgumentHandler {
             fields.addAll(Arrays.asList(instanceFields));
             fields.addAll(Arrays.asList(superFields));
 
+            int numArgFields = 0;
+
             for (Field field : fields) {
                 for (Annotation annotation : field.getDeclaredAnnotations()) {
                     if (annotation.annotationType().equals(Argument.class)) {
+                        numArgFields++;
+
                         Argument arg = (Argument) annotation;
 
                         ArrayList<String> descElements = new ArrayList<String>();
@@ -62,6 +66,8 @@ public class ArgumentHandler {
                         option.setType(field.getType());
                         options.addOption(option);
                     } else if (annotation.annotationType().equals(Output.class)) {
+                        numArgFields++;
+
                         // Todo: this redundancy is fugly
 
                         Output out = (Output) annotation;
@@ -81,7 +87,9 @@ public class ArgumentHandler {
             CommandLineParser parser = new IndianaParser();
             CommandLine cmd = parser.parse(options, args);
 
-            if (cmd.hasOption("help") || args.length == 0) {
+            System.out.println("Number of args: " + numArgFields);
+
+            if (cmd.hasOption("help") || (numArgFields > 0 && args.length == 0)) {
                 HelpFormatter formatter = new HelpFormatter();
 
                 int width = System.getenv("COLUMNS") == null ? 100 : Integer.valueOf(System.getenv("COLUMNS"));

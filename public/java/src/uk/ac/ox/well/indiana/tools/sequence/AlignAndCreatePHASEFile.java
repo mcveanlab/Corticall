@@ -51,7 +51,7 @@ public class AlignAndCreatePHASEFile extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         HashMap<String, String> sequences = loadSequences(FASTA, WRT, CONTIGS);
 
         log.info("Sequences loaded: {}", sequences.size());
@@ -174,7 +174,5 @@ public class AlignAndCreatePHASEFile extends Tool {
             out.println();
         }
         */
-
-        return 0;
     }
 }

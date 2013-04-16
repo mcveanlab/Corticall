@@ -8,7 +8,7 @@ public class ViewCortexGraph extends ViewCortexBase {
     public Boolean HEADER_ONLY = false;
 
     @Override
-    public int execute() {
+    public void execute() {
         if (HEADER_ONLY) {
             out.println(CORTEX_GRAPH);
         } else {
@@ -29,7 +29,5 @@ public class ViewCortexGraph extends ViewCortexBase {
 
             log.info("Loaded {}/{} records total", i, CORTEX_GRAPH.getNumRecords());
         }
-
-        return 0;
     }
 }

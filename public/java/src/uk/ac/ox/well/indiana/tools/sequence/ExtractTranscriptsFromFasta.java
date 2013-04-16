@@ -95,7 +95,7 @@ public class ExtractTranscriptsFromFasta extends Tool {
     }
 
     @Override
-    public int execute() {
+    public void execute() {
         HashMap<String, ArrayList<Transcript>> transcripts = loadGFFFile(REGIONS);
 
         ArrayList<ReferenceSequence> contigs = new ArrayList<ReferenceSequence>();
@@ -144,7 +144,5 @@ public class ExtractTranscriptsFromFasta extends Tool {
                 }
             }
         }
-
-        return 0;
     }
 }

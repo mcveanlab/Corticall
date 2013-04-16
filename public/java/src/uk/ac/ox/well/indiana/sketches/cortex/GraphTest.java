@@ -24,7 +24,7 @@ public class GraphTest extends Tool {
     public Boolean CANONICALIZE = false;
 
     @Override
-    public int execute() {
+    public void execute() {
         String seq = "TAGCTGTCTCTATGCTTTCTCTCTGCTCTATATATATAAAAAAATCGTTTCTGA";
 
         DirectedGraph<String, DefaultEdge> directedGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
@@ -50,7 +50,5 @@ public class GraphTest extends Tool {
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-
-        return 0;
     }
 }
