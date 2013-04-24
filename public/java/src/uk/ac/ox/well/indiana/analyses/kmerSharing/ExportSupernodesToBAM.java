@@ -48,19 +48,24 @@ public class ExportSupernodesToBAM extends Tool {
         gffOut.println("##feature-ontology\tso.obo");
         gffOut.println("##attribute-ontology\tgff3_attributes.obo");
 
-        SAMFileHeader samHeader = new SAMFileHeader();
         for (String gene : relatedSequences.keySet()) {
             GFF3Record record = GFF.getRecord(gene);
             String seq = new String(REFERENCE.getSubsequenceAt(record.getSeqid(), record.getStart(), record.getEnd()).getBases());
-
-            SAMSequenceRecord samSeqRecord = new SAMSequenceRecord(gene, seq.length());
-
-            samHeader.addSequence(samSeqRecord);
 
             fastaOut.println(">" + gene);
             fastaOut.println(seq);
 
             gffOut.println("##sequence-region\t" + gene + "\t1\t" + seq.length());
+        }
+
+        SAMFileHeader samHeader = new SAMFileHeader();
+        for (GFF3Record geneRecord : GFF) {
+            if ("gene".equals(geneRecord.getType())) {
+                String gene = geneRecord.getAttribute("ID");
+
+                SAMSequenceRecord samSeqRecord = new SAMSequenceRecord(gene, geneRecord.getEnd() - geneRecord.getStart() + 1);
+                samHeader.addSequence(samSeqRecord);
+            }
         }
 
         for (String gene : relatedSequences.keySet()) {
@@ -107,6 +112,8 @@ public class ExportSupernodesToBAM extends Tool {
             TreeMap<String, TreeSet<String>> supernodesAndKmers = relatedSequences.get(gene);
 
             for (String fwsupernode : supernodesAndKmers.keySet()) {
+                log.info("\t{}", fwsupernode.length());
+
                 String rcsupernode = SequenceUtils.getReverseComplement(fwsupernode);
 
                 SmithWaterman fsw = new SmithWaterman(seq, fwsupernode);
@@ -185,8 +192,11 @@ public class ExportSupernodesToBAM extends Tool {
 
         TableReader reader = new TableReader(relatedSequenceFile);
         for (HashMap<String, String> entry : reader) {
-            String gene = entry.get("genes");
-            String kmer = entry.get("kmer");
+            String[] genes = entry.get("genes").split(",");
+            String[] kmers = entry.get("kmer").split(",");
+            String gene = genes[0];
+            String kmer = kmers[0];
+
             String supernode = entry.get("superNode");
 
             if (!relatedSequences.containsKey(gene)) {

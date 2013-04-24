@@ -3,10 +3,7 @@ package uk.ac.ox.well.indiana.utils.sequence;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A set of utilities for dealing with genomic sequences.
@@ -164,4 +161,54 @@ public class SequenceUtils {
         return S;
     }
 
+
+    private static int computeN50Metric(Collection<String> sequences, boolean lengthOrValue) {
+        int totalLength = 0;
+
+        List<Integer> lengths = new ArrayList<Integer>();
+        for (String seq : sequences) {
+            totalLength += seq.length();
+
+            lengths.add(seq.length());
+        }
+
+        Collections.sort(lengths, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return o2.compareTo(o1);
+            }
+        });
+
+        int n50Length = 0;
+        int n50Value = 0;
+
+        for (Integer length : lengths) {
+            n50Length += length;
+            n50Value = length;
+
+            if (n50Length >= totalLength/2) {
+                break;
+            }
+        }
+
+        return lengthOrValue ? n50Length : n50Value;
+    }
+
+    /**
+     * Compute N50 length
+     * @param sequences  the sequences to process
+     * @return  the N50 length
+     */
+    public static int computeN50Length(Collection<String> sequences) {
+        return computeN50Metric(sequences, true);
+    }
+
+    /**
+     * Compute N50 value
+     * @param sequences  the sequences to process
+     * @return  the N50 value
+     */
+    public static int computeN50Value(Collection<String> sequences) {
+        return computeN50Metric(sequences, false);
+    }
 }
