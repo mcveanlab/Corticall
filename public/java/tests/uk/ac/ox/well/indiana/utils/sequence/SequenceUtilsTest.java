@@ -3,6 +3,9 @@ package uk.ac.ox.well.indiana.utils.sequence;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SequenceUtilsTest {
     @Test
     public void getReverseComplementTest() {
@@ -42,5 +45,21 @@ public class SequenceUtilsTest {
         byte[] computedOrientation = SequenceUtils.getAlphanumericallyLowestOrientation(sequence);
 
         Assert.assertEquals(expectedOrientation, computedOrientation);
+    }
+
+    @Test
+    public void computeN50() {
+        List<String> sequences = new ArrayList<String>();
+        sequences.add("AAGCTTA");
+        sequences.add("TTGA");
+        sequences.add("AAC");
+        sequences.add("TT");
+        sequences.add("AA");
+        sequences.add("C");
+        sequences.add("G");
+
+        int n50 = SequenceUtils.computeN50Value(sequences);
+
+        Assert.assertEquals(4, n50);
     }
 }

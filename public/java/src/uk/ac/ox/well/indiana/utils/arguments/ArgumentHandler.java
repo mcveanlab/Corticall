@@ -87,8 +87,6 @@ public class ArgumentHandler {
             CommandLineParser parser = new IndianaParser();
             CommandLine cmd = parser.parse(options, args);
 
-            System.out.println("Number of args: " + numArgFields);
-
             if (cmd.hasOption("help") || (numArgFields > 0 && args.length == 0)) {
                 HelpFormatter formatter = new HelpFormatter();
 
