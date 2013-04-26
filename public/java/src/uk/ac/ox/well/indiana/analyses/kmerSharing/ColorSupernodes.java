@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 public class ColorSupernodes extends Sketch {
@@ -32,6 +33,9 @@ public class ColorSupernodes extends Sketch {
 
     @Argument(fullName="geneOfInterest", shortName="goi", doc="Genes of interest")
     public String GENE_OF_INTEREST = "PF3D7_0100100";
+
+    @Output(fullName="fastaOut", shortName="fo", doc="Fasta out")
+    public PrintStream fout;
 
     @Output
     public File out;
@@ -153,7 +157,10 @@ public class ColorSupernodes extends Sketch {
 
         int i = 0;
         for (String supernode : relatedSequences) {
-            //String supernodeRc
+            String supernodeRc = SequenceUtils.getReverseComplement(supernode);
+
+            fout.printf(">sn.%d_sn.%d\n", supernode.hashCode(), supernodeRc.hashCode());
+            fout.printf("%s\n", supernode);
 
             int xpos0 = horizontalMargin;
             int xpos1 = xpos0 + supernode.length();
