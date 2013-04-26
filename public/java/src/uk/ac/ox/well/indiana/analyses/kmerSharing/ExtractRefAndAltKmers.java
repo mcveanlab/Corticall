@@ -49,7 +49,7 @@ public class ExtractRefAndAltKmers extends Tool {
                 String gene = e.get("genes");
 
                 for (int i = 0; i <= supernode.length() - kmer.length(); i++) {
-                    String fw = SequenceUtils.getAlphanumericallyLowestOrientation(supernode.substring(i, i + kmer.length()));
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(supernode.substring(i, i + kmer.length()));
 
                     boolean isRefKmer = fw.equals(kmer);
 

@@ -45,7 +45,7 @@ public class CreateKmerReferencePanel extends Tool {
                 String seq = new String(REFERENCE.getSubsequenceAt(r.getSeqid(), r.getStart(), r.getEnd()).getBases());
 
                 for (int i = 0; i < seq.length() - CORTEX_GRAPH.getKmerSize(); i++) {
-                    String kmer = SequenceUtils.getAlphanumericallyLowestOrientation(seq.substring(i, i + CORTEX_GRAPH.getKmerSize()));
+                    String kmer = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(i, i + CORTEX_GRAPH.getKmerSize()));
 
                     if (!kmers.containsKey(kmer)) {
                         kmers.put(kmer, new KmerInfo());

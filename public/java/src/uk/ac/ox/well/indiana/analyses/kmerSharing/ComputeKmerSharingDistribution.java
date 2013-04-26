@@ -5,7 +5,6 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
@@ -86,7 +85,7 @@ public class ComputeKmerSharingDistribution extends Tool {
                 for (int i = 0; i < seq.length() - CORTEX_GRAPH.getKmerSize(); i++) {
                     Interval interval = new Interval(domainRecord.getSeqid(), domainRecord.getStart() + i, domainRecord.getStart() + i);
 
-                    String kmer = SequenceUtils.getAlphanumericallyLowestOrientation(seq.substring(i, i + CORTEX_GRAPH.getKmerSize()));
+                    String kmer = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(i, i + CORTEX_GRAPH.getKmerSize()));
 
                     if (!kmerInfoMap.containsKey(kmer)) {
                         kmerInfoMap.put(kmer, new ArrayList<KmerInfo>());

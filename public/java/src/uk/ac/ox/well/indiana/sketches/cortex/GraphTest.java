@@ -9,7 +9,6 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -34,8 +33,8 @@ public class GraphTest extends Tool {
             String nextKmer = seq.substring(i+1, i+1 + KMER_SIZE);
 
             if (CANONICALIZE) {
-                kmer = new String(SequenceUtils.getAlphanumericallyLowestOrientation(kmer.getBytes()));
-                nextKmer = new String(SequenceUtils.getAlphanumericallyLowestOrientation(nextKmer.getBytes()));
+                kmer = new String(SequenceUtils.alphanumericallyLowestOrientation(kmer.getBytes()));
+                nextKmer = new String(SequenceUtils.alphanumericallyLowestOrientation(nextKmer.getBytes()));
             }
 
             directedGraph.addVertex(kmer);

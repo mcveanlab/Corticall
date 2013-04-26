@@ -7,13 +7,10 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.alignment.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
-import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
 public class AlignSupernodes extends Tool {
@@ -146,12 +143,12 @@ public class AlignSupernodes extends Tool {
                 String seq = panel.get(gene);
 
                 SmithWaterman fsw = new SmithWaterman(seq, supernode);
-                SmithWaterman rsw = new SmithWaterman(seq, SequenceUtils.getReverseComplement(supernode));
+                SmithWaterman rsw = new SmithWaterman(seq, SequenceUtils.reverseComplement(supernode));
 
                 SmithWaterman sw = (fsw.getAlignmentScore() > rsw.getAlignmentScore()) ? fsw : rsw;
                 Boolean strand = (fsw.getAlignmentScore() > rsw.getAlignmentScore());
 
-                String sn = (strand) ? supernode : SequenceUtils.getReverseComplement(supernode);
+                String sn = (strand) ? supernode : SequenceUtils.reverseComplement(supernode);
 
                 SAMRecord samRecord = new SAMRecord(samHeader);
                 samRecord.setReadName("sn." + supernode.hashCode());

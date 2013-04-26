@@ -1,12 +1,10 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
-import net.sf.samtools.util.StringUtil;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -33,7 +31,7 @@ public class JoinSupernodes extends Tool {
 
         TableReader tr = new TableReader(SUPERNODES);
         for (Map<String, String> te : tr) {
-            supernodes.add(SequenceUtils.getAlphanumericallyLowestOrientation(te.get("superNode")));
+            supernodes.add(SequenceUtils.alphanumericallyLowestOrientation(te.get("superNode")));
         }
 
         List<String> supernodesList = new ArrayList<String>(supernodes);
@@ -47,7 +45,7 @@ public class JoinSupernodes extends Tool {
         for (int i = 0; i < supernodes.size(); i++) {
             String supernode = supernodes.get(i);
             for (int j = 0; j <= supernode.length() - kmerSize; j++) {
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(supernode.substring(j, j + kmerSize));
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(supernode.substring(j, j + kmerSize));
 
                 if (!supernodeKmerHash.containsKey(fw)) {
                     supernodeKmerHash.put(fw, new HashSet<Integer>());
@@ -87,11 +85,11 @@ public class JoinSupernodes extends Tool {
     }
 
     private String joinSupernodes(String s1, String s2, String seedFw) {
-        String seedRc = SequenceUtils.getReverseComplement(seedFw);
+        String seedRc = SequenceUtils.reverseComplement(seedFw);
         String seed = seedFw;
 
         if ((s1.contains(seedFw) && s2.contains(seedRc)) || (s1.contains(seedRc) && s2.contains(seedFw))) {
-            s2 = SequenceUtils.getReverseComplement(s2);
+            s2 = SequenceUtils.reverseComplement(s2);
         }
 
         if (s1.contains(seedRc)) {
@@ -126,7 +124,7 @@ public class JoinSupernodes extends Tool {
     }
 
     private String lookForSupernodeExtensions(String supernode, List<String> supernodes, Map<String, Set<Integer>> supernodeKmerHash, Set<String> seenSupernodes) {
-        String firstKmerFw = SequenceUtils.getAlphanumericallyLowestOrientation(supernode.substring(0, KMER_SIZE));
+        String firstKmerFw = SequenceUtils.alphanumericallyLowestOrientation(supernode.substring(0, KMER_SIZE));
         Set<Integer> firstKmerCandidates = supernodeKmerHash.get(firstKmerFw);
 
         String joinedSupernodes = supernode;
@@ -189,7 +187,7 @@ public class JoinSupernodes extends Tool {
                         }
                     }
 
-                    oldSupernode = SequenceUtils.getReverseComplement(oldSupernode);
+                    oldSupernode = SequenceUtils.reverseComplement(oldSupernode);
 
                     stillExtending = true;
 
@@ -223,7 +221,7 @@ public class JoinSupernodes extends Tool {
             List<String> genes = new ArrayList<String>();
 
             for (int i = 0; i <= extendedSupernode.length() - kmerSize; i++) {
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(extendedSupernode.substring(i, i + kmerSize));
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(extendedSupernode.substring(i, i + kmerSize));
 
                 if (uniqueKmers.containsKey(fw)) {
                     kmers.add(fw);

@@ -12,6 +12,9 @@
         <!-- Performance checking -->
         <dependency org="org.perf4j" name="perf4j" rev="0.9.16" />
 
+        <!-- Sizeof -->
+        <dependency org="com.carrotsearch" name="java-sizeof" rev="0.0.3" />
+
         <!-- Reflections dependency -->
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
 

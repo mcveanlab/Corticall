@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ColorSupernodes extends Sketch {
+public class DrawSupernodesThroughGenes extends Sketch {
     @Argument(fullName="reference", shortName="R", doc="Reference genome")
     public IndexedFastaSequenceFile FASTA;
 
@@ -42,14 +42,16 @@ public class ColorSupernodes extends Sketch {
 
     private int verticalMargin = 10;
     private int horizontalMargin = 10;
-    private int supernodeHeight = 3;
-    private int supernodeLength = 0;
-    private int legendMargin = 60*supernodeHeight;
+    private int geneHeight = 3;
+    private int geneMargin = 5;
+    private int geneLength = 0;
+    private int legendMargin = 0;
 
     private Set<String> relatedSequences;
     private Map<String, String> genes;
     private Map<String, String> kmerToGene;
     private Map<String, Color> geneToColor;
+    private Set<String> usedGenes;
 
     private Color[] generateColors(int n) {
         Color[] cols = new Color[n];
@@ -62,7 +64,7 @@ public class ColorSupernodes extends Sketch {
     }
 
     private void loadGenes() {
-        genes = new HashMap<String, String>();
+        genes = new TreeMap<String, String>();
         geneToColor = new HashMap<String, Color>();
 
         for (GFF3Record record : GFF) {
@@ -72,16 +74,6 @@ public class ColorSupernodes extends Sketch {
                 String geneName = record.getAttribute("ID");
 
                 genes.put(geneName, seq);
-
-                /*
-                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    String fw = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(i, i + KMER_SIZE));
-
-                    if (!kmerToGene.containsKey(fw)) {
-                        kmerToGene.put(fw, geneName);
-                    }
-                }
-                */
             }
         }
 
@@ -96,6 +88,7 @@ public class ColorSupernodes extends Sketch {
 
     private void loadRelatedSequences() {
         relatedSequences = new HashSet<String>();
+        usedGenes = new HashSet<String>();
 
         TableReader tr = new TableReader(RELATED_SEQUENCES);
 
@@ -113,15 +106,9 @@ public class ColorSupernodes extends Sketch {
             }
 
             if (genesInSupernode.size() > 1 && genesInSupernode.contains(GENE_OF_INTEREST)) {
-                log.debug("genesInSupernode: {}", genesInSupernode);
+                usedGenes.addAll(genesInSupernode);
 
                 relatedSequences.add(supernode);
-
-                int length = supernode.length();
-
-                if (length > supernodeLength) {
-                    supernodeLength = length;
-                }
             }
         }
     }
@@ -143,69 +130,72 @@ public class ColorSupernodes extends Sketch {
         loadGenes();
         loadKmerReferencePanel();
         loadRelatedSequences();
+
+        for (String gene : usedGenes) {
+            if (genes.get(gene).length() > geneLength) {
+                geneLength = genes.get(gene).length();
+            }
+        }
+
+        log.info("Used genes: {}", usedGenes);
     }
 
     public void setup() {
-        int windowWidth = 2*horizontalMargin + supernodeLength;
-        int windowHeight = 2*verticalMargin + supernodeHeight*relatedSequences.size() + legendMargin;
+        int windowWidth = 2*horizontalMargin + geneLength;
+        int windowHeight = 2*verticalMargin + geneHeight*(relatedSequences.size() + 3) + geneMargin*relatedSequences.size() + legendMargin;
 
         log.info("supernodes={}, width={} height={}", relatedSequences.size(), windowWidth, windowHeight);
 
         size(windowWidth, windowHeight, PGraphicsPDF.PDF, out.getAbsolutePath());
 
-        Set<String> usedGenes = new HashSet<String>();
-
-        int i = 0;
         for (String supernode : relatedSequences) {
-            String supernodeRc = SequenceUtils.reverseComplement(supernode);
-
-            fout.printf(">sn.%d_sn.%d\n", supernode.hashCode(), supernodeRc.hashCode());
-            fout.printf("%s\n", supernode);
-
-            int xpos0 = horizontalMargin;
-            int xpos1 = xpos0 + supernode.length();
-            int ypos  = verticalMargin + (i*supernodeHeight);
+            int sxpos0 = horizontalMargin;
+            int sxpos1 = sxpos0 + supernode.length();
+            int sypos = verticalMargin + geneHeight + geneMargin;
 
             stroke(Color.BLACK.getRGB());
-            line(xpos0, ypos, xpos1, ypos);
+            line(sxpos0, sypos, sxpos1, sypos);
 
-            i++;
+            Map<String, Integer> genePositions = new HashMap<String, Integer>();
+            Map<String, Integer> kmerPositions = new HashMap<String, Integer>();
+
+            int i = 3;
+            for (String gene : usedGenes) {
+                String seq = genes.get(gene);
+
+                int xpos0 = horizontalMargin;
+                int xpos1 = xpos0 + seq.length();
+                int ypos  = verticalMargin + (i*geneHeight) + (i*geneMargin);
+
+                stroke(Color.BLACK.getRGB());
+                line(xpos0, ypos, xpos1, ypos);
+
+                genePositions.put(gene, ypos);
+                for (int j = 0; j <= seq.length() - KMER_SIZE; j++) {
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(j, j + KMER_SIZE));
+
+                    kmerPositions.put(fw, xpos0 + j);
+                }
+
+                i++;
+            }
 
             for (int j = 0; j <= supernode.length() - KMER_SIZE; j++) {
                 String fw = SequenceUtils.alphanumericallyLowestOrientation(supernode.substring(j, j + KMER_SIZE));
 
                 if (kmerToGene.containsKey(fw)) {
+                    int kxpos = kmerPositions.get(fw);
+                    int kypos = genePositions.get(kmerToGene.get(fw));
+
                     Color color = geneToColor.get(kmerToGene.get(fw));
 
-                    int kxpos = xpos0 + j;
-                    int kypos0 = ypos - 1;
-                    int kypos1 = ypos + 1;
-
                     stroke(color.getRGB());
-                    line(kxpos, kypos0, kxpos, kypos1);
-
-                    usedGenes.add(kmerToGene.get(fw));
+                    line(kxpos, kypos - 1, kxpos, kypos + 1);
                 }
             }
-        }
 
-        i = 0;
-        for (String gene : usedGenes) {
-            int xpos = horizontalMargin;
-            int ypos = verticalMargin + supernodeHeight*relatedSequences.size() + (i*supernodeHeight);
-            int ypos0 = ypos - 1;
-            int ypos1 = ypos + 1;
-
-            Color color = geneToColor.get(gene);
-
-            stroke(color.getRGB());
-            line(xpos, ypos0, xpos, ypos1);
-
-            textSize(2);
-            fill(Color.BLACK.getRGB());
-            text(gene, xpos + 2, ypos);
-
-            i++;
+            PGraphicsPDF pdf = (PGraphicsPDF) g;
+            pdf.nextPage();
         }
 
         exit();

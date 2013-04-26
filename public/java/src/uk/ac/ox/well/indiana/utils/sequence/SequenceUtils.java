@@ -20,7 +20,7 @@ public class SequenceUtils {
      * @param sequence  the sequence that should be reverse complemented
      * @return  the reverse complement of the sequence
      */
-    public static byte[] getReverseComplement(byte[] sequence) {
+    public static byte[] reverseComplement(byte[] sequence) {
         byte[] rc = new byte[sequence.length];
 
         for (int i = 0; i < sequence.length; i++) {
@@ -56,8 +56,8 @@ public class SequenceUtils {
      * @param sequence  the sequence that should be reverse complemented
      * @return  the reverse complement of the sequence
      */
-    public static String getReverseComplement(String sequence) {
-        return new String(getReverseComplement(sequence.getBytes()));
+    public static String reverseComplement(String sequence) {
+        return new String(reverseComplement(sequence.getBytes()));
     }
 
     /**
@@ -66,8 +66,8 @@ public class SequenceUtils {
      * @param sequence  the sequence to process
      * @return  the alphanumerically lowest orientation of the given sequence
      */
-    public static byte[] getAlphanumericallyLowestOrientation(byte[] sequence) {
-        byte[] rc = getReverseComplement(sequence);
+    public static byte[] alphanumericallyLowestOrientation(byte[] sequence) {
+        byte[] rc = reverseComplement(sequence);
 
         String kmerStr = new String(sequence);
         String rcStr = new String(rc);
@@ -81,8 +81,8 @@ public class SequenceUtils {
      * @param sequence  the sequence to process
      * @return  the alphanumerically lowest orientation of the given sequence
      */
-    public static String getAlphanumericallyLowestOrientation(String sequence) {
-        return new String(getAlphanumericallyLowestOrientation(sequence.getBytes()));
+    public static String alphanumericallyLowestOrientation(String sequence) {
+        return new String(alphanumericallyLowestOrientation(sequence.getBytes()));
     }
 
     /**
@@ -134,7 +134,7 @@ public class SequenceUtils {
         String[] name = seq.getName().split("\\s+");
 
         for (int i = 0; i < contig.length - kmerSize; i++) {
-            String kmer = new String(getAlphanumericallyLowestOrientation(Arrays.copyOfRange(contig, i, i + kmerSize)));
+            String kmer = new String(alphanumericallyLowestOrientation(Arrays.copyOfRange(contig, i, i + kmerSize)));
 
             kmerHash.put(kmer.hashCode(), name[0]);
         }
@@ -161,7 +161,13 @@ public class SequenceUtils {
         return S;
     }
 
-
+    /**
+     * Private method to compute N50 information
+     *
+     * @param sequences  the sequences to process
+     * @param lengthOrValue  if true, compute length; else, compute value
+     * @return  the N50 length or value
+     */
     private static int computeN50Metric(Collection<String> sequences, boolean lengthOrValue) {
         int totalLength = 0;
 

@@ -102,14 +102,14 @@ public class FindRelatedSequences extends Tool {
 
                 superNode = inRawKmer.charAt(0) + superNode;
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(inRawKmer);
 
                 if (seenKmers.contains(fw)) {
                     log.info("in kmer '{}' has already been seen", fw);
                 }
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -119,7 +119,7 @@ public class FindRelatedSequences extends Tool {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(0, rc.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {
@@ -157,14 +157,14 @@ public class FindRelatedSequences extends Tool {
 
                 superNode = superNode + outRawKmer.charAt(outRawKmer.length() - 1);
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(outRawKmer);
 
                 if (seenKmers.contains(fw)) {
                     log.info("out kmer '{}' has already been seen", fw);
                 }
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -174,7 +174,7 @@ public class FindRelatedSequences extends Tool {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(superNode.length() - rc.length(), superNode.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {

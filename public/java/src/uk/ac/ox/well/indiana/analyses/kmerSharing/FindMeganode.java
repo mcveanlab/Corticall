@@ -1,8 +1,5 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -70,16 +67,16 @@ public class FindMeganode extends Tool {
         Set<String> branches = new HashSet<String>();
 
         String kmer = supernode.substring(0, CORTEX_GRAPH.getKmerSize());
-        String fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
+        String fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
 
         while (fw != null && !seenKmers.contains(fw) && records.containsKey(fw)) {
-            String rc = SequenceUtils.getReverseComplement(fw);
+            String rc = SequenceUtils.reverseComplement(fw);
 
             CortexRecord cr = records.get(fw);
             String edges = cr.getEdges()[color];
 
             if (rc.equalsIgnoreCase(kmer)) {
-                edges = SequenceUtils.getReverseComplement(edges);
+                edges = SequenceUtils.reverseComplement(edges);
             }
 
             List<String> inKmers = new ArrayList<String>();
@@ -99,7 +96,7 @@ public class FindMeganode extends Tool {
                 supernode = inKmer.charAt(0) + supernode;
 
                 kmer = supernode.substring(0, CORTEX_GRAPH.getKmerSize());
-                fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
+                fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
             } else {
                 fw = null;
 
@@ -151,10 +148,10 @@ public class FindMeganode extends Tool {
 
                 superNode = inRawKmer.charAt(0) + superNode;
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(inRawKmer);
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -164,7 +161,7 @@ public class FindMeganode extends Tool {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(0, rc.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {
@@ -198,10 +195,10 @@ public class FindMeganode extends Tool {
 
                 superNode = superNode + outRawKmer.charAt(outRawKmer.length() - 1);
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(outRawKmer);
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -211,7 +208,7 @@ public class FindMeganode extends Tool {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(superNode.length() - rc.length(), superNode.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {

@@ -39,7 +39,7 @@ public class CreateReferencePanel extends Tool {
             String seq = new String(ref.getBases());
 
             for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(seq.substring(i, i + KMER_SIZE));
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(i, i + KMER_SIZE));
 
                 Integer coverage = (kmers.containsKey(fw) ? kmers.get(fw) : 0);
                 coverage++;
@@ -72,7 +72,7 @@ public class CreateReferencePanel extends Tool {
                 out.println(padding + seq + padding);
 
                 for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    String fw = SequenceUtils.getAlphanumericallyLowestOrientation(seq.substring(i, i + KMER_SIZE));
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(seq.substring(i, i + KMER_SIZE));
 
                     if (kmers.containsKey(fw) && kmers.get(fw) == 1) {
                         out.println(">" + id + "." + fw);

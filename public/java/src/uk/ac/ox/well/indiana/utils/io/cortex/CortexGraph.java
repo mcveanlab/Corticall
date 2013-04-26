@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.cortex;
 
+import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
@@ -201,6 +202,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         info += "----" + "\n";
         info += "kmers: " + getNumRecords() + "\n";
         info += "----" + "\n";
+        info += "size of one Cortex record: " + RamUsageEstimator.humanSizeOf(nextRecord) + "\n";
+        info += "size of full Cortex graph: " + RamUsageEstimator.humanReadableUnits(RamUsageEstimator.sizeOf(nextRecord)*getNumRecords()) + "\n";
 
         return info;
     }
@@ -249,31 +252,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         }
 
         return null;
-    }
-
-    private CortexRecord oldGetNextRecord() {
-        try {
-            long[] binaryKmer = new long[kmerBits];
-            for (int bits = 0; bits < kmerBits; bits++) {
-                binaryKmer[bits] = in.readLong();
-            }
-
-            int[] coverages = new int[numColors];
-            for (int color = 0; color < numColors; color++) {
-                coverages[color] = in.readUnsignedInt();
-            }
-
-            byte[] edges = new byte[numColors];
-            for (int color = 0; color < numColors; color++) {
-                edges[color] = (byte) in.readUnsignedByte();
-            }
-
-            return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
-        } catch (EOFException e) {
-            return null;
-        } catch (IOException e) {
-            throw new RuntimeException("Error while parsing Cortex record: " + e);
-        }
     }
 
     public Iterator<CortexRecord> iterator() {

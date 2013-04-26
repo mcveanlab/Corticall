@@ -63,7 +63,7 @@ public class CortexGraphWalker {
         String rawKmerSpanningFork = null;
 
         for (String rawKmer : rawKmers) {
-            String fwKmer = SequenceUtils.getAlphanumericallyLowestOrientation(rawKmer);
+            String fwKmer = SequenceUtils.alphanumericallyLowestOrientation(rawKmer);
 
             if (referenceKmers.contains(fwKmer)) {
                 numKmersSpanningFork++;
@@ -79,8 +79,8 @@ public class CortexGraphWalker {
     }
 
     private String getInKmerWithMatchingOrientation(int color, String kmer, Set<String> referenceKmers, String supernode) {
-        String fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
-        String rc = SequenceUtils.getReverseComplement(fw);
+        String fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
+        String rc = SequenceUtils.reverseComplement(fw);
 
         String currentKmer = null;
         String edges = records.get(fw).getEdges(color);
@@ -89,7 +89,7 @@ public class CortexGraphWalker {
             currentKmer = fw;
         } else if (rc.equalsIgnoreCase(supernode.substring(0, rc.length()))) {
             currentKmer = rc;
-            edges = SequenceUtils.getReverseComplement(edges);
+            edges = SequenceUtils.reverseComplement(edges);
         }
 
         if (currentKmer != null) {
@@ -100,8 +100,8 @@ public class CortexGraphWalker {
     }
 
     private String getOutKmerWithMatchingOrientation(int color, String kmer, Set<String> referenceKmers, String supernode) {
-        String fw = SequenceUtils.getAlphanumericallyLowestOrientation(kmer);
-        String rc = SequenceUtils.getReverseComplement(fw);
+        String fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
+        String rc = SequenceUtils.reverseComplement(fw);
 
         String currentKmer = null;
         String edges = records.get(fw).getEdges(color);
@@ -110,7 +110,7 @@ public class CortexGraphWalker {
             currentKmer = fw;
         } else if (rc.equalsIgnoreCase(supernode.substring(supernode.length() - rc.length(), supernode.length()))) {
             currentKmer = rc;
-            edges = SequenceUtils.getReverseComplement(edges);
+            edges = SequenceUtils.reverseComplement(edges);
         }
 
         if (currentKmer != null) {
@@ -135,7 +135,7 @@ public class CortexGraphWalker {
                 while (inKmer != null) {
                     supernode = inKmer.charAt(0) + supernode;
 
-                    String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inKmer);
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(inKmer);
 
                     if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                         inKmer = getInKmerWithMatchingOrientation(color, inKmer, referenceKmers, supernode);
@@ -151,7 +151,7 @@ public class CortexGraphWalker {
                 while (outKmer != null) {
                     supernode = supernode + outKmer.charAt(outKmer.length() - 1);
 
-                    String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outKmer);
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(outKmer);
 
                     if (records.containsKey(fw) && !seenKmers.contains(fw)) {
                         outKmer = getOutKmerWithMatchingOrientation(color, outKmer, referenceKmers, supernode);
@@ -162,7 +162,7 @@ public class CortexGraphWalker {
                     seenKmers.add(fw);
                 }
 
-                supernodes.add(SequenceUtils.getAlphanumericallyLowestOrientation(supernode));
+                supernodes.add(SequenceUtils.alphanumericallyLowestOrientation(supernode));
             }
         }
 
@@ -196,10 +196,10 @@ public class CortexGraphWalker {
 
                 superNode = inRawKmer.charAt(0) + superNode;
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(inRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(inRawKmer);
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -209,7 +209,7 @@ public class CortexGraphWalker {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(0, rc.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {
@@ -243,10 +243,10 @@ public class CortexGraphWalker {
 
                 superNode = superNode + outRawKmer.charAt(outRawKmer.length() - 1);
 
-                String fw = SequenceUtils.getAlphanumericallyLowestOrientation(outRawKmer);
+                String fw = SequenceUtils.alphanumericallyLowestOrientation(outRawKmer);
 
                 if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.getReverseComplement(fw);
+                    String rc = SequenceUtils.reverseComplement(fw);
 
                     String currentKmer = null;
 
@@ -256,7 +256,7 @@ public class CortexGraphWalker {
                         currentKmer = fw;
                     } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(superNode.length() - rc.length(), superNode.length()))) {
                         currentKmer = rc;
-                        edges = SequenceUtils.getReverseComplement(edges);
+                        edges = SequenceUtils.reverseComplement(edges);
                     }
 
                     if (currentKmer != null) {
@@ -273,6 +273,6 @@ public class CortexGraphWalker {
             }
         }
 
-        return SequenceUtils.getAlphanumericallyLowestOrientation(superNode);
+        return SequenceUtils.alphanumericallyLowestOrientation(superNode);
     }
 }
