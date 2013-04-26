@@ -17,6 +17,12 @@ public class ExtractRefAndAltKmers extends Tool {
     @Argument(fullName="relatedSequences", shortName="rs", doc="Related sequences")
     public ArrayList<File> RELATED_SEQUENCES;
 
+    @Argument(fullName="refKmers", shortName="rk", doc="Enable emission of ref kmers")
+    public Boolean EMIT_REF_KMERS = true;
+
+    @Argument(fullName="altKmers", shortName="ak", doc="Enable emission of alt kmers")
+    public Boolean EMIT_ALT_KMERS = true;
+
     @Output
     public PrintStream out;
 
@@ -45,9 +51,13 @@ public class ExtractRefAndAltKmers extends Tool {
                 for (int i = 0; i <= supernode.length() - kmer.length(); i++) {
                     String fw = SequenceUtils.getAlphanumericallyLowestOrientation(supernode.substring(i, i + kmer.length()));
 
-                    tw.set(fw, sample, 1);
-                    tw.set(fw, "supernodeId", supernode.hashCode());
-                    tw.set(fw, "gene", gene);
+                    boolean isRefKmer = fw.equals(kmer);
+
+                    if ((isRefKmer && EMIT_REF_KMERS) || (!isRefKmer && EMIT_ALT_KMERS)) {
+                        tw.set(fw, sample, 1);
+                        tw.set(fw, "supernodeId", supernode.hashCode());
+                        tw.set(fw, "gene", gene);
+                    }
                 }
             }
         }
