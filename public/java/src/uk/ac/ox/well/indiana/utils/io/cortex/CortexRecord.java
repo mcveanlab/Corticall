@@ -5,20 +5,14 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 public class CortexRecord implements Comparable<CortexRecord> {
-    private long[] binaryKmer;
     private byte[] rawKmer;
     private int[] coverages;
     private byte[] edges;
 
-    private int kmerSize;
-    private int kmerBits;
-
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
-        this.binaryKmer = binaryKmer;
         this.coverages = coverages;
         this.edges = edges;
-        this.kmerSize = kmerSize;
-        this.kmerBits = kmerBits;
+        this.rawKmer = decodeBinaryKmer(binaryKmer, kmerSize, kmerBits);
     }
 
     private byte binaryNucleotideToChar(long nucleotide) {
@@ -32,6 +26,22 @@ public class CortexRecord implements Comparable<CortexRecord> {
         }
     }
 
+    private byte[] decodeBinaryKmer(long[] binaryKmer, int kmerSize, int kmerBits) {
+        byte[] rawKmer = new byte[kmerSize];
+
+        for (int i = 0; i < binaryKmer.length; i++) {
+            binaryKmer[i] = reverse(binaryKmer[i]);
+        }
+
+        for (int i = kmerSize - 1; i >= 0; i--) {
+            rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
+
+            shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
+        }
+
+        return rawKmer;
+    }
+
     private void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {
         for(int i = bitfields - 1; i > 0; i--) {
             binaryKmer[i] >>>= 2;
@@ -40,29 +50,16 @@ public class CortexRecord implements Comparable<CortexRecord> {
         binaryKmer[0] >>>= 2;
     }
 
-    public static long reverse(long x) {
+    private long reverse(long x) {
         ByteBuffer bbuf = ByteBuffer.allocate(8);
         bbuf.order(ByteOrder.BIG_ENDIAN);
         bbuf.putLong(x);
         bbuf.order(ByteOrder.LITTLE_ENDIAN);
+
         return bbuf.getLong(0);
     }
 
     public byte[] getKmer() {
-        if (rawKmer == null) {
-            rawKmer = new byte[kmerSize];
-
-            for (int i = 0; i < binaryKmer.length; i++) {
-                binaryKmer[i] = reverse(binaryKmer[i]);
-            }
-
-            for (int i = kmerSize - 1; i >= 0; i--) {
-                rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
-
-                shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
-            }
-        }
-
         return rawKmer;
     }
 
@@ -124,7 +121,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public int hashCode() {
-        return Arrays.hashCode(binaryKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+        return Arrays.hashCode(rawKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 
     public int compareTo(CortexRecord cortexRecord) {

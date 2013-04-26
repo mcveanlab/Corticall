@@ -45,7 +45,7 @@ public class ConstrainedSmithWaterman {
         int queryStart = query.indexOf(kmer) + 1;
 
         if (refStart < 0 || queryStart < 0) {
-            String rc = SequenceUtils.getReverseComplement(kmer);
+            String rc = SequenceUtils.reverseComplement(kmer);
 
             if (refStart < 0) {
                 refStart = reference.indexOf(rc) + 1;

@@ -35,7 +35,7 @@ public class CountGeneKmerCoverage extends Tool {
             byte[] b = seq.getBases();
 
             for (int i = 0; i < b.length - kmerSize; i++) {
-                String kmer = new String(SequenceUtils.getAlphanumericallyLowestOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
+                String kmer = new String(SequenceUtils.alphanumericallyLowestOrientation(Arrays.copyOfRange(b, i, i + kmerSize)));
 
                 geneKmers.put(kmer.hashCode(), name);
             }

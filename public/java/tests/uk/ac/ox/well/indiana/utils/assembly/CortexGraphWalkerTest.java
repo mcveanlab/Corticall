@@ -29,7 +29,7 @@ public class CortexGraphWalkerTest {
 
     @Test
     public void testSupernodeReconstruction() {
-        String referenceKmer = SequenceUtils.getAlphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG");
+        String referenceKmer = SequenceUtils.alphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG");
 
         String supernode = cgw.getSupernode(0, referenceKmer);
 
@@ -39,9 +39,9 @@ public class CortexGraphWalkerTest {
     @Test
     public void testReferenceGuidedSupernodeReconstruction() {
         Set<String> referenceKmers = new HashSet<String>();
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG"));
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("GTTTGTAGTACTCCCGCTGCACCTCCCACTT"));
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("AAGGCGGTAAGGAGGAGCGCGTCACCTTTTG"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("GTTTGTAGTACTCCCGCTGCACCTCCCACTT"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("AAGGCGGTAAGGAGGAGCGCGTCACCTTTTG"));
 
         Collection<String> supernodes = cgw.getReferenceGuidedSupernodes(0, referenceKmers);
 
@@ -52,10 +52,10 @@ public class CortexGraphWalkerTest {
     @Test
     public void testMultipleReferenceGuidedSupernodeReconstruction() {
         Set<String> referenceKmers = new HashSet<String>();
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG"));
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("GTTTGTAGTACTCCCGCTGCACCTCCCACTT"));
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("AAGGCGGTAAGGAGGAGCGCGTCACCTTTTG"));
-        referenceKmers.add(SequenceUtils.getAlphanumericallyLowestOrientation("TGCTGTTTCTAGGCGGCCATTTGTAGTACTC"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("GTTTGTAGTACTCCCGCTGCACCTCCCACTT"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("AAGGCGGTAAGGAGGAGCGCGTCACCTTTTG"));
+        referenceKmers.add(SequenceUtils.alphanumericallyLowestOrientation("TGCTGTTTCTAGGCGGCCATTTGTAGTACTC"));
 
         Collection<String> supernodes = cgw.getReferenceGuidedSupernodes(0, referenceKmers);
 

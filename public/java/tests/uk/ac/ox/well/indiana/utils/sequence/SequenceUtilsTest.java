@@ -12,7 +12,7 @@ public class SequenceUtilsTest {
         byte[] sequence   = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedRC = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
 
-        byte[] computedRC = SequenceUtils.getReverseComplement(sequence);
+        byte[] computedRC = SequenceUtils.reverseComplement(sequence);
 
         Assert.assertEquals(expectedRC, computedRC);
     }
@@ -22,7 +22,7 @@ public class SequenceUtilsTest {
         byte[] sequence   = "NACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedRC = "CATGCATACGAATAGCGAGAAAAGTCAGTN".getBytes();
 
-        byte[] computedRC = SequenceUtils.getReverseComplement(sequence);
+        byte[] computedRC = SequenceUtils.reverseComplement(sequence);
 
         Assert.assertEquals(expectedRC, computedRC);
     }
@@ -32,7 +32,7 @@ public class SequenceUtilsTest {
         byte[] sequence   = "NACTGACTTTTCTCGCTATTCGTATGCATg".getBytes();
         byte[] expectedRC = "cATGCATACGAATAGCGAGAAAAGTCAGTN".getBytes();
 
-        byte[] computedRC = SequenceUtils.getReverseComplement(sequence);
+        byte[] computedRC = SequenceUtils.reverseComplement(sequence);
 
         Assert.assertEquals(expectedRC, computedRC);
     }
@@ -42,7 +42,7 @@ public class SequenceUtilsTest {
         byte[] sequence            = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedOrientation = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
 
-        byte[] computedOrientation = SequenceUtils.getAlphanumericallyLowestOrientation(sequence);
+        byte[] computedOrientation = SequenceUtils.alphanumericallyLowestOrientation(sequence);
 
         Assert.assertEquals(expectedOrientation, computedOrientation);
     }

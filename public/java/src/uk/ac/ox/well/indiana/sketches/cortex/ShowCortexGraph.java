@@ -1,14 +1,11 @@
 package uk.ac.ox.well.indiana.sketches.cortex;
 
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.ext.ComponentAttributeProvider;
 import org.jgrapht.ext.DOTExporter;
 import org.jgrapht.ext.StringNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -16,10 +13,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 public class ShowCortexGraph extends Tool {
@@ -104,7 +99,7 @@ public class ShowCortexGraph extends Tool {
 
                 for (int inEdgeIndex = 0; inEdgeIndex < 4; inEdgeIndex++) {
                     if (edges.charAt(inEdgeIndex) != '.') {
-                        String inEdgeKmer = SequenceUtils.getAlphanumericallyLowestOrientation(edges.charAt(inEdgeIndex) + kmer.substring(0, kmer.length() - 1));
+                        String inEdgeKmer = SequenceUtils.alphanumericallyLowestOrientation(edges.charAt(inEdgeIndex) + kmer.substring(0, kmer.length() - 1));
 
                         if (!directedGraph.containsVertex(inEdgeKmer)) {
                             directedGraph.addVertex(inEdgeKmer);
@@ -118,7 +113,7 @@ public class ShowCortexGraph extends Tool {
 
                 for (int outEdgeIndex = 4; outEdgeIndex < 8; outEdgeIndex++) {
                     if (edges.charAt(outEdgeIndex) != '.') {
-                        String outEdgeKmer = SequenceUtils.getAlphanumericallyLowestOrientation(kmer.substring(1, kmer.length()) + edges.charAt(outEdgeIndex));
+                        String outEdgeKmer = SequenceUtils.alphanumericallyLowestOrientation(kmer.substring(1, kmer.length()) + edges.charAt(outEdgeIndex));
 
                         if (!directedGraph.containsVertex(outEdgeKmer)) {
                             directedGraph.addVertex(outEdgeKmer);

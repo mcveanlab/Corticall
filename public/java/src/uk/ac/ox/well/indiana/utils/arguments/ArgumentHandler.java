@@ -6,8 +6,10 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
+import uk.ac.ox.well.indiana.IndianaMain;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 
 import java.io.*;
@@ -209,6 +211,8 @@ public class ArgumentHandler {
                 return value;
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
+            } else if (type.equals(CortexMap.class)) {
+                return new CortexMap(value, IndianaMain.getLogger());
             } else if (type.equals(GFF3.class)) {
                 return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {

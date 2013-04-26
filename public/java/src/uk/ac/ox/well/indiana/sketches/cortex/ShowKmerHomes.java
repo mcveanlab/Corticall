@@ -73,7 +73,7 @@ public class ShowKmerHomes extends Sketch {
             for (String geneSeq : geneSeqs.keySet()) {
                 System.out.println(geneSeq);
 
-                String rc = new String(SequenceUtils.getReverseComplement(geneSeq.getBytes()));
+                String rc = new String(SequenceUtils.reverseComplement(geneSeq.getBytes()));
                 if (contigSeq.contains(rc)) {
                     int x3 = margin + contigSeq.indexOf(rc) * (width - 2*margin) / maxSeqLength;
                     int x4 = margin + (contigSeq.indexOf(rc) + geneSeq.length()) * (width - 2*margin) / maxSeqLength;

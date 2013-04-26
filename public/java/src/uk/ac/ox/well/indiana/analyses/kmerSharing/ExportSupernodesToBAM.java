@@ -114,7 +114,7 @@ public class ExportSupernodesToBAM extends Tool {
             for (String fwsupernode : supernodesAndKmers.keySet()) {
                 log.info("\t{}", fwsupernode.length());
 
-                String rcsupernode = SequenceUtils.getReverseComplement(fwsupernode);
+                String rcsupernode = SequenceUtils.reverseComplement(fwsupernode);
 
                 SmithWaterman fsw = new SmithWaterman(seq, fwsupernode);
                 SmithWaterman rsw = new SmithWaterman(seq, rcsupernode);
@@ -143,7 +143,7 @@ public class ExportSupernodesToBAM extends Tool {
 
                     TreeSet<String> kmers = supernodesAndKmers.get(fwsupernode);
                     for (String fwkmer : kmers) {
-                        String rckmer = SequenceUtils.getReverseComplement(fwkmer);
+                        String rckmer = SequenceUtils.reverseComplement(fwkmer);
 
                         String kmer = seq.contains(fwkmer) ? fwkmer : rckmer;
                         int start = seq.contains(fwkmer) ? seq.indexOf(fwkmer) : seq.indexOf(rckmer);

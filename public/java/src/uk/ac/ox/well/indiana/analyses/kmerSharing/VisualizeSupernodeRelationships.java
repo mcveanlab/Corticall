@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
-import uk.ac.ox.well.indiana.utils.alignment.SequenceAlignment;
 import uk.ac.ox.well.indiana.utils.alignment.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -16,7 +15,6 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
 public class VisualizeSupernodeRelationships extends Sketch {
@@ -123,7 +121,7 @@ public class VisualizeSupernodeRelationships extends Sketch {
             TreeSet<SupernodeView> supernodeViews = new TreeSet<SupernodeView>();
 
             for (String fwsupernode : supernodes.keySet()) {
-                String rcsupernode = SequenceUtils.getReverseComplement(fwsupernode);
+                String rcsupernode = SequenceUtils.reverseComplement(fwsupernode);
 
                 SmithWaterman fsw = new SmithWaterman(seq, fwsupernode);
                 SmithWaterman rsw = new SmithWaterman(seq, rcsupernode);
@@ -197,7 +195,7 @@ public class VisualizeSupernodeRelationships extends Sketch {
                 rect(sxpos, sypos, length, (supernodeHeight - 2));
 
                 for (String fwkmer : sv.getUniqueKmers()) {
-                    String rckmer = SequenceUtils.getReverseComplement(fwkmer);
+                    String rckmer = SequenceUtils.reverseComplement(fwkmer);
 
                     int kmerpos = -1;
 
@@ -225,7 +223,7 @@ public class VisualizeSupernodeRelationships extends Sketch {
         }
 
         public void addKmer(String fw) {
-            String rc = SequenceUtils.getReverseComplement(fw);
+            String rc = SequenceUtils.reverseComplement(fw);
 
             if (seq.contains(fw) || seq.contains(rc)) {
                 int pos;
@@ -241,7 +239,7 @@ public class VisualizeSupernodeRelationships extends Sketch {
         }
 
         public void addSupernode(String supernode, String fw) {
-            String fwsupernode = SequenceUtils.getAlphanumericallyLowestOrientation(supernode);
+            String fwsupernode = SequenceUtils.alphanumericallyLowestOrientation(supernode);
 
             if (!supernodes.containsKey(fwsupernode)) {
                 supernodes.put(fwsupernode, new HashSet<String>());

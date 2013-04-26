@@ -71,7 +71,7 @@ public class GetSupernodes extends Tool {
                 Set<String> genes = new HashSet<String>();
 
                 for (int i = 0; i <= supernode.length() - CORTEX_GRAPH.getKmerSize(); i++) {
-                    String fw = SequenceUtils.getAlphanumericallyLowestOrientation(supernode.substring(i, i + CORTEX_GRAPH.getKmerSize()));
+                    String fw = SequenceUtils.alphanumericallyLowestOrientation(supernode.substring(i, i + CORTEX_GRAPH.getKmerSize()));
 
                     if (panel.containsKey(fw)) {
                         genes.add(panel.get(fw));

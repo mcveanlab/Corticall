@@ -7,8 +7,6 @@ import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
@@ -192,7 +190,7 @@ public class ShowKmerPlot extends Sketch {
             }
 
             for (int i = 0; i < e.seq.length() - e.kmerSize; i++) {
-                String kmer = SequenceUtils.getAlphanumericallyLowestOrientation(e.seq.substring(i, i + e.kmerSize));
+                String kmer = SequenceUtils.alphanumericallyLowestOrientation(e.seq.substring(i, i + e.kmerSize));
 
                 if (!kmers.containsKey(kmer)) {
                     kmers.put(kmer, new KmerMetaData(e.color));
