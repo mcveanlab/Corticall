@@ -106,7 +106,7 @@ public class ShowCircularKmerSharingPlot extends Sketch {
                     if (coverages[color] > 0) {
                         genesThatShareKmer.add(CORTEX_GRAPH.getColor(color).getSampleName());
 
-                        d.set(cr.getKmerString(), CORTEX_GRAPH.getColor(color).getSampleName(), 1.0f);
+                        d.set(cr.getKmerAsString(), CORTEX_GRAPH.getColor(color).getSampleName(), 1.0f);
                     }
                 }
 

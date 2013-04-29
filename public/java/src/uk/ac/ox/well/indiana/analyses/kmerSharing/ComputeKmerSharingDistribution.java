@@ -126,7 +126,7 @@ public class ComputeKmerSharingDistribution extends Tool {
             boolean allCoverageIsInROI = (totalCoverageInROI == coverages[0]);
 
             if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors) {
-                String kmer = cr.getKmerString();
+                String kmer = cr.getKmerAsString();
 
                 if (kmerInfoMap.containsKey(kmer)) {
                     TreeSet<String> domains = new TreeSet<String>();

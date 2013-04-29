@@ -23,6 +23,14 @@ public class CortexKmer {
         }
     }
 
+    public byte[] getKmerAsBytes() {
+        return kmer;
+    }
+
+    public String getKmerAsString() {
+        return new String(kmer);
+    }
+
     @Override
     public int hashCode() {
         return Arrays.hashCode(kmer);

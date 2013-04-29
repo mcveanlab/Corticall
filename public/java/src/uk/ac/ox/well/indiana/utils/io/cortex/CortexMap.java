@@ -48,7 +48,7 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
 
         int i = 0;
         for (CortexRecord cr : cortexGraph) {
-            put(new CortexKmer(cr.getKmer(), true), cr);
+            put(new CortexKmer(cr.getKmerAsBytes(), true), cr);
 
             if (log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {
                 log.info("Loaded {}/{} Cortex records", i + 1, cortexGraph.getNumRecords());

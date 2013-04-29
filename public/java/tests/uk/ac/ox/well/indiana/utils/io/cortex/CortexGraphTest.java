@@ -4,6 +4,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class CortexGraphTest {
     private class SimpleCortexRecord {
@@ -18,7 +20,7 @@ public class CortexGraphTest {
         }
 
         public boolean equals(CortexRecord cr) {
-            if (kmer.equals(cr.getKmerString())) {
+            if (kmer.equals(cr.getKmerAsString())) {
                 if (coverage.length == cr.getCoverages().length) {
                     boolean coveragesAreEqual = true;
                     for (int i = 0; i < coverage.length; i++) {
@@ -28,7 +30,7 @@ public class CortexGraphTest {
                     if (coveragesAreEqual) {
                         boolean edgesAreEqual = true;
                         for (int i = 0; i < edges.length; i++) {
-                            edgesAreEqual &= edges[i].equals(cr.getEdges()[i]);
+                            edgesAreEqual &= edges[i].equals(cr.getEdgeAsStrings()[i]);
                         }
 
                         if (edgesAreEqual) {
@@ -76,6 +78,36 @@ public class CortexGraphTest {
         CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
 
         Assert.assertEquals(85, cg.getNumRecords());
+    }
+
+    @Test
+    public void getLeftAndRightEdges() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        CortexRecord cr = cg.next();
+
+        for (int color = 0; color < cg.getNumColors(); color++) {
+            byte[] edges = new String(cr.getEdgesAsBytes(color)).toUpperCase().getBytes();
+
+            Set<Byte> leftEdges = new HashSet<Byte>();
+            Set<Byte> rightEdges = new HashSet<Byte>();
+
+            for (int i = 0; i < 4; i++) {
+                if (edges[i] != '.') {
+                    leftEdges.add(edges[i]);
+                }
+
+                if (edges[i+4] != '.') {
+                    rightEdges.add(edges[i+4]);
+                }
+            }
+
+            Set<Byte> betterLeftEdges = new HashSet<Byte>(cr.getLeftEdgesAsBytes(color));
+            Set<Byte> betterRightEdges = new HashSet<Byte>(cr.getRightEdgesAsBytes(color));
+
+            Assert.assertEquals(leftEdges, betterLeftEdges);
+            Assert.assertEquals(rightEdges, betterRightEdges);
+        }
     }
 
     @Test

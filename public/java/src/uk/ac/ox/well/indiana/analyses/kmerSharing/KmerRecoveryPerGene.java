@@ -61,7 +61,7 @@ public class KmerRecoveryPerGene extends Tool {
             }
             recordNum++;
 
-            String fw = cr.getKmerString();
+            String fw = cr.getKmerAsString();
 
             if (krp.containsKey(fw)) {
                 kmerPresence.put(fw, cr);

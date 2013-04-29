@@ -8,7 +8,7 @@ import java.util.List;
 
 public class SequenceUtilsTest {
     @Test
-    public void getReverseComplementTest() {
+    public void reverseComplementTest() {
         byte[] sequence   = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedRC = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
 
@@ -18,7 +18,7 @@ public class SequenceUtilsTest {
     }
 
     @Test
-    public void getReverseComplementTestWithNs() {
+    public void reverseComplementTestWithNs() {
         byte[] sequence   = "NACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedRC = "CATGCATACGAATAGCGAGAAAAGTCAGTN".getBytes();
 
@@ -28,7 +28,7 @@ public class SequenceUtilsTest {
     }
 
     @Test
-    public void getReverseComplementWithLowercaseBases() {
+    public void reverseComplementWithLowercaseBases() {
         byte[] sequence   = "NACTGACTTTTCTCGCTATTCGTATGCATg".getBytes();
         byte[] expectedRC = "cATGCATACGAATAGCGAGAAAAGTCAGTN".getBytes();
 
@@ -38,7 +38,7 @@ public class SequenceUtilsTest {
     }
 
     @Test
-    public void getAlphanumericallyLowestOrientation() {
+    public void alphanumericallyLowestOrientation() {
         byte[] sequence            = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedOrientation = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
 

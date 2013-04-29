@@ -20,7 +20,7 @@ public class CortexGraphWalkerTest {
 
         cg = new CortexGraph("testdata/test_gene_for_sn_reconstruction.ctx");
         for (CortexRecord cr : cg) {
-            String kmer = cr.getKmerString();
+            String kmer = cr.getKmerAsString();
             records.put(kmer, cr);
         }
 

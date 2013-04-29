@@ -36,7 +36,7 @@ public class FindMeganode extends Tool {
             }
             numRecords++;
 
-            kmers.put(cr.getKmerString(), cr);
+            kmers.put(cr.getKmerAsString(), cr);
         }
 
         TableReader table = new TableReader(KMER_REFERENCE_PANEL);
@@ -73,7 +73,7 @@ public class FindMeganode extends Tool {
             String rc = SequenceUtils.reverseComplement(fw);
 
             CortexRecord cr = records.get(fw);
-            String edges = cr.getEdges()[color];
+            String edges = cr.getEdgeAsStrings()[color];
 
             if (rc.equalsIgnoreCase(kmer)) {
                 edges = SequenceUtils.reverseComplement(edges);
@@ -128,7 +128,7 @@ public class FindMeganode extends Tool {
             superNode = startingKmer;
 
             CortexRecord startingRecord = records.get(startingKmer);
-            String startingEdges = startingRecord.getEdges()[color];
+            String startingEdges = startingRecord.getEdgeAsStrings()[color];
 
             // First do in kmers
             List<String> inRawKmers = new ArrayList<String>();
@@ -155,7 +155,7 @@ public class FindMeganode extends Tool {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(0, fw.length()))) {
                         currentKmer = fw;
@@ -202,7 +202,7 @@ public class FindMeganode extends Tool {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(superNode.length() - fw.length(), superNode.length()))) {
                         currentKmer = fw;

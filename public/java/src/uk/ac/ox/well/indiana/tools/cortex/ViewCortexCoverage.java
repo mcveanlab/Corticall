@@ -47,7 +47,7 @@ public class ViewCortexCoverage extends ViewCortexBase {
                 }
 
                 if (home != null) {
-                    kmerMap.remove(cr.getKmerString().hashCode());
+                    kmerMap.remove(cr.getKmerAsString().hashCode());
                 }
             }
         }
