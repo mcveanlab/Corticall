@@ -67,7 +67,7 @@ public class FindRelatedSequences extends Tool {
             }
             numRecords++;
 
-            String kmer = cr.getKmerString();
+            String kmer = cr.getKmerAsString();
 
             records.put(kmer, cr);
         }
@@ -82,7 +82,7 @@ public class FindRelatedSequences extends Tool {
             superNode = startingKmer;
 
             CortexRecord startingRecord = records.get(startingKmer);
-            String startingEdges = startingRecord.getEdges()[color];
+            String startingEdges = startingRecord.getEdgeAsStrings()[color];
 
             // First do in kmers
             List<String> inRawKmers = new ArrayList<String>();
@@ -113,7 +113,7 @@ public class FindRelatedSequences extends Tool {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(0, fw.length()))) {
                         currentKmer = fw;
@@ -168,7 +168,7 @@ public class FindRelatedSequences extends Tool {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(superNode.length() - fw.length(), superNode.length()))) {
                         currentKmer = fw;

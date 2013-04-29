@@ -28,7 +28,7 @@ public class CortexGraphWalker {
 
     private List<String> getNextInKmers(int color, String kmer) {
         CortexRecord record = records.get(kmer);
-        String edges = record.getEdges(color);
+        String edges = record.getEdgesAsString(color);
 
         return getNextInKmers(kmer, edges);
     }
@@ -49,7 +49,7 @@ public class CortexGraphWalker {
 
     private List<String> getNextOutKmers(int color, String kmer) {
         CortexRecord record = records.get(kmer);
-        String edges = record.getEdges(color);
+        String edges = record.getEdgesAsString(color);
 
         return getNextOutKmers(kmer, edges);
     }
@@ -83,7 +83,7 @@ public class CortexGraphWalker {
         String rc = SequenceUtils.reverseComplement(fw);
 
         String currentKmer = null;
-        String edges = records.get(fw).getEdges(color);
+        String edges = records.get(fw).getEdgesAsString(color);
 
         if (fw.equalsIgnoreCase(supernode.substring(0, fw.length()))) {
             currentKmer = fw;
@@ -104,7 +104,7 @@ public class CortexGraphWalker {
         String rc = SequenceUtils.reverseComplement(fw);
 
         String currentKmer = null;
-        String edges = records.get(fw).getEdges(color);
+        String edges = records.get(fw).getEdgesAsString(color);
 
         if (fw.equalsIgnoreCase(supernode.substring(supernode.length() - fw.length(), supernode.length()))) {
             currentKmer = fw;
@@ -176,7 +176,7 @@ public class CortexGraphWalker {
             superNode = startingKmer;
 
             CortexRecord startingRecord = records.get(startingKmer);
-            String startingEdges = startingRecord.getEdges()[color];
+            String startingEdges = startingRecord.getEdgeAsStrings()[color];
 
             // First do in kmers
             List<String> inRawKmers = new ArrayList<String>();
@@ -203,7 +203,7 @@ public class CortexGraphWalker {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(0, fw.length()))) {
                         currentKmer = fw;
@@ -250,7 +250,7 @@ public class CortexGraphWalker {
 
                     String currentKmer = null;
 
-                    String edges = records.get(fw).getEdges()[color];
+                    String edges = records.get(fw).getEdgeAsStrings()[color];
 
                     if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(superNode.length() - fw.length(), superNode.length()))) {
                         currentKmer = fw;

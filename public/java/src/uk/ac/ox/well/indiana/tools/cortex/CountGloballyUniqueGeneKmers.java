@@ -90,8 +90,8 @@ public class CountGloballyUniqueGeneKmers extends Tool {
 
         for (CortexRecord cr : CORTEX_GRAPH) {
             if (cr.getCoverages()[colorGenes] == 1 && cr.getCoverages()[color3D7] == 1) {
-                if (kmerMap.containsKey(cr.getKmerString())) {
-                    String geneName = kmerMap.get(cr.getKmerString());
+                if (kmerMap.containsKey(cr.getKmerAsString())) {
+                    String geneName = kmerMap.get(cr.getKmerAsString());
 
                     boolean globallyUnique = true;
 

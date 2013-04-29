@@ -34,7 +34,7 @@ public class GetSupernodes extends Tool {
             }
             recordNum++;
 
-            String kmer = cr.getKmerString();
+            String kmer = cr.getKmerAsString();
 
             records.put(kmer, cr);
         }

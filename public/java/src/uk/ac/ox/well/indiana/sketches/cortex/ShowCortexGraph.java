@@ -88,14 +88,14 @@ public class ShowCortexGraph extends Tool {
                 log.info("Processed {}/{} records", count, CORTEX_GRAPH.getNumRecords());
             }
 
-            String kmer = cr.getKmerString();
+            String kmer = cr.getKmerAsString();
 
             directedGraph.addVertex(kmer);
 
             //boolean isStartKmer = true;
 
             for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
-                String edges = (cr.getEdges()[color]).toUpperCase();
+                String edges = (cr.getEdgeAsStrings()[color]).toUpperCase();
 
                 for (int inEdgeIndex = 0; inEdgeIndex < 4; inEdgeIndex++) {
                     if (edges.charAt(inEdgeIndex) != '.') {

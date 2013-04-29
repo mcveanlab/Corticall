@@ -127,9 +127,9 @@ public class CreateKmerReferencePanel extends Tool {
             }
             recordNum++;
 
-            if ( (TYPE.equalsIgnoreCase("SHARED") && isSharedKmer(cr) && kmers.containsKey(cr.getKmerString())) ||
-                 (TYPE.equalsIgnoreCase("UNIQUE") && isUniqueKmer(cr) && kmers.containsKey(cr.getKmerString())) ) {
-                String kmer = cr.getKmerString();
+            if ( (TYPE.equalsIgnoreCase("SHARED") && isSharedKmer(cr) && kmers.containsKey(cr.getKmerAsString())) ||
+                 (TYPE.equalsIgnoreCase("UNIQUE") && isUniqueKmer(cr) && kmers.containsKey(cr.getKmerAsString())) ) {
+                String kmer = cr.getKmerAsString();
                 KmerInfo ki = kmers.get(kmer);
 
                 String genes = Joiner.on(",").join(ki.gene);

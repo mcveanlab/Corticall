@@ -57,7 +57,7 @@ public abstract class ViewCortexBase extends Tool {
             }
         }
 
-        if (allConstraintsSatisfied && kmerMap != null && !kmerMap.containsKey(cr.getKmerString().hashCode())) {
+        if (allConstraintsSatisfied && kmerMap != null && !kmerMap.containsKey(cr.getKmerAsString().hashCode())) {
             allConstraintsSatisfied = false;
         }
 
@@ -69,7 +69,7 @@ public abstract class ViewCortexBase extends Tool {
             return null;
         }
 
-        String homeName = kmerMap.get(cr.getKmerString().hashCode());
+        String homeName = kmerMap.get(cr.getKmerAsString().hashCode());
 
         if (homeName == null) {
             return "none";

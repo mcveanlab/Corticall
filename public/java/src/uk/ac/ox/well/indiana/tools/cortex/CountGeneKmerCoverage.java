@@ -85,7 +85,7 @@ public class CountGeneKmerCoverage extends Tool {
                 numRecords++;
 
                 if (cr.getCoverages()[colorGenes] == 1 && cr.getCoverages()[color3D7] == 1) {
-                    String kmer = cr.getKmerString();
+                    String kmer = cr.getKmerAsString();
 
                     if (geneKmers.containsKey(kmer.hashCode())) {
                         String geneName = geneKmers.get(kmer.hashCode());

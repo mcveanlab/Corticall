@@ -51,7 +51,7 @@ public class ComputeKmerSharingMatrix extends Tool {
 
             if (hasCoverage && allCoverageIsInROI && numColorsWithKmer > 1 && hasZeroOrUnitCoverageInColors) {
                 ArrayList<String> fields = new ArrayList<String>();
-                fields.add(cr.getKmerString());
+                fields.add(cr.getKmerAsString());
 
                 for (int color : COLORS) {
                     fields.add(Integer.toString(coverages[color]));

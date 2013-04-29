@@ -2,17 +2,19 @@ package uk.ac.ox.well.indiana.utils.io.cortex;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 
 public class CortexRecord implements Comparable<CortexRecord> {
-    private byte[] rawKmer;
+    private CortexKmer kmer;
     private int[] coverages;
     private byte[] edges;
 
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
         this.coverages = coverages;
         this.edges = edges;
-        this.rawKmer = decodeBinaryKmer(binaryKmer, kmerSize, kmerBits);
+        this.kmer = new CortexKmer(decodeBinaryKmer(binaryKmer, kmerSize, kmerBits), true);
     }
 
     private byte binaryNucleotideToChar(long nucleotide) {
@@ -59,43 +61,54 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return bbuf.getLong(0);
     }
 
-    public byte[] getKmer() {
-        return rawKmer;
+    public byte[] getKmerAsBytes() {
+        return kmer.getKmerAsBytes();
     }
 
-    public String getKmerString() {
-        return new String(getKmer());
+    public String getKmerAsString() {
+        return kmer.getKmerAsString();
     }
 
-    public String[] getEdges() {
+    public byte[][] getEdgesAsBytes() {
         int numColors = edges.length;
         byte[] str = {'a', 'c', 'g', 't', 'A', 'C', 'G', 'T'};
 
-        String[] edgesString = new String[numColors];
+        byte[][] edgesTable = new byte[numColors][8];
         for (int color = 0; color < numColors; color++) {
             byte edge = edges[color];
 
             int left = (edge >> 4);
             int right = (edge & 0xf);
 
-            byte[] edgeStr = new byte[8];
-
             for (int i = 0; i < 4; i++) {
                 int leftEdge = (left & (0x1 << (3-i)));
-                edgeStr[i] = (byte) ((leftEdge != 0) ? str[i] : '.');
+                edgesTable[color][i] = (byte) ((leftEdge != 0) ? str[i] : '.');
 
                 int rightEdge = (right & (0x1 << i));
-                edgeStr[i+4] = (byte) ((rightEdge != 0) ? str[i+4] : '.');
+                edgesTable[color][i+4] = (byte) ((rightEdge != 0) ? str[i+4] : '.');
             }
-
-            edgesString[color] = new String(edgeStr);
         }
 
-        return edgesString;
+        return edgesTable;
     }
 
-    public String getEdges(int color) {
-        return getEdges()[color];
+    public String[] getEdgeAsStrings() {
+        byte[][] edgesTable = getEdgesAsBytes();
+        String[] edgesStrings = new String[edges.length];
+
+        for (int i = 0; i < edges.length; i++) {
+            edgesStrings[i] = new String(edgesTable[i]);
+        }
+
+        return edgesStrings;
+    }
+
+    public byte[] getEdgesAsBytes(int color) {
+        return getEdgesAsBytes()[color];
+    }
+
+    public String getEdgesAsString(int color) {
+        return getEdgeAsStrings()[color];
     }
 
     public int[] getCoverages() {
@@ -107,13 +120,13 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public String toString() {
-        String info = getKmerString();
+        String info = getKmerAsString();
 
         for (int coverage : getCoverages()) {
             info += " " + coverage;
         }
 
-        for (String edge : getEdges()) {
+        for (String edge : getEdgeAsStrings()) {
             info += " " + edge;
         }
 
@@ -121,10 +134,75 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public int hashCode() {
-        return Arrays.hashCode(rawKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+        return kmer.hashCode() - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 
     public int compareTo(CortexRecord cortexRecord) {
-        return getKmerString().compareTo(cortexRecord.getKmerString());
+        return getKmerAsString().compareTo(cortexRecord.getKmerAsString());
+    }
+
+    public Collection<Byte> getLeftEdgesAsBytes(int color) {
+        Collection<Byte> leftEdges = new ArrayList<Byte>();
+
+        byte[] str = {'A', 'C', 'G', 'T'};
+
+        byte edge = edges[color];
+
+        int left = (edge >> 4);
+
+        for (int i = 0; i < 4; i++) {
+            int leftEdge = (left & (0x1 << (3-i)));
+            if (leftEdge != 0) {
+                byte edgeByte = str[i];
+
+                leftEdges.add(edgeByte);
+            }
+        }
+
+        return leftEdges;
+    }
+
+    public Collection<String> getLeftEdgesAsStrings(int color) {
+        Collection<Byte> leftEdges = getLeftEdgesAsBytes(color);
+        Collection<String> leftEdgesAsStrings = new ArrayList<String>();
+
+        for (Byte e : leftEdges) {
+            byte[] edge = { e };
+            leftEdgesAsStrings.add(new String(edge));
+        }
+
+        return leftEdgesAsStrings;
+    }
+
+    public Collection<Byte> getRightEdgesAsBytes(int color) {
+        Collection<Byte> rightEdges = new ArrayList<Byte>();
+
+        byte[] str = {'A', 'C', 'G', 'T'};
+
+        byte edge = edges[color];
+
+        int right = (edge & 0xf);
+
+        for (int i = 0; i < 4; i++) {
+            int rightEdge = (right & (0x1 << i));
+
+            if (rightEdge != 0) {
+                rightEdges.add(str[i]);
+            }
+        }
+
+        return rightEdges;
+    }
+
+    public Collection<String> getRightEdgesAsStrings(int color) {
+        Collection<Byte> rightEdges = getRightEdgesAsBytes(color);
+        Collection<String> rightEdgesAsStrings = new ArrayList<String>();
+
+        for (Byte e : rightEdges) {
+            byte[] edge = { e };
+            rightEdgesAsStrings.add(new String(edge));
+        }
+
+        return rightEdgesAsStrings;
     }
 }

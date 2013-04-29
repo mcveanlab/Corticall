@@ -111,7 +111,7 @@ public class CountGeneKmersWithNHomes extends Tool {
         if (genesColor >= 0) {
             for (CortexRecord cr : CORTEX_GRAPH) {
                 if (cr.getCoverages()[genesColor] == 1 && cr.getCoverages()[p3D7Color] == 1) {
-                    String kmer = cr.getKmerString();
+                    String kmer = cr.getKmerAsString();
 
                     if (kmer != null && kmerMap.containsKey(kmer)) {
                         String geneName = kmerMap.get(kmer);

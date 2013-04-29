@@ -15,6 +15,37 @@ public class SequenceUtils {
     private SequenceUtils() {}
 
     /**
+     * Get the complement of a single nucleotide
+     *
+     * @param nucleotide  the nucleotide that should be complemented
+     * @return  the complement of the specified nucleotide
+     */
+    public static byte complement(byte nucleotide) {
+        byte rcBase = 'N';
+
+        switch(nucleotide) {
+            case 'A': rcBase = 'T'; break;
+            case 'a': rcBase = 't'; break;
+
+            case 'C': rcBase = 'G'; break;
+            case 'c': rcBase = 'g'; break;
+
+            case 'G': rcBase = 'C'; break;
+            case 'g': rcBase = 'c'; break;
+
+            case 'T': rcBase = 'A'; break;
+            case 't': rcBase = 'a'; break;
+
+            case 'N': rcBase = 'N'; break;
+            case 'n': rcBase = 'n'; break;
+
+            case '.': rcBase = '.'; break;
+        }
+
+        return rcBase;
+    }
+
+    /**
      * Get the reverse complement of the sequence.
      *
      * @param sequence  the sequence that should be reverse complemented
@@ -24,27 +55,7 @@ public class SequenceUtils {
         byte[] rc = new byte[sequence.length];
 
         for (int i = 0; i < sequence.length; i++) {
-            byte rcBase = 'N';
-            switch (sequence[i]) {
-                case 'A': rcBase = 'T'; break;
-                case 'a': rcBase = 't'; break;
-
-                case 'C': rcBase = 'G'; break;
-                case 'c': rcBase = 'g'; break;
-
-                case 'G': rcBase = 'C'; break;
-                case 'g': rcBase = 'c'; break;
-
-                case 'T': rcBase = 'A'; break;
-                case 't': rcBase = 'a'; break;
-
-                case 'N': rcBase = 'N'; break;
-                case 'n': rcBase = 'n'; break;
-
-                case '.': rcBase = '.'; break;
-            }
-
-            rc[sequence.length - 1 - i] = rcBase;
+            rc[sequence.length - 1 - i] = complement(sequence[i]);
         }
 
         return rc;

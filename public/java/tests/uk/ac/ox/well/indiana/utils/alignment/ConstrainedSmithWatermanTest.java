@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.utils.alignment;
 import org.testng.annotations.Test;
 
 public class ConstrainedSmithWatermanTest {
-    @Test
+    @Test(enabled = false)
     public void testAlignment() {
         String ref = "ACACACTA";
         String query = "AGCACACA";
