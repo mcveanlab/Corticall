@@ -1,57 +1,65 @@
 package uk.ac.ox.well.indiana.utils.io.utils;
 
+import it.unimi.dsi.io.ByteBufferInputStream;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 
-public class TableReader2 implements Iterator<HashMap<String, String>>, Iterable<HashMap<String, String>> {
+public class TableReader2 extends ArrayList<Map<String, String>> {
+    public TableReader2(String fileToRead) {
+        loadTable(new File(fileToRead));
+    }
+
     public TableReader2(File fileToRead) {
-        /*
-        FileInputStream f = null;
+        loadTable(fileToRead);
+    }
+
+    private void loadTable(File fileToRead) {
         try {
-            f = new FileInputStream(fileToRead);
+            FileInputStream fis = new FileInputStream(fileToRead);
+            ByteBufferInputStream mappedRecordBuffer = ByteBufferInputStream.map(fis.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            FileChannel ch = f.getChannel();
-            MappedByteBuffer mb = ch.map( FileChannel.MapMode.READ_ONLY, 0L, ch.size() );
+            if (mappedRecordBuffer.length() < Integer.MAX_VALUE) {
+                byte[] buffer = new byte[(int) mappedRecordBuffer.length()];
 
-            byte[] barray = new byte[SIZE];
-            long checkSum = 0L;
-            int nGet;
-            while( mb.hasRemaining() ) {
-                nGet = Math.min( mb.remaining( ), SIZE );
-                mb.get( barray, 0, nGet );
-                for ( int i=0; i<nGet; i++ )
-                    checkSum += barray[i];
+                mappedRecordBuffer.read(buffer);
+
+                String[] header = null;
+
+                int start = 0;
+                for (int end = 0; end < buffer.length; end++) {
+                    if (buffer[end] == '\n') {
+                        byte[] subbuffer = new byte[end - start];
+                        System.arraycopy(buffer, start, subbuffer, 0, end - start);
+
+                        String[] fields = (new String(subbuffer)).split("\t");
+
+                        if (start == 0) { // we're processing the header
+                            header = fields;
+                        } else {
+                            Map<String, String> record = new HashMap<String, String>();
+
+                            for (int i = 0; i < header.length; i++) {
+                                record.put(header[i], fields[i]);
+                            }
+
+                            this.add(record);
+                        }
+
+                        start = end + 1;
+                    }
+                }
+            } else {
+                throw new RuntimeException("Handling for tables greater than " + Integer.MAX_VALUE + " is not currently supported");
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            throw new RuntimeException("Could not find file '" + fileToRead.getAbsolutePath() + "': " + e);
         } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            throw new RuntimeException("Error while reading '" + fileToRead.getAbsolutePath() + "': " + e);
         }
-        */
-    }
-
-    @Override
-    public Iterator<HashMap<String, String>> iterator() {
-        return null;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return false;
-    }
-
-    @Override
-    public HashMap<String, String> next() {
-        return null;
-    }
-
-    @Override
-    public void remove() {
     }
 }

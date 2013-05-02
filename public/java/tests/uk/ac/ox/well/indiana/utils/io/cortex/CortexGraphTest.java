@@ -102,8 +102,8 @@ public class CortexGraphTest {
                 }
             }
 
-            Set<Byte> betterLeftEdges = new HashSet<Byte>(cr.getLeftEdgesAsBytes(color));
-            Set<Byte> betterRightEdges = new HashSet<Byte>(cr.getRightEdgesAsBytes(color));
+            Set<Byte> betterLeftEdges = new HashSet<Byte>(cr.getInEdgesAsBytes(color));
+            Set<Byte> betterRightEdges = new HashSet<Byte>(cr.getOutEdgesAsBytes(color));
 
             Assert.assertEquals(leftEdges, betterLeftEdges);
             Assert.assertEquals(rightEdges, betterRightEdges);

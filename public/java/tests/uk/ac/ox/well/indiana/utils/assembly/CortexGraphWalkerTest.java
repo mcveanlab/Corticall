@@ -4,6 +4,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -13,6 +15,7 @@ public class CortexGraphWalkerTest {
     private CortexGraph cg;
     private Map<String, CortexRecord> records;
     private CortexGraphWalker cgw;
+    private CortexGraphWalker2 cgw2;
 
     @BeforeClass
     public void setup() {
@@ -25,6 +28,17 @@ public class CortexGraphWalkerTest {
         }
 
         cgw = new CortexGraphWalker(records);
+
+        cgw2 = new CortexGraphWalker2(new CortexMap(cg));
+    }
+
+    @Test
+    public void testNewSupernodeReconstruction() {
+        CortexKmer panelKmer = new CortexKmer("GTTTCCACAGCGGCCGTTTCCACGAAGGCGG");
+
+        CortexKmer contig = cgw2.buildContig(0, panelKmer);
+
+        Assert.assertEquals("CCGCCTTCGTGGAAACGGCCGCTGTGGAAACTTTTTTCTTATGGCATAAGTATAAACAAGAGAAGAAGAAACCAAAAAATGAAGTGGGAGGTGCAGCGGGAGTACTACAAA", contig);
     }
 
     @Test

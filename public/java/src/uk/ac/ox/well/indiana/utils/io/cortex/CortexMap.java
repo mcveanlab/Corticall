@@ -31,11 +31,11 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
     }
 
     public CortexMap(CortexGraph cortexGraph) {
-        initialize(this.cortexGraph = cortexGraph, null);
+        initialize(cortexGraph, null);
     }
 
     public CortexMap(CortexGraph cortexGraph, Logger log) {
-        initialize(this.cortexGraph = cortexGraph, log);
+        initialize(cortexGraph, log);
     }
 
     private void initialize(CortexGraph cortexGraph, Logger log) {
@@ -57,6 +57,10 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
         }
 
         if (log != null) { log.info("Finished loading Cortex records"); }
+    }
+
+    public CortexGraph getGraph() {
+        return this.cortexGraph;
     }
 
     public boolean containsKey(String kmer) {
