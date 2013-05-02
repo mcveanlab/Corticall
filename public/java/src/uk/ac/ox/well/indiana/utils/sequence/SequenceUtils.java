@@ -15,6 +15,36 @@ public class SequenceUtils {
     private SequenceUtils() {}
 
     /**
+     * Returns a String version of a nucleotide byte
+     *
+     * @param nucleotide  the byte version of the nucleotide
+     * @return  the String version of the nucleotide
+     */
+    public static String nucleotideByteToString(byte nucleotide) {
+        String base = "N";
+
+        switch (nucleotide) {
+            case 'A': base = "A"; break;
+            case 'a': base = "a"; break;
+
+            case 'C': base = "C"; break;
+            case 'c': base = "c"; break;
+
+            case 'G': base = "G"; break;
+            case 'g': base = "g"; break;
+
+            case 'T': base = "T"; break;
+            case 't': base = "t"; break;
+
+            case 'N': base = "N"; break;
+            case 'n': base = "n"; break;
+
+            case '.': base = "."; break;
+        }
+
+        return base;
+    }
+    /**
      * Get the complement of a single nucleotide
      *
      * @param nucleotide  the nucleotide that should be complemented

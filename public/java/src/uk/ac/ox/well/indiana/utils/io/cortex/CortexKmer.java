@@ -6,13 +6,18 @@ import java.util.Arrays;
 
 public class CortexKmer {
     private byte[] kmer;
+    private boolean isFlippedFromSuppliedOrientation = false;
 
     public CortexKmer(String kmer) {
         this.kmer = SequenceUtils.alphanumericallyLowestOrientation(kmer.getBytes());
+
+        isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer.getBytes());
     }
 
     public CortexKmer(byte[] kmer) {
         this.kmer = SequenceUtils.alphanumericallyLowestOrientation(kmer);
+
+        isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer);
     }
 
     public CortexKmer(byte[] kmer, boolean kmerIsAlphanumericallyLowest) {
@@ -20,7 +25,17 @@ public class CortexKmer {
 
         if (!kmerIsAlphanumericallyLowest) {
             this.kmer = SequenceUtils.alphanumericallyLowestOrientation(kmer);
+
+            isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer);
         }
+    }
+
+    public int length() {
+        return kmer.length;
+    }
+
+    public boolean isFlipped() {
+        return isFlippedFromSuppliedOrientation;
     }
 
     public byte[] getKmerAsBytes() {

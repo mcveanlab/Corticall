@@ -28,6 +28,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private int numColors;
     private long numRecords;
 
+    private long dataOffset;
     private long recordSize;
     //private long sizeOfBuffer;
     private long recordsSeen = 0;
@@ -142,28 +143,28 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             }
 
             long size = in.getChannel().size();
-            long dataOffset = in.getFilePointer();
+            dataOffset = in.getFilePointer();
             long dataSize = size - dataOffset;
 
             recordSize = (8*kmerBits + 4*numColors + 1*numColors);
             numRecords = dataSize / recordSize;
 
-            //if (in.getChannel().size() - dataOffset < Integer.MAX_VALUE) {
-            //    sizeOfBuffer = in.getChannel().size() - dataOffset;
-            //} else {
-            //    sizeOfBuffer = recordSize * (Integer.MAX_VALUE / recordSize);
-            //}
-
-            //mappedRecordBuffer = in.getChannel().map(FileChannel.MapMode.READ_ONLY, dataOffset, sizeOfBuffer);
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
-            mappedRecordBuffer.position(dataOffset);
+            //mappedRecordBuffer.position(dataOffset);
 
-            nextRecord = getNextRecord();
+            //nextRecord = getNextRecord();
+            moveToBeginningOfRecordsSection();
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
             throw new RuntimeException("Error while parsing Cortex graph file '" + cortexFile.getAbsolutePath() + "': " + e);
         }
+    }
+
+    private void moveToBeginningOfRecordsSection() {
+        mappedRecordBuffer.position(dataOffset);
+        recordsSeen = 0;
+        nextRecord = getNextRecord();
     }
 
     public File getCortexFile() { return cortexFile; }
@@ -255,6 +256,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public Iterator<CortexRecord> iterator() {
+        moveToBeginningOfRecordsSection();
+
         return this;
     }
 
