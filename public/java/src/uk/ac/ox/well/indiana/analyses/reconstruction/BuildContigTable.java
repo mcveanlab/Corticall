@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import com.google.common.base.Joiner;
+import net.sf.samtools.util.SequenceUtil;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -9,14 +10,13 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
 import uk.ac.ox.well.indiana.utils.io.utils.TableWriter2;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class BuildContigs extends Tool {
+public class BuildContigTable extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexMap CORTEX_MAP;
 
@@ -56,14 +56,21 @@ public class BuildContigs extends Tool {
             for (CortexKmer contig : contigs.keySet()) {
                 Map<String, String> entry = new HashMap<String, String>();
 
-                entry.put("color", String.valueOf(color));
+                List<CortexKmer> kmers = new ArrayList<CortexKmer>(contigs.get(contig));
+                List<String> genes = new ArrayList<String>();
+                for (CortexKmer kmer : kmers) {
+                    genes.add(krp.get(kmer));
+                }
+
+                entry.put("sample", CORTEX_MAP.getGraph().getColor(color).getSampleName());
                 entry.put("contig", contig.getKmerAsString());
-                //entry.put("kmers", Joiner.on(",").join(contigs.get(contig)));
+                entry.put("kmers", Joiner.on(",").join(kmers));
+                entry.put("genes", Joiner.on(",").join(genes));
 
                 tw.addEntry(entry);
             }
 
-            log.info("Found {} contigs for color {}", contigs.size(), color);
+            log.info("Found {} contigs for color {}; maxLength = {}, n50value = {}", contigs.size(), color, SequenceUtils.maxLength(contigs.keySet()), SequenceUtils.computeN50Value(contigs.keySet()));
         }
     }
 }
