@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.sequence;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,5 +62,18 @@ public class SequenceUtilsTest {
         int n50 = SequenceUtils.computeN50Value(sequences);
 
         Assert.assertEquals(4, n50);
+
+        List<CortexKmer> csequences = new ArrayList<CortexKmer>();
+        csequences.add(new CortexKmer("AAGCTTA"));
+        csequences.add(new CortexKmer("TTGA"));
+        csequences.add(new CortexKmer("AAC"));
+        csequences.add(new CortexKmer("TT"));
+        csequences.add(new CortexKmer("AA"));
+        csequences.add(new CortexKmer("C"));
+        csequences.add(new CortexKmer("G"));
+
+        int cn50 = SequenceUtils.computeN50Value(csequences);
+
+        Assert.assertEquals(4, cn50);
     }
 }

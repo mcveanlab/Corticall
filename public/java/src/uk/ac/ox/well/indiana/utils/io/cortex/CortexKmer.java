@@ -4,7 +4,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.Arrays;
 
-public class CortexKmer {
+public class CortexKmer implements CharSequence {
     private byte[] kmer;
     private boolean isFlippedFromSuppliedOrientation = false;
 
@@ -34,6 +34,16 @@ public class CortexKmer {
         return kmer.length;
     }
 
+    @Override
+    public char charAt(int index) {
+        return (char) this.kmer[index];
+    }
+
+    @Override
+    public CharSequence subSequence(int start, int end) {
+        return getSubKmer(start, end - start);
+    }
+
     public boolean isFlipped() {
         return isFlippedFromSuppliedOrientation;
     }
@@ -44,6 +54,13 @@ public class CortexKmer {
 
     public String getKmerAsString() {
         return new String(kmer);
+    }
+
+    public CortexKmer getSubKmer(int start, int length) {
+        byte[] subkmer = new byte[length];
+        System.arraycopy(kmer, start, subkmer, 0, length);
+
+        return new CortexKmer(subkmer);
     }
 
     @Override

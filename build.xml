@@ -82,7 +82,7 @@
 
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
-                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.IndianaMain" />
+                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
             </manifest>
         </jar>
     </target>
@@ -110,7 +110,7 @@
             </fileset>
 
             <manifest>
-                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.IndianaMain" />
+                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
             </manifest>
         </jar>
     </target>

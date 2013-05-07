@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
 import java.util.*;
 
@@ -209,11 +210,11 @@ public class SequenceUtils {
      * @param lengthOrValue  if true, compute length; else, compute value
      * @return  the N50 length or value
      */
-    private static int computeN50Metric(Collection<String> sequences, boolean lengthOrValue) {
+    private static int computeN50Metric(Collection<? extends CharSequence> sequences, boolean lengthOrValue) {
         int totalLength = 0;
 
         List<Integer> lengths = new ArrayList<Integer>();
-        for (String seq : sequences) {
+        for (CharSequence seq : sequences) {
             totalLength += seq.length();
 
             lengths.add(seq.length());
@@ -246,16 +247,34 @@ public class SequenceUtils {
      * @param sequences  the sequences to process
      * @return  the N50 length
      */
-    public static int computeN50Length(Collection<String> sequences) {
+    public static int computeN50Length(Collection<? extends CharSequence> sequences) {
         return computeN50Metric(sequences, true);
     }
 
     /**
-     * Compute N50 value
+     * Compute N50 value (the longest length for which the collection of all contigs of that length or longer contains at least half of the total of the lengths of the contigs)
      * @param sequences  the sequences to process
      * @return  the N50 value
      */
-    public static int computeN50Value(Collection<String> sequences) {
+    public static int computeN50Value(Collection<? extends CharSequence> sequences) {
         return computeN50Metric(sequences, false);
+    }
+
+    /**
+     * Compute the maximum length in a collection of sequences
+     *
+     * @param sequences  the sequences to process
+     * @return  the maximum sequence length observed
+     */
+    public static int maxLength(Collection<? extends CharSequence> sequences) {
+        int length = 0;
+
+        for (CharSequence seq : sequences) {
+            if (seq.length() > length) {
+                length = seq.length();
+            }
+        }
+
+        return length;
     }
 }

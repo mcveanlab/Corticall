@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * Main class for INDIANA.  Sets up the logger, handles help message, selects the module to run and passes through command-line arguments.
  */
-public class IndianaMain {
+public class Indiana {
     private static Logger log = configureLogger();
 
     /**
@@ -77,7 +77,7 @@ public class IndianaMain {
      * @return  A fully-configured logger
      */
     private static Logger configureLogger() {
-        Logger rootLogger = (Logger) LoggerFactory.getLogger(IndianaMain.class);
+        Logger rootLogger = (Logger) LoggerFactory.getLogger(Indiana.class);
 
         LoggerContext loggerContext = rootLogger.getLoggerContext();
         loggerContext.reset();
