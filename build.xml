@@ -14,6 +14,7 @@
     <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
     <property name="testng.dir" value="test" />
+    <property name="out.dir" value="out" />
     <property name="release.dir" value="release" />
 
 	<property name="ivy.install.version" value="2.3.0-rc1" />
@@ -156,6 +157,7 @@
             <fileset dir="${staging.dir}" />
             <fileset dir="${dist.dir}" />
             <fileset dir="${testng.dir}" />
+            <fileset dir="${out.dir}" />
             <fileset dir="${release.dir}" />
     	</delete>
     </target>

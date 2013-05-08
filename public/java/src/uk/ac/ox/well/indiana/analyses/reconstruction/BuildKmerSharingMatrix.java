@@ -2,59 +2,118 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
+import uk.ac.ox.well.indiana.utils.io.utils.TableWriter2;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.PrintStream;
+import java.util.*;
 
 public class BuildKmerSharingMatrix extends Tool {
     @Argument(fullName="contigsTable", shortName="ct", doc="Contigs table")
-    public Collection<File> CONTIG_FILES;
-
-    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel")
-    public File KMER_REFERENCE_PANEL;
+    public File CONTIG_TABLE;
 
     @Argument(fullName="ignoreNonPanelKmers", shortName="inpk", doc="Only examine sharing for panel kmers.  Ignore non-panel kmers.")
-    public Boolean USE_NON_PANEL_KMERS = true;
+    public Boolean IGNORE_NON_PANEL_KMERS = false;
 
-    public Set<CortexKmer> loadKmerReferencePanel() {
-        Set<CortexKmer> krp = new HashSet<CortexKmer>();
+    @Output
+    public PrintStream out;
 
-        TableReader2 tr = new TableReader2(KMER_REFERENCE_PANEL);
-
-        for (Map<String, String> te : tr) {
-            CortexKmer ck = new CortexKmer(te.get("kmer"));
-
-            krp.add(ck);
-        }
-
-        return krp;
+    private class KmerInfo {
+        int count = 0;
+        boolean isPanelKmer;
+        boolean[] presenceInSample;
     }
 
-    @Override
-    public void execute() {
-        Set<CortexKmer> krp = loadKmerReferencePanel();
-        int kmerSize = krp.iterator().next().length();
+    private Set<CortexKmer> getCommaDelimitedKmersAsCortexKmers(String commaDelimitedKmers) {
+        String[] kmers = commaDelimitedKmers.split(",");
 
-        for (File contigFile : CONTIG_FILES) {
-            TableReader2 tr = new TableReader2(contigFile);
+        Set<CortexKmer> ckmers = new HashSet<CortexKmer>();
+        for (String kmer : kmers) {
+            ckmers.add(new CortexKmer(kmer));
+        }
+
+        return ckmers;
+    }
+
+    public void execute() {
+        Map<CortexKmer, KmerInfo> kmerInfo = new HashMap<CortexKmer, KmerInfo>();
+        Set<String> sampleSet = new TreeSet<String>();
+        List<String> samples = new ArrayList<String>();
+
+        TableReader2 tr = new TableReader2(CONTIG_TABLE);
+
+        for (int pass = 0; pass <= 1; pass++) {
+            int recIndex = 0;
+
+            samples = (pass == 1) ? new ArrayList<String>(sampleSet) : null;
 
             for (Map<String, String> te : tr) {
+                if (recIndex % (tr.size()/5) == 0) {
+                    log.info("Pass {}/2: processed {}/{} records", pass+1, recIndex, tr.size());
+                }
+
                 CortexKmer ck = new CortexKmer(te.get("contig"));
-                int color = Integer.valueOf(te.get("color"));
+                Set<CortexKmer> panelKmers = getCommaDelimitedKmersAsCortexKmers(te.get("kmers"));
+                String sample = te.get("sample");
+
+                int kmerSize = panelKmers.iterator().next().length();
 
                 for (int i = 0; i <= ck.length() - kmerSize; i++) {
-                    CortexKmer sk = ck.getSubKmer(i, kmerSize);
+                    CortexKmer kmer = ck.getSubKmer(i, kmerSize);
 
-                    if (krp.contains(sk) || USE_NON_PANEL_KMERS) {
+                    if (panelKmers.contains(kmer) || !IGNORE_NON_PANEL_KMERS) {
+                        KmerInfo ki = kmerInfo.containsKey(kmer) ? kmerInfo.get(kmer) : new KmerInfo();
 
+                        if (pass == 0) {
+                            ki.count++;
+                            ki.isPanelKmer = panelKmers.contains(kmer);
+
+                            kmerInfo.put(kmer, ki);
+                            sampleSet.add(sample);
+                        } else {
+                            if (sampleSet.contains(sample) && samples != null) {
+                                if (ki.presenceInSample == null) {
+                                    ki.presenceInSample = new boolean[samples.size()];
+
+                                    for (int index = 0; index < samples.size(); index++) {
+                                        ki.presenceInSample[index] = false;
+                                    }
+                                }
+
+                                int index = samples.indexOf(sample);
+                                ki.presenceInSample[index] = true;
+                            } else {
+                                throw new RuntimeException("Unable to find index for sample '" + sample + "'");
+                            }
+                        }
                     }
                 }
+
+                recIndex++;
             }
+        }
+
+        log.info("Writing kmer sharing matrix to disk...");
+
+        TableWriter2 tw = new TableWriter2(out);
+
+        for (CortexKmer ck : kmerInfo.keySet()) {
+            KmerInfo ki = kmerInfo.get(ck);
+
+            Map<String, String> te = new LinkedHashMap<String, String>();
+            te.put("kmer", ck.getKmerAsString());
+            te.put("isPanelKmer", ki.isPanelKmer ? "true" : "false");
+
+            for (int index = 0; index < samples.size(); index++) {
+                String sample = samples.get(index);
+
+                te.put(sample, ki.presenceInSample[index] ? "1" : "0");
+            }
+
+            tw.addEntry(te);
         }
     }
 }
