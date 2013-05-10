@@ -16,6 +16,7 @@
     <property name="testng.dir" value="test" />
     <property name="out.dir" value="out" />
     <property name="release.dir" value="release" />
+    <property name="testdata.dir" value="testdata" />
 
 	<property name="ivy.install.version" value="2.3.0-rc1" />
 	<property name="ivy.jar.dir" value="${lib.dir}" />
@@ -151,7 +152,7 @@
 
     <!-- Clean everything up -->
     <target name="clean" description="clean the project">
-        <delete includeemptydirs="true" quiet="true">
+        <delete includeemptydirs="true" verbose="true" quiet="true">
             <fileset dir="${lib.dir}" />
             <fileset dir="${build.dir}" />
             <fileset dir="${staging.dir}" />
@@ -160,5 +161,6 @@
             <fileset dir="${out.dir}" />
             <fileset dir="${release.dir}" />
     	</delete>
+        <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="true" quiet="true" />
     </target>
 </project>

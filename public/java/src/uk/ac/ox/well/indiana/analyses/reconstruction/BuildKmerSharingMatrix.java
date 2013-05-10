@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
+import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -25,6 +26,7 @@ public class BuildKmerSharingMatrix extends Tool {
         int count = 0;
         boolean isPanelKmer;
         boolean[] presenceInSample;
+        String genes;
     }
 
     private Set<CortexKmer> getCommaDelimitedKmersAsCortexKmers(String commaDelimitedKmers) {
@@ -36,6 +38,15 @@ public class BuildKmerSharingMatrix extends Tool {
         }
 
         return ckmers;
+    }
+
+    private Set<String> getCommaDelimitedGenes(String commaDelimitedGenes) {
+        String[] genes = commaDelimitedGenes.split(",");
+
+        Set<String> cgenes = new TreeSet<String>();
+        cgenes.addAll(Arrays.asList(genes));
+
+        return cgenes;
     }
 
     public void execute() {
@@ -57,6 +68,7 @@ public class BuildKmerSharingMatrix extends Tool {
 
                 CortexKmer ck = new CortexKmer(te.get("contig"));
                 Set<CortexKmer> panelKmers = getCommaDelimitedKmersAsCortexKmers(te.get("kmers"));
+                Set<String> genes = getCommaDelimitedGenes(te.get("genes"));
                 String sample = te.get("sample");
 
                 int kmerSize = panelKmers.iterator().next().length();
@@ -70,6 +82,7 @@ public class BuildKmerSharingMatrix extends Tool {
                         if (pass == 0) {
                             ki.count++;
                             ki.isPanelKmer = panelKmers.contains(kmer);
+                            ki.genes = Joiner.on(",").join(genes);
 
                             kmerInfo.put(kmer, ki);
                             sampleSet.add(sample);
@@ -106,6 +119,7 @@ public class BuildKmerSharingMatrix extends Tool {
             Map<String, String> te = new LinkedHashMap<String, String>();
             te.put("kmer", ck.getKmerAsString());
             te.put("isPanelKmer", ki.isPanelKmer ? "true" : "false");
+            te.put("genes", ki.genes);
 
             for (int index = 0; index < samples.size(); index++) {
                 String sample = samples.get(index);
