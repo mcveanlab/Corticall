@@ -6,3 +6,4 @@ dist/
 build/
 lib/
 test/
+testdata/indianaLargeTableTest.table

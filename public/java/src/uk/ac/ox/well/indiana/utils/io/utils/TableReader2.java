@@ -9,7 +9,17 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
-public class TableReader2 extends ArrayList<Map<String, String>> {
+/**
+ * Streams very large text-based tables by first making a pass through the file to find all the line breaks
+ * and once again to determine the positions of those breaks (and thus the record lengths).
+ */
+public class TableReader2 implements Iterable<Map<String, String>>, Iterator<Map<String, String>> {
+    private ByteBufferInputStream mappedRecordBuffer;
+
+    private List<Long> lineBreakPositions;
+    private String[] header;
+    private int nextRecordIndex;
+
     public TableReader2(String fileToRead) {
         loadTable(new File(fileToRead));
     }
@@ -21,45 +31,83 @@ public class TableReader2 extends ArrayList<Map<String, String>> {
     private void loadTable(File fileToRead) {
         try {
             FileInputStream fis = new FileInputStream(fileToRead);
-            ByteBufferInputStream mappedRecordBuffer = ByteBufferInputStream.map(fis.getChannel(), FileChannel.MapMode.READ_ONLY);
+            mappedRecordBuffer = ByteBufferInputStream.map(fis.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            if (mappedRecordBuffer.length() < Integer.MAX_VALUE) {
-                byte[] buffer = new byte[(int) mappedRecordBuffer.length()];
+            lineBreakPositions = new ArrayList<Long>();
 
-                mappedRecordBuffer.read(buffer);
+            byte[] character = new byte[1];
+            for (long position = 0; position < mappedRecordBuffer.length(); position++) {
+                mappedRecordBuffer.read(character);
 
-                String[] header = null;
-
-                int start = 0;
-                for (int end = 0; end < buffer.length; end++) {
-                    if (buffer[end] == '\n') {
-                        byte[] subbuffer = new byte[end - start];
-                        System.arraycopy(buffer, start, subbuffer, 0, end - start);
-
-                        String[] fields = (new String(subbuffer)).split("\t");
-
-                        if (start == 0) { // we're processing the header
-                            header = fields;
-                        } else {
-                            Map<String, String> record = new HashMap<String, String>();
-
-                            for (int i = 0; i < header.length; i++) {
-                                record.put(header[i], fields[i]);
-                            }
-
-                            this.add(record);
-                        }
-
-                        start = end + 1;
-                    }
+                if (character[0] == '\n') {
+                    lineBreakPositions.add(position);
                 }
-            } else {
-                throw new RuntimeException("Handling for tables greater than " + Integer.MAX_VALUE + " is not currently supported");
             }
+
+            mappedRecordBuffer.position(0);
+
+            byte[] headerBuffer = new byte[lineBreakPositions.get(0).intValue()];
+            mappedRecordBuffer.read(headerBuffer);
+
+            header = (new String(headerBuffer)).split("\t");
+
+            moveToBeginningOfRecords();
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Could not find file '" + fileToRead.getAbsolutePath() + "': " + e);
         } catch (IOException e) {
             throw new RuntimeException("Error while reading '" + fileToRead.getAbsolutePath() + "': " + e);
         }
+    }
+
+    private void moveToBeginningOfRecords() {
+        nextRecordIndex = 1;
+        mappedRecordBuffer.position(lineBreakPositions.get(nextRecordIndex - 1).intValue() + 1);
+    }
+
+    @Override
+    public Iterator<Map<String, String>> iterator() {
+        moveToBeginningOfRecords();
+
+        return this;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return nextRecordIndex < lineBreakPositions.size();
+    }
+
+    @Override
+    public Map<String, String> next() {
+        long start = lineBreakPositions.get(nextRecordIndex - 1) + 1;
+        long end = lineBreakPositions.get(nextRecordIndex);
+        int length = (int) (end - start);
+
+        nextRecordIndex++;
+
+        try {
+            byte[] record = new byte[length];
+            mappedRecordBuffer.read(record);
+            mappedRecordBuffer.read(new byte[1]);
+
+            String[] fields = (new String(record)).split("\t");
+            Map<String, String> entry = new HashMap<String, String>();
+
+            for (int i = 0; i < header.length; i++) {
+                entry.put(header[i], fields[i]);
+            }
+
+            return entry;
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to read record from table");
+        }
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    public int size() {
+        return lineBreakPositions.size();
     }
 }
