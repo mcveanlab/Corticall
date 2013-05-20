@@ -6,9 +6,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -84,15 +82,18 @@ public class TableReaderTest {
 
                 initializeRandomRecordGenerator();
 
-                PrintStream lt = new PrintStream(largeTable);
+                //PrintStream lt = new PrintStream(largeTable);
+                BufferedWriter bw = new BufferedWriter(new FileWriter(largeTable));
 
-                lt.println("kmer\tgene\tcontig");
+                //lt.println("kmer\tgene\tcontig");
+                bw.write("kmer\tgene\tcontig\n");
 
                 int records = 0;
                 while (largeTable.length() < Integer.MAX_VALUE) {
                     Map<String, String> te = generateRandomRecord();
 
-                    lt.println(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig"));
+                    //lt.println(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig"));
+                    bw.write(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig") + "\n");
 
                     records++;
                 }
@@ -100,12 +101,14 @@ public class TableReaderTest {
                 for (int i = 0; i < 5000; i++) {
                     Map<String, String> te = generateRandomRecord();
 
-                    lt.println(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig"));
+                    //lt.println(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig"));
+                    bw.write(te.get("kmer") + "\t" + te.get("gene") + "\t" + te.get("contig") + "\n");
 
                     records++;
                 }
 
-                lt.close();
+                //lt.close();
+                bw.close();
 
                 System.out.println("Wrote " + records + " records to " + largeTable.getAbsolutePath() + " (" + RamUsageEstimator.humanReadableUnits(largeTable.length()) + ")");
             } else {
