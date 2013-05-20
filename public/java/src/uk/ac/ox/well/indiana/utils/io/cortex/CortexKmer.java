@@ -71,11 +71,11 @@ public class CortexKmer implements CharSequence {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof CortexKmer) {
-            return hashCode() == obj.hashCode();
+            return Arrays.equals(kmer, ((CortexKmer) obj).getKmerAsBytes());
         } else if (obj instanceof String) {
-            return hashCode() == new CortexKmer((String) obj).hashCode();
+            return Arrays.equals(kmer, ((String) obj).getBytes());
         } else if (obj instanceof byte[]) {
-            return hashCode() == new CortexKmer((byte[]) obj).hashCode();
+            return Arrays.equals(kmer, (byte[]) obj);
         }
 
         return false;

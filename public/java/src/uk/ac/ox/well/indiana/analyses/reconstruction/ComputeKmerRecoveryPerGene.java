@@ -1,12 +1,14 @@
-package uk.ac.ox.well.indiana.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -15,7 +17,7 @@ import java.util.*;
 /**
  * For each gene, show how many unique kmers were recovered per sample
  */
-public class KmerRecoveryPerGene extends Tool {
+public class ComputeKmerRecoveryPerGene extends Tool {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
@@ -31,13 +33,13 @@ public class KmerRecoveryPerGene extends Tool {
         public Integer total = 0;
     }
 
-    private Map<String, String> loadKmerReferencePanel() {
-        Map<String, String> kmerReferencePanel = new HashMap<String, String>();
+    private Map<CortexKmer, String> loadKmerReferencePanel() {
+        Map<CortexKmer, String> kmerReferencePanel = new HashMap<CortexKmer, String>();
 
-        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
+        TableReader2 tr = new TableReader2(KMER_REFERENCE_PANEL);
         for (Map<String, String> te : tr) {
-            String kmer = te.get("kmer");
-            String gene = te.get("genes");
+            CortexKmer kmer = new CortexKmer(te.get("kmer"));
+            String gene = te.get("gene");
 
             kmerReferencePanel.put(kmer, gene);
         }
@@ -47,11 +49,11 @@ public class KmerRecoveryPerGene extends Tool {
 
     @Override
     public void execute() {
-        //  kmers   gene
-        Map<String, String> krp = loadKmerReferencePanel();
+        //  kmers       gene
+        Map<CortexKmer, String> krp = loadKmerReferencePanel();
 
-        //  kmer    samples
-        Map<String, CortexRecord> kmerPresence = new HashMap<String, CortexRecord>();
+        //  kmer        samples
+        Map<CortexKmer, CortexRecord> kmerPresence = new HashMap<CortexKmer, CortexRecord>();
 
         int recordNum = 0;
         int storedRecords = 0;
@@ -61,10 +63,10 @@ public class KmerRecoveryPerGene extends Tool {
             }
             recordNum++;
 
-            String fw = cr.getKmerAsString();
+            CortexKmer ck = cr.getKmer();
 
-            if (krp.containsKey(fw)) {
-                kmerPresence.put(fw, cr);
+            if (krp.containsKey(ck)) {
+                kmerPresence.put(ck, cr);
                 storedRecords++;
             }
         }
@@ -72,14 +74,14 @@ public class KmerRecoveryPerGene extends Tool {
         //  gene    KmerObs
         Map<String, KmerObs> kmerObs = new TreeMap<String, KmerObs>();
 
-        for (String fw : krp.keySet()) {
-            String geneName = krp.get(fw);
+        for (CortexKmer ck : krp.keySet()) {
+            String geneName = krp.get(ck);
 
             if (!kmerObs.containsKey(geneName)) {
                 kmerObs.put(geneName, new KmerObs());
             }
 
-            if (kmerPresence.containsKey(fw)) {
+            if (kmerPresence.containsKey(ck)) {
                 kmerObs.get(geneName).total++;
 
                 for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
@@ -89,7 +91,7 @@ public class KmerRecoveryPerGene extends Tool {
                         kmerObs.get(geneName).seen.put(sampleName, 0);
                     }
 
-                    CortexRecord cr = kmerPresence.get(fw);
+                    CortexRecord cr = kmerPresence.get(ck);
 
                     if (cr.getCoverage(color) > 0) {
                         int oldCount = kmerObs.get(geneName).seen.get(sampleName);

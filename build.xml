@@ -152,7 +152,7 @@
 
     <!-- Clean everything up -->
     <target name="clean" description="clean the project">
-        <delete includeemptydirs="true" verbose="true" quiet="true">
+        <delete includeemptydirs="true" verbose="false" quiet="true">
             <fileset dir="${lib.dir}" />
             <fileset dir="${build.dir}" />
             <fileset dir="${staging.dir}" />
@@ -161,6 +161,6 @@
             <fileset dir="${out.dir}" />
             <fileset dir="${release.dir}" />
     	</delete>
-        <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="true" quiet="true" />
+        <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="false" quiet="true" />
     </target>
 </project>
