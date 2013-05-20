@@ -1,0 +1,52 @@
+package uk.ac.ox.well.indiana.analyses.reconstruction;
+
+import com.google.common.base.Joiner;
+import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
+
+import java.io.File;
+import java.io.PrintStream;
+import java.util.*;
+
+public class ExtractPossibleEctopicContigs extends Tool {
+    @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
+    public File CONTIG_TABLE;
+
+    @Argument(fullName="sampleName", shortName="sn", doc="Sample to extract")
+    public HashSet<String> SAMPLES;
+
+    @Argument(fullName="geneName", shortName="gn", doc="Gene names")
+    public HashSet<String> GENES;
+
+    @Output
+    public PrintStream out;
+
+    @Override
+    public void execute() {
+        TableReader2 tr = new TableReader2(CONTIG_TABLE);
+
+        int id = 0;
+        for (Map<String, String> te : tr) {
+            String sample = te.get("sample");
+
+            Set<String> genes = new HashSet<String>(Arrays.asList(te.get("genes").split(",")));
+
+            if (SAMPLES.contains(sample) && genes.size() > 1) {
+                for (String geneOfInterest : GENES) {
+                    if (genes.contains(geneOfInterest)) {
+                        String contigName = ">contig_" + id; // + ".genes_" + Joiner.on(",").join(genes) + ".sample_" + sample;
+
+                        out.println(contigName);
+                        out.println(te.get("contig"));
+
+                        break;
+                    }
+                }
+            }
+
+            id++;
+        }
+    }
+}
