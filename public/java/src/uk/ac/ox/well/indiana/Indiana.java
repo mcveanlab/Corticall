@@ -15,6 +15,7 @@ import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -71,6 +72,16 @@ public class Indiana {
         log.debug("Finished");
     }
 
+    private static String getProcessID() {
+        String vmName = ManagementFactory.getRuntimeMXBean().getName();
+
+        if (vmName.contains("@")) {
+            return vmName.substring(0, vmName.indexOf('@'));
+        }
+
+        return vmName;
+    }
+
     /**
      * Configure a logger that contains the log level, timestamp, module, method, and line number of the logging statement.
      *
@@ -84,7 +95,8 @@ public class Indiana {
 
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(loggerContext);
-        encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} %class{0}.%M:%L]: %message%n");
+        //encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} %class{0}.%M:%L]: %message%n");
+        encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L]: %message%n");
         encoder.start();
 
         ConsoleAppender<ILoggingEvent> appender = new ConsoleAppender<ILoggingEvent>();
