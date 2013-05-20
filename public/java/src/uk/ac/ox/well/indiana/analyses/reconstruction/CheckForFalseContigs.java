@@ -42,10 +42,9 @@ public class CheckForFalseContigs extends Tool {
     public void execute() {
         Set<String> ref = loadReferenceSequence();
 
-        int found = 0, total = 0;
+        int found = 0, total = 0, id = 1;
 
         TableReader2 tr = new TableReader2(CONTIG_TABLE);
-        int id = 1;
         for (Map<String, String> te : tr) {
             String fw = te.get("contig");
             String rc = SequenceUtils.reverseComplement(fw);
@@ -63,13 +62,6 @@ public class CheckForFalseContigs extends Tool {
             if (!isFound) {
                 out.println(">missing_contig_" + id);
                 out.println(fw);
-
-                log.info(">missing contig: {}", te);
-
-                ReferenceSequence seq = REFERENCE.getSubsequenceAt("Pf3D7_12_v3", 1735543 + 2015, 1735543 + 2075);
-
-                log.info("con: {}", te.get("contig"));
-                log.info("seq: {}", new String(seq.getBases()));
             }
 
             total++;
