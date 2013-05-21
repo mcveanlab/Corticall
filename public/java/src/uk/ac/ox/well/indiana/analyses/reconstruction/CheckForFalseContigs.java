@@ -32,8 +32,6 @@ public class CheckForFalseContigs extends Tool {
             ref.add((new String(seq.getBases())).toUpperCase());
         }
 
-        log.info("Loaded {} sequences", ref.size());
-
         return ref;
     }
 
