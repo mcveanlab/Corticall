@@ -1,12 +1,11 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -44,7 +43,7 @@ public class CheckForFalseContigs extends Tool {
 
         int found = 0, total = 0, id = 1;
 
-        TableReader2 tr = new TableReader2(CONTIG_TABLE);
+        TableReader tr = new TableReader(CONTIG_TABLE);
         for (Map<String, String> te : tr) {
             String fw = te.get("contig");
             String rc = SequenceUtils.reverseComplement(fw);

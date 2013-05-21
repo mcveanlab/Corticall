@@ -5,14 +5,14 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.PCA;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 public class CreateRelatednessMatrix extends Tool {
     @Argument(fullName="tables", shortName="t", doc="Tables of other samples' sequences")
@@ -37,7 +37,7 @@ public class CreateRelatednessMatrix extends Tool {
             TableReader refTableReader = new TableReader(table);
 
             String colName = table.getName().replaceAll("relatedSequences.", "").replaceAll(".table", "");
-            for (HashMap<String, String> entry : refTableReader) {
+            for (Map<String, String> entry : refTableReader) {
                 if (ON_GENES) {
                     String geneName = entry.get("genes");
 

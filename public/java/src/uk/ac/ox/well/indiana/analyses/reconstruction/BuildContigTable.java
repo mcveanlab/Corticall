@@ -1,15 +1,14 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import com.google.common.base.Joiner;
-import net.sf.samtools.util.SequenceUtil;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.assembly.CortexGraphWalker2;
+import uk.ac.ox.well.indiana.utils.assembly.CortexGraphWalker;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter2;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -27,7 +26,7 @@ public class BuildContigTable extends Tool {
     public PrintStream out;
 
     private Map<CortexKmer, String> loadKmerReferencePanel() {
-        TableReader2 tr = new TableReader2(KMER_REFERENCE_PANEL);
+        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
 
         Map<CortexKmer, String> kmerReferencePanel = new HashMap<CortexKmer, String>();
         for (Map<String, String> te : tr) {
@@ -42,11 +41,11 @@ public class BuildContigTable extends Tool {
 
     @Override
     public void execute() {
-        CortexGraphWalker2 cgw = new CortexGraphWalker2(CORTEX_MAP);
+        CortexGraphWalker cgw = new CortexGraphWalker(CORTEX_MAP);
 
         Map<CortexKmer, String> krp = loadKmerReferencePanel();
 
-        TableWriter2 tw = new TableWriter2(out);
+        TableWriter tw = new TableWriter(out);
 
         for (int color = 0; color < CORTEX_MAP.getGraph().getNumColors(); color++) {
             log.info("Finding contigs for color {}...", color);

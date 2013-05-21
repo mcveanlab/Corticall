@@ -2,15 +2,12 @@ package uk.ac.ox.well.indiana.utils.io.utils;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class TableReaderTest {
     private File smallTable;
@@ -116,7 +113,7 @@ public class TableReaderTest {
 
     @Test
     public void readSmallTable() {
-        TableReader2 tr = new TableReader2(smallTable);
+        TableReader tr = new TableReader(smallTable);
 
         int index = 0;
         for (Map<String, String> te : tr) {
@@ -130,7 +127,7 @@ public class TableReaderTest {
 
     @Test
     public void readLargeTable() {
-        TableReader2 tr = new TableReader2(largeTable);
+        TableReader tr = new TableReader(largeTable);
 
         LineReader lr = new LineReader(largeTable);
         String[] header = lr.getNextRecord().split("\t");

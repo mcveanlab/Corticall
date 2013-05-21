@@ -9,15 +9,12 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 public class ShowKmerPlot extends Sketch {
     @Argument(fullName="reference", shortName="R", doc="Reference genome")
@@ -310,7 +307,7 @@ public class ShowKmerPlot extends Sketch {
 
         TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
 
-        for (HashMap<String, String> entry : tr) {
+        for (Map<String, String> entry : tr) {
             krp.add(entry.get("kmer"));
         }
 
@@ -329,10 +326,10 @@ public class ShowKmerPlot extends Sketch {
         HashSet<String> krp = loadKmerReferencePanel();
         int kmerSize = getKmerSize(krp);
 
-        HashMap<String, HashMap<String, String>> pcaTable = new HashMap<String, HashMap<String, String>>();
+        Map<String, Map<String, String>> pcaTable = new HashMap<String, Map<String, String>>();
         if (PCA != null) {
             TableReader tr = new TableReader(PCA);
-            for (HashMap<String, String> fields : tr) {
+            for (Map<String, String> fields : tr) {
                 pcaTable.put(fields.get(""), fields);
             }
         }

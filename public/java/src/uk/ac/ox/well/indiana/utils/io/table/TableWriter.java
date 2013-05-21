@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.io.utils;
+package uk.ac.ox.well.indiana.utils.io.table;
 
 import com.google.common.base.Joiner;
 
@@ -11,20 +11,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TableWriter2 {
+public class TableWriter {
     private PrintStream out;
 
     private List<String> header = null;
 
-    public TableWriter2(String fileToWrite) {
+    public TableWriter(String fileToWrite) {
         initializeTable(new File(fileToWrite));
     }
 
-    public TableWriter2(File fileToWrite) {
+    public TableWriter(File fileToWrite) {
         initializeTable(fileToWrite);
     }
 
-    public TableWriter2(PrintStream streamToWrite) {
+    public TableWriter(PrintStream streamToWrite) {
         out = streamToWrite;
     }
 

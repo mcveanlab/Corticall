@@ -6,7 +6,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -42,7 +42,7 @@ public class FindRelatedSequences extends Tool {
 
         TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
 
-        for (HashMap<String, String> entry : tr) {
+        for (Map<String, String> entry : tr) {
             String kmer = entry.get("kmer");
             String[] genes = entry.get("genes").split(",");
             String[] domains = entry.get("domains").split(",");

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.io.utils;
+package uk.ac.ox.well.indiana.utils.io.table;
 
 import it.unimi.dsi.io.ByteBufferInputStream;
 
@@ -13,18 +13,18 @@ import java.util.*;
  * Streams very large text-based tables by first making a pass through the file to find all the line breaks
  * and once again to determine the positions of those breaks (and thus the record lengths).
  */
-public class TableReader2 implements Iterable<Map<String, String>>, Iterator<Map<String, String>> {
+public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<String, String>> {
     private ByteBufferInputStream mappedRecordBuffer;
 
     private List<Long> lineBreakPositions;
     private String[] header;
     private int nextRecordIndex;
 
-    public TableReader2(String fileToRead) {
+    public TableReader(String fileToRead) {
         loadTable(new File(fileToRead));
     }
 
-    public TableReader2(File fileToRead) {
+    public TableReader(File fileToRead) {
         loadTable(fileToRead);
     }
 
