@@ -72,6 +72,11 @@ public class Indiana {
         log.debug("Finished");
     }
 
+    /**
+     * Get the process id for this instance
+     *
+     * @return the process id
+     */
     private static String getProcessID() {
         String vmName = ManagementFactory.getRuntimeMXBean().getName();
 
@@ -95,7 +100,6 @@ public class Indiana {
 
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(loggerContext);
-        //encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} %class{0}.%M:%L]: %message%n");
         encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L]: %message%n");
         encoder.start();
 

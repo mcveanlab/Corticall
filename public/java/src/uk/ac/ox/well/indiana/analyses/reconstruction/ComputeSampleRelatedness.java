@@ -58,7 +58,7 @@ public class ComputeSampleRelatedness extends Tool {
         Map<String, String> geneToClass = loadGeneListsAndClasses();
 
         Map<String, DataFrame<String, String, Float>> d = new HashMap<String, DataFrame<String, String, Float>>();
-        Set<String> samples = new HashSet<String>();
+        Set<String> samples = new TreeSet<String>();
         int count = 0;
 
         TableReader2 tr = new TableReader2(KMER_SHARING_MATRIX);
@@ -69,6 +69,8 @@ public class ComputeSampleRelatedness extends Tool {
                         samples.add(field);
                     }
                 }
+
+                log.info("samples: {}", samples);
             }
 
             String geneClass = getGeneClass(te.get("genes"), geneToClass);
@@ -76,19 +78,18 @@ public class ComputeSampleRelatedness extends Tool {
                 d.put(geneClass, new DataFrame<String, String, Float>(0.0f));
             }
 
-            for (String field1 : te.keySet()) {
-                if (!field1.equals("kmer") && !field1.equals("isPanelKmer") && !field1.equals("genes")) {
-                    for (String field2 : te.keySet()) {
-                        if (!field2.equals("kmer") && !field2.equals("isPanelKmer") && !field2.equals("genes")) {
-                            if (te.get(field1).equals("1") && te.get(field2).equals("1")) {
-                                float value = d.get(geneClass).get(field1, field2);
-                                d.get(geneClass).set(field1, field2, value + 1.0f);
-                            }
-                        }
+            for (String sample1 : samples) {
+                for (String sample2 : samples) {
+                    if (!d.get(geneClass).hasValue(sample1, sample2)) {
+                        d.get(geneClass).set(sample1, sample2, 0.0f);
+                    }
+
+                    if (te.get(sample1).equals("1") && te.get(sample2).equals("1")) {
+                        float value = d.get(geneClass).get(sample1, sample2);
+                        d.get(geneClass).set(sample1, sample2, value + 1.0f);
                     }
                 }
             }
-
 
             count++;
             if (count % (tr.size() / 5) == 0) {
@@ -96,17 +97,20 @@ public class ComputeSampleRelatedness extends Tool {
             }
         }
 
-        out.printf("%s\t%s\t%s\t%s\t%s\t%s\n", "sample", "geneClass", "kmerCount", "PC1", "PC2", "PC3");
+        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "sample", "geneClass", "kmerCount", "PC1", "PC2", "PC3", "PC4", "PC5");
 
         for (String geneClass : d.keySet()) {
-            log.info("Performing PCA on {}", geneClass);
+            if (!geneClass.contains(",")) {
+                log.info("Performing PCA on {}", geneClass);
+                log.info("\n{}", d.get(geneClass));
 
-            PCA<String, String> pca = new PCA<String, String>(d.get(geneClass));
+                PCA<String, String> pca = new PCA<String, String>(d.get(geneClass));
 
-            for (String sample : samples) {
-                DoubleMatrix1D ev = pca.getEigenvector(sample);
+                for (String sample : samples) {
+                    DoubleMatrix1D ev = pca.getEigenvector(sample);
 
-                out.printf("%s\t%s\t%d\t%f\t%f\t%f\n", sample, geneClass, d.get(geneClass).getNumRows(), ev.get(0), ev.get(1), ev.get(2));
+                    out.printf("%s\t%s\t%d\t%f\t%f\t%f\t%f\t%f\n", sample, geneClass, d.get(geneClass).getNumRows(), ev.get(0), ev.get(1), ev.get(2), ev.get(3), ev.get(4));
+                }
             }
         }
     }
