@@ -3,14 +3,15 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ExtractRefAndAltKmers extends Tool {
@@ -28,18 +29,12 @@ public class ExtractRefAndAltKmers extends Tool {
 
     @Override
     public void execute() {
-        TableWriter tw = new TableWriter();
-
-        tw.addPrimaryKey("kmer", "unknown");
-        tw.addColumn("supernodeId", 0);
-        tw.addColumn("gene", "unknown");
+        TableWriter tw = new TableWriter(out);
 
         for (File relatedSequences : RELATED_SEQUENCES) {
             String sample = relatedSequences.getName().replaceAll("relatedSequences.", "").replaceAll(".table", "");
 
             log.info("Processing sample '{}' ({})", sample, PerformanceUtils.getCompactMemoryUsageStats());
-
-            tw.addColumn(sample, 0);
 
             TableReader tr = new TableReader(relatedSequences);
 
@@ -54,9 +49,11 @@ public class ExtractRefAndAltKmers extends Tool {
                     boolean isRefKmer = fw.equals(kmer);
 
                     if ((isRefKmer && EMIT_REF_KMERS) || (!isRefKmer && EMIT_ALT_KMERS)) {
-                        tw.set(fw, sample, 1);
-                        tw.set(fw, "supernodeId", supernode.hashCode());
-                        tw.set(fw, "gene", gene);
+                        Map<String, String> entry = new HashMap<String, String>();
+                        entry.put("kmer", fw);
+                        entry.put("supernodeId", String.valueOf(supernode.hashCode()));
+                        entry.put("gene", gene);
+                        entry.put(sample, "1");
                     }
                 }
             }

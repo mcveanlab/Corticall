@@ -5,8 +5,8 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter2;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -54,7 +54,7 @@ public class BuildKmerSharingMatrix extends Tool {
         Set<String> sampleSet = new TreeSet<String>();
         List<String> samples = new ArrayList<String>();
 
-        TableReader2 tr = new TableReader2(CONTIG_TABLE);
+        TableReader tr = new TableReader(CONTIG_TABLE);
 
         for (int pass = 0; pass <= 1; pass++) {
             int recIndex = 0;
@@ -111,7 +111,7 @@ public class BuildKmerSharingMatrix extends Tool {
 
         log.info("Writing kmer sharing matrix to disk...");
 
-        TableWriter2 tw = new TableWriter2(out);
+        TableWriter tw = new TableWriter(out);
 
         for (CortexKmer ck : kmerInfo.keySet()) {
             KmerInfo ki = kmerInfo.get(ck);

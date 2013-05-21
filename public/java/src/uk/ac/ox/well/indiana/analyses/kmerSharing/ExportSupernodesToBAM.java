@@ -8,7 +8,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -191,7 +191,7 @@ public class ExportSupernodesToBAM extends Tool {
         TreeMap<String, TreeMap<String, TreeSet<String>>> relatedSequences = new TreeMap<String, TreeMap<String, TreeSet<String>>>();
 
         TableReader reader = new TableReader(relatedSequenceFile);
-        for (HashMap<String, String> entry : reader) {
+        for (Map<String, String> entry : reader) {
             String[] genes = entry.get("genes").split(",");
             String[] kmers = entry.get("kmer").split(",");
             String gene = genes[0];

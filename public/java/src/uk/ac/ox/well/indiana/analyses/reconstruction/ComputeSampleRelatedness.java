@@ -6,8 +6,8 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
 import uk.ac.ox.well.indiana.utils.statistics.PCA;
 
 import java.io.File;
@@ -61,7 +61,7 @@ public class ComputeSampleRelatedness extends Tool {
         Set<String> samples = new TreeSet<String>();
         int count = 0;
 
-        TableReader2 tr = new TableReader2(KMER_SHARING_MATRIX);
+        TableReader tr = new TableReader(KMER_SHARING_MATRIX);
         for (Map<String, String> te : tr) {
             if (samples.isEmpty()) {
                 for (String field : te.keySet()) {

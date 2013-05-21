@@ -1,10 +1,9 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -25,7 +24,7 @@ public class ExtractPossibleEctopicContigs extends Tool {
 
     @Override
     public void execute() {
-        TableReader2 tr = new TableReader2(CONTIG_TABLE);
+        TableReader tr = new TableReader(CONTIG_TABLE);
 
         int id = 0;
         for (Map<String, String> te : tr) {

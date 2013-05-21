@@ -8,7 +8,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.processing.visualelements.Canvas;
 import uk.ac.ox.well.indiana.utils.processing.visualelements.Frame;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -259,16 +259,14 @@ public class VisualizeSupernodeRelationships extends Sketch {
 
     @Override
     public void initialize() {
-        //String geneName = "PF3D7_1200600";
-
         Gene gene = new Gene(GENE_NAME);
 
-        ArrayList<HashMap<String, String>> relatedSequences = new ArrayList<HashMap<String, String>>();
+        ArrayList<Map<String, String>> relatedSequences = new ArrayList<Map<String, String>>();
 
         log.info("gene size: {}x{}", gene.getWidth(), gene.getHeight());
 
         TableReader table = new TableReader(RELATED_SEQUENCES);
-        for (HashMap<String, String> entry : table) {
+        for (Map<String, String> entry : table) {
             if (entry.get("genes").contains(GENE_NAME)) {
                 relatedSequences.add(entry);
 

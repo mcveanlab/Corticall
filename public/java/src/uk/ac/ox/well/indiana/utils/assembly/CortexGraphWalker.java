@@ -1,278 +1,114 @@
 package uk.ac.ox.well.indiana.utils.assembly;
 
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.*;
 
 public class CortexGraphWalker {
-    Map<String, CortexRecord> records;
+    private CortexMap cortexMap;
 
-    public CortexGraphWalker(Map<String, CortexRecord> records) {
-        this.records = records;
+    public CortexGraphWalker(CortexMap cortexMap) {
+        this.cortexMap = cortexMap;
     }
 
-    private List<String> getNextInKmers(String kmer, String edges) {
-        List<String> inRawKmers = new ArrayList<String>();
+    public CortexKmer buildContig(int color, CortexKmer panelKmer) {
+        if (cortexMap.containsKey(panelKmer)) {
+            StringBuilder contig = new StringBuilder();
 
-        for (int i = 0; i < 4; i++) {
-            if (edges.charAt(i) != '.') {
-                String inRawKmer = (edges.charAt(i) + kmer.substring(0, kmer.length() - 1)).toUpperCase();
+            Set<CortexKmer> seenKmers = new HashSet<CortexKmer>();
 
-                inRawKmers.add(inRawKmer);
+            // start with left edges
+            CortexRecord record = cortexMap.get(panelKmer);
+            Collection<Byte> leftEdges = record.getInEdgesAsBytes(color);
+            byte[] currentKmer = record.getKmerAsBytes();
+
+            contig.append(new String(currentKmer));
+
+            while (record != null && !seenKmers.contains(record.getKmer()) && leftEdges.size() == 1) {
+                seenKmers.add(record.getKmer());
+
+                byte[] newKmer = new byte[currentKmer.length];
+
+                newKmer[0] = leftEdges.iterator().next();
+                System.arraycopy(currentKmer, 0, newKmer, 1, currentKmer.length - 1);
+
+                contig.insert(0, SequenceUtils.nucleotideByteToString(newKmer[0]));
+
+                CortexKmer leftKmer = new CortexKmer(newKmer);
+                record = cortexMap.get(leftKmer);
+
+                if (record != null) {
+                    leftEdges = leftKmer.isFlipped() ? record.getOutEdgesComplementAsBytes(color) : record.getInEdgesAsBytes(color);
+                    currentKmer = newKmer;
+                }
             }
-        }
 
-        return inRawKmers;
-    }
+            // now do right edges
+            record = cortexMap.get(panelKmer);
+            Collection<Byte> rightEdges = record.getOutEdgesAsBytes(color);
+            currentKmer = record.getKmerAsBytes();
 
-    private List<String> getNextInKmers(int color, String kmer) {
-        CortexRecord record = records.get(kmer);
-        String edges = record.getEdgesAsString(color);
+            seenKmers.remove(panelKmer);
 
-        return getNextInKmers(kmer, edges);
-    }
+            while (record != null && !seenKmers.contains(record.getKmer()) && rightEdges.size() == 1) {
+                seenKmers.add(record.getKmer());
 
-    private List<String> getNextOutKmers(String kmer, String edges) {
-        List<String> outRawKmers = new ArrayList<String>();
+                byte[] newKmer = new byte[currentKmer.length];
 
-        for (int i = 4; i < 8; i++) {
-            if (edges.charAt(i) != '.') {
-                String outRawKmer = (kmer.substring(1, kmer.length()) + edges.charAt(i)).toUpperCase();
+                System.arraycopy(currentKmer, 1, newKmer, 0, currentKmer.length - 1);
+                newKmer[currentKmer.length - 1] = rightEdges.iterator().next();
 
-                outRawKmers.add(outRawKmer);
+                contig.append(SequenceUtils.nucleotideByteToString(newKmer[currentKmer.length - 1]));
+
+                CortexKmer rightKmer = new CortexKmer(newKmer);
+                record = cortexMap.get(rightKmer);
+
+                if (record != null) {
+                    rightEdges = rightKmer.isFlipped() ? record.getInEdgesComplementAsBytes(color) : record.getOutEdgesAsBytes(color);
+                    currentKmer = newKmer;
+                }
             }
-        }
 
-        return outRawKmers;
-    }
-
-    private List<String> getNextOutKmers(int color, String kmer) {
-        CortexRecord record = records.get(kmer);
-        String edges = record.getEdgesAsString(color);
-
-        return getNextOutKmers(kmer, edges);
-    }
-
-    private String getNextKmer(List<String> rawKmers, Set<String> referenceKmers) {
-        if (rawKmers.size() == 1) {
-            return rawKmers.get(0);
-        }
-
-        int numKmersSpanningFork = 0;
-        String rawKmerSpanningFork = null;
-
-        for (String rawKmer : rawKmers) {
-            String fwKmer = SequenceUtils.alphanumericallyLowestOrientation(rawKmer);
-
-            if (referenceKmers.contains(fwKmer)) {
-                numKmersSpanningFork++;
-                rawKmerSpanningFork = rawKmer;
-            }
-        }
-
-        if (numKmersSpanningFork == 1) {
-            return rawKmerSpanningFork;
+            return new CortexKmer(contig.toString());
         }
 
         return null;
     }
 
-    private String getInKmerWithMatchingOrientation(int color, String kmer, Set<String> referenceKmers, String supernode) {
-        String fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
-        String rc = SequenceUtils.reverseComplement(fw);
+    public Map<CortexKmer, Set<CortexKmer>> buildContigs(int color, Set<CortexKmer> panelKmers) {
+        Set<CortexKmer> usedKmers = new HashSet<CortexKmer>();
 
-        String currentKmer = null;
-        String edges = records.get(fw).getEdgesAsString(color);
+        Map<CortexKmer, Set<CortexKmer>> contigs = new HashMap<CortexKmer, Set<CortexKmer>>();
 
-        if (fw.equalsIgnoreCase(supernode.substring(0, fw.length()))) {
-            currentKmer = fw;
-        } else if (rc.equalsIgnoreCase(supernode.substring(0, rc.length()))) {
-            currentKmer = rc;
-            edges = SequenceUtils.reverseComplement(edges);
-        }
+        for (CortexKmer panelKmer : panelKmers) {
+            if (!usedKmers.contains(panelKmer)) {
+                CortexKmer contig = buildContig(color, panelKmer);
 
-        if (currentKmer != null) {
-            return getNextKmer(getNextInKmers(currentKmer, edges), referenceKmers);
-        }
+                if (contig != null) {
+                    Set<CortexKmer> seedKmers = new HashSet<CortexKmer>();
 
-        return null;
-    }
+                    byte[] contigBytes = contig.getKmerAsBytes();
 
-    private String getOutKmerWithMatchingOrientation(int color, String kmer, Set<String> referenceKmers, String supernode) {
-        String fw = SequenceUtils.alphanumericallyLowestOrientation(kmer);
-        String rc = SequenceUtils.reverseComplement(fw);
+                    for (int i = 0; i <= contigBytes.length - panelKmer.length(); i++) {
+                        byte[] kmer = new byte[panelKmer.length()];
+                        System.arraycopy(contigBytes, i, kmer, 0, panelKmer.length());
 
-        String currentKmer = null;
-        String edges = records.get(fw).getEdgesAsString(color);
-
-        if (fw.equalsIgnoreCase(supernode.substring(supernode.length() - fw.length(), supernode.length()))) {
-            currentKmer = fw;
-        } else if (rc.equalsIgnoreCase(supernode.substring(supernode.length() - rc.length(), supernode.length()))) {
-            currentKmer = rc;
-            edges = SequenceUtils.reverseComplement(edges);
-        }
-
-        if (currentKmer != null) {
-            return getNextKmer(getNextOutKmers(currentKmer, edges), referenceKmers);
-        }
-
-        return null;
-    }
-
-    public Collection<String> getReferenceGuidedSupernodes(int color, Set<String> referenceKmers) {
-        Set<String> supernodes = new HashSet<String>();
-        Set<String> seenKmers = new HashSet<String>();
-
-        for (String fwRefKmer : referenceKmers) {
-            if (records.containsKey(fwRefKmer) && !seenKmers.contains(fwRefKmer)) {
-                String supernode = fwRefKmer;
-
-                seenKmers.add(fwRefKmer);
-
-                String inKmer = getNextKmer(getNextInKmers(color, fwRefKmer), referenceKmers);
-
-                while (inKmer != null) {
-                    supernode = inKmer.charAt(0) + supernode;
-
-                    String fw = SequenceUtils.alphanumericallyLowestOrientation(inKmer);
-
-                    if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                        inKmer = getInKmerWithMatchingOrientation(color, inKmer, referenceKmers, supernode);
-                    } else {
-                        inKmer = null;
-                    }
-
-                    seenKmers.add(fw);
-                }
-
-                String outKmer = getNextKmer(getNextOutKmers(color, fwRefKmer), referenceKmers);
-
-                while (outKmer != null) {
-                    supernode = supernode + outKmer.charAt(outKmer.length() - 1);
-
-                    String fw = SequenceUtils.alphanumericallyLowestOrientation(outKmer);
-
-                    if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                        outKmer = getOutKmerWithMatchingOrientation(color, outKmer, referenceKmers, supernode);
-                    } else {
-                        outKmer = null;
-                    }
-
-                    seenKmers.add(fw);
-                }
-
-                supernodes.add(SequenceUtils.alphanumericallyLowestOrientation(supernode));
-            }
-        }
-
-        return supernodes;
-    }
-
-    public String getSupernode(int color, String startingKmer) {
-        String superNode = null;
-
-        if (records.containsKey(startingKmer)) {
-            superNode = startingKmer;
-
-            CortexRecord startingRecord = records.get(startingKmer);
-            String startingEdges = startingRecord.getEdgeAsStrings()[color];
-
-            // First do in kmers
-            List<String> inRawKmers = new ArrayList<String>();
-            for (int i = 0; i < 4; i++) {
-                if (startingEdges.charAt(i) != '.') {
-                    String inRawKmer = (startingEdges.charAt(i) + startingKmer.substring(0, startingKmer.length() - 1)).toUpperCase();
-
-                    inRawKmers.add(inRawKmer);
-                }
-            }
-
-            HashSet<String> seenKmers = new HashSet<String>();
-
-            while (inRawKmers.size() == 1) {
-                String inRawKmer = inRawKmers.get(0);
-                inRawKmers.clear();
-
-                superNode = inRawKmer.charAt(0) + superNode;
-
-                String fw = SequenceUtils.alphanumericallyLowestOrientation(inRawKmer);
-
-                if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.reverseComplement(fw);
-
-                    String currentKmer = null;
-
-                    String edges = records.get(fw).getEdgeAsStrings()[color];
-
-                    if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(0, fw.length()))) {
-                        currentKmer = fw;
-                    } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(0, rc.length()))) {
-                        currentKmer = rc;
-                        edges = SequenceUtils.reverseComplement(edges);
-                    }
-
-                    if (currentKmer != null) {
-                        for (int i = 0; i < 4; i++) {
-                            if (edges.charAt(i) != '.') {
-                                String newInRawKmer = (edges.charAt(i) + currentKmer.substring(0, currentKmer.length() - 1)).toUpperCase();
-                                inRawKmers.add(newInRawKmer);
-                            }
+                        CortexKmer ckmer = new CortexKmer(kmer);
+                        if (panelKmers.contains(ckmer)) {
+                            seedKmers.add(ckmer);
                         }
                     }
 
-                    seenKmers.add(currentKmer);
-                }
-            }
+                    usedKmers.addAll(seedKmers);
 
-            // Now do out kmers
-            List<String> outRawKmers = new ArrayList<String>();
-            for (int i = 4; i < 8; i++) {
-                if (startingEdges.charAt(i) != '.') {
-                    String outRawKmer = (startingKmer.substring(1, startingKmer.length()) + startingEdges.charAt(i)).toUpperCase();
-
-                    outRawKmers.add(outRawKmer);
-                }
-            }
-
-            seenKmers.clear();
-
-            while (outRawKmers.size() == 1) {
-                String outRawKmer = outRawKmers.get(0);
-                outRawKmers.clear();
-
-                superNode = superNode + outRawKmer.charAt(outRawKmer.length() - 1);
-
-                String fw = SequenceUtils.alphanumericallyLowestOrientation(outRawKmer);
-
-                if (records.containsKey(fw) && !seenKmers.contains(fw)) {
-                    String rc = SequenceUtils.reverseComplement(fw);
-
-                    String currentKmer = null;
-
-                    String edges = records.get(fw).getEdgeAsStrings()[color];
-
-                    if (fw.substring(0, fw.length()).equalsIgnoreCase(superNode.substring(superNode.length() - fw.length(), superNode.length()))) {
-                        currentKmer = fw;
-                    } else if (rc.substring(0, rc.length()).equalsIgnoreCase(superNode.substring(superNode.length() - rc.length(), superNode.length()))) {
-                        currentKmer = rc;
-                        edges = SequenceUtils.reverseComplement(edges);
-                    }
-
-                    if (currentKmer != null) {
-                        for (int i = 4; i < 8; i++) {
-                            if (edges.charAt(i) != '.') {
-                                String newOutRawKmer = (currentKmer.substring(1, currentKmer.length()) + edges.charAt(i)).toUpperCase();
-                                outRawKmers.add(newOutRawKmer);
-                            }
-                        }
-                    }
-
-                    seenKmers.add(currentKmer);
+                    contigs.put(contig, seedKmers);
                 }
             }
         }
 
-        return SequenceUtils.alphanumericallyLowestOrientation(superNode);
+        return contigs;
     }
 }

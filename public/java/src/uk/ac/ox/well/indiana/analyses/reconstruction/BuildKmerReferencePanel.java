@@ -8,10 +8,8 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter;
-import uk.ac.ox.well.indiana.utils.io.utils.TableWriter2;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,7 +67,7 @@ public class BuildKmerReferencePanel extends Tool {
             }
         }
 
-        TableWriter2 tw = new TableWriter2(out);
+        TableWriter tw = new TableWriter(out);
 
         int i = 0;
         for (CortexKmer ck : kmerInfoMap.keySet()) {

@@ -277,4 +277,23 @@ public class SequenceUtils {
 
         return length;
     }
+
+    private static final byte[] alphabet = {'A', 'C', 'G', 'T'};
+    private static Random randomGenerator = new Random(0);
+
+    /**
+     * Create a random nucleotide sequence of length N
+     *
+     * @param n  the length of the sequence to generate
+     * @return  the generated sequence
+     */
+    public static byte[] generateRandomNucleotideSequenceOfLengthN(int n) {
+        byte[] sb = new byte[n];
+
+        for (int i = 0; i < n; i++) {
+            sb[i] = alphabet[randomGenerator.nextInt(alphabet.length)];
+        }
+
+        return sb;
+    }
 }

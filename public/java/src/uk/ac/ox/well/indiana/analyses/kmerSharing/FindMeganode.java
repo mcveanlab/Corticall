@@ -5,7 +5,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -40,7 +40,7 @@ public class FindMeganode extends Tool {
         }
 
         TableReader table = new TableReader(KMER_REFERENCE_PANEL);
-        for (HashMap<String, String> entry : table) {
+        for (Map<String, String> entry : table) {
             String kmer = entry.get("kmer");
 
             log.info("kmer: {}", kmer);

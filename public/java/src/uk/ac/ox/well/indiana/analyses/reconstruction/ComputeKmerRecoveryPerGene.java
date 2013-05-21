@@ -7,8 +7,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader2;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -36,7 +35,7 @@ public class ComputeKmerRecoveryPerGene extends Tool {
     private Map<CortexKmer, String> loadKmerReferencePanel() {
         Map<CortexKmer, String> kmerReferencePanel = new HashMap<CortexKmer, String>();
 
-        TableReader2 tr = new TableReader2(KMER_REFERENCE_PANEL);
+        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
         for (Map<String, String> te : tr) {
             CortexKmer kmer = new CortexKmer(te.get("kmer"));
             String gene = te.get("gene");

@@ -4,12 +4,12 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
-import uk.ac.ox.well.indiana.utils.io.utils.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 public class ComputeRecoveryMatrix extends Tool {
     @Argument(fullName="referenceTable", shortName="rt", doc="Reference table (the table that contains *all* kmers)")
@@ -27,7 +27,7 @@ public class ComputeRecoveryMatrix extends Tool {
 
         TableReader refTableReader = new TableReader(REFERENCE_TABLE);
         String refSampleName = REFERENCE_TABLE.getName().replaceAll("relatedSequences.", "").replaceAll(".table", "");
-        for (HashMap<String, String> entry : refTableReader) {
+        for (Map<String, String> entry : refTableReader) {
             String geneName = entry.get("genes");
 
             recovery.set(refSampleName, geneName, recovery.get(refSampleName, geneName) + 1);
@@ -40,7 +40,7 @@ public class ComputeRecoveryMatrix extends Tool {
                 log.info("Loading '{}'", table.getName());
 
                 String sampleName = table.getName().replaceAll("relatedSequences.", "").replaceAll(".table", "");
-                for (HashMap<String, String> entry : tableReader) {
+                for (Map<String, String> entry : tableReader) {
                     String geneName = entry.get("genes");
 
                     recovery.set(sampleName, geneName, recovery.get(sampleName, geneName) + 1);
