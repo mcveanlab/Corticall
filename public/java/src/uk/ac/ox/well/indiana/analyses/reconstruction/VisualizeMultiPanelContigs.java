@@ -123,8 +123,6 @@ public class VisualizeMultiPanelContigs extends Sketch {
         int index = 0;
         for (String sample : data.keySet()) {
             for (String gene : data.get(sample).keySet()) {
-                //log.info("sample={}, gene={}", sample, gene);
-
                 if ( (ONLY_THESE_SAMPLES == null || ONLY_THESE_SAMPLES.contains(sample)) && (ONLY_THESE_GENES == null || ONLY_THESE_GENES.contains(gene)) ) {
                     if (index > 0) { pdf.nextPage(); }
                     index++;
@@ -133,10 +131,14 @@ public class VisualizeMultiPanelContigs extends Sketch {
 
                     background(204, 204, 204);
 
+                    stroke(geneColors.get(gene).getRGB());
+                    fill(geneColors.get(gene).getRGB());
+                    rect(marginX, marginTitle/2, 20, 7);
+
                     fill(Color.BLACK.getRGB());
                     textAlign(LEFT, CENTER);
-                    text(sample + " " + gene, marginLabel + marginX, marginTitle/2);
-                    rect(marginLabel + marginX - 30, marginTitle/2, 20, 15);
+                    textSize(15);
+                    text("gene=" + gene + " sample=" + sample, marginX + 30, marginTitle/2);
 
                     for (int i = 0; i < data.get(sample).get(gene).size(); i++) {
                         Map<String, String> te = data.get(sample).get(gene).get(i);
@@ -163,6 +165,7 @@ public class VisualizeMultiPanelContigs extends Sketch {
                         rect(xpos - 1, ypos, contig.length() + 1, contigHeight);
 
                         fill(Color.BLACK.getRGB());
+                        textSize(11);
                         textAlign(LEFT, TOP);
                         text(contig.hashCode(), marginX, ypos - 2);
 
