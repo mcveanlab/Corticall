@@ -7,9 +7,12 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class ExtractPossibleEctopicContigs extends Tool {
+public class ExtractNonEctopicContigs extends Tool {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
     public File CONTIG_TABLE;
 
@@ -32,7 +35,7 @@ public class ExtractPossibleEctopicContigs extends Tool {
 
             Set<String> genes = new HashSet<String>(Arrays.asList(te.get("genes").split(",")));
 
-            if (SAMPLES.contains(sample) && genes.size() > 1) {
+            if (SAMPLES.contains(sample) && genes.size() == 1) {
                 for (String geneOfInterest : GENES) {
                     if (genes.contains(geneOfInterest)) {
                         String contig = te.get("contig");
