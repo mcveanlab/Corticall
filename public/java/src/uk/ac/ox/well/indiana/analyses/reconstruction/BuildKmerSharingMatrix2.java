@@ -5,6 +5,7 @@ import uk.ac.ox.well.indiana.tools.Tool;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.*;
 import java.util.*;
@@ -34,6 +35,7 @@ public class BuildKmerSharingMatrix2 extends Tool {
 
             Map<CortexKmer, boolean[]> kmerPresence = new HashMap<CortexKmer, boolean[]>();
 
+            /*
             BufferedReader br = new BufferedReader(new FileReader(CONTIG_TABLE));
 
             String[] header = br.readLine().split("\t");
@@ -52,6 +54,32 @@ public class BuildKmerSharingMatrix2 extends Tool {
                     entry.put(header[i], fields[i]);
                 }
 
+                CortexKmer contig = new CortexKmer(entry.get("contig"));
+
+                String[] kmers = entry.get("kmers").split(",");
+                int kmerSize = kmers[0].length();
+
+                String sample = entry.get("sample");
+                int sindex = sampleIndex.get(sample);
+
+                for (int i = 0; i < contig.length() - kmerSize; i++) {
+                    CortexKmer kmer = contig.getSubKmer(i, kmerSize);
+
+                    if (!kmerPresence.containsKey(kmer)) {
+                        kmerPresence.put(kmer, new boolean[SAMPLES.size()]);
+
+                        for (int j = 0; j < SAMPLES.size(); j++) {
+                            kmerPresence.get(kmer)[j] = false;
+                        }
+                    }
+
+                    kmerPresence.get(kmer)[sindex] = true;
+                }
+            }
+            */
+
+            TableReader tr = new TableReader(CONTIG_TABLE);
+            for (Map<String, String> entry : tr) {
                 CortexKmer contig = new CortexKmer(entry.get("contig"));
 
                 String[] kmers = entry.get("kmers").split(",");
