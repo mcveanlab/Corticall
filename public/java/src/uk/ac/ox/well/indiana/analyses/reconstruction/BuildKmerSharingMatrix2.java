@@ -38,7 +38,13 @@ public class BuildKmerSharingMatrix2 extends Tool {
 
             String[] header = br.readLine().split("\t");
             String line;
+            int numLines = 0;
             while ((line = br.readLine()) != null) {
+                if (numLines % 100000 == 0) {
+                    log.info("Lines read: {}", numLines);
+                }
+                numLines++;
+
                 String[] fields = line.split("\t");
 
                 Map<String, String> entry = new HashMap<String, String>();
