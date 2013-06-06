@@ -40,7 +40,7 @@ public class BuildKmerSharingMatrix2 extends Tool {
             String line;
             int numLines = 0;
             while ((line = br.readLine()) != null) {
-                if (numLines % 100000 == 0) {
+                if (numLines % 1000 == 0) {
                     log.info("Lines read: {}", numLines);
                 }
                 numLines++;
