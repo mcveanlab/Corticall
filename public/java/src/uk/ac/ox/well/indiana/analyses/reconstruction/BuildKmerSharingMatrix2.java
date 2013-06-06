@@ -83,8 +83,14 @@ public class BuildKmerSharingMatrix2 extends Tool {
         }
         */
 
+        int numLines = 0;
         TableReader tr = new TableReader(CONTIG_TABLE);
         for (Map<String, String> entry : tr) {
+            if (numLines % (tr.size() / 10) == 0) {
+                log.info("Processed {}/{} records", numLines, tr.size());
+            }
+            numLines++;
+
             CortexKmer contig = new CortexKmer(entry.get("contig"));
 
             String[] kmers = entry.get("kmers").split(",");
