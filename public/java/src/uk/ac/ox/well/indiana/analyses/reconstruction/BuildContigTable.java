@@ -65,6 +65,7 @@ public class BuildContigTable extends Tool {
                 entry.put("contig", contig.getKmerAsString());
                 entry.put("kmers", Joiner.on(",").join(kmers));
                 entry.put("genes", Joiner.on(",").join(genes));
+                entry.put("contigId", String.valueOf(contig.hashCode()));
 
                 tw.addEntry(entry);
             }

@@ -44,19 +44,19 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
 
         recordHash = new HashMap<CortexKmer, CortexRecord>((int) this.cortexGraph.getNumRecords());
 
-        if (log != null) { log.info("Loading Cortex records"); }
+        if (this.log != null) { this.log.info("Loading Cortex records"); }
 
         int i = 0;
         for (CortexRecord cr : cortexGraph) {
             put(new CortexKmer(cr.getKmerAsBytes(), true), cr);
 
-            if (log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {
-                log.info("Loaded {}/{} Cortex records", i + 1, cortexGraph.getNumRecords());
+            if (this.log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {
+                this.log.info("Loaded {}/{} Cortex records", i + 1, cortexGraph.getNumRecords());
             }
             i++;
         }
 
-        if (log != null) { log.info("Finished loading Cortex records"); }
+        if (this.log != null) { this.log.info("Finished loading Cortex records"); }
     }
 
     public CortexGraph getGraph() {
