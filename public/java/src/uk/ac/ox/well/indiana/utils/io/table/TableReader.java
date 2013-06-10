@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
+import ch.qos.logback.classic.Logger;
+
 /**
  * Streams very large text-based tables by first making a pass through the file to find all the line breaks
  * and once again to determine the positions of those breaks (and thus the record lengths).
@@ -20,16 +22,30 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
     private String[] header;
     private int nextRecordIndex;
 
+    private Logger log;
+
     public TableReader(String fileToRead) {
-        loadTable(new File(fileToRead));
+        loadTable(new File(fileToRead), null);
     }
 
     public TableReader(File fileToRead) {
-        loadTable(fileToRead);
+        loadTable(fileToRead, null);
     }
 
-    private void loadTable(File fileToRead) {
+    public TableReader(String fileToRead, Logger log) {
+        loadTable(new File(fileToRead), log);
+    }
+
+    public TableReader(File fileToRead, Logger log) {
+        loadTable(fileToRead, log);
+    }
+
+    private void loadTable(File fileToRead, Logger log) {
+        this.log = log;
+
         try {
+            if (this.log != null) { this.log.info("Loading table records"); }
+
             FileInputStream fis = new FileInputStream(fileToRead);
             mappedRecordBuffer = ByteBufferInputStream.map(fis.getChannel(), FileChannel.MapMode.READ_ONLY);
 
