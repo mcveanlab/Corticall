@@ -1,7 +1,9 @@
 package uk.ac.ox.well.indiana.utils.containers;
 
 import com.google.common.base.Joiner;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
+import java.io.File;
 import java.util.*;
 
 public class DataFrame<R, C, D> {
@@ -13,6 +15,34 @@ public class DataFrame<R, C, D> {
 
     public DataFrame(D zeroValue) {
         this.zeroValue = zeroValue;
+    }
+
+    public DataFrame(File d, D zeroValue) {
+        this.zeroValue = zeroValue;
+
+        LineReader lr = new LineReader(d);
+        String[] header = lr.getNextRecord().split("\t");
+
+        String line;
+        while ((line = lr.getNextRecord()) != null) {
+            String[] fields = line.split("\t");
+
+            R rowName = (R) fields[0];
+
+            for (int i = 1; i < fields.length; i++) {
+                C colName = (C) header[i];
+                String entry = fields[i];
+                D value = zeroValue;
+
+                System.out.println("loading: " + rowName + " " + colName);
+
+                if (zeroValue instanceof Float) {
+                    value = (D) Float.valueOf((String) entry);
+                }
+
+                set(rowName, colName, value);
+            }
+        }
     }
 
     public void set(R rowName, C colName, D datum) {
@@ -46,6 +76,25 @@ public class DataFrame<R, C, D> {
         }
 
         return zeroValue;
+    }
+
+    public void addMatrix(DataFrame<R, C, D> d) {
+        Collection<R> rows = d.getRowNames();
+        Collection<C> cols = d.getColNames();
+
+        for (R r : rows) {
+            for (C c : cols) {
+                D v0 = this.get(r, c);
+                D v1 = d.get(r, c);
+
+                System.out.println(r + " " + c);
+
+                if (v0 instanceof Float && v1 instanceof Float) {
+                    Float v2 = ((Float) v0).floatValue() + ((Float) v1).floatValue();
+                    this.set(r, c, (D) v2);
+                }
+            }
+        }
     }
 
     public String toString() {
