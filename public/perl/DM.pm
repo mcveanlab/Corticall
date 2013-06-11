@@ -162,8 +162,8 @@ sub new {
     my %self = (
 
         # Make options
-        'dryRun'  => 1, # show what will be run, but don't actually run anything
-        'numJobs' => 1
+        'dryRun'         => 1, # show what will be run, but don't actually run anything
+        'numJobs'        => 1
         , # maximum number of jobs to run, or "" for maximum concurrency permitted by dependencies
           # Applicable to queue and non-queue situations
         'keepGoing'      => 0,
@@ -175,10 +175,10 @@ sub new {
         'unlink'         => 1,    # 0 = don't clean tmp file
 
         # Cluster engine options
-        'queue'    => undef,
-        'cluster'  => undef,
-        'PE'       => { name => undef, range => undef },  # parallel environment
-        'memLimit' => 4,                                  # in gigabytes
+        'queue'          => undef,
+        'cluster'        => undef,
+        'PE'             => { name => undef, range => undef },  # parallel environment
+        'memRequest'     => 4,                                  # in gigabytes
         'rerunnable'     => 0,
         'name'           => undef,
         'projectName'    => undef,
@@ -187,9 +187,9 @@ sub new {
         supportedEngines => { SGE => 1, localhost => 1, LSF => 0, PBS => 0 },
 
         # make options
-        'tmpdir'  => '/tmp',
-        'target'  => 'all',
-        'targets' => [],
+        'tmpdir'         => '/tmp',
+        'target'         => 'all',
+        'targets'        => [],
 
         # job array related information
         # check for undef to determine if job array has been
@@ -266,7 +266,7 @@ sub addRule {
         'cluster'     => $self->{'cluster'},
         'queue'       => $self->{'queue'},
         'PE'          => $self->{'PE'},
-        'memLimit'    => $self->{'memLimit'},
+        'memRequest'  => $self->{'memRequest'},
         'rerunnable'  => $self->{'rerunnable'},
         'name'        => $self->{'name'},
         'projectName' => $self->{'projectName'},
