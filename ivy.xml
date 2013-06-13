@@ -6,84 +6,29 @@
     </configurations>
 
     <dependencies defaultconf="default">
-        <!-- Logging dependency -->
+        <!-- Dependencies that can be satisifed with Maven repository -->
         <dependency org="ch.qos.logback" name="logback-classic" rev="1.0.6" />
-
-        <!-- Performance checking -->
         <dependency org="org.perf4j" name="perf4j" rev="0.9.16" />
-
-        <!-- Sizeof -->
         <dependency org="com.carrotsearch" name="java-sizeof" rev="0.0.3" />
-
-        <!-- Reflections dependency -->
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
-
-        <!-- Apache commons CLI: command line argument parser -->
         <dependency org="commons-cli" name="commons-cli" rev="1.2" />
-
-        <!-- Apache commons JEXL: Java expression language -->
         <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1" />
-
-        <!-- DSI Utils -->
         <dependency org="it.unimi.dsi" name="dsiutils" rev="2.0.10" />
-
-        <!-- JGraphT -->
         <dependency org="org.jgrapht" name="jgrapht" rev="0.8.3" />
-
-        <!-- Stuff for making interactive maps -->
-        <dependency org="org.xerial" name="sqlite-jdbc" rev="3.6.16" />
-
-        <!-- TestNG -->
         <dependency org="org.testng" name="testng" rev="6.8" />
-
-        <!-- Colt -->
         <dependency org="colt" name="colt" rev="1.2.0" />
+        <dependency org="com.typesafe.akka" name="akka" rev="2.1.4" />
 
-        <!-- Processing (local repo) -->
+        <!-- Dependencies that can be satisifed with local repository -->
         <dependency org="org.processing" name="core" rev="2.0b3" />
         <dependency org="org.processing" name="pdf" rev="2.0b3" />
         <dependency org="org.processing" name="itext" rev="2.0b3" />
-
-        <!--
-        <dependency org="org.processing" name="core" rev="latest" />
-        <dependency org="org.processing" name="pdf" rev="latest" />
-        <dependency org="org.processing" name="itext" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-amd64" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-armv6hf" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-i586" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-macosx-universal" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-windows-amd64" rev="latest" >
-        <dependency org="org.processing" name="gluegen-rt-natives-windows-i586" rev="latest" >
-        <dependency org="org.processing" name="jogl-all" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-linux-amd64" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-linux-armv6hf" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-linux-i586" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-macosx-universal" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-windows-amd64" rev="latest" >
-        <dependency org="org.processing" name="jogl-all-natives-windows-i586" rev="latest" >
-        -->
-
         <dependency org="org.gicentre" name="gicentreUtils" rev="3.2.0" />
-
-        <!-- SAM-JDK (local repo) -->
         <dependency org="net.sf.picard" name="sam" rev="latest" />
-
-        <!-- Picard (local repo) -->
         <dependency org="net.sf.picard" name="picard" rev="latest" />
-
-        <!-- JAHMM (local repo) -->
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
 
-        <!-- Modest Maps (local repo) -->
-        <dependency org="com.modestmaps" name="modestmaps" rev="latest" />
-
-        <!-- Casper datasets (local repo) -->
-        <dependency org="net.casper" name="casperdatasets" rev="2.1.0" />
-        <dependency org="net.casper" name="casperdatasets-io" rev="2.2.0" />
-        <dependency org="net.casper" name="casperdatasets-ext" rev="2.2.0" />
-
-        <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
+        <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm -->
         <exclude org="javax.servlet" />
         <exclude org="javax.jms" />
         <exclude org="com.sun.*" />

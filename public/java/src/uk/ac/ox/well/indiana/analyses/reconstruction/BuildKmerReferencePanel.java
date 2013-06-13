@@ -30,7 +30,7 @@ public class BuildKmerReferencePanel extends Tool {
 
     private class KmerInfo {
         public String gene;
-        public int count = 0;
+        //public int count = 0;
     }
 
     @Override
@@ -39,8 +39,31 @@ public class BuildKmerReferencePanel extends Tool {
             throw new RuntimeException("Number of references and GFFs supplied must be identical");
         }
 
-        Map<CortexKmer, KmerInfo> kmerInfoMap = new HashMap<CortexKmer, KmerInfo>();
+        Map<CortexKmer, Integer> kmerCount = new HashMap<CortexKmer, Integer>();
+        for (IndexedFastaSequenceFile reference : REFERENCES) {
+            log.info("Loading kmers from '{}'", reference);
 
+            ReferenceSequence seq;
+
+            while ((seq = reference.nextSequence()) != null) {
+                for (int j = 0; j <= seq.length() - KMER_SIZE; j++) {
+                    byte[] bkmer = new byte[KMER_SIZE];
+                    System.arraycopy(seq.getBases(), j, bkmer, 0, KMER_SIZE);
+
+                    CortexKmer ck = new CortexKmer(bkmer);
+
+                    if (!kmerCount.containsKey(ck)) {
+                        kmerCount.put(ck, 1);
+                    } else {
+                        kmerCount.put(ck, kmerCount.get(ck) + 1);
+                    }
+                }
+            }
+
+            log.info("Loaded {} total kmers", kmerCount.size());
+        }
+
+        Map<CortexKmer, KmerInfo> kmerInfoMap = new HashMap<CortexKmer, KmerInfo>();
         for (int i = 0; i < REFERENCES.size(); i++) {
             IndexedFastaSequenceFile reference = REFERENCES.get(i);
             GFF3 gff = GFFS.get(i);
@@ -48,20 +71,19 @@ public class BuildKmerReferencePanel extends Tool {
             for (GFF3Record gr : gff) {
                 if ("gene".equals(gr.getType())) {
                     ReferenceSequence subseq = reference.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd());
-                    byte[] seq = subseq.getBases();
 
-                    for (int j = 0; j <= seq.length - KMER_SIZE; j++) {
-
+                    for (int j = 0; j <= subseq.length() - KMER_SIZE; j++) {
                         byte[] bkmer = new byte[KMER_SIZE];
                         System.arraycopy(subseq.getBases(), j, bkmer, 0, KMER_SIZE);
 
                         CortexKmer ck = new CortexKmer(bkmer);
 
-                        KmerInfo ki = (kmerInfoMap.containsKey(ck)) ? kmerInfoMap.get(ck) : new KmerInfo();
-                        ki.gene = gr.getAttribute("ID");
-                        ki.count++;
+                        if (kmerCount.containsKey(ck) && kmerCount.get(ck) == 1) {
+                            KmerInfo ki = (kmerInfoMap.containsKey(ck)) ? kmerInfoMap.get(ck) : new KmerInfo();
+                            ki.gene = gr.getAttribute("ID");
 
-                        kmerInfoMap.put(ck, ki);
+                            kmerInfoMap.put(ck, ki);
+                        }
                     }
                 }
             }
@@ -73,7 +95,7 @@ public class BuildKmerReferencePanel extends Tool {
         for (CortexKmer ck : kmerInfoMap.keySet()) {
             KmerInfo ki = kmerInfoMap.get(ck);
 
-            if (ki.count == 1) {
+            //if (ki.count == 1) {
                 Map<String, String> entry = new HashMap<String, String>();
                 entry.put("kmer", ck.getKmerAsString());
                 entry.put("gene", ki.gene);
@@ -81,7 +103,7 @@ public class BuildKmerReferencePanel extends Tool {
                 tw.addEntry(entry);
 
                 i++;
-            }
+            //}
         }
 
         log.info("Wrote {} records", i);
