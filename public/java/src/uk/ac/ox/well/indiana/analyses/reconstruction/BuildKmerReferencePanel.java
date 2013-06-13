@@ -46,6 +46,8 @@ public class BuildKmerReferencePanel extends Tool {
             ReferenceSequence seq;
 
             while ((seq = reference.nextSequence()) != null) {
+                log.info("\tProcessing seq '{}'", seq);
+
                 for (int j = 0; j <= seq.length() - KMER_SIZE; j++) {
                     byte[] bkmer = new byte[KMER_SIZE];
                     System.arraycopy(seq.getBases(), j, bkmer, 0, KMER_SIZE);
