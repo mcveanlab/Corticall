@@ -328,7 +328,7 @@ sub addRule {
         $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
           . (
             defined $memRequest
-            ? qq/ -l h_vmem=${memRequest}G/
+            ? qq/ -l mem_free=${memRequest}G,h_vmem=${memRequest}G/
             : q//
           ) . " -o $bja{'outputFile'} -N $bja{'name'}";
         $cmdprefix .=
