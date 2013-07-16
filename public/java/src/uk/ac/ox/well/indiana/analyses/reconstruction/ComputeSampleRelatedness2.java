@@ -25,11 +25,30 @@ public class ComputeSampleRelatedness2 extends Tool {
     @Argument(fullName="endIndex", shortName="ei", doc="Ending index (-1 to process entire list)")
     public Integer END_INDEX = -1;
 
+    @Argument(fullName="panelKmersOnly", shortName="pko", doc="Use only panel kmers")
+    public Boolean PANEL_KMERS_ONLY = false;
+
+    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel", required=false)
+    public File KMER_REFERENCE_PANEL;
+
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
+        Set<CortexKmer> kmerReferencePanel = new HashSet<CortexKmer>();
+
+        if (KMER_REFERENCE_PANEL != null) {
+            TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
+
+            for (Map<String, String> te : tr) {
+                String kmer = te.get("kmer");
+                CortexKmer ck = new CortexKmer(kmer);
+
+                kmerReferencePanel.add(ck);
+            }
+        }
+
         DataFrame<String, String, Float> relatedness = new DataFrame<String, String, Float>(0.0f);
 
         int startIndex = START_INDEX;
@@ -48,7 +67,9 @@ public class ComputeSampleRelatedness2 extends Tool {
                 kmers.addAll(cortexMap2.keySet());
 
                 for (CortexKmer kmer : kmers) {
-                    if (cortexMap1.containsKey(kmer) && cortexMap2.containsKey(kmer)) {
+                    boolean useThisKmer = !PANEL_KMERS_ONLY || kmerReferencePanel.contains(kmer);
+
+                    if (useThisKmer && cortexMap1.containsKey(kmer) && cortexMap2.containsKey(kmer)) {
                         CortexRecord cortexRecord1 = cortexMap1.get(kmer);
                         CortexRecord cortexRecord2 = cortexMap2.get(kmer);
 
