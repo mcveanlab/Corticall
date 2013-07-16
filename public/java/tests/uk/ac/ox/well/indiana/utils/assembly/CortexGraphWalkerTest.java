@@ -1,6 +1,9 @@
 package uk.ac.ox.well.indiana.utils.assembly;
 
 import net.sf.picard.reference.FastaSequenceFile;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.ext.DOTExporter;
+import org.jgrapht.graph.DefaultEdge;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -11,6 +14,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class CortexGraphWalkerTest {
@@ -75,5 +80,22 @@ public class CortexGraphWalkerTest {
 
             Assert.assertTrue(cg14Seq.contains(fw) || cg14Seq.contains(rc));
         }
+    }
+
+    @Test
+    public void testBuildLocalGraph() {
+        CortexKmer panelKmer = new CortexKmer("TCTTCTCTTGTTTATACTTATGCCATAAGAA");
+
+        DirectedGraph<CortexKmer, DefaultEdge> graph = cgw.buildLocalGraph(0, panelKmer, 1);
+
+        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+
+        try {
+            exporter.export(new FileWriter("initial-graph.dot"), graph);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //System.out.println(graph);
     }
 }
