@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -16,7 +16,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.TreeSet;
 
-public class CreateKmerReferencePanel extends Tool {
+public class CreateKmerReferencePanel extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference genome")
     public IndexedFastaSequenceFile REFERENCE;
 

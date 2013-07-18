@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class ExtractNonEctopicContigs extends Tool {
+public class ExtractNonEctopicContigs extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
     public File CONTIG_TABLE;
 

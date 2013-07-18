@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BuildKmerReferencePanel extends Tool {
+public class BuildKmerReferencePanel extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference(s)")
     public ArrayList<IndexedFastaSequenceFile> REFERENCES;
 

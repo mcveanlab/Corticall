@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
@@ -14,7 +14,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class CreateRelatednessMatrix extends Tool {
+public class CreateRelatednessMatrix extends Module {
     @Argument(fullName="tables", shortName="t", doc="Tables of other samples' sequences")
     public ArrayList<File> TABLES;
 

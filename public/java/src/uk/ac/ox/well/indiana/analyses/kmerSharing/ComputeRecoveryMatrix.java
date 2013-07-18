@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
@@ -11,7 +11,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class ComputeRecoveryMatrix extends Tool {
+public class ComputeRecoveryMatrix extends Module {
     @Argument(fullName="referenceTable", shortName="rt", doc="Reference table (the table that contains *all* kmers)")
     public File REFERENCE_TABLE;
 

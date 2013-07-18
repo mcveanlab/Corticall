@@ -1,21 +1,18 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
-import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.*;
 import java.util.*;
 
-public class ComputeSampleRelatedness2 extends Tool {
+public class ComputeSampleRelatedness2 extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public ArrayList<File> CORTEX_GRAPHS;
 

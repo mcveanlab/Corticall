@@ -121,7 +121,15 @@ public class CortexGraphWalker {
     }
 
     private DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, boolean goLeft, int maxForks, DirectedGraph<CortexKmer, DefaultEdge> g) {
+        Set<CortexKmer> soughtKmers = new HashSet<CortexKmer>();
+        soughtKmers.add(new CortexKmer("TATATATATATATATATTATATGTGTATATG"));
+        soughtKmers.add(new CortexKmer("CATATACACATATAATATATATATATATATA"));
+
         if (cortexMap.containsKey(panelKmer)) {
+            if (soughtKmers.contains(panelKmer)) {
+                System.out.println("Saw sought kmer '" + panelKmer + "'");
+            }
+
             Set<CortexKmer> seenKmers = new HashSet<CortexKmer>();
 
             // First, add our panel kmer to the graph
@@ -131,6 +139,9 @@ public class CortexGraphWalker {
             CortexRecord record = cortexMap.get(panelKmer);
             Collection<Byte> edges = goLeft ? record.getInEdgesAsBytes(color) : record.getOutEdgesAsBytes(color);
             byte[] currentKmer = record.getKmerAsBytes();
+            //CortexKmer currentCortexKmer = panelKmer;
+
+            boolean first = true;
 
             // If there's only one next edge, proceed
             while (record != null && !seenKmers.contains(record.getKmer()) && edges.size() == 1) {
@@ -155,7 +166,12 @@ public class CortexGraphWalker {
                 if (record != null) {
                     // Now add it to the graph
                     g.addVertex(nextKmer);
-                    g.addEdge(new CortexKmer(currentKmer), nextKmer);
+                    if (first) {
+                        g.addEdge(panelKmer, nextKmer);
+                        first = false;
+                    } else {
+                        g.addEdge(new CortexKmer(currentKmer), nextKmer);
+                    }
 
                     if (goLeft) {
                         edges = nextKmer.isFlipped() ? record.getOutEdgesComplementAsBytes(color) : record.getInEdgesAsBytes(color);
@@ -163,16 +179,13 @@ public class CortexGraphWalker {
                         edges = nextKmer.isFlipped() ? record.getInEdgesComplementAsBytes(color) : record.getOutEdgesAsBytes(color);
                     }
                     currentKmer = newKmer;
+                    //currentCortexKmer = record.getKmer();
                 }
             }
 
-            //return g;
-
+            // If we're allowing ourselves to navigate
             if (maxForks > 0 && edges.size() > 1) {
                 CortexKmer ck = new CortexKmer(currentKmer);
-
-                System.out.println(edges.size());
-                System.out.println(ck + " " + ck.isFlipped());
 
                 for (Byte edge : edges) {
                     byte[] newKmer = new byte[currentKmer.length];
@@ -187,10 +200,12 @@ public class CortexGraphWalker {
 
                     CortexKmer k2 = new CortexKmer(newKmer);
 
-                    System.out.println(" " + k2 + " " + k2.isFlipped());
-
                     g.addVertex(k2);
                     g.addEdge(ck, k2);
+
+                    if (soughtKmers.contains(k2)) {
+                        System.out.println("Saw sought kmer '" + k2 + "'");
+                    }
 
                     g = buildLocalGraph(color, k2, k2.isFlipped() ? !goLeft : goLeft, maxForks - 1, g);
                 }
@@ -202,12 +217,22 @@ public class CortexGraphWalker {
         return null;
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
+    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
         DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
 
-        buildLocalGraph(color, panelKmer, true, maxForks, g);
-        buildLocalGraph(color, panelKmer, false, maxForks, g);
+        // This is here to address a weird bug.  If you call this method with a CortexKmer that was constructed with
+        // non-alphanumerically-lowest kmer, the graph object will contain one extra vertex with the non-alphanumerically
+        // lowest kmer.  This is solved by simply ensuring the CortexKmer that we start with does *not* have the
+        // isFlipped == true attribute.
+        CortexKmer pk = new CortexKmer(panelKmer.getKmerAsString());
+
+        buildLocalGraph(color, pk, true, maxForksLeft, g);
+        buildLocalGraph(color, pk, false, maxForksRight, g);
 
         return g;
+    }
+
+    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
+        return buildLocalGraph(color, panelKmer, maxForks, maxForks);
     }
 }

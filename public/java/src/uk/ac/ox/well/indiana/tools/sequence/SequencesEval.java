@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.tools.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.alignment.NeedlemanWunsch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SequencesEval extends Tool {
+public class SequencesEval extends Module {
     @Argument(fullName="fasta", shortName="f", doc="Fasta file with sequences to compare")
     public FastaSequenceFile FASTA;
 

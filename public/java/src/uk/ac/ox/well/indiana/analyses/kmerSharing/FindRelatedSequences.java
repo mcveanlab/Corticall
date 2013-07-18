@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class FindRelatedSequences extends Tool {
+public class FindRelatedSequences extends Module {
     @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel")
     public File KMER_REFERENCE_PANEL;
 

@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.tools.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class ExtractTranscriptsFromFasta extends Tool {
+public class ExtractTranscriptsFromFasta extends Module {
     @Argument(fullName="fasta", shortName="f", doc="Fasta file from which sequences should be extracted")
     public FastaSequenceFile FASTA;
 

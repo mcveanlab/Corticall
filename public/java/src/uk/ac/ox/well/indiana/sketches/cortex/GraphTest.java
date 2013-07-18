@@ -5,14 +5,14 @@ import org.jgrapht.ext.DOTExporter;
 import org.jgrapht.ext.StringNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class GraphTest extends Tool {
+public class GraphTest extends Module {
     @Argument(fullName="g1", shortName="g1", doc="Graph 1")
     public String G1;
 

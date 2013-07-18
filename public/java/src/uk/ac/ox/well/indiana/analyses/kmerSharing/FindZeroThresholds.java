@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FindZeroThresholds extends Tool {
+public class FindZeroThresholds extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public File CORTEX_GRAPH;
 
