@@ -84,18 +84,17 @@ public class CortexGraphWalkerTest {
 
     @Test
     public void testBuildLocalGraph() {
-        CortexKmer panelKmer = new CortexKmer("TCTTCTCTTGTTTATACTTATGCCATAAGAA");
+        CortexKmer panelKmer = new CortexKmer("AACGGCCGCTGTGGAAACTTTTTTCTTATGG");
 
-        DirectedGraph<CortexKmer, DefaultEdge> graph = cgw.buildLocalGraph(0, panelKmer, 1);
+        DirectedGraph<CortexKmer, DefaultEdge> graph = cgw.buildLocalGraph(0, panelKmer, 2);
 
         DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+        //DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>();
 
         try {
-            exporter.export(new FileWriter("initial-graph.dot"), graph);
+            exporter.export(new FileWriter("initial-graph-5.dot"), graph);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        //System.out.println(graph);
     }
 }
