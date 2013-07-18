@@ -120,28 +120,33 @@ public class CortexGraphWalker {
         return contigs;
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraphLeft(int color, CortexKmer panelKmer) {
+    private DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, boolean goLeft, int maxForks, DirectedGraph<CortexKmer, DefaultEdge> g) {
         if (cortexMap.containsKey(panelKmer)) {
             Set<CortexKmer> seenKmers = new HashSet<CortexKmer>();
-            DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
 
             // First, add our panel kmer to the graph
             g.addVertex(panelKmer);
-            System.out.println(panelKmer.isFlipped() ? SequenceUtils.reverseComplement(panelKmer.getKmerAsString()) + " " + panelKmer : panelKmer + " " + SequenceUtils.reverseComplement(panelKmer.getKmerAsString()));
 
             // Next, figure out what the next edges are
             CortexRecord record = cortexMap.get(panelKmer);
-            Collection<Byte> leftEdges = record.getInEdgesAsBytes(color);
+            Collection<Byte> edges = goLeft ? record.getInEdgesAsBytes(color) : record.getOutEdgesAsBytes(color);
             byte[] currentKmer = record.getKmerAsBytes();
 
             // If there's only one next edge, proceed
-            while (record != null && !seenKmers.contains(record.getKmer()) && leftEdges.size() == 1) {
+            while (record != null && !seenKmers.contains(record.getKmer()) && edges.size() == 1) {
                 seenKmers.add(record.getKmer());
 
                 // Construct the next kmer based on this edge
                 byte[] newKmer = new byte[currentKmer.length];
-                newKmer[0] = leftEdges.iterator().next();
-                System.arraycopy(currentKmer, 0, newKmer, 1, currentKmer.length - 1);
+
+                if (goLeft) {
+                    newKmer[0] = edges.iterator().next();
+                    System.arraycopy(currentKmer, 0, newKmer, 1, currentKmer.length - 1);
+                } else {
+                    System.arraycopy(currentKmer, 1, newKmer, 0, currentKmer.length - 1);
+                    newKmer[currentKmer.length - 1] = edges.iterator().next();
+                }
+
                 CortexKmer nextKmer = new CortexKmer(newKmer);
 
                 record = cortexMap.get(nextKmer);
@@ -151,11 +156,43 @@ public class CortexGraphWalker {
                     // Now add it to the graph
                     g.addVertex(nextKmer);
                     g.addEdge(new CortexKmer(currentKmer), nextKmer);
-                    System.out.println(nextKmer.isFlipped() ? SequenceUtils.reverseComplement(nextKmer.getKmerAsString()) + " " + nextKmer : nextKmer + " " + SequenceUtils.reverseComplement(nextKmer.getKmerAsString()));
 
-                    leftEdges = nextKmer.isFlipped() ? record.getOutEdgesComplementAsBytes(color) : record.getInEdgesAsBytes(color);
+                    if (goLeft) {
+                        edges = nextKmer.isFlipped() ? record.getOutEdgesComplementAsBytes(color) : record.getInEdgesAsBytes(color);
+                    } else {
+                        edges = nextKmer.isFlipped() ? record.getInEdgesComplementAsBytes(color) : record.getOutEdgesAsBytes(color);
+                    }
                     currentKmer = newKmer;
+                }
+            }
 
+            //return g;
+
+            if (maxForks > 0 && edges.size() > 1) {
+                CortexKmer ck = new CortexKmer(currentKmer);
+
+                System.out.println(edges.size());
+                System.out.println(ck + " " + ck.isFlipped());
+
+                for (Byte edge : edges) {
+                    byte[] newKmer = new byte[currentKmer.length];
+
+                    if (goLeft) {
+                        newKmer[0] = edge;
+                        System.arraycopy(currentKmer, 0, newKmer, 1, currentKmer.length - 1);
+                    } else {
+                        System.arraycopy(currentKmer, 1, newKmer, 0, currentKmer.length - 1);
+                        newKmer[currentKmer.length - 1] = edge;
+                    }
+
+                    CortexKmer k2 = new CortexKmer(newKmer);
+
+                    System.out.println(" " + k2 + " " + k2.isFlipped());
+
+                    g.addVertex(k2);
+                    g.addEdge(ck, k2);
+
+                    g = buildLocalGraph(color, k2, k2.isFlipped() ? !goLeft : goLeft, maxForks - 1, g);
                 }
             }
 
@@ -166,7 +203,10 @@ public class CortexGraphWalker {
     }
 
     public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
-        DirectedGraph<CortexKmer, DefaultEdge> g = buildLocalGraphLeft(color, panelKmer);
+        DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
+
+        buildLocalGraph(color, panelKmer, true, maxForks, g);
+        buildLocalGraph(color, panelKmer, false, maxForks, g);
 
         return g;
     }

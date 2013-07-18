@@ -7,6 +7,8 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 public class CortexKmerNameProvider implements VertexNameProvider<CortexKmer> {
     @Override
     public String getVertexName(CortexKmer cortexKmer) {
-        return cortexKmer.isFlipped() ? SequenceUtils.reverseComplement(cortexKmer.getKmerAsString()) : cortexKmer.getKmerAsString();
+        String fullName = cortexKmer.isFlipped() ? SequenceUtils.reverseComplement(cortexKmer.getKmerAsString()) : cortexKmer.getKmerAsString();
+
+        return fullName;
     }
 }
