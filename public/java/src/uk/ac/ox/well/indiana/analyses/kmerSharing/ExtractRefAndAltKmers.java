@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ExtractRefAndAltKmers extends Tool {
+public class ExtractRefAndAltKmers extends Module {
     @Argument(fullName="relatedSequences", shortName="rs", doc="Related sequences")
     public ArrayList<File> RELATED_SEQUENCES;
 

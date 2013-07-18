@@ -1,10 +1,9 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.*;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.alignment.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -12,10 +11,9 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
-public class AlignContigsToReference extends Tool {
+public class AlignContigsToReference extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
     public File CONTIG_TABLE;
 

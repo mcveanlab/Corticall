@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -10,7 +10,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class ComputeKmerSharingMatrix extends Tool {
+public class ComputeKmerSharingMatrix extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

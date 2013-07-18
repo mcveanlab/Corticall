@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.tools.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.alignment.NeedlemanWunsch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeMap;
 
-public class AlignAndCreatePHASEFile extends Tool {
+public class AlignAndCreatePHASEFile extends Module {
     @Argument(fullName="fasta", shortName="f", doc="Fasta file to align and turn into a PHASE file")
     public FastaSequenceFile FASTA;
 

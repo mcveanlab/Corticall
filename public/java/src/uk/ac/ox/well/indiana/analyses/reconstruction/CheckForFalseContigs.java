@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class CheckForFalseContigs extends Tool {
+public class CheckForFalseContigs extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
     public File CONTIG_TABLE;
 

@@ -4,13 +4,13 @@ import be.ac.ulg.montefiore.run.jahmm.*;
 import be.ac.ulg.montefiore.run.jahmm.learn.BaumWelchLearner;
 import be.ac.ulg.montefiore.run.jahmm.toolbox.KullbackLeiblerDistanceCalculator;
 import be.ac.ulg.montefiore.run.jahmm.toolbox.MarkovGenerator;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DishonestCasinoExample extends Tool {
+public class DishonestCasinoExample extends Module {
     @Argument(fullName="iterations", shortName="i", doc="Number of iterations for HMM refinement")
     public Integer ITERATIONS = 10;
 

@@ -4,7 +4,7 @@ import net.sf.picard.reference.FastaSequenceFile;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -15,7 +15,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-public abstract class ViewCortexBase extends Tool {
+public abstract class ViewCortexBase extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

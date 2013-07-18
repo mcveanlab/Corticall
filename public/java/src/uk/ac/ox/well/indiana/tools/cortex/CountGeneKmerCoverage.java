@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.tools.cortex;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexColor;
@@ -14,7 +14,7 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class CountGeneKmerCoverage extends Tool {
+public class CountGeneKmerCoverage extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

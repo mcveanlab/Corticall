@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import cern.colt.matrix.DoubleMatrix1D;
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ComputeSampleRelatedness extends Tool {
+public class ComputeSampleRelatedness extends Module {
     @Argument(fullName="kmerSharingMatrix", shortName="ksm", doc="Kmer sharing matrix")
     public File KMER_SHARING_MATRIX;
 

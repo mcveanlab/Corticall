@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.assembly;
 
 import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.ext.DOTExporter;
 import org.jgrapht.graph.DefaultEdge;
@@ -27,6 +28,9 @@ public class CortexGraphWalkerTest {
     private CortexMap cg14Map;
     private CortexGraphWalker cg14Walker;
 
+    private DirectedGraph<CortexKmer, DefaultEdge> gfw;
+    private DirectedGraph<CortexKmer, DefaultEdge> grc;
+
     @BeforeClass
     public void setup() {
         records = new HashMap<String, CortexRecord>();
@@ -43,6 +47,15 @@ public class CortexGraphWalkerTest {
         cg14Seq = new String(cg14Fasta.nextSequence().getBases());
         cg14Map = new CortexMap(new File("testdata/Pf3D7_14_v3.ctx"));
         cg14Walker = new CortexGraphWalker(cg14Map);
+
+        String fw = "AACGGCCGCTGTGGAAACTTTTTTCTTATGG";
+        String rc = SequenceUtils.reverseComplement(fw);
+
+        CortexKmer ckfw = new CortexKmer(fw);
+        CortexKmer ckrc = new CortexKmer(rc);
+
+        gfw = cgw.buildLocalGraph(0, ckfw, 1);
+        grc = cgw.buildLocalGraph(0, ckrc, 1);
     }
 
     @Test
@@ -83,18 +96,77 @@ public class CortexGraphWalkerTest {
     }
 
     @Test
-    public void testBuildLocalGraph() {
-        CortexKmer panelKmer = new CortexKmer("AACGGCCGCTGTGGAAACTTTTTTCTTATGG");
+    public void testLocalGraphContainsVerticesAndEdgesFromFastaFile() {
+        int kmerSize = gfw.vertexSet().iterator().next().length();
 
-        DirectedGraph<CortexKmer, DefaultEdge> graph = cgw.buildLocalGraph(0, panelKmer, 2);
+        FastaSequenceFile fa = new FastaSequenceFile(new File("testdata/test_gene_for_sn_reconstruction.fasta"), true);
+        ReferenceSequence seq;
+        while ((seq = fa.nextSequence()) != null) {
+            String bases = new String(seq.getBases());
+
+            for (int i = 0; i < bases.length() - kmerSize; i++) {
+                String kmer0 = bases.substring(i, i + kmerSize);
+                CortexKmer ck0 = new CortexKmer(kmer0);
+
+                String kmer1 = bases.substring(i + 1, i + 1 + kmerSize);
+                CortexKmer ck1 = new CortexKmer(kmer1);
+
+                Assert.assertTrue(gfw.containsVertex(ck0), "Fw graph does not contain vertex '" + ck0 + "'");
+                Assert.assertTrue(gfw.containsVertex(ck1), "Fw graph does not contain vertex '" + ck1 + "'");
+                Assert.assertTrue(gfw.containsEdge(ck0, ck1) || gfw.containsEdge(ck1, ck0), "Fw graph does not contain edge ['" + ck0 + "', '" + ck1 + "']");
+
+                Assert.assertTrue(grc.containsVertex(ck0), "Rc graph does not contain vertex '" + ck0 + "'");
+                Assert.assertTrue(grc.containsVertex(ck1), "Rc graph does not contain vertex '" + ck1 + "'");
+                Assert.assertTrue(grc.containsEdge(ck0, ck1) || grc.containsEdge(ck1, ck0), "Rc graph does not contain edge ['" + ck0 + "', '" + ck1 + "']");
+            }
+        }
+
+        for (CortexKmer ck : gfw.vertexSet()) {
+            Assert.assertTrue(grc.containsVertex(ck), "Fw graph contains a vertex that the rc graph does not ('" + ck + "')");
+        }
+    }
+
+    @Test
+    public void testLocalGraphContainsExpectedForks() {
+        CortexKmer aPanelKmer = new CortexKmer("CCGCCTTCGTGGAAACGGCCGCTGTGGAAAC");
+        CortexKmer aIncomingKmer1 = new CortexKmer("CGCCTTCGTGGAAACGGCCGCTGTGGAAACT");
+        CortexKmer aOutgoingKmer1 = new CortexKmer("ACCGCCTTCGTGGAAACGGCCGCTGTGGAAA");
+        CortexKmer aOutgoingKmer2 = new CortexKmer("GCCGCCTTCGTGGAAACGGCCGCTGTGGAAA");
+
+        Assert.assertTrue(gfw.containsVertex(aPanelKmer));
+        Assert.assertTrue(gfw.containsEdge(aIncomingKmer1, aPanelKmer));
+        Assert.assertTrue(gfw.containsEdge(aPanelKmer, aOutgoingKmer1));
+        Assert.assertTrue(gfw.containsEdge(aPanelKmer, aOutgoingKmer2));
+        Assert.assertEquals(gfw.inDegreeOf(aPanelKmer), 1);
+        Assert.assertEquals(gfw.outDegreeOf(aPanelKmer), 2);
+
+        CortexKmer bPanelKmer = new CortexKmer("GAAGTGGGAGGTGCAGCGGGAGTACTACAAA");
+        CortexKmer bIncomingKmer1 = new CortexKmer("TGAAGTGGGAGGTGCAGCGGGAGTACTACAA");
+        CortexKmer bOutgoingKmer1 = new CortexKmer("AAGTGGGAGGTGCAGCGGGAGTACTACAAAC");
+        CortexKmer bOutgoingKmer2 = new CortexKmer("AAGTGGGAGGTGCAGCGGGAGTACTACAAAT");
+
+        Assert.assertTrue(gfw.containsVertex(bPanelKmer));
+        Assert.assertTrue(gfw.containsEdge(bIncomingKmer1, bPanelKmer));
+        Assert.assertTrue(gfw.containsEdge(bPanelKmer, bOutgoingKmer1));
+        Assert.assertTrue(gfw.containsEdge(bPanelKmer, bOutgoingKmer2));
+        Assert.assertEquals(gfw.inDegreeOf(bPanelKmer), 1);
+        Assert.assertEquals(gfw.outDegreeOf(bPanelKmer), 2);
+    }
+
+    @Test
+    public void testThatGraphDoesNotHaveAStrangeDisconnection() {
+        CortexMap cm = new CortexMap("testdata/PF3D7_0115700.ctx");
+        CortexKmer ck = new CortexKmer("TCTAGTTTTTGGTTATCTATCCAGTTCACAA");
+        //CortexKmer ck = new CortexKmer("ATATATATATATATATTATATGTGTATATGT");
+        CortexGraphWalker gw = new CortexGraphWalker(cm);
+
+        DirectedGraph<CortexKmer, DefaultEdge> g = gw.buildLocalGraph(0, ck, 1, 1);
 
         DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
-        //DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>();
-
         try {
-            exporter.export(new FileWriter("initial-graph-5.dot"), graph);
+            exporter.export(new FileWriter("test5.dot"), g);
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 }

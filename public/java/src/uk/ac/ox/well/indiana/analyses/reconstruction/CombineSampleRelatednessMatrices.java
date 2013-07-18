@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
@@ -9,7 +9,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class CombineSampleRelatednessMatrices extends Tool {
+public class CombineSampleRelatednessMatrices extends Module {
     @Argument(fullName="sampleRelatednessMatrices", shortName="srm", doc="Sample relatedness matrices")
     public ArrayList<File> MATRICES;
 

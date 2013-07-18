@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.assembly.CortexGraphWalker;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class BuildContigTable extends Tool {
+public class BuildContigTable extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexMap CORTEX_MAP;
 

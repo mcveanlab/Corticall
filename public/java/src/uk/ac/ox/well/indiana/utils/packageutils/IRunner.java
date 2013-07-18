@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.utils.packageutils;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 
 /**
  * Instantiates a module and passes it command-line arguments.
@@ -20,9 +20,9 @@ public class IRunner {
     @SuppressWarnings("unchecked")
     public static void main(String moduleName, String[] moduleArgs) {
         try {
-            Class<? extends Tool> module = (Class<? extends Tool>) Class.forName(moduleName);
+            Class<? extends Module> module = (Class<? extends Module>) Class.forName(moduleName);
 
-            Tool instance = module.newInstance();
+            Module instance = module.newInstance();
             instance.args = moduleArgs;
 
             instance.init();

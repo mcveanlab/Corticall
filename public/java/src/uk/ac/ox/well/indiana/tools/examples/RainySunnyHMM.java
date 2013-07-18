@@ -1,11 +1,11 @@
 package uk.ac.ox.well.indiana.tools.examples;
 
 import be.ac.ulg.montefiore.run.jahmm.*;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 
 import java.util.*;
 
-public class RainySunnyHMM extends Tool {
+public class RainySunnyHMM extends Module {
     private enum Task {
         WALK, SHOP, CLEAN;
 

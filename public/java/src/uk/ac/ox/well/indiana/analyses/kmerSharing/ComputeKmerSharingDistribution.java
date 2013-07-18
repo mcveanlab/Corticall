@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
@@ -14,7 +14,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ComputeKmerSharingDistribution extends Tool {
+public class ComputeKmerSharingDistribution extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

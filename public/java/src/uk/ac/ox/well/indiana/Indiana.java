@@ -10,7 +10,7 @@ import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
 import uk.ac.ox.well.indiana.sketches.Sketch;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
@@ -51,7 +51,7 @@ public class Indiana {
             } else {
                 Class module = modules.get(moduleName);
 
-                if (Tool.class.isAssignableFrom(module)) {
+                if (Module.class.isAssignableFrom(module)) {
                     IRunner.main(module.getName(), moduleArgs);
                 } else if (Sketch.class.isAssignableFrom(module)) {
                     ArrayList<String> newArgs = new ArrayList<String>();
@@ -139,7 +139,7 @@ public class Indiana {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        Map<String, Map<String, Class<? extends Tool>>> tools = new PackageInspector<Tool>(Tool.class).getExtendingClassTree();
+        Map<String, Map<String, Class<? extends Module>>> tools = new PackageInspector<Module>(Module.class).getExtendingClassTree();
         Map<String, Map<String, Class<? extends Sketch>>> sketches = new PackageInspector<Sketch>(Sketch.class).getExtendingClassTree();
 
         System.out.println();

@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.alignment.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ExportSupernodesToBAM extends Tool {
+public class ExportSupernodesToBAM extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")
     public IndexedFastaSequenceFile REFERENCE;
 

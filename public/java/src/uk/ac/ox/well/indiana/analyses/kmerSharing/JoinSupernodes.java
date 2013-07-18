@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.kmerSharing;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class JoinSupernodes extends Tool {
+public class JoinSupernodes extends Module {
     @Argument(fullName="supernodes", shortName="sn", doc="File of supernodes")
     public File SUPERNODES;
 

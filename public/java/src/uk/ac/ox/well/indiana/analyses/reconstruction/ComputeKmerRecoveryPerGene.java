@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -16,7 +16,7 @@ import java.util.*;
 /**
  * For each gene, show how many unique kmers were recovered per sample
  */
-public class ComputeKmerRecoveryPerGene extends Tool {
+public class ComputeKmerRecoveryPerGene extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 

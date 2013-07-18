@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
-import uk.ac.ox.well.indiana.tools.Tool;
+import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -11,7 +11,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class CombineContigTables extends Tool {
+public class CombineContigTables extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig tables")
     public ArrayList<File> CONTIG_TABLES;
 
