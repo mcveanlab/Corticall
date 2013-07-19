@@ -31,6 +31,9 @@ public class CortexGraphWalkerTest {
     private DirectedGraph<CortexKmer, DefaultEdge> gfw;
     private DirectedGraph<CortexKmer, DefaultEdge> grc;
 
+    private CortexKmer ckfw;
+    private CortexKmer ckrc;
+
     @BeforeClass
     public void setup() {
         records = new HashMap<String, CortexRecord>();
@@ -51,11 +54,8 @@ public class CortexGraphWalkerTest {
         String fw = "AACGGCCGCTGTGGAAACTTTTTTCTTATGG";
         String rc = SequenceUtils.reverseComplement(fw);
 
-        CortexKmer ckfw = new CortexKmer(fw);
-        CortexKmer ckrc = new CortexKmer(rc);
-
-        gfw = cgw.buildLocalGraph(0, ckfw, 1);
-        grc = cgw.buildLocalGraph(0, ckrc, 1);
+        ckfw = new CortexKmer(fw);
+        ckrc = new CortexKmer(rc);
     }
 
     @Test
@@ -97,6 +97,9 @@ public class CortexGraphWalkerTest {
 
     @Test
     public void testLocalGraphContainsVerticesAndEdgesFromFastaFile() {
+        gfw = cgw.buildLocalGraph(0, ckfw, 1);
+        grc = cgw.buildLocalGraph(0, ckrc, 1);
+
         int kmerSize = gfw.vertexSet().iterator().next().length();
 
         FastaSequenceFile fa = new FastaSequenceFile(new File("testdata/test_gene_for_sn_reconstruction.fasta"), true);
@@ -154,19 +157,20 @@ public class CortexGraphWalkerTest {
     }
 
     @Test
-    public void testThatGraphDoesNotHaveAStrangeDisconnection() {
-        CortexMap cm = new CortexMap("testdata/PF3D7_0115700.ctx");
-        CortexKmer ck = new CortexKmer("TCTAGTTTTTGGTTATCTATCCAGTTCACAA");
-        //CortexKmer ck = new CortexKmer("ATATATATATATATATTATATGTGTATATGT");
+    public void testMultiSampleGraph() {
+        System.out.println("testTwoSampleGraph()");
+
+        CortexMap cm = new CortexMap("testdata/samples_1_and_2.ctx");
+        CortexKmer ck = new CortexKmer("GGATAAATCAAGTATTGCTAACAAAATTGAA");
         CortexGraphWalker gw = new CortexGraphWalker(cm);
 
-        DirectedGraph<CortexKmer, DefaultEdge> g = gw.buildLocalGraph(0, ck, 1, 1);
+        DirectedGraph<CortexKmer, DefaultEdge> g = gw.buildLocalGraph(ck, 2);
 
-        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerIDProvider(), new CortexKmerLabelProvider(), null, new CortexKmerAttributeProvider(ck), null);
         try {
-            exporter.export(new FileWriter("test5.dot"), g);
+            exporter.export(new FileWriter("test10.dot"), g);
         } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         }
     }
 }

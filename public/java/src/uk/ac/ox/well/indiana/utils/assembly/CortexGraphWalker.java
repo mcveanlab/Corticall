@@ -4,6 +4,7 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
 import org.jgrapht.experimental.dag.DirectedAcyclicGraph;
+import org.jgrapht.ext.DOTExporter;
 import org.jgrapht.ext.VertexNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -13,6 +14,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class CortexGraphWalker {
@@ -122,12 +125,13 @@ public class CortexGraphWalker {
 
     private DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, boolean goLeft, int maxForks, DirectedGraph<CortexKmer, DefaultEdge> g) {
         Set<CortexKmer> soughtKmers = new HashSet<CortexKmer>();
-        soughtKmers.add(new CortexKmer("TATATATATATATATATTATATGTGTATATG"));
-        soughtKmers.add(new CortexKmer("CATATACACATATAATATATATATATATATA"));
+        soughtKmers.add(new CortexKmer("TTTTTATTTAATAAATTTGTTTTTATTTTAT"));
 
         if (cortexMap.containsKey(panelKmer)) {
-            if (soughtKmers.contains(panelKmer)) {
-                System.out.println("Saw sought kmer '" + panelKmer + "'");
+            System.out.println("Start: color=" + color + " kmer=" + panelKmer + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
+
+            if (soughtKmers.contains(panelKmer) && g.containsVertex(panelKmer)) {
+                System.out.println("Found kmer '" + panelKmer + "'");
             }
 
             Set<CortexKmer> seenKmers = new HashSet<CortexKmer>();
@@ -139,12 +143,13 @@ public class CortexGraphWalker {
             CortexRecord record = cortexMap.get(panelKmer);
             Collection<Byte> edges = goLeft ? record.getInEdgesAsBytes(color) : record.getOutEdgesAsBytes(color);
             byte[] currentKmer = record.getKmerAsBytes();
-            //CortexKmer currentCortexKmer = panelKmer;
 
             boolean first = true;
 
             // If there's only one next edge, proceed
             while (record != null && !seenKmers.contains(record.getKmer()) && edges.size() == 1) {
+                System.out.println("\tTraverse: color=" + color + " kmer=" + new CortexKmer(currentKmer) + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
+
                 seenKmers.add(record.getKmer());
 
                 // Construct the next kmer based on this edge
@@ -160,6 +165,12 @@ public class CortexGraphWalker {
 
                 CortexKmer nextKmer = new CortexKmer(newKmer);
 
+                System.out.println("\tNextkmer: color=" + color + " kmer=" + nextKmer + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
+
+                if (soughtKmers.contains(nextKmer) && g.containsVertex(nextKmer)) {
+                    System.out.println("Found kmer '" + nextKmer + "'");
+                }
+
                 record = cortexMap.get(nextKmer);
 
                 // Check to make sure this next kmer actually exists
@@ -167,10 +178,18 @@ public class CortexGraphWalker {
                     // Now add it to the graph
                     g.addVertex(nextKmer);
                     if (first) {
-                        g.addEdge(panelKmer, nextKmer);
+                        if (goLeft) {
+                            g.addEdge(panelKmer, nextKmer);
+                        } else {
+                            g.addEdge(nextKmer, panelKmer);
+                        }
                         first = false;
                     } else {
-                        g.addEdge(new CortexKmer(currentKmer), nextKmer);
+                        if (goLeft) {
+                            g.addEdge(new CortexKmer(currentKmer), nextKmer);
+                        } else {
+                            g.addEdge(nextKmer, new CortexKmer(currentKmer));
+                        }
                     }
 
                     if (goLeft) {
@@ -179,11 +198,22 @@ public class CortexGraphWalker {
                         edges = nextKmer.isFlipped() ? record.getInEdgesComplementAsBytes(color) : record.getOutEdgesAsBytes(color);
                     }
                     currentKmer = newKmer;
-                    //currentCortexKmer = record.getKmer();
                 }
+
+                /*
+                DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+                try {
+                    exporter.export(new FileWriter("test9.dot"), g);
+                    Thread.sleep(100);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                */
             }
 
-            // If we're allowing ourselves to navigate
+            // If we're allowing ourselves to navigate past forks, handle it here
             if (maxForks > 0 && edges.size() > 1) {
                 CortexKmer ck = new CortexKmer(currentKmer);
 
@@ -200,12 +230,19 @@ public class CortexGraphWalker {
 
                     CortexKmer k2 = new CortexKmer(newKmer);
 
-                    g.addVertex(k2);
-                    g.addEdge(ck, k2);
-
-                    if (soughtKmers.contains(k2)) {
-                        System.out.println("Saw sought kmer '" + k2 + "'");
+                    if (soughtKmers.contains(k2) && g.containsVertex(k2)) {
+                        System.out.println("Found kmer '" + k2 + "'");
                     }
+
+                    g.addVertex(k2);
+                    if (goLeft) {
+                        g.addEdge(ck, k2);
+                    } else {
+                        g.addEdge(k2, ck);
+                    }
+
+                    System.out.println("Branch from: color=" + color + " kmer=" + ck + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
+                    System.out.println("Branch to  : color=" + color + " kmer=" + k2 + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
 
                     g = buildLocalGraph(color, k2, k2.isFlipped() ? !goLeft : goLeft, maxForks - 1, g);
                 }
@@ -226,13 +263,29 @@ public class CortexGraphWalker {
         // isFlipped == true attribute.
         CortexKmer pk = new CortexKmer(panelKmer.getKmerAsString());
 
-        buildLocalGraph(color, pk, true, maxForksLeft, g);
-        buildLocalGraph(color, pk, false, maxForksRight, g);
+        g = buildLocalGraph(color, pk, true, maxForksLeft, g);
+        g = buildLocalGraph(color, pk, false, maxForksRight, g);
 
         return g;
     }
 
     public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
         return buildLocalGraph(color, panelKmer, maxForks, maxForks);
+    }
+
+    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
+        DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
+        CortexKmer pk = new CortexKmer(panelKmer.getKmerAsString());
+
+        for (int color = 0; color < cortexMap.getGraph().getNumColors(); color++) {
+            g = buildLocalGraph(color, pk, true, maxForksLeft, g);
+            g = buildLocalGraph(color, pk, false, maxForksRight, g);
+        }
+
+        return g;
+    }
+
+    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(CortexKmer panelKmer, int maxForks) {
+        return buildLocalGraph(panelKmer, maxForks, maxForks);
     }
 }
