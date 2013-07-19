@@ -7,7 +7,7 @@ import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.assembly.CortexGraphWalker;
-import uk.ac.ox.well.indiana.utils.assembly.CortexKmerNameProvider;
+import uk.ac.ox.well.indiana.utils.assembly.CortexKmerIDProvider;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 
@@ -45,7 +45,7 @@ public class GetLocalGraph extends Module {
 
         DirectedGraph<CortexKmer, DefaultEdge> g = cgw.buildLocalGraph(COLOR, ck, MAX_FORKS_LEFT, MAX_FORKS_RIGHT);
 
-        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerIDProvider(), new CortexKmerIDProvider(), null);
         exporter.export(new PrintWriter(out), g);
     }
 }
