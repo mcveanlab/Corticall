@@ -7,7 +7,6 @@ import org.jgrapht.experimental.dag.DirectedAcyclicGraph;
 import org.jgrapht.ext.DOTExporter;
 import org.jgrapht.ext.VertexNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
@@ -123,7 +122,7 @@ public class CortexGraphWalker {
         return contigs;
     }
 
-    private DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, boolean goLeft, int maxForks, DirectedGraph<CortexKmer, DefaultEdge> g) {
+    private DirectedGraph<CortexKmer, CortexEdge> buildLocalGraph(int color, CortexKmer panelKmer, boolean goLeft, int maxForks, DirectedGraph<CortexKmer, CortexEdge> g) {
         Set<CortexKmer> soughtKmers = new HashSet<CortexKmer>();
         soughtKmers.add(new CortexKmer("TTTTTATTTAATAAATTTGTTTTTATTTTAT"));
 
@@ -180,8 +179,10 @@ public class CortexGraphWalker {
                     if (first) {
                         if (goLeft) {
                             g.addEdge(panelKmer, nextKmer);
+                            g.getEdge(panelKmer, nextKmer).addColor(color);
                         } else {
                             g.addEdge(nextKmer, panelKmer);
+                            g.getEdge(nextKmer, panelKmer).addColor(color);
                         }
                         first = false;
                     } else {
@@ -201,7 +202,7 @@ public class CortexGraphWalker {
                 }
 
                 /*
-                DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
+                DOTExporter<CortexKmer, CortexEdge> exporter = new DOTExporter<CortexKmer, CortexEdge>(new CortexKmerNameProvider(), new CortexKmerNameProvider(), null);
                 try {
                     exporter.export(new FileWriter("test9.dot"), g);
                     Thread.sleep(100);
@@ -237,8 +238,10 @@ public class CortexGraphWalker {
                     g.addVertex(k2);
                     if (goLeft) {
                         g.addEdge(ck, k2);
+                        g.getEdge(ck, k2).addColor(color);
                     } else {
                         g.addEdge(k2, ck);
+                        g.getEdge(k2, ck).addColor(color);
                     }
 
                     System.out.println("Branch from: color=" + color + " kmer=" + ck + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
@@ -254,8 +257,8 @@ public class CortexGraphWalker {
         return null;
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
-        DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
+    public DirectedGraph<CortexKmer, CortexEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
+        DirectedGraph<CortexKmer, CortexEdge> g = new DefaultDirectedGraph<CortexKmer, CortexEdge>(CortexEdge.class);
 
         // This is here to address a weird bug.  If you call this method with a CortexKmer that was constructed with
         // non-alphanumerically-lowest kmer, the graph object will contain one extra vertex with the non-alphanumerically
@@ -269,12 +272,12 @@ public class CortexGraphWalker {
         return g;
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
+    public DirectedGraph<CortexKmer, CortexEdge> buildLocalGraph(int color, CortexKmer panelKmer, int maxForks) {
         return buildLocalGraph(color, panelKmer, maxForks, maxForks);
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
-        DirectedGraph<CortexKmer, DefaultEdge> g = new DefaultDirectedGraph<CortexKmer, DefaultEdge>(DefaultEdge.class);
+    public DirectedGraph<CortexKmer, CortexEdge> buildLocalGraph(CortexKmer panelKmer, int maxForksLeft, int maxForksRight) {
+        DirectedGraph<CortexKmer, CortexEdge> g = new DefaultDirectedGraph<CortexKmer, CortexEdge>(CortexEdge.class);
         CortexKmer pk = new CortexKmer(panelKmer.getKmerAsString());
 
         for (int color = 0; color < cortexMap.getGraph().getNumColors(); color++) {
@@ -285,7 +288,7 @@ public class CortexGraphWalker {
         return g;
     }
 
-    public DirectedGraph<CortexKmer, DefaultEdge> buildLocalGraph(CortexKmer panelKmer, int maxForks) {
+    public DirectedGraph<CortexKmer, CortexEdge> buildLocalGraph(CortexKmer panelKmer, int maxForks) {
         return buildLocalGraph(panelKmer, maxForks, maxForks);
     }
 }

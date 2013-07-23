@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="org.processing" module="gluegen-rt-natives-linux-armv6hf" revision="latest" />
+</ivy-module>

@@ -20,9 +20,24 @@
         <dependency org="com.typesafe.akka" name="akka" rev="2.1.4" />
 
         <!-- Dependencies that can be satisifed with local repository -->
-        <dependency org="org.processing" name="core" rev="2.0b3" />
-        <dependency org="org.processing" name="pdf" rev="2.0b3" />
-        <dependency org="org.processing" name="itext" rev="2.0b3" />
+        <dependency org="org.processing" name="core" rev="latest" />
+        <dependency org="org.processing" name="pdf" rev="latest" />
+        <dependency org="org.processing" name="itext" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-linux-amd64" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-linux-armv6hf" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-linux-i586" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-macosx-universal" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-windows-amd64" rev="latest" />
+        <dependency org="org.processing" name="gluegen-rt-natives-windows-i586" rev="latest" />
+        <dependency org="org.processing" name="jogl-all" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-linux-amd64" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-linux-armv6hf" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-linux-i586" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-macosx-universal" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-windows-amd64" rev="latest" />
+        <dependency org="org.processing" name="jogl-all-natives-windows-i586" rev="latest" />
+
         <dependency org="org.gicentre" name="gicentreUtils" rev="3.2.0" />
         <dependency org="net.sf.picard" name="sam" rev="latest" />
         <dependency org="net.sf.picard" name="picard" rev="latest" />

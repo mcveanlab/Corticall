@@ -69,7 +69,7 @@
 
     <!-- Compile everything into individual jar files -->
     <target name="compile" depends="init" description="compile distribution">
-        <javac source="1.6" target="1.6" srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
             <classpath>  
                 <fileset dir="${lib.dir}">  
                     <include name="**/*.jar" />  
