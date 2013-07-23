@@ -4,7 +4,6 @@ import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.ext.DOTExporter;
-import org.jgrapht.graph.DefaultEdge;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -28,8 +27,8 @@ public class CortexGraphWalkerTest {
     private CortexMap cg14Map;
     private CortexGraphWalker cg14Walker;
 
-    private DirectedGraph<CortexKmer, DefaultEdge> gfw;
-    private DirectedGraph<CortexKmer, DefaultEdge> grc;
+    private DirectedGraph<CortexKmer, CortexEdge> gfw;
+    private DirectedGraph<CortexKmer, CortexEdge> grc;
 
     private CortexKmer ckfw;
     private CortexKmer ckrc;
@@ -164,9 +163,9 @@ public class CortexGraphWalkerTest {
         CortexKmer ck = new CortexKmer("GGATAAATCAAGTATTGCTAACAAAATTGAA");
         CortexGraphWalker gw = new CortexGraphWalker(cm);
 
-        DirectedGraph<CortexKmer, DefaultEdge> g = gw.buildLocalGraph(ck, 2);
+        DirectedGraph<CortexKmer, CortexEdge> g = gw.buildLocalGraph(ck, 2);
 
-        DOTExporter<CortexKmer, DefaultEdge> exporter = new DOTExporter<CortexKmer, DefaultEdge>(new CortexKmerIDProvider(), new CortexKmerLabelProvider(), null, new CortexKmerAttributeProvider(ck), null);
+        DOTExporter<CortexKmer, CortexEdge> exporter = new DOTExporter<CortexKmer, CortexEdge>(new CortexKmerIDProvider(), new CortexKmerLabelProvider(), new CortexEdgeNameProvider(), new CortexKmerAttributeProvider(ck), null);
         try {
             exporter.export(new FileWriter("test10.dot"), g);
         } catch (IOException e) {

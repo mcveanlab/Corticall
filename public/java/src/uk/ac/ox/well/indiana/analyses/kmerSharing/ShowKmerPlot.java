@@ -141,9 +141,9 @@ public class ShowKmerPlot extends Sketch {
 
                 Color c = domainColors.get(domain.getAttributes().get("DOMAIN_TYPE"));
 
-                stroke(c.getRGB());
-                strokeWeight(8);
-                line(dxpos0, dypos, dxpos0 + domainLength, dypos);
+                //stroke(c.getRGB());
+                //strokeWeight(8);
+                //line(dxpos0, dypos, dxpos0 + domainLength, dypos);
             }
         }
     }
@@ -234,7 +234,8 @@ public class ShowKmerPlot extends Sketch {
                         int kypos = (kmerLoc.row*verticalMargin) + (verticalMargin/2);
 
                         if (kmerLoc.isExonic) {
-                            line(xpos0 + kxpos, kypos - (exonHeight/2) + 1, xpos0 + kxpos, kypos + (exonHeight/2) - 1);
+                            //line(xpos0 + kxpos, kypos - (exonHeight/2) + 1, xpos0 + kxpos, kypos + (exonHeight/2) - 1);
+                            line(xpos0 + kxpos, kypos - (exonHeight/2) + 1, xpos0 + kxpos, kypos + (exonHeight/2));
                         } else {
                             line(xpos0 + kxpos, kypos - (exonHeight/5) + 1, xpos0 + kxpos, kypos + (exonHeight/5) - 1);
                         }
@@ -308,7 +309,13 @@ public class ShowKmerPlot extends Sketch {
         TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
 
         for (Map<String, String> entry : tr) {
-            krp.add(entry.get("kmer"));
+            if (entry.containsKey("kmer")) {
+                krp.add(entry.get("kmer"));
+            } else {
+                String[] kmers = entry.get("kmers").split(",");
+
+                krp.addAll(Arrays.asList(kmers));
+            }
         }
 
         return krp;
@@ -403,6 +410,8 @@ public class ShowKmerPlot extends Sketch {
         size(geneViews.getDisplayWidth() + legend.getDisplayWidth(), geneViews.getDisplayHeight(), PGraphicsPDF.PDF, out.getAbsolutePath());
         noLoop();
 
+        background(Color.WHITE.getRGB());
+
         if (PCA != null) {
             colors = generateColors(10);
         }
@@ -441,7 +450,7 @@ public class ShowKmerPlot extends Sketch {
     public void draw() {
         geneViews.display();
         legend.display();
-        domainLegend.display();
+        //domainLegend.display();
 
         exit();
     }

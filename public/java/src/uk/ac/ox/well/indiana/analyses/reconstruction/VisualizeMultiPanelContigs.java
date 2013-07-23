@@ -116,6 +116,8 @@ public class VisualizeMultiPanelContigs extends Sketch {
     public void setup() {
         size(marginLabel + 2*marginX + longestContig, marginTitle + 2*marginY + (marginContig + contigHeight)*maxContigs, PGraphicsPDF.PDF, out.getAbsolutePath());
 
+        background(Color.WHITE.getRGB());
+
         PGraphicsPDF pdf = (PGraphicsPDF) g;
 
         log.info("{}x{}", getWidth(), getHeight());
@@ -129,7 +131,8 @@ public class VisualizeMultiPanelContigs extends Sketch {
 
                     log.info("{} {} {}", sample, gene, data.get(sample).get(gene).size());
 
-                    background(204, 204, 204);
+                    //background(204, 204, 204);
+                    background(Color.WHITE.getRGB());
 
                     stroke(geneColors.get(gene).getRGB());
                     fill(geneColors.get(gene).getRGB());
