@@ -1,10 +1,11 @@
 package uk.ac.ox.well.indiana.utils.io.gff;
 
 import com.google.common.base.Joiner;
+import net.sf.picard.util.Interval;
 
 import java.util.TreeMap;
 
-public class GFF3Record {
+public class GFF3Record implements Comparable<GFF3Record> {
     public enum Strand { POSITIVE, NEGATIVE }
 
     private String seqid;
@@ -59,6 +60,7 @@ public class GFF3Record {
     public boolean hasAttribute(String key) { return attributes.containsKey(key); }
     public String getAttribute(String key) { return attributes.get(key); }
     public TreeMap<String, String> getAttributes() { return attributes; }
+    public Interval getInterval() { return new Interval(seqid, start, end); }
 
     public void setSeqid(String seqid) { this.seqid = seqid; }
     public void setSource(String source) { this.source = source; }
@@ -85,5 +87,22 @@ public class GFF3Record {
 
     public int hashCode() {
         return this.toString().hashCode();
+    }
+
+    @Override
+    public int compareTo(GFF3Record o) {
+        if (this.getSeqid().equalsIgnoreCase(o.getSeqid())) {
+            if (this.getStart() == o.getStart()) {
+                if (this.getEnd() == o.getEnd()) {
+                    return 0;
+                } else {
+                    return this.getEnd() < o.getEnd() ? -1 : 1;
+                }
+            } else {
+                return this.getStart() <= o.getStart() ? -1 : 1;
+            }
+        }
+
+        return this.getSeqid().compareTo(o.getSeqid());
     }
 }
