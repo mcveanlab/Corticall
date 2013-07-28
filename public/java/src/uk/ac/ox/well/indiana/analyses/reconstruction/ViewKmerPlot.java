@@ -28,6 +28,9 @@ public class ViewKmerPlot extends Sketch {
     @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel to color")
     public File KMER_REFERENCE_PANEL;
 
+    //@Argument(fullName="contigsTable", shortName="ct", doc="Contigs table")
+    //public File CONTIGS_TABLE;
+
     @Argument(fullName="proteinDomains", shortName="pd", doc="Protein domains")
     public File PROTEIN_DOMAINS;
 
@@ -65,6 +68,7 @@ public class ViewKmerPlot extends Sketch {
         public void draw(int x, int y, int labelMargin, int height) {
             proteinDomainIntervals = new IntervalTreeMap<ProteinDomain>();
 
+            // Print gene name
             textSize(50);
             textAlign(LEFT, CENTER);
             fill(Color.BLACK.getRGB());
@@ -77,10 +81,39 @@ public class ViewKmerPlot extends Sketch {
                 }
             }
 
+            // Print a line denoting the length of the protein
             strokeWeight(1);
-            fill(Color.LIGHT_GRAY.getRGB());
+            strokeCap(SQUARE);
+            fill(Color.GRAY.getRGB());
             line(x + labelMargin, y + (height/2), x + labelMargin + proteinWidth, y + (height/2));
 
+            // Print the length of the protein
+            textSize(25);
+            textAlign(LEFT, CENTER);
+            fill(Color.BLACK.getRGB());
+            text(proteinWidth + "aa", x + labelMargin + proteinWidth + 10, y + (height/2) - 3);
+
+            // For each domain, draw an opaque element denoting its boundaries
+            for (ProteinDomain pd : proteinDomains) {
+                fill(Color.WHITE.getRGB());
+                stroke(Color.BLACK.getRGB());
+                strokeWeight(5);
+
+                int domainOffset = pd.aaStart;
+                int domainWidth = pd.aaEnd - pd.aaStart;
+
+                if ("DBL".equalsIgnoreCase(pd.domainClass)) {
+                    rect(x + labelMargin + domainOffset, y, domainWidth, height, 50);
+                } else if ("CIDR".equalsIgnoreCase(pd.domainClass) || "CIDRpam".equalsIgnoreCase(pd.domainClass)) {
+                    rect(x + labelMargin + domainOffset, y, domainWidth, height);
+                } else if ("NTS".equalsIgnoreCase(pd.domainClass) || "NTSpam".equalsIgnoreCase(pd.domainClass)) {
+                    quad(x + labelMargin + domainOffset + 20, y, x + labelMargin + domainOffset + domainWidth - 20, y, x + labelMargin + domainOffset + domainWidth, y + height, x + labelMargin + domainOffset, y + height);
+                } else if ("ATS".equalsIgnoreCase(pd.domainClass)) {
+                    quad(x + labelMargin + domainOffset, y, x + labelMargin + domainOffset + domainWidth, y, x + labelMargin + domainOffset + domainWidth - 20, y + height, x + labelMargin + domainOffset + 20, y + height);
+                }
+            }
+
+            // Determine mapping from kmer's genomic coordinates to protein coordinates
             Map<Integer, Integer> aaToGenomic = new TreeMap<Integer, Integer>();
 
             Map<Interval, GFF3Record> sortedRecords = new TreeMap<Interval, GFF3Record>();
@@ -127,6 +160,7 @@ public class ViewKmerPlot extends Sketch {
                 }
             }
 
+            // Draw kmers
             for (int aaPos : aaToGenomic.keySet()) {
                 int gPos = aaToGenomic.get(aaPos);
 
@@ -139,11 +173,40 @@ public class ViewKmerPlot extends Sketch {
                 }
 
                 if (kmers.containsKey(kmer)) {
-                    stroke(kmers.get(kmer).getRGB());
+                    stroke(kmers.get(kmer).getRGB(), 150.0f);
+                    strokeWeight(1);
+                    strokeCap(SQUARE);
                     line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
                 }
             }
 
+            // Wipe away parts of kmer lines that fall outside the protein domain bounding boxes
+            for (ProteinDomain pd : proteinDomains) {
+                noFill();
+                stroke(Color.WHITE.getRGB());
+                strokeWeight(5);
+
+                int domainOffset = pd.aaStart;
+                int domainWidth = pd.aaEnd - pd.aaStart;
+
+                if ("DBL".equalsIgnoreCase(pd.domainClass)) {
+                    for (int i = 0; i < 50; i++) {
+                        rect(x + labelMargin + domainOffset, y, domainWidth, height, i);
+                    }
+                } else if ("CIDR".equalsIgnoreCase(pd.domainClass) || "CIDRpam".equalsIgnoreCase(pd.domainClass)) {
+                } else if ("NTS".equalsIgnoreCase(pd.domainClass) || "NTSpam".equalsIgnoreCase(pd.domainClass)) {
+                    for (int i = 0; i < 20; i++) {
+                        quad(x + labelMargin + domainOffset + i, y, x + labelMargin + domainOffset + domainWidth - i, y, x + labelMargin + domainOffset + domainWidth, y + height, x + labelMargin + domainOffset, y + height);
+                    }
+                } else if ("ATS".equalsIgnoreCase(pd.domainClass)) {
+                    stroke(Color.WHITE.getRGB());
+                    for (int i = 0; i < 20; i++) {
+                        quad(x + labelMargin + domainOffset, y, x + labelMargin + domainOffset + domainWidth, y, x + labelMargin + domainOffset + domainWidth - i, y + height, x + labelMargin + domainOffset + i, y + height);
+                    }
+                }
+            }
+
+            // Redraw protein domain boundaries
             for (ProteinDomain pd : proteinDomains) {
                 noFill();
                 stroke(Color.BLACK.getRGB());
@@ -155,7 +218,7 @@ public class ViewKmerPlot extends Sketch {
                 if ("DBL".equalsIgnoreCase(pd.domainClass)) {
                     rect(x + labelMargin + domainOffset, y, domainWidth, height, 50);
                 } else if ("CIDR".equalsIgnoreCase(pd.domainClass) || "CIDRpam".equalsIgnoreCase(pd.domainClass)) {
-                    rect(x + labelMargin + domainOffset, y - 5, domainWidth, height + 10);
+                    rect(x + labelMargin + domainOffset, y, domainWidth, height);
                 } else if ("NTS".equalsIgnoreCase(pd.domainClass) || "NTSpam".equalsIgnoreCase(pd.domainClass)) {
                     quad(x + labelMargin + domainOffset + 20, y, x + labelMargin + domainOffset + domainWidth - 20, y, x + labelMargin + domainOffset + domainWidth, y + height, x + labelMargin + domainOffset, y + height);
                 } else if ("ATS".equalsIgnoreCase(pd.domainClass)) {
@@ -176,6 +239,8 @@ public class ViewKmerPlot extends Sketch {
         private int labelMargin = 50;
 
         public void draw(int x, int y, int height) {
+            textSize(50);
+
             fill(Color.BLACK.getRGB());
             text("NTS", x, y + 10);
             noFill();
@@ -191,7 +256,7 @@ public class ViewKmerPlot extends Sketch {
             fill(Color.BLACK.getRGB());
             text("CIDR", x, y + 10);
             noFill();
-            rect(x + labelMargin + domainOffset, y - 5, domainWidth, height + 10);
+            rect(x + labelMargin + domainOffset, y - 5, domainWidth, height);
 
             y += 50;
             fill(Color.BLACK.getRGB());
