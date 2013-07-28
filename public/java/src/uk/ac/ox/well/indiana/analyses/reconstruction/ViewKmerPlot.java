@@ -1,7 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
 import processing.pdf.PGraphicsPDF;
@@ -28,8 +27,8 @@ public class ViewKmerPlot extends Sketch {
     @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel to color")
     public File KMER_REFERENCE_PANEL;
 
-    //@Argument(fullName="contigsTable", shortName="ct", doc="Contigs table")
-    //public File CONTIGS_TABLE;
+    @Argument(fullName="contigsTable", shortName="ct", doc="Contigs table")
+    public File CONTIGS_TABLE;
 
     @Argument(fullName="proteinDomains", shortName="pd", doc="Protein domains")
     public File PROTEIN_DOMAINS;
@@ -56,6 +55,7 @@ public class ViewKmerPlot extends Sketch {
     private Map<String, GFF3Record> geneRecords = new HashMap<String, GFF3Record>();
     private Map<String, GeneView> genes = new TreeMap<String, GeneView>();
     private Map<CortexKmer, Color> kmers;
+    private Map<CortexKmer, Color> kmerReferencePanel;
 
     private class GeneView {
         public String geneName;
@@ -174,6 +174,11 @@ public class ViewKmerPlot extends Sketch {
 
                 if (kmers.containsKey(kmer)) {
                     stroke(kmers.get(kmer).getRGB(), 150.0f);
+                    strokeWeight(1);
+                    strokeCap(SQUARE);
+                    line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
+                } else if (kmerReferencePanel.containsKey(kmer)) {
+                    stroke(kmerReferencePanel.get(kmer).getRGB(), 30.0f);
                     strokeWeight(1);
                     strokeCap(SQUARE);
                     line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
@@ -311,19 +316,19 @@ public class ViewKmerPlot extends Sketch {
         return proteinDomains;
     }
 
-    private Map<CortexKmer, Color> loadKmerReferencePanel() {
+    private Map<CortexKmer, Color> loadContigsTable(File table) {
         Map<CortexKmer, Color> krp = new HashMap<CortexKmer, Color>();
 
-        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
+        TableReader tr = new TableReader(table);
 
         for (Map<String, String> entry : tr) {
             if (entry.containsKey("kmer")) {
-                krp.put(new CortexKmer(entry.get("kmer")), Color.BLACK);
+                krp.put(new CortexKmer(entry.get("kmer")), Color.LIGHT_GRAY);
             } else {
                 String[] kmers = entry.get("kmers").split(",");
 
                 for (String kmer : kmers) {
-                    krp.put(new CortexKmer(kmer), Color.WHITE);
+                    krp.put(new CortexKmer(kmer), Color.LIGHT_GRAY);
                 }
             }
         }
@@ -339,7 +344,8 @@ public class ViewKmerPlot extends Sketch {
         }
 
         // Load kmers
-        kmers = loadKmerReferencePanel();
+        kmerReferencePanel = loadContigsTable(KMER_REFERENCE_PANEL);
+        kmers = loadContigsTable(CONTIGS_TABLE);
         kmerSize = kmers.keySet().iterator().next().length();
 
         // Load gene records
