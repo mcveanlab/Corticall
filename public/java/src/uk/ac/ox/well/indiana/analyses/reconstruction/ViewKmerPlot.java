@@ -84,7 +84,7 @@ public class ViewKmerPlot extends Sketch {
             // Print a line denoting the length of the protein
             strokeWeight(1);
             strokeCap(SQUARE);
-            fill(Color.GRAY.getRGB());
+            stroke(Color.BLACK.getRGB());
             line(x + labelMargin, y + (height/2), x + labelMargin + proteinWidth, y + (height/2));
 
             // Print the length of the protein
@@ -203,11 +203,19 @@ public class ViewKmerPlot extends Sketch {
                     for (int i = 0; i < 20; i++) {
                         quad(x + labelMargin + domainOffset + i, y, x + labelMargin + domainOffset + domainWidth - i, y, x + labelMargin + domainOffset + domainWidth, y + height, x + labelMargin + domainOffset, y + height);
                     }
+
+                    strokeWeight(1);
+                    stroke(Color.BLACK.getRGB());
+                    line(x + labelMargin + domainOffset + domainWidth - 8, y + (height/2), x + labelMargin + domainOffset + domainWidth, y + height/2);
                 } else if ("ATS".equalsIgnoreCase(pd.domainClass)) {
                     stroke(Color.WHITE.getRGB());
                     for (int i = 0; i < 20; i++) {
                         quad(x + labelMargin + domainOffset, y, x + labelMargin + domainOffset + domainWidth, y, x + labelMargin + domainOffset + domainWidth - i, y + height, x + labelMargin + domainOffset + i, y + height);
                     }
+
+                    strokeWeight(1);
+                    stroke(Color.BLACK.getRGB());
+                    line(x + labelMargin + domainOffset - 5, y + (height/2), x + labelMargin + domainOffset + 10, y + height/2);
                 }
             }
 
