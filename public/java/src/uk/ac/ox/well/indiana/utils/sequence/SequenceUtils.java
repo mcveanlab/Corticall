@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
 import java.util.*;
 
@@ -278,7 +277,7 @@ public class SequenceUtils {
         return length;
     }
 
-    private static final byte[] alphabet = {'A', 'C', 'G', 'T'};
+    private static final byte[] nucleotides = {'A', 'C', 'G', 'T'};
     private static Random randomGenerator = new Random(0);
 
     /**
@@ -291,9 +290,67 @@ public class SequenceUtils {
         byte[] sb = new byte[n];
 
         for (int i = 0; i < n; i++) {
-            sb[i] = alphabet[randomGenerator.nextInt(alphabet.length)];
+            sb[i] = nucleotides[randomGenerator.nextInt(nucleotides.length)];
         }
 
         return sb;
+    }
+
+    public static Collection<byte[]> generateSequencesWithEditDistance1(byte[] source) {
+        Collection<byte[]> dest = new HashSet<byte[]>();
+
+        for (int pos = 0; pos < source.length; pos++) {
+            for (byte nucleotide : nucleotides) {
+                if (source[pos] != nucleotide) {
+                    byte[] newSeq = new byte[source.length];
+                    System.arraycopy(source, 0, newSeq, 0, source.length);
+                    newSeq[pos] = nucleotide;
+
+                    dest.add(newSeq);
+                }
+            }
+        }
+
+        return dest;
+    }
+
+    public static Collection<byte[]> generateSequencesWithEditDistance2(byte[] source) {
+        Collection<byte[]> dest = new LinkedHashSet<byte[]>();
+
+        for (int pos1 = 0; pos1 < source.length; pos1++) {
+            for (byte nucleotide1 : nucleotides) {
+                if (source[pos1] != nucleotide1) {
+                    for (int pos2 = 0; pos2 < source.length; pos2++) {
+                        if (pos2 != pos1) {
+                            for (byte nucleotide2 : nucleotides) {
+                                if (source[pos2] != nucleotide2) {
+                                    byte[] newSeq = new byte[source.length];
+                                    System.arraycopy(source, 0, newSeq, 0, source.length);
+
+                                    newSeq[pos1] = nucleotide1;
+                                    newSeq[pos2] = nucleotide2;
+
+                                    dest.add(newSeq);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return dest;
+    }
+
+    public static int editDistance(byte[] s1, byte[] s2) {
+        int editDistance = 0;
+
+        for (int i = 0; i < s1.length; i++) {
+            if (s1[i] != s2[i]) {
+                editDistance++;
+            }
+        }
+
+        return editDistance;
     }
 }

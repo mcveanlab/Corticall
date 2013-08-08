@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
+import org.apache.commons.math3.util.MathUtils;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -75,11 +76,10 @@ public class ViewKmerPlot extends Sketch {
             text(geneName, x, y + 20);
 
             int proteinWidth = 0;
-            for (ProteinDomain pd : proteinDomains) {
-                if (pd.aaEnd > proteinWidth) {
-                    proteinWidth = pd.aaEnd;
-                }
+            for (GFF3Record exon : GFF3.getType("exon", records)) {
+                proteinWidth += exon.getEnd() - exon.getStart();
             }
+            proteinWidth /= 3;
 
             // Print a line denoting the length of the protein
             strokeWeight(1);
@@ -160,6 +160,8 @@ public class ViewKmerPlot extends Sketch {
                 }
             }
 
+            int kmersRecovered = 0, kmersUnrecovered = 0;
+
             // Draw kmers
             for (int aaPos : aaToGenomic.keySet()) {
                 int gPos = aaToGenomic.get(aaPos);
@@ -177,11 +179,15 @@ public class ViewKmerPlot extends Sketch {
                     strokeWeight(1);
                     strokeCap(SQUARE);
                     line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
+
+                    kmersRecovered++;
                 } else if (kmerReferencePanel.containsKey(kmer)) {
-                    stroke(kmerReferencePanel.get(kmer).getRGB(), 30.0f);
+                    stroke(kmerReferencePanel.get(kmer).getRGB(), 60.0f);
                     strokeWeight(1);
                     strokeCap(SQUARE);
                     line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
+
+                    kmersUnrecovered++;
                 }
             }
 
@@ -243,6 +249,13 @@ public class ViewKmerPlot extends Sketch {
                 fill(Color.BLACK.getRGB());
                 text(pd.domainName, x + labelMargin + domainOffset + (domainWidth/2), y + height + 15);
             }
+
+            // Print gene info
+            float pctRecovered = 100.0f * ((float) kmersRecovered) / ((float) (kmersRecovered + kmersUnrecovered));
+            String caption = geneRecord.getSeqid() + ", " + geneRecord.getAttribute("position") + ", " + geneRecord.getAttribute("class") + ", " + String.format("%.2f%%", pctRecovered);
+            textSize(18);
+            textAlign(LEFT, CENTER);
+            text(caption, x, y + 70);
         }
     }
 
@@ -269,7 +282,7 @@ public class ViewKmerPlot extends Sketch {
             fill(Color.BLACK.getRGB());
             text("CIDR", x, y + 10);
             noFill();
-            rect(x + labelMargin + domainOffset, y - 5, domainWidth, height);
+            rect(x + labelMargin + domainOffset, y, domainWidth, height);
 
             y += 50;
             fill(Color.BLACK.getRGB());
@@ -388,11 +401,11 @@ public class ViewKmerPlot extends Sketch {
                 gv.proteinDomains = proteinDomains.get(gr.getAttribute("ID"));
                 gv.width = 0;
 
-                for (ProteinDomain pd : gv.proteinDomains) {
-                    if (pd.aaEnd > gv.width) {
-                        gv.width = pd.aaEnd;
-                    }
+                for (GFF3Record exon : GFF3.getType("exon", gv.records)) {
+                    gv.width += exon.getEnd() - exon.getStart();
                 }
+
+                gv.width = Math.round(((float) (gv.width)) / 3.0f);
 
                 if (gv.width > longestWidth) { longestWidth = gv.width; }
 
