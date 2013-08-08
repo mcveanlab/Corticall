@@ -37,6 +37,9 @@ public class ViewKmerPlot extends Sketch {
     @Argument(fullName="geneOrder", shortName="go", doc="Gene order")
     public ArrayList<String> GENE_ORDER;
 
+    @Argument(fullName="genes", shortName="g", doc="Genes to process")
+    public ArrayList<String> GENES;
+
     @Output
     public File out;
 
@@ -425,7 +428,7 @@ public class ViewKmerPlot extends Sketch {
 
     public void draw() {
         int geneIndex = 0;
-        for (String gene : GENE_ORDER) {
+        for (String gene : GENES) {
             if (genes.containsKey(gene)) {
                 GeneView gv = genes.get(gene);
 
