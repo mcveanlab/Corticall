@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
@@ -8,7 +9,10 @@ import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
@@ -20,11 +24,20 @@ public class VisualizeMultiPanelContigs extends Sketch {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
     public File CONTIG_TABLE;
 
+    @Argument(fullName="geneOrder", shortName="go", doc="Gene order")
+    public ArrayList<String> GENE_ORDER;
+
     @Argument(fullName="onlyTheseGenes", shortName="g", doc="Process only these genes", required=false)
     public HashSet<String> ONLY_THESE_GENES;
 
     @Argument(fullName="onlyTheseSamples", shortName="s", doc="Process only these samples", required=false)
     public HashSet<String> ONLY_THESE_SAMPLES;
+
+    @Argument(fullName="gff", shortName="gff", doc="GFF file")
+    public GFF3 GFF;
+
+    @Argument(fullName="reference", shortName="R", doc="Reference FASTA file")
+    public IndexedFastaSequenceFile FASTA;
 
     @Output
     public File out;
@@ -35,6 +48,10 @@ public class VisualizeMultiPanelContigs extends Sketch {
     //          gene    color
     private Map<String, Color> geneColors;
 
+    //          gene        kmers
+    private Map<String, Set<CortexKmer>> geneKmers = new HashMap<String, Set<CortexKmer>>();
+
+    private final int marginXRight = 50;
     private final int marginLabel = 100;
     private final int marginX = 10;
     private final int marginY = 10;
@@ -56,7 +73,6 @@ public class VisualizeMultiPanelContigs extends Sketch {
         for (Map<String, String> te : tr) {
             String sample = te.get("sample");
             Set<String> genes = new TreeSet<String>(Arrays.asList(te.get("genes").split(",")));
-            String contig = te.get("contig");
 
             if (genes.size() > 1) {
                 if (!data.containsKey(sample)) {
@@ -74,6 +90,7 @@ public class VisualizeMultiPanelContigs extends Sketch {
             }
         }
 
+        int kmerSize = 0;
         for (String sample : data.keySet()) {
             for (String gene : data.get(sample).keySet()) {
                 if ( (ONLY_THESE_SAMPLES == null || ONLY_THESE_SAMPLES.contains(sample)) && (ONLY_THESE_GENES == null || ONLY_THESE_GENES.contains(gene)) ) {
@@ -83,6 +100,11 @@ public class VisualizeMultiPanelContigs extends Sketch {
 
                     for (Map<String, String> te : data.get(sample).get(gene)) {
                         String contig = te.get("contig");
+                        if (kmerSize == 0) {
+                            String[] kmers = te.get("kmers").split(",");
+
+                            kmerSize = kmers[0].length();
+                        }
 
                         if (contig.length() > longestContig) {
                             longestContig = contig.length();
@@ -92,13 +114,28 @@ public class VisualizeMultiPanelContigs extends Sketch {
             }
         }
 
-        Color[] colors = generateColors(geneColors.size());
+        Color[] colors = generateColors(GENE_ORDER.size());
 
         int colorIndex = 0;
-        for (String gene : geneColors.keySet()) {
+        for (String gene : GENE_ORDER) {
             geneColors.put(gene, colors[colorIndex]);
 
             colorIndex++;
+        }
+
+        for (String gene : ONLY_THESE_GENES) {
+            GFF3Record record = GFF.getRecord(gene);
+
+            String seq = new String(FASTA.getSubsequenceAt(record.getSeqid(), record.getStart(), record.getEnd()).getBases());
+            for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+
+                if (!geneKmers.containsKey(gene)) {
+                    geneKmers.put(gene, new HashSet<CortexKmer>());
+                }
+
+                geneKmers.get(gene).add(kmer);
+            }
         }
     }
 
@@ -114,7 +151,7 @@ public class VisualizeMultiPanelContigs extends Sketch {
     }
 
     public void setup() {
-        size(marginLabel + 2*marginX + longestContig, marginTitle + 2*marginY + (marginContig + contigHeight)*maxContigs, PGraphicsPDF.PDF, out.getAbsolutePath());
+        size(marginLabel + 2*marginX + longestContig + marginXRight, marginTitle + 2*marginY + (marginContig + contigHeight)*maxContigs, PGraphicsPDF.PDF, out.getAbsolutePath());
 
         background(Color.WHITE.getRGB());
 
@@ -135,7 +172,7 @@ public class VisualizeMultiPanelContigs extends Sketch {
                     background(Color.WHITE.getRGB());
 
                     stroke(geneColors.get(gene).getRGB());
-                    fill(geneColors.get(gene).getRGB());
+                    fill(geneColors.get(gene).getRGB(), 150.0f);
                     rect(marginX, marginTitle/2, 20, 7);
 
                     fill(Color.BLACK.getRGB());
@@ -168,22 +205,64 @@ public class VisualizeMultiPanelContigs extends Sketch {
                         rect(xpos - 1, ypos, contig.length() + 1, contigHeight);
 
                         fill(Color.BLACK.getRGB());
-                        textSize(11);
                         textAlign(LEFT, TOP);
-                        text(contig.hashCode(), marginX, ypos - 2);
+                        textSize(10);
+                        text(contig.length() + " bp", xpos + contig.length() + 3, ypos - 2);
+
+                        boolean contigContainsKmerFromGene = false;
 
                         for (int k = 0; k <= contig.length() - kmerSize; k++) {
                             CortexKmer kmer = new CortexKmer(contig.substring(k, k+kmerSize));
 
                             if (kmersAndGenes.containsKey(kmer)) {
                                 String geneName = kmersAndGenes.get(kmer);
+
+                                if (!gene.equalsIgnoreCase(geneName) && ONLY_THESE_GENES.contains(geneName)) {
+                                    contigContainsKmerFromGene = true;
+                                }
+
+                                byte[] kmerBytes = kmer.getKmerAsBytes();
+
+                                int kmerHeight = contigHeight;
+
+                                for (byte[] e1 : SequenceUtils.generateSequencesWithEditDistance1(kmerBytes)) {
+                                    CortexKmer newCortexKmer = new CortexKmer(e1);
+
+                                    for (String altGene : geneKmers.keySet()) {
+                                        if (geneKmers.get(altGene).contains(newCortexKmer)) {
+                                            kmerHeight = contigHeight/3;
+
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                for (byte[] e2 : SequenceUtils.generateSequencesWithEditDistance2(kmerBytes)) {
+                                    CortexKmer newCortexKmer = new CortexKmer(e2);
+
+                                    for (String altGene : geneKmers.keySet()) {
+                                        if (geneKmers.get(altGene).contains(newCortexKmer)) {
+                                            kmerHeight = contigHeight/2;
+
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 Color color = geneColors.get(geneName);
 
-                                stroke(color.getRGB());
+                                log.info("geneName={}, color={}", geneName, color);
+
+                                stroke(color.getRGB(), 150.0f);
                                 strokeCap(PROJECT);
-                                line(xpos + k, ypos + 1, xpos + k, ypos + contigHeight - 1);
+                                line(xpos + k, ypos + 1, xpos + k, ypos + kmerHeight - 1);
                             }
                         }
+
+                        fill(contigContainsKmerFromGene ? Color.RED.getRGB() : Color.BLACK.getRGB());
+                        textSize(11);
+                        textAlign(LEFT, TOP);
+                        text(contig.hashCode(), marginX, ypos - 2);
                     }
                 }
             }
