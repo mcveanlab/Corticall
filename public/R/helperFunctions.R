@@ -21,3 +21,22 @@ theme_kiran <- function(base_size = 12, base_family = "") {
         strip.background = element_rect(fill = "grey80", colour = "grey50")
     )
 }
+
+vcf.getSamples <- function(vcf_file) {
+    q = readLines(vcf_file, n=100);
+    h = q[grep("#CHROM", q)];
+
+    fields = unlist(strsplit(h, "\t"));
+    s = fields[10:length(fields)];
+
+    return(s);
+}
+
+vcf.read <- function(vcf_file) {
+    q = read.table(vcf_file, header=FALSE, stringsAsFactors=FALSE, sep="\t");
+    vcfSamples = vcf.getSamples(vcf_file);
+    header = c('CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', vcfSamples);
+    names(q) = header;
+
+    return(q);
+}
