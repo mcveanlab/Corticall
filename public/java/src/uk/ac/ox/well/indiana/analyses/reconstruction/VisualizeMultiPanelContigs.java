@@ -1,9 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.reconstruction;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.apache.commons.jexl2.Expression;
-import org.apache.commons.jexl2.JexlContext;
-import org.apache.commons.jexl2.MapContext;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -16,7 +13,6 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.awt.*;
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 import java.util.List;
 

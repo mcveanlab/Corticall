@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.analyses.genotyper;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.ext.DOTExporter;
-import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;

@@ -1,20 +1,12 @@
 package uk.ac.ox.well.indiana.utils.assembly;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graph;
-import org.jgrapht.Graphs;
-import org.jgrapht.experimental.dag.DirectedAcyclicGraph;
-import org.jgrapht.ext.DOTExporter;
-import org.jgrapht.ext.VertexNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.SimpleDirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 public class CortexGraphWalker {

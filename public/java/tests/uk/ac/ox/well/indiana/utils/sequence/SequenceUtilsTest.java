@@ -1,12 +1,10 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
-import com.google.common.base.Joiner;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class SequenceUtilsTest {

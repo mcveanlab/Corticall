@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.analyses.reconstruction;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
-import org.apache.commons.math3.util.MathUtils;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

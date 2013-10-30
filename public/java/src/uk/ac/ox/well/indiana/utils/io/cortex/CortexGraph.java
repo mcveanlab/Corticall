@@ -266,26 +266,26 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public CortexRecord next() {
-        try {
-            CortexRecord currentRecord = nextRecord;
+        CortexRecord currentRecord = nextRecord;
 
-            nextRecord = getNextRecord();
-            if (nextRecord == null) {
-                close();
-            }
-
-            return currentRecord;
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
+        nextRecord = getNextRecord();
+        if (nextRecord == null) {
+            close();
         }
+
+        return currentRecord;
     }
 
     public void remove() {
         throw new UnsupportedOperationException();
     }
 
-    public void close() throws IOException {
-        this.in.close();
+    public void close() {
+        try {
+            this.in.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean hasColor(int color) {
