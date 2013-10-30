@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.utils.io.cortex;
 
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.util.Arrays;
+import java.lang.CharSequence;import java.lang.Override;import java.lang.String;import java.lang.System;import java.util.Arrays;
 
 public class CortexKmer implements CharSequence {
     private byte[] kmer;
@@ -69,7 +69,7 @@ public class CortexKmer implements CharSequence {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(java.lang.Object obj) {
         if (obj instanceof CortexKmer) {
             return Arrays.equals(kmer, ((CortexKmer) obj).getKmerAsBytes());
         } else if (obj instanceof String) {

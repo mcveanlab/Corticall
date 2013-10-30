@@ -128,7 +128,7 @@ public class CortexGraphWalkerTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void testLocalGraphContainsExpectedForks() {
         CortexKmer aPanelKmer = new CortexKmer("CCGCCTTCGTGGAAACGGCCGCTGTGGAAAC");
         CortexKmer aIncomingKmer1 = new CortexKmer("CGCCTTCGTGGAAACGGCCGCTGTGGAAACT");

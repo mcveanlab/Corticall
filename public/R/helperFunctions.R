@@ -23,7 +23,7 @@ theme_kiran <- function(base_size = 12, base_family = "") {
 }
 
 vcf.getSamples <- function(vcf_file) {
-    q = readLines(vcf_file, n=100);
+    q = readLines(vcf_file, n=1000);
     h = q[grep("#CHROM", q)];
 
     fields = unlist(strsplit(h, "\t"));

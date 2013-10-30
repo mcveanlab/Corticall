@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.arguments;
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.SAMFileReader;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
@@ -221,6 +222,8 @@ public class ArgumentHandler {
                 return new IndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {
                 return new PrintStream(value);
+            } else if (type.equals(SAMFileReader.class)) {
+                return new SAMFileReader(new File(value));
             } else if (type.equals(Expression.class)) {
                 initializeJexlEngine();
 
