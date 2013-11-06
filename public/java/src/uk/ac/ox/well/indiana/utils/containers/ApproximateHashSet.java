@@ -1,53 +1,32 @@
 package uk.ac.ox.well.indiana.utils.containers;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
-// Inspired by a blog post at http://ivory.idyll.org/blog/kmer-filtering.html
 public class ApproximateHashSet<E> implements Set<E> {
-    private char[] kmers;
-
-    public ApproximateHashSet() {
-        long freeMemory = Runtime.getRuntime().freeMemory();
-        int tableLength = (int) (0.8f * (float) freeMemory);
-
-        initialize(tableLength);
-    }
-
-    public ApproximateHashSet(float memoryFraction) {
-        long freeMemory = Runtime.getRuntime().freeMemory();
-        int tableLength = (int) (memoryFraction * (float) freeMemory);
-
-        initialize(tableLength);
-    }
-
-    public ApproximateHashSet(int tableLength) {
-        initialize(tableLength);
-    }
-
-    private void initialize(int tableLength) {
-        kmers = new char[tableLength];
-    }
+    private Set<Integer> records = new HashSet<Integer>();
 
     @Override
-    public int size() {
-        int size = 0;
-        for (int i = 0; i < kmers.length; i++) {
-            size += kmers[i];
+    public int size() { return records.size(); }
+
+    @Override
+    public boolean add(E e) {
+        if (!records.contains(e.hashCode())) {
+            records.add(e.hashCode());
+
+            return true;
         }
 
-        return size;
+        return false;
     }
 
     @Override
     public boolean isEmpty() {
-        throw new UnsupportedOperationException("isEmpty() not implemented for ApproximateHashSet");
+        return records.isEmpty();
     }
 
     @Override
     public boolean contains(Object o) {
-        throw new UnsupportedOperationException("contains() not implemented for ApproximateHashSet");
+        return records.contains(o.hashCode());
     }
 
     @Override
@@ -66,17 +45,8 @@ public class ApproximateHashSet<E> implements Set<E> {
     }
 
     @Override
-    public boolean add(E e) {
-        int index = e.hashCode() & (kmers.length - 1);
-
-        kmers[index]++;
-
-        return true;
-    }
-
-    @Override
     public boolean remove(Object o) {
-        throw new UnsupportedOperationException("remove() not implemented for ApproximateHashSet");
+        return records.remove(o.hashCode());
     }
 
     @Override
@@ -86,7 +56,11 @@ public class ApproximateHashSet<E> implements Set<E> {
 
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        throw new UnsupportedOperationException("addAll() not implemented for ApproximateHashSet");
+        for (E e : c) {
+            add(e);
+        }
+
+        return true;
     }
 
     @Override
@@ -96,11 +70,15 @@ public class ApproximateHashSet<E> implements Set<E> {
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        throw new UnsupportedOperationException("removeAll() not implemented for ApproximateHashSet");
+        for (Object o : c) {
+            remove(o);
+        }
+
+        return true;
     }
 
     @Override
     public void clear() {
-        throw new UnsupportedOperationException("clear() not implemented for ApproximateHashSet");
+        records.clear();
     }
 }
