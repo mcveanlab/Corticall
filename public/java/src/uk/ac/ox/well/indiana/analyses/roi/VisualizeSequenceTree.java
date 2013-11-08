@@ -4,7 +4,7 @@ import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.ext.DOTExporter;
+import org.jgrapht.ext.ComponentAttributeProvider;
 import org.jgrapht.ext.StringNameProvider;
 import org.jgrapht.ext.VertexNameProvider;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -12,11 +12,14 @@ import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.jgrapht.ExtendedDOTExporter;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class VisualizeSequenceTree extends Module {
@@ -26,13 +29,59 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 31;
 
+    @Argument(fullName="skipSimplification", shortName="ss", doc="Don't simplify the graph")
+    public Boolean SKIP_SIMPLIFICATION = false;
+
     @Output
     public File out;
 
     public class CustomLabelProvider implements VertexNameProvider<String> {
         @Override
         public String getVertexName(String vertex) {
-            return vertex.length() > KMER_SIZE ? String.valueOf(vertex.length()) : vertex;
+            return "";
+            //return String.valueOf(vertex.length());
+            //return SKIP_SIMPLIFICATION ? vertex : String.valueOf(vertex.length());
+        }
+    }
+
+    public class CustomVertexAttributeProvider implements ComponentAttributeProvider<String> {
+        @Override
+        public Map<String, String> getComponentAttributes(String s) {
+            Map<String, String> attrs = new HashMap<String, String>();
+            attrs.put("shape", "circle");
+            attrs.put("height", "0.12");
+            attrs.put("width", "0.12");
+            attrs.put("fontsize", "1");
+
+            return attrs;
+        }
+    }
+
+    public class CustomEdgeAttributeProvider implements ComponentAttributeProvider<DefaultEdge> {
+        private Map<DefaultEdge, Integer> edgeWeights = new HashMap<DefaultEdge, Integer>();
+
+        public void incrementWeight(DefaultEdge edge) {
+            if (edgeWeights.containsKey(edge)) {
+                edgeWeights.put(edge, edgeWeights.get(edge) + 2);
+            } else {
+                edgeWeights.put(edge, 1);
+            }
+        }
+
+        public int getWeight(DefaultEdge edge) {
+            return edgeWeights.containsKey(edge) ? edgeWeights.get(edge) : 0;
+        }
+
+        @Override
+        public Map<String, String> getComponentAttributes(DefaultEdge edge) {
+            Map<String, String> attrs = new HashMap<String, String>();
+            attrs.put("arrowhead", "none");
+
+            if (edgeWeights.containsKey(edge)) {
+                attrs.put("penwidth", String.valueOf(edgeWeights.get(edge)));
+            }
+
+            return attrs;
         }
     }
 
@@ -92,14 +141,18 @@ public class VisualizeSequenceTree extends Module {
 
                 if (graph.inDegreeOf(startingVertex) > 0) {
                     for (DefaultEdge inEdge : graph.incomingEdgesOf(startingVertex)) {
-                        sg1.addEdge(graph.getEdgeSource(inEdge), contig.toString());
+                        //if (sg1.containsVertex(graph.getEdgeSource(inEdge)) && sg1.containsVertex(contig.toString())) {
+                            sg1.addEdge(graph.getEdgeSource(inEdge), contig.toString());
+                        //}
                     }
                 }
 
                 for (DefaultEdge edge : edges) {
                     String nextVertex = graph.getEdgeTarget(edge);
 
-                    sg1.addEdge(contig.toString(), nextVertex);
+                    //if (sg1.containsVertex(contig.toString()) && sg1.containsVertex(nextVertex)) {
+                        sg1.addEdge(contig.toString(), nextVertex);
+                    //}
 
                     sg1 = simplify(sg1, nextVertex);
                 }
@@ -131,15 +184,28 @@ public class VisualizeSequenceTree extends Module {
         DirectedGraph<String, DefaultEdge> simplifiedGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
         Graphs.addGraph(simplifiedGraph, graph);
 
+        int count = 1;
         for (String vertex : firstVertices) {
+            log.info("Simplifying graph ({}/{})", count, firstVertices.size());
             simplifiedGraph = simplify(simplifiedGraph, vertex);
+
+            count++;
         }
 
         return simplifiedGraph;
     }
 
-    public void writeGraph(DirectedGraph<String, DefaultEdge> g, File f) {
-        DOTExporter<String, DefaultEdge> exporter = new DOTExporter<String, DefaultEdge>(new StringNameProvider<String>(), new CustomLabelProvider(), null, null, null);
+    public void writeGraph(DirectedGraph<String, DefaultEdge> g, CustomEdgeAttributeProvider eap, File f) {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("rankdir", "LR");
+        ExtendedDOTExporter<String, DefaultEdge> exporter = new ExtendedDOTExporter<String, DefaultEdge>(
+                new StringNameProvider<String>(),
+                new CustomLabelProvider(),
+                null,
+                new CustomVertexAttributeProvider(),
+                eap,
+                attributes
+        );
 
         try {
             exporter.export(new FileWriter(f), g);
@@ -151,33 +217,66 @@ public class VisualizeSequenceTree extends Module {
     @Override
     public void execute() {
         DirectedGraph<String, DefaultEdge> graph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-
-        String startKmer = null;
+        Map<String, String> sequences = new HashMap<String, String>();
 
         ReferenceSequence rseq;
         while ((rseq = FASTA.nextSequence()) != null) {
+            DirectedGraph<String, DefaultEdge> sampleGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+
             String seq = new String(rseq.getBases());
 
+            Set<String> prevKmers = new HashSet<String>();
             String prevKmer = null;
+
             for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
                 String kmer = seq.substring(i, i + KMER_SIZE);
 
-                if (startKmer == null) {
-                    startKmer = kmer;
-                }
+                sampleGraph.addVertex(kmer);
 
-                graph.addVertex(kmer);
-
-                if (prevKmer != null) {
-                    graph.addEdge(prevKmer, kmer);
+                if (prevKmer != null && !prevKmers.contains(kmer)) {
+                    sampleGraph.addEdge(prevKmer, kmer);
                 }
 
                 prevKmer = kmer;
+
+                if (!SKIP_SIMPLIFICATION) {
+                    prevKmers.add(kmer);
+                }
+            }
+
+            Graphs.addGraph(graph, sampleGraph);
+
+            sequences.put(rseq.getName(), seq);
+        }
+
+        DirectedGraph<String, DefaultEdge> finalGraph = SKIP_SIMPLIFICATION ? graph : simplify(graph);
+
+        CustomEdgeAttributeProvider eap = new CustomEdgeAttributeProvider();
+
+        for (String seqName : sequences.keySet()) {
+            String seq = sequences.get(seqName);
+
+            Set<String> vertices = new HashSet<String>();
+            for (String vertex : finalGraph.vertexSet()) {
+                if (seq.contains(vertex)) {
+                    vertices.add(vertex);
+                }
+            }
+
+            for (DefaultEdge edge : finalGraph.edgeSet()) {
+                String sourceVertex = finalGraph.getEdgeSource(edge);
+                String targetVertex = finalGraph.getEdgeTarget(edge);
+
+                if (vertices.contains(sourceVertex) && vertices.contains(targetVertex)) {
+                    int oldWeight = eap.getWeight(edge);
+
+                    eap.incrementWeight(edge);
+
+                    int newWeight = eap.getWeight(edge);
+                }
             }
         }
 
-        DirectedGraph<String, DefaultEdge> simplifiedGraph = simplify(graph);
-
-        writeGraph(simplifiedGraph, out);
+        writeGraph(finalGraph, eap, out);
     }
 }
