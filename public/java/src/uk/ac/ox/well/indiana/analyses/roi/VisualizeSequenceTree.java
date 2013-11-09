@@ -39,6 +39,7 @@ public class VisualizeSequenceTree extends Module {
         @Override
         public String getVertexName(String vertex) {
             return "";
+            //return vertex;
             //return String.valueOf(vertex.length());
             //return SKIP_SIMPLIFICATION ? vertex : String.valueOf(vertex.length());
         }
@@ -48,6 +49,7 @@ public class VisualizeSequenceTree extends Module {
         @Override
         public Map<String, String> getComponentAttributes(String s) {
             Map<String, String> attrs = new HashMap<String, String>();
+//            attrs.put("shape", "rect");
             attrs.put("shape", "circle");
             attrs.put("height", "0.12");
             attrs.put("width", "0.12");
@@ -249,7 +251,48 @@ public class VisualizeSequenceTree extends Module {
             sequences.put(rseq.getName(), seq);
         }
 
-        DirectedGraph<String, DefaultEdge> finalGraph = SKIP_SIMPLIFICATION ? graph : simplify(graph);
+        Set<String> branchVertices = new HashSet<String>();
+        for (String vertex : graph.vertexSet()) {
+            if (graph.inDegreeOf(vertex) != 1 || graph.outDegreeOf(vertex) != 1) {
+                branchVertices.add(vertex);
+            }
+        }
+
+        DirectedGraph<String, DefaultEdge> finalGraph;
+        if (SKIP_SIMPLIFICATION) {
+            finalGraph = graph;
+        } else {
+            finalGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+            for (String seqName : sequences.keySet()) {
+                String seq = sequences.get(seqName);
+
+                StringBuilder contig = new StringBuilder();
+                String prevContig = null;
+
+                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                    String kmer = seq.substring(i, i + KMER_SIZE);
+
+                    if (contig.length() == 0) {
+                        contig.append(kmer);
+                    } else {
+                        contig.append(kmer.charAt(kmer.length() - 1));
+                    }
+
+                    if (branchVertices.contains(kmer) && i > 0) {
+                        finalGraph.addVertex(contig.toString());
+
+                        if (prevContig != null) {
+                            finalGraph.addEdge(prevContig, contig.toString());
+                        }
+
+                        prevContig = contig.toString();
+                        contig = new StringBuilder();
+                    }
+                }
+            }
+        }
+
+        // DirectedGraph<String, DefaultEdge> finalGraph = SKIP_SIMPLIFICATION ? graph : simplify(graph);
 
         CustomEdgeAttributeProvider eap = new CustomEdgeAttributeProvider();
 
@@ -268,11 +311,7 @@ public class VisualizeSequenceTree extends Module {
                 String targetVertex = finalGraph.getEdgeTarget(edge);
 
                 if (vertices.contains(sourceVertex) && vertices.contains(targetVertex)) {
-                    int oldWeight = eap.getWeight(edge);
-
                     eap.incrementWeight(edge);
-
-                    int newWeight = eap.getWeight(edge);
                 }
             }
         }
