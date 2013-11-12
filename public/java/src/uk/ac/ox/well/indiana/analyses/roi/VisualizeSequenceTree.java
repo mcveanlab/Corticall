@@ -33,28 +33,40 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="highlight", shortName="hl", doc="Colon-separated regex:color list (e.g. 'Pf3D7:#ff0000') specifying the sequence(s) to highlight with the specified color.", required=false)
     public ArrayList<String> HIGHLIGHT;
 
-    @Argument(fullName="expansionFactor", shortName="ef", doc="Expansion factor for edge thickness")
-    public Float EXPANSION_FACTOR = 0.1f;
+    @Argument(fullName="minThickness", shortName="minThickness", doc="Minimum thickness of plotted elements")
+    public Float MIN_THICKNESS = 1.0f;
+
+    @Argument(fullName="maxThickness", shortName="maxThickness", doc="Maximum thickness of plotted elements")
+    public Float MAX_THICKNESS = 20.0f;
 
     @Output
     public File out;
 
+    private int numSequences = 0;
+
     public class CustomLabelProvider implements VertexNameProvider<String> {
         @Override
         public String getVertexName(String vertex) {
-            return "";
-            //return vertex;
+            //return "";
+            return vertex;
             //return String.valueOf(vertex.length());
             //return SKIP_SIMPLIFICATION ? vertex : String.valueOf(vertex.length());
         }
     }
 
     public class CustomVertexAttributeProvider implements ComponentAttributeProvider<String> {
+        private Set<String> branchVertices;
+
+        public CustomVertexAttributeProvider(Set<String> branchVertices) {
+            this.branchVertices = branchVertices;
+        }
+
         @Override
         public Map<String, String> getComponentAttributes(String s) {
             Map<String, String> attrs = new HashMap<String, String>();
             attrs.put("shape", "circle");
             attrs.put("width", String.valueOf(Math.log10(s.length() - KMER_SIZE + 1)/10.0 + 0.12));
+            attrs.put("color", branchVertices.contains(s) ? "red" : "black");
             attrs.put("fontsize", "1");
 
             return attrs;
@@ -73,7 +85,7 @@ public class VisualizeSequenceTree extends Module {
             if (!edgeWeights.get(edge).containsKey(color)) {
                 edgeWeights.get(edge).put(color, 1.0f);
             } else {
-                edgeWeights.get(edge).put(color, edgeWeights.get(edge).get(color) + EXPANSION_FACTOR);
+                edgeWeights.get(edge).put(color, edgeWeights.get(edge).get(color) + 1.0f);
             }
         }
 
@@ -88,41 +100,38 @@ public class VisualizeSequenceTree extends Module {
         @Override
         public Map<String, String> getComponentAttributes(DefaultEdge edge) {
             Map<String, String> attrs = new HashMap<String, String>();
-            attrs.put("arrowhead", "none");
-
-            Map<String, Integer> colorWidths = new HashMap<String, Integer>();
+            attrs.put("arrowhead", "normal");
+            attrs.put("arrowsize", "0.8");
 
             if (edgeColors.containsKey(edge)) {
                 attrs.put("color", Joiner.on(":").join(edgeColors.get(edge)));
 
-                for (String color : edgeColors.get(edge)) {
-                    if (!colorWidths.containsKey(color)) {
-                        colorWidths.put(color, 1);
-                    } else {
-                        colorWidths.put(color, colorWidths.get(color));
-                    }
-                }
-
+                List<String> labels = new ArrayList<String>();
                 List<Float> widths = new ArrayList<Float>();
                 for (String color : edgeColors.get(edge)) {
-                    widths.add(edgeWeights.get(edge).get(color));
+                    float weight = edgeWeights.get(edge).get(color);
+                    float scaledWeight = MIN_THICKNESS + weight*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
+
+                    widths.add(scaledWeight);
+                    labels.add(String.format("%d", (int) weight));
                 }
 
                 attrs.put("penwidth", Joiner.on(":").join(widths));
+                attrs.put("label", Joiner.on(":").join(labels));
             }
 
             return attrs;
         }
     }
 
-    public void writeGraph(DirectedGraph<String, DefaultEdge> g, CustomEdgeAttributeProvider eap, File f) {
+    public void writeGraph(DirectedGraph<String, DefaultEdge> g, CustomEdgeAttributeProvider eap, Set<String> branchVertices, File f) {
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("rankdir", "LR");
         ExtendedDOTExporter<String, DefaultEdge> exporter = new ExtendedDOTExporter<String, DefaultEdge>(
                 new StringNameProvider<String>(),
                 new CustomLabelProvider(),
                 null,
-                new CustomVertexAttributeProvider(),
+                new CustomVertexAttributeProvider(branchVertices),
                 eap,
                 attributes
         );
@@ -169,6 +178,7 @@ public class VisualizeSequenceTree extends Module {
             Graphs.addGraph(graph, sampleGraph);
 
             sequences.put(rseq.getName(), seq);
+            numSequences++;
         }
 
         // Find all of the branch points in the graph.
@@ -195,12 +205,6 @@ public class VisualizeSequenceTree extends Module {
                 for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
                     String kmer = seq.substring(i, i + KMER_SIZE);
 
-                    if (contig.length() == 0) {
-                        contig.append(kmer);
-                    } else {
-                        contig.append(kmer.charAt(kmer.length() - 1));
-                    }
-
                     if (branchVertices.contains(kmer) && i > 0) {
                         finalGraph.addVertex(contig.toString());
 
@@ -210,6 +214,12 @@ public class VisualizeSequenceTree extends Module {
 
                         prevContig = contig.toString();
                         contig = new StringBuilder();
+                    }
+
+                    if (contig.length() == 0) {
+                        contig.append(kmer);
+                    } else {
+                        contig.append(kmer.charAt(kmer.length() - 1));
                     }
                 }
             }
@@ -246,13 +256,12 @@ public class VisualizeSequenceTree extends Module {
                 if (vertices.contains(sourceVertex) && vertices.contains(targetVertex)) {
                     boolean found = false;
                     for (String regex : colorMap.keySet()) {
-                        if (seqName.matches(regex)) {
+                        if (seqName.matches(regex) || seqName.contains(regex)) {
                             eap.addColor(edge, colorMap.get(regex));
-                            found = true;
-
                             eap.incrementWeight(edge, colorMap.get(regex));
-                            //eap.incrementWeight(edge, colorMap.get(regex));
-                            //eap.incrementWeight(edge, colorMap.get(regex));
+
+                            found = true;
+                            break;
                         }
                     }
 
@@ -265,13 +274,13 @@ public class VisualizeSequenceTree extends Module {
         }
 
         log.info("Sequences: {}", sequences.size());
-        log.info("Vertices: {}", graph.vertexSet().size());
         log.info("Edges: {}", graph.edgeSet().size());
+        log.info("Vertices: {}", graph.vertexSet().size());
+        log.info("Branch vertices: {}", branchVertices.size());
         log.info("Simplified vertices: {}", finalGraph.vertexSet().size());
-        log.info("Simplified branch vertices: {}", branchVertices.size());
         log.info("Simplified edges: {}", finalGraph.edgeSet().size());
 
         // Write the graph to disk.
-        writeGraph(finalGraph, eap, out);
+        writeGraph(finalGraph, eap, branchVertices, out);
     }
 }
