@@ -33,6 +33,9 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="highlight", shortName="hl", doc="Colon-separated regex:color list (e.g. 'Pf3D7:#ff0000') specifying the sequence(s) to highlight with the specified color.", required=false)
     public ArrayList<String> HIGHLIGHT;
 
+    @Argument(fullName="expansionFactor", shortName="ef", doc="Expansion factor for edge thickness")
+    public Float EXPANSION_FACTOR = 0.1f;
+
     @Output
     public File out;
 
@@ -50,9 +53,7 @@ public class VisualizeSequenceTree extends Module {
         @Override
         public Map<String, String> getComponentAttributes(String s) {
             Map<String, String> attrs = new HashMap<String, String>();
-//            attrs.put("shape", "rect");
             attrs.put("shape", "circle");
-            //attrs.put("height", "0.12");
             attrs.put("width", String.valueOf(Math.log10(s.length() - KMER_SIZE + 1)/10.0 + 0.12));
             attrs.put("fontsize", "1");
 
@@ -61,18 +62,18 @@ public class VisualizeSequenceTree extends Module {
     }
 
     public class CustomEdgeAttributeProvider implements ComponentAttributeProvider<DefaultEdge> {
-        private Map<DefaultEdge, Map<String, Integer>> edgeWeights = new HashMap<DefaultEdge, Map<String, Integer>>();
+        private Map<DefaultEdge, Map<String, Float>> edgeWeights = new HashMap<DefaultEdge, Map<String, Float>>();
         private Map<DefaultEdge, Set<String>> edgeColors = new HashMap<DefaultEdge, Set<String>>();
 
         public void incrementWeight(DefaultEdge edge, String color) {
             if (!edgeWeights.containsKey(edge)) {
-                edgeWeights.put(edge, new HashMap<String, Integer>());
+                edgeWeights.put(edge, new HashMap<String, Float>());
             }
 
             if (!edgeWeights.get(edge).containsKey(color)) {
-                edgeWeights.get(edge).put(color, 1);
+                edgeWeights.get(edge).put(color, 1.0f);
             } else {
-                edgeWeights.get(edge).put(color, edgeWeights.get(edge).get(color) + 2);
+                edgeWeights.get(edge).put(color, edgeWeights.get(edge).get(color) + EXPANSION_FACTOR);
             }
         }
 
@@ -89,10 +90,6 @@ public class VisualizeSequenceTree extends Module {
             Map<String, String> attrs = new HashMap<String, String>();
             attrs.put("arrowhead", "none");
 
-            //if (edgeWeights.containsKey(edge)) {
-            //    attrs.put("penwidth", String.valueOf(edgeWeights.get(edge)));
-            //}
-
             Map<String, Integer> colorWidths = new HashMap<String, Integer>();
 
             if (edgeColors.containsKey(edge)) {
@@ -102,11 +99,11 @@ public class VisualizeSequenceTree extends Module {
                     if (!colorWidths.containsKey(color)) {
                         colorWidths.put(color, 1);
                     } else {
-                        colorWidths.put(color, colorWidths.get(color) + 2);
+                        colorWidths.put(color, colorWidths.get(color));
                     }
                 }
 
-                List<Integer> widths = new ArrayList<Integer>();
+                List<Float> widths = new ArrayList<Float>();
                 for (String color : edgeColors.get(edge)) {
                     widths.add(edgeWeights.get(edge).get(color));
                 }
@@ -254,7 +251,8 @@ public class VisualizeSequenceTree extends Module {
                             found = true;
 
                             eap.incrementWeight(edge, colorMap.get(regex));
-
+                            //eap.incrementWeight(edge, colorMap.get(regex));
+                            //eap.incrementWeight(edge, colorMap.get(regex));
                         }
                     }
 
