@@ -66,7 +66,11 @@ public class VisualizeSequenceTree extends Module {
             Map<String, String> attrs = new HashMap<String, String>();
             attrs.put("shape", "circle");
             attrs.put("width", String.valueOf(Math.log10(s.length() - KMER_SIZE + 1)/10.0 + 0.12));
-            attrs.put("color", branchVertices.contains(s) ? "red" : "black");
+
+            if (SKIP_SIMPLIFICATION) {
+                attrs.put("color", branchVertices.contains(s) ? "red" : "black");
+            }
+
             attrs.put("fontsize", "1");
 
             return attrs;
@@ -205,6 +209,12 @@ public class VisualizeSequenceTree extends Module {
                 for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
                     String kmer = seq.substring(i, i + KMER_SIZE);
 
+                    if (contig.length() == 0) {
+                        contig.append(kmer);
+                    } else {
+                        contig.append(kmer.charAt(kmer.length() - 1));
+                    }
+
                     if (branchVertices.contains(kmer) && i > 0) {
                         finalGraph.addVertex(contig.toString());
 
@@ -214,12 +224,7 @@ public class VisualizeSequenceTree extends Module {
 
                         prevContig = contig.toString();
                         contig = new StringBuilder();
-                    }
-
-                    if (contig.length() == 0) {
                         contig.append(kmer);
-                    } else {
-                        contig.append(kmer.charAt(kmer.length() - 1));
                     }
                 }
             }
