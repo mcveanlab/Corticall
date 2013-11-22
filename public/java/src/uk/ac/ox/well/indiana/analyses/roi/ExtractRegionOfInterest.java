@@ -27,6 +27,9 @@ public class ExtractRegionOfInterest extends Module {
     @Argument(fullName="domains", shortName="domains", doc="Domains file")
     public File DOMAINS;
 
+    @Argument(fullName="translate", shortName="t", doc="Translate genomic sequence into amino acids")
+    public Boolean TRANSLATE = false;
+
     @Output
     public PrintStream out;
 
@@ -70,25 +73,40 @@ public class ExtractRegionOfInterest extends Module {
                     cds = SequenceUtils.reverseComplement(cds);
                 }
 
-                short[] aa = new short[cds.length()];
-                short aaPos = 1;
-                for (int i = 0, cp = 0; i < cds.length(); i++, cp++) {
-                    if (cp > 2) {
-                        cp = 0;
-                        aaPos++;
-                    }
-
-                    aa[i] = aaPos;
-                }
-
                 int dstart = Integer.valueOf(domains.get(gr.getAttribute("ID")).get("aa_start"));
                 int dend = Integer.valueOf(domains.get(gr.getAttribute("ID")).get("aa_end"));
 
                 StringBuilder domainSeq = new StringBuilder();
 
-                for (int i = 0; i < cds.length(); i++) {
-                    if (aa[i] >= dstart && aa[i] <= dend) {
-                        domainSeq.append(cds.charAt(i));
+                if (TRANSLATE) {
+                    StringBuilder aaSeqB = new StringBuilder();
+
+                    for (int i = 0; i < cds.length() - 3; i += 3) {
+                        String codon = cds.substring(i, i + 3);
+                        String aa = SequenceUtils.codonToAminoAcid(codon);
+
+                        aaSeqB.append(aa);
+                    }
+
+                    for (int i = dstart; i <= dend; i++) {
+                        domainSeq.append(aaSeqB.charAt(i));
+                    }
+                } else {
+                    short[] aa = new short[cds.length()];
+                    short aaPos = 1;
+                    for (int i = 0, cp = 0; i < cds.length(); i++, cp++) {
+                        if (cp > 2) {
+                            cp = 0;
+                            aaPos++;
+                        }
+
+                        aa[i] = aaPos;
+                    }
+
+                    for (int i = 0; i < cds.length(); i++) {
+                        if (aa[i] >= dstart && aa[i] <= dend) {
+                            domainSeq.append(cds.charAt(i));
+                        }
                     }
                 }
 

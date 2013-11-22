@@ -14,10 +14,9 @@ import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.jgrapht.ExtendedDOTExporter;
+import uk.ac.ox.well.indiana.utils.io.jgrapht.MultiWeightEdge;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class VisualizeSequenceTree extends Module {
@@ -34,10 +33,19 @@ public class VisualizeSequenceTree extends Module {
     public ArrayList<String> HIGHLIGHT;
 
     @Argument(fullName="minThickness", shortName="minThickness", doc="Minimum thickness of plotted elements")
-    public Float MIN_THICKNESS = 1.0f;
+    public Float MIN_THICKNESS = 0.3f;
 
     @Argument(fullName="maxThickness", shortName="maxThickness", doc="Maximum thickness of plotted elements")
     public Float MAX_THICKNESS = 20.0f;
+
+    @Argument(fullName="withWeight", shortName="ww", doc="Enable weights")
+    public Boolean WITH_WEIGHT = false;
+
+    @Argument(fullName="withVertexLabels", shortName="wvl", doc="Enable vertex labels")
+    public Boolean WITH_VERTEX_LABELS = false;
+
+    @Argument(fullName="withEdgeLabels", shortName="wel", doc="Enable edge labels")
+    public Boolean WITH_EDGE_LABELS = false;
 
     @Output
     public File out;
@@ -67,9 +75,9 @@ public class VisualizeSequenceTree extends Module {
             attrs.put("shape", "circle");
             attrs.put("width", String.valueOf(Math.log10(s.length() - KMER_SIZE + 1)/10.0 + 0.12));
 
-            if (SKIP_SIMPLIFICATION) {
+            //if (SKIP_SIMPLIFICATION) {
                 attrs.put("color", branchVertices.contains(s) ? "red" : "black");
-            }
+            //}
 
             attrs.put("fontsize", "1");
 
@@ -122,28 +130,56 @@ public class VisualizeSequenceTree extends Module {
 
                 attrs.put("penwidth", Joiner.on(":").join(widths));
                 attrs.put("label", Joiner.on(":").join(labels));
+                attrs.put("weight", Joiner.on(":").join(labels));
             }
 
             return attrs;
         }
     }
 
-    public void writeGraph(DirectedGraph<String, DefaultEdge> g, CustomEdgeAttributeProvider eap, Set<String> branchVertices, File f) {
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put("rankdir", "LR");
-        ExtendedDOTExporter<String, DefaultEdge> exporter = new ExtendedDOTExporter<String, DefaultEdge>(
-                new StringNameProvider<String>(),
-                new CustomLabelProvider(),
-                null,
-                new CustomVertexAttributeProvider(branchVertices),
-                eap,
-                attributes
-        );
-
+    public void writeGraph(DirectedGraph<String, MultiWeightEdge> g, File f) {
         try {
-            exporter.export(new FileWriter(f), g);
-        } catch (IOException e) {
-            e.printStackTrace();
+            PrintStream ps = new PrintStream(f);
+
+            String indent = "  ";
+
+            ps.println("digraph G {");
+            ps.println(indent + "rankdir=\"LR\";");
+
+            for (String vertex : g.vertexSet()) {
+                if (WITH_VERTEX_LABELS) {
+                    ps.println(indent + vertex + " [ label=\"" + vertex + "\" color=\"black\" width=\"0.10\" shape=\"circle\" fontsize=\"1\" ];");
+                } else {
+                    ps.println(indent + vertex + " [ label=\"\" color=\"black\" width=\"0.10\" shape=\"circle\" fontsize=\"1\" ];");
+                }
+                //ps.println(indent + vertex + " [ label=" + vertex + " color=\"black\" height=\"0.40\" shape=\"rect\" fontsize=\"1\" ];");
+            }
+
+            for (MultiWeightEdge e : g.edgeSet()) {
+                Map<String, Integer> weights = e.getWeights();
+
+                for (String color : weights.keySet()) {
+                    float penwidth = MIN_THICKNESS + weights.get(color)*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
+
+                    if (WITH_WEIGHT) {
+                        if (WITH_EDGE_LABELS) {
+                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                        } else {
+                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                        }
+                    } else {
+                        if (WITH_EDGE_LABELS) {
+                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                        } else {
+                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                        }
+                    }
+                }
+            }
+
+            ps.println("}");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -185,6 +221,33 @@ public class VisualizeSequenceTree extends Module {
             numSequences++;
         }
 
+        // Populate regex to color map
+        Map<String, String> regexColorMap = new HashMap<String, String>();
+        if (HIGHLIGHT != null) {
+            for (String regexColor : HIGHLIGHT) {
+                String[] pieces = regexColor.split(":");
+                String regex = pieces[0];
+                String color = pieces[1];
+
+                regexColorMap.put(regex, color);
+            }
+        }
+
+        // Populate seq to color map
+        Map<String, String> seqColorMap = new HashMap<String, String>();
+        for (String seqName : sequences.keySet()) {
+            String color = "#000000";
+            if (HIGHLIGHT != null) {
+                for (String regex : regexColorMap.keySet()) {
+                    if (seqName.matches(regex) || seqName.contains(regex)) {
+                        color = regexColorMap.get(regex);
+                    }
+                }
+            }
+
+            seqColorMap.put(seqName, color);
+        }
+
         // Find all of the branch points in the graph.
         Set<String> branchVertices = new HashSet<String>();
         for (String vertex : graph.vertexSet()) {
@@ -193,13 +256,15 @@ public class VisualizeSequenceTree extends Module {
             }
         }
 
-        DirectedGraph<String, DefaultEdge> finalGraph;
+        DirectedGraph<String, MultiWeightEdge> finalGraph;
         if (SKIP_SIMPLIFICATION) {
-            finalGraph = graph;
+            //finalGraph = graph;
+            finalGraph = null;
         } else {
             // Build the complete graph again, but this time, break the sequences into
             // variable sized chunks based on where the branching kmers are found.
-            finalGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+            finalGraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
+
             for (String seqName : sequences.keySet()) {
                 String seq = sequences.get(seqName);
 
@@ -220,59 +285,12 @@ public class VisualizeSequenceTree extends Module {
 
                         if (prevContig != null) {
                             finalGraph.addEdge(prevContig, contig.toString());
+                            finalGraph.getEdge(prevContig, contig.toString()).incrementWeight(seqColorMap.get(seqName));
                         }
 
                         prevContig = contig.toString();
                         contig = new StringBuilder();
                         contig.append(kmer);
-                    }
-                }
-            }
-        }
-
-        // Annotate the graph with some useful information.
-        CustomEdgeAttributeProvider eap = new CustomEdgeAttributeProvider();
-
-        Map<String, String> colorMap = new HashMap<String, String>();
-        if (HIGHLIGHT != null) {
-            for (String regexColor : HIGHLIGHT) {
-                String[] pieces = regexColor.split(":");
-                String regex = pieces[0];
-                String color = pieces[1];
-
-                colorMap.put(regex, color);
-            }
-        }
-
-        for (String seqName : sequences.keySet()) {
-            String seq = sequences.get(seqName);
-
-            Set<String> vertices = new HashSet<String>();
-            for (String vertex : finalGraph.vertexSet()) {
-                if (seq.contains(vertex)) {
-                    vertices.add(vertex);
-                }
-            }
-
-            for (DefaultEdge edge : finalGraph.edgeSet()) {
-                String sourceVertex = finalGraph.getEdgeSource(edge);
-                String targetVertex = finalGraph.getEdgeTarget(edge);
-
-                if (vertices.contains(sourceVertex) && vertices.contains(targetVertex)) {
-                    boolean found = false;
-                    for (String regex : colorMap.keySet()) {
-                        if (seqName.matches(regex) || seqName.contains(regex)) {
-                            eap.addColor(edge, colorMap.get(regex));
-                            eap.incrementWeight(edge, colorMap.get(regex));
-
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found) {
-                        eap.addColor(edge, "#000000");
-                        eap.incrementWeight(edge, "#000000");
                     }
                 }
             }
@@ -286,6 +304,6 @@ public class VisualizeSequenceTree extends Module {
         log.info("Simplified edges: {}", finalGraph.edgeSet().size());
 
         // Write the graph to disk.
-        writeGraph(finalGraph, eap, branchVertices, out);
+        writeGraph(finalGraph, out);
     }
 }

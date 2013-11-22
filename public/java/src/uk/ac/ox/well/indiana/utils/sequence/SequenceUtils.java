@@ -353,4 +353,103 @@ public class SequenceUtils {
 
         return editDistance;
     }
+
+    private static final Map<String, String> codonToAminoAcidMap;
+    static {
+        Map<String, String> c2a = new HashMap<String, String>();
+        c2a.put("GCT", "A");
+        c2a.put("GCC", "A");
+        c2a.put("GCA", "A");
+        c2a.put("GCG", "A");
+
+        c2a.put("CGT", "R");
+        c2a.put("CGC", "R");
+        c2a.put("CGA", "R");
+        c2a.put("CGG", "R");
+        c2a.put("AGA", "R");
+        c2a.put("AGG", "R");
+
+        c2a.put("AAT", "N");
+        c2a.put("AAC", "N");
+
+        c2a.put("GAT", "D");
+        c2a.put("GAC", "D");
+
+        c2a.put("TGT", "C");
+        c2a.put("TGC", "C");
+
+        c2a.put("CAA", "Q");
+        c2a.put("CAG", "Q");
+
+        c2a.put("GAA", "E");
+        c2a.put("GAG", "E");
+
+        c2a.put("GGT", "G");
+        c2a.put("GGC", "G");
+        c2a.put("GGA", "G");
+        c2a.put("GGG", "G");
+
+        c2a.put("CAT", "H");
+        c2a.put("CAC", "H");
+
+        c2a.put("ATT", "I");
+        c2a.put("ATC", "I");
+        c2a.put("ATA", "I");
+
+        c2a.put("TTA", "L");
+        c2a.put("TTG", "L");
+        c2a.put("CTT", "L");
+        c2a.put("CTC", "L");
+        c2a.put("CTA", "L");
+        c2a.put("CTG", "L");
+
+        c2a.put("AAA", "K");
+        c2a.put("AAG", "K");
+
+        c2a.put("ATG", "M");
+
+        c2a.put("TTT", "F");
+        c2a.put("TTC", "F");
+
+        c2a.put("CCT", "P");
+        c2a.put("CCC", "P");
+        c2a.put("CCA", "P");
+        c2a.put("CCG", "P");
+
+        c2a.put("TCT", "S");
+        c2a.put("TCC", "S");
+        c2a.put("TCA", "S");
+        c2a.put("TCG", "S");
+        c2a.put("AGT", "S");
+        c2a.put("AGC", "S");
+
+        c2a.put("ACT", "T");
+        c2a.put("ACC", "T");
+        c2a.put("ACA", "T");
+        c2a.put("ACG", "T");
+
+        c2a.put("TGG", "W");
+
+        c2a.put("TAT", "Y");
+        c2a.put("TAC", "Y");
+
+        c2a.put("GTT", "V");
+        c2a.put("GTC", "V");
+        c2a.put("GTA", "V");
+        c2a.put("GTG", "V");
+
+        c2a.put("TAA", "");
+        c2a.put("TGA", "");
+        c2a.put("TAG", "");
+
+        codonToAminoAcidMap = Collections.unmodifiableMap(c2a);
+    }
+
+    public static String codonToAminoAcid(String codon) {
+        if (codonToAminoAcidMap.containsKey(codon)) {
+            return codonToAminoAcidMap.get(codon);
+        } else {
+            throw new RuntimeException("Did not find corresponding amino acid for '" + codon + "'");
+        }
+    }
 }
