@@ -52,91 +52,6 @@ public class VisualizeSequenceTree extends Module {
 
     private int numSequences = 0;
 
-    public class CustomLabelProvider implements VertexNameProvider<String> {
-        @Override
-        public String getVertexName(String vertex) {
-            //return "";
-            return vertex;
-            //return String.valueOf(vertex.length());
-            //return SKIP_SIMPLIFICATION ? vertex : String.valueOf(vertex.length());
-        }
-    }
-
-    public class CustomVertexAttributeProvider implements ComponentAttributeProvider<String> {
-        private Set<String> branchVertices;
-
-        public CustomVertexAttributeProvider(Set<String> branchVertices) {
-            this.branchVertices = branchVertices;
-        }
-
-        @Override
-        public Map<String, String> getComponentAttributes(String s) {
-            Map<String, String> attrs = new HashMap<String, String>();
-            attrs.put("shape", "circle");
-            attrs.put("width", String.valueOf(Math.log10(s.length() - KMER_SIZE + 1)/10.0 + 0.12));
-
-            //if (SKIP_SIMPLIFICATION) {
-                attrs.put("color", branchVertices.contains(s) ? "red" : "black");
-            //}
-
-            attrs.put("fontsize", "1");
-
-            return attrs;
-        }
-    }
-
-    public class CustomEdgeAttributeProvider implements ComponentAttributeProvider<DefaultEdge> {
-        private Map<DefaultEdge, Map<String, Float>> edgeWeights = new HashMap<DefaultEdge, Map<String, Float>>();
-        private Map<DefaultEdge, Set<String>> edgeColors = new HashMap<DefaultEdge, Set<String>>();
-
-        public void incrementWeight(DefaultEdge edge, String color) {
-            if (!edgeWeights.containsKey(edge)) {
-                edgeWeights.put(edge, new HashMap<String, Float>());
-            }
-
-            if (!edgeWeights.get(edge).containsKey(color)) {
-                edgeWeights.get(edge).put(color, 1.0f);
-            } else {
-                edgeWeights.get(edge).put(color, edgeWeights.get(edge).get(color) + 1.0f);
-            }
-        }
-
-        public void addColor(DefaultEdge edge, String color) {
-            if (!edgeColors.containsKey(edge)) {
-                edgeColors.put(edge, new HashSet<String>());
-            }
-
-            edgeColors.get(edge).add(color);
-        }
-
-        @Override
-        public Map<String, String> getComponentAttributes(DefaultEdge edge) {
-            Map<String, String> attrs = new HashMap<String, String>();
-            attrs.put("arrowhead", "normal");
-            attrs.put("arrowsize", "0.8");
-
-            if (edgeColors.containsKey(edge)) {
-                attrs.put("color", Joiner.on(":").join(edgeColors.get(edge)));
-
-                List<String> labels = new ArrayList<String>();
-                List<Float> widths = new ArrayList<Float>();
-                for (String color : edgeColors.get(edge)) {
-                    float weight = edgeWeights.get(edge).get(color);
-                    float scaledWeight = MIN_THICKNESS + weight*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
-
-                    widths.add(scaledWeight);
-                    labels.add(String.format("%d", (int) weight));
-                }
-
-                attrs.put("penwidth", Joiner.on(":").join(widths));
-                attrs.put("label", Joiner.on(":").join(labels));
-                attrs.put("weight", Joiner.on(":").join(labels));
-            }
-
-            return attrs;
-        }
-    }
-
     public void writeGraph(DirectedGraph<String, MultiWeightEdge> g, File f) {
         try {
             PrintStream ps = new PrintStream(f);
@@ -158,22 +73,26 @@ public class VisualizeSequenceTree extends Module {
             for (MultiWeightEdge e : g.edgeSet()) {
                 Map<String, Integer> weights = e.getWeights();
 
-                for (String color : weights.keySet()) {
-                    float penwidth = MIN_THICKNESS + weights.get(color)*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
+                if (weights.size() > 0) {
+                    for (String color : weights.keySet()) {
+                        float penwidth = MIN_THICKNESS + weights.get(color)*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
 
-                    if (WITH_WEIGHT) {
-                        if (WITH_EDGE_LABELS) {
-                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                        if (WITH_WEIGHT) {
+                            if (WITH_EDGE_LABELS) {
+                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                            } else {
+                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                            }
                         } else {
-                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                        }
-                    } else {
-                        if (WITH_EDGE_LABELS) {
-                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                        } else {
-                            ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                            if (WITH_EDGE_LABELS) {
+                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                            } else {
+                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
+                            }
                         }
                     }
+                } else {
+                    ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e));
                 }
             }
 
@@ -186,13 +105,13 @@ public class VisualizeSequenceTree extends Module {
     @Override
     public void execute() {
         // Load genes
-        DirectedGraph<String, DefaultEdge> graph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        DirectedGraph<String, MultiWeightEdge> graph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
         Map<String, String> sequences = new HashMap<String, String>();
 
         ReferenceSequence rseq;
         while ((rseq = FASTA.nextSequence()) != null) {
             // Load each gene into its own graph object.
-            DirectedGraph<String, DefaultEdge> sampleGraph = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+            DirectedGraph<String, MultiWeightEdge> sampleGraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
             Set<String> prevKmers = new HashSet<String>();
             String prevKmer = null;
 
@@ -250,48 +169,49 @@ public class VisualizeSequenceTree extends Module {
 
         // Find all of the branch points in the graph.
         Set<String> branchVertices = new HashSet<String>();
-        for (String vertex : graph.vertexSet()) {
-            if (graph.inDegreeOf(vertex) != 1 || graph.outDegreeOf(vertex) != 1) {
-                branchVertices.add(vertex);
+
+        if (SKIP_SIMPLIFICATION) {
+            branchVertices.addAll(graph.vertexSet());
+        } else {
+            for (String vertex : graph.vertexSet()) {
+                if (graph.inDegreeOf(vertex) != 1 || graph.outDegreeOf(vertex) != 1) {
+                    branchVertices.add(vertex);
+                }
             }
         }
 
+        // Build the complete graph again, but this time, break the sequences into
+        // variable sized chunks based on where the branching kmers are found and
+        // annotate the edges with weight information.
         DirectedGraph<String, MultiWeightEdge> finalGraph;
-        if (SKIP_SIMPLIFICATION) {
-            //finalGraph = graph;
-            finalGraph = null;
-        } else {
-            // Build the complete graph again, but this time, break the sequences into
-            // variable sized chunks based on where the branching kmers are found.
-            finalGraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
+        finalGraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
 
-            for (String seqName : sequences.keySet()) {
-                String seq = sequences.get(seqName);
+        for (String seqName : sequences.keySet()) {
+            String seq = sequences.get(seqName);
 
-                StringBuilder contig = new StringBuilder();
-                String prevContig = null;
+            StringBuilder contig = new StringBuilder();
+            String prevContig = null;
 
-                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    String kmer = seq.substring(i, i + KMER_SIZE);
+            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                String kmer = seq.substring(i, i + KMER_SIZE);
 
-                    if (contig.length() == 0) {
-                        contig.append(kmer);
-                    } else {
-                        contig.append(kmer.charAt(kmer.length() - 1));
+                if (contig.length() == 0) {
+                    contig.append(kmer);
+                } else {
+                    contig.append(kmer.charAt(kmer.length() - 1));
+                }
+
+                if (branchVertices.contains(kmer) && i > 0) {
+                    finalGraph.addVertex(contig.toString());
+
+                    if (prevContig != null) {
+                        finalGraph.addEdge(prevContig, contig.toString());
+                        finalGraph.getEdge(prevContig, contig.toString()).incrementWeight(seqColorMap.get(seqName));
                     }
 
-                    if (branchVertices.contains(kmer) && i > 0) {
-                        finalGraph.addVertex(contig.toString());
-
-                        if (prevContig != null) {
-                            finalGraph.addEdge(prevContig, contig.toString());
-                            finalGraph.getEdge(prevContig, contig.toString()).incrementWeight(seqColorMap.get(seqName));
-                        }
-
-                        prevContig = contig.toString();
-                        contig = new StringBuilder();
-                        contig.append(kmer);
-                    }
+                    prevContig = contig.toString();
+                    contig = new StringBuilder();
+                    contig.append(kmer);
                 }
             }
         }
