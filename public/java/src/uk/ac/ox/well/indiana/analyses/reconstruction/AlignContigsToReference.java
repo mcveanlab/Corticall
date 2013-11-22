@@ -41,7 +41,9 @@ public class AlignContigsToReference extends Module {
         while ((ref = REFERENCE.nextSequence()) != null) {
             String seq = new String(ref.getBases());
 
-            refMap.put(ref.getName(), seq);
+            String[] name = ref.getName().split("\\s+");
+
+            refMap.put(name[0], seq);
         }
 
         return refMap;
@@ -94,9 +96,9 @@ public class AlignContigsToReference extends Module {
 
         int count = 0;
         for (Map<String, String> te : tr) {
-            if (count % (tr.size() / 10) == 0) {
+            //if (count % (tr.size() / 10) == 0) {
                 log.info("Processed {}/{} records", count, tr.size());
-            }
+            //}
             count++;
 
             String sampleName = te.get("sample");
