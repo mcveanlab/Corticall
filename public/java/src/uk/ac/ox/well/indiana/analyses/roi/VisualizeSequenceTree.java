@@ -172,7 +172,7 @@ public class VisualizeSequenceTree extends Module {
         }
 
         // Load contigs
-        if (CONTIGS.size() > 0) {
+        if (CONTIGS != null && CONTIGS.size() > 0) {
             DirectedGraph<String, MultiWeightEdge> contigGraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
             for (File contigsFile : CONTIGS) {
                 TableReader tr = new TableReader(contigsFile);
