@@ -19,7 +19,7 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="sequences", shortName="s", doc="Sequences FASTA")
     public FastaSequenceFile FASTA;
 
-    @Argument(fullName="contigs", shortName="c", doc="Contigs to add to FASTA graph")
+    @Argument(fullName="contigs", shortName="c", doc="Contigs to add to FASTA graph", required=false)
     public ArrayList<File> CONTIGS;
 
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
