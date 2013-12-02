@@ -57,7 +57,7 @@ public class CoverageOfSpecificKmers extends Module {
                 }
             }
 
-            if (index % 100 == 0) {
+            //if (index % 100 == 0) {
                 for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                     String sample = CORTEX_GRAPH.getColor(color).getSampleName();
                     int cov = cr.getCoverage(color);
@@ -70,7 +70,7 @@ public class CoverageOfSpecificKmers extends Module {
                 }
 
                 numRecords++;
-            }
+            //}
 
             index++;
         }
