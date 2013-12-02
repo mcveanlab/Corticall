@@ -10,6 +10,7 @@ import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.IndianaModule;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 
@@ -210,6 +211,8 @@ public class ArgumentHandler {
                 return Double.valueOf(value);
             } else if (type.equals(String.class)) {
                 return value;
+            } else if (type.equals(CortexKmer.class)) {
+                return new CortexKmer(value);
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
             } else if (type.equals(CortexMap.class)) {
