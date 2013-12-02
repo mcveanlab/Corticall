@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.roi;
 
+import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -9,10 +10,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class CoverageOfSpecificKmers extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
@@ -53,13 +51,19 @@ public class CoverageOfSpecificKmers extends Module {
             }
         }
 
-        out.println("kmer\tsample\tcoverage");
+        Set<String> samples = results.get(results.keySet().iterator().next()).keySet();
+
+        out.println("\t" + Joiner.on("\t").join(samples));
         for (String kmer : results.keySet()) {
+            List<Integer> fields = new ArrayList<Integer>();
+
             for (String sample : results.get(kmer).keySet()) {
                 int coverage = results.get(kmer).get(sample);
 
-                out.println(kmer + "\t" + sample + "\t" + coverage);
+                fields.add(coverage);
             }
+
+            out.println(kmer + "\t" + Joiner.on("\t").join(fields));
         }
     }
 }
