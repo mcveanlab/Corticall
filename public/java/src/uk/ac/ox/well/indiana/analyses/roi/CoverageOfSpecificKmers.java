@@ -19,12 +19,19 @@ public class CoverageOfSpecificKmers extends Module {
     @Argument(fullName="kmers", shortName="kmers", doc="Kmers to look for")
     public HashSet<String> KMERS;
 
+    @Argument(fullName="samplingProb", shortName="sp", doc="Sampling probability")
+    public Float SAMPLING_PROB = 0.001f;
+
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
         Map<String, Map<String, Integer>> results = new TreeMap<String, Map<String, Integer>>();
+        Map<String, Long> coverages = new HashMap<String, Long>();
+
+        int numRecords = 0;
+        int index = 0;
 
         for (CortexRecord cr : CORTEX_GRAPH) {
             String fw = cr.getKmerAsString();
@@ -49,18 +56,37 @@ public class CoverageOfSpecificKmers extends Module {
                     results.get(kmer).put(sample, cr.getCoverage(color));
                 }
             }
+
+            if (index % 100 == 0) {
+                for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
+                    String sample = CORTEX_GRAPH.getColor(color).getSampleName();
+                    int cov = cr.getCoverage(color);
+
+                    if (!coverages.containsKey(sample)) {
+                        coverages.put(sample, 0l);
+                    }
+
+                    coverages.put(sample, coverages.get(sample) + cov);
+                }
+
+                numRecords++;
+            }
+
+            index++;
         }
 
         Set<String> samples = results.get(results.keySet().iterator().next()).keySet();
 
         out.println("\t" + Joiner.on("\t").join(samples));
         for (String kmer : results.keySet()) {
-            List<Integer> fields = new ArrayList<Integer>();
+            List<Float> fields = new ArrayList<Float>();
 
             for (String sample : results.get(kmer).keySet()) {
-                int coverage = results.get(kmer).get(sample);
+                float coverage = results.get(kmer).get(sample);
+                float average = (float) coverages.get(sample) / (float) numRecords;
+                float norm = coverage / average;
 
-                fields.add(coverage);
+                fields.add(norm);
             }
 
             out.println(kmer + "\t" + Joiner.on("\t").join(fields));
