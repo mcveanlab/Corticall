@@ -19,8 +19,8 @@ public class CoverageOfSpecificKmers extends Module {
     @Argument(fullName="kmers", shortName="kmers", doc="Kmers to look for")
     public HashSet<String> KMERS;
 
-    @Argument(fullName="samplingProb", shortName="sp", doc="Sampling probability")
-    public Float SAMPLING_PROB = 0.001f;
+    @Argument(fullName="normalize", shortName="n", doc="Normalize?")
+    public Boolean NORMALIZE = false;
 
     @Output
     public PrintStream out;
@@ -84,7 +84,7 @@ public class CoverageOfSpecificKmers extends Module {
             for (String sample : results.get(kmer).keySet()) {
                 float coverage = results.get(kmer).get(sample);
                 float average = (float) coverages.get(sample) / (float) numRecords;
-                float norm = coverage / average;
+                float norm = (NORMALIZE) ? coverage : coverage / average;
 
                 fields.add(norm);
             }
