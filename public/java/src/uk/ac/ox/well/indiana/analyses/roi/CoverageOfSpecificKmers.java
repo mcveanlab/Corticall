@@ -84,7 +84,7 @@ public class CoverageOfSpecificKmers extends Module {
             for (String sample : results.get(kmer).keySet()) {
                 float coverage = results.get(kmer).get(sample);
                 float average = (float) coverages.get(sample) / (float) numRecords;
-                float norm = (NORMALIZE) ? coverage / average : coverage;
+                float norm = (NORMALIZE) ? average : coverage;
 
                 fields.add(norm);
             }
