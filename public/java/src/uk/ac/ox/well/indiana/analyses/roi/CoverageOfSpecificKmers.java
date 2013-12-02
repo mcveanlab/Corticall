@@ -34,6 +34,10 @@ public class CoverageOfSpecificKmers extends Module {
         int index = 0;
 
         for (CortexRecord cr : CORTEX_GRAPH) {
+            if (index % (CORTEX_GRAPH.getNumRecords() / 20) == 0) {
+                log.info("processed {} records", index);
+            }
+
             String fw = cr.getKmerAsString();
             String rc = SequenceUtils.reverseComplement(fw);
 
@@ -57,7 +61,7 @@ public class CoverageOfSpecificKmers extends Module {
                 }
             }
 
-            //if (index % 100 == 0) {
+            if (index % 1000 == 0) {
                 for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                     String sample = CORTEX_GRAPH.getColor(color).getSampleName();
                     int cov = cr.getCoverage(color);
@@ -70,7 +74,7 @@ public class CoverageOfSpecificKmers extends Module {
                 }
 
                 numRecords++;
-            //}
+            }
 
             index++;
         }
@@ -86,7 +90,7 @@ public class CoverageOfSpecificKmers extends Module {
                 float average = (float) coverages.get(sample) / (float) numRecords;
                 float norm = (NORMALIZE) ? coverage / average : coverage;
 
-                fields.add(String.valueOf(norm) + ":" + String.valueOf(coverages.get(sample)) + ":" + String.valueOf(numRecords));
+                fields.add(String.valueOf(coverage) + ":" + String.valueOf(norm) + ":" + String.valueOf(coverages.get(sample)) + ":" + String.valueOf(numRecords));
             }
 
             out.println(kmer + "\t" + Joiner.on("\t").join(fields));
