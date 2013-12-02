@@ -248,6 +248,8 @@ public class VisualizeSequenceTree extends Module {
 
         // Find all of the branch points in the graph.
         Set<String> branchVertices = new HashSet<String>();
+        Map<String, String> prevVertex = new HashMap<String, String>();
+        Map<String, String> nextVertex = new HashMap<String, String>();
 
         if (SKIP_SIMPLIFICATION) {
             branchVertices.addAll(graph.vertexSet());
@@ -255,6 +257,12 @@ public class VisualizeSequenceTree extends Module {
             for (String vertex : graph.vertexSet()) {
                 if (graph.inDegreeOf(vertex) != 1 || graph.outDegreeOf(vertex) != 1) {
                     branchVertices.add(vertex);
+
+//                    for (MultiWeightEdge edge : graph.incomingEdgesOf(vertex)) {
+//                        String source = graph.getEdgeSource(edge);
+//
+//                        prevVertex.put()
+//                    }
                 }
             }
         }
