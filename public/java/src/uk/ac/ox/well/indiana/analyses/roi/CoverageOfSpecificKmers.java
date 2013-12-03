@@ -81,7 +81,7 @@ public class CoverageOfSpecificKmers extends Module {
             }
 
             // Show our progress
-            if (index % (CORTEX_GRAPH.getNumRecords() / 20) == 0) {
+            if (index % (CORTEX_GRAPH.getNumRecords() / 5) == 0) {
                 log.info("processed {} records", index);
             }
             index++;
@@ -101,6 +101,8 @@ public class CoverageOfSpecificKmers extends Module {
             for (String sample : results.get(kmer).keySet()) {
                 double coverage = results.get(kmer).get(sample);
                 double normalizedCoverage = coverage / norms.get(sample);
+
+                log.info("Normalization: {}={}", sample, norms.get(sample));
 
                 fields.add(String.valueOf(coverage) + ":" + String.valueOf(normalizedCoverage));
             }
