@@ -16,11 +16,11 @@ public class CoverageOfSpecificKmers extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")
     public CortexGraph CORTEX_GRAPH;
 
-    @Argument(fullName="kmers", shortName="kmers", doc="Kmers to look for")
-    public HashSet<String> KMERS;
-
     @Argument(fullName="normalizationGraph", shortName="n", doc="Normalize?")
     public CortexGraph NORMALIZATION_GRAPH;
+
+    @Argument(fullName="kmers", shortName="kmers", doc="Kmers to look for")
+    public HashSet<String> KMERS;
 
     @Output
     public PrintStream out;
@@ -31,6 +31,8 @@ public class CoverageOfSpecificKmers extends Module {
         Map<String, Double> norms = new HashMap<String, Double>();
 
         // Find kmers that are unique in the genome
+        log.info("Loading kmers with copy-number 1...");
+
         Set<CortexKmer> unitCoverageKmers = new HashSet<CortexKmer>();
         for (CortexRecord cr : NORMALIZATION_GRAPH) {
             int cov = cr.getCoverage(0);
@@ -82,32 +84,47 @@ public class CoverageOfSpecificKmers extends Module {
 
             // Show our progress
             if (index % (CORTEX_GRAPH.getNumRecords() / 5) == 0) {
-                log.info("processed {} records", index);
+                log.info("processed {}/{} records", index, CORTEX_GRAPH.getNumRecords());
             }
             index++;
         }
 
         for (String sample : norms.keySet()) {
             double norm = norms.get(sample) / (double) numRecords;
-            norms.put(sample, norm);
 
             log.info("normalization: sample={} cov={} records={} norm={}", sample, norms.get(sample), numRecords, norm);
+
+            norms.put(sample, norm);
         }
 
         Set<String> samples = results.get(results.keySet().iterator().next()).keySet();
+        Map<String, Double> totals = new HashMap<String, Double>();
 
         out.println("\t" + Joiner.on("\t").join(samples));
         for (String kmer : results.keySet()) {
             List<String> fields = new ArrayList<String>();
 
-            for (String sample : results.get(kmer).keySet()) {
+            for (String sample : samples) {
                 double coverage = results.get(kmer).get(sample);
                 double normalizedCoverage = coverage / norms.get(sample);
 
-                fields.add(String.valueOf(coverage) + ":" + String.valueOf(normalizedCoverage));
+                //fields.add(String.valueOf(coverage) + ":" + String.valueOf(normalizedCoverage));
+                fields.add(String.valueOf(normalizedCoverage));
+
+                if (!totals.containsKey(sample)) { totals.put(sample, 0.0); }
+                totals.put(sample, totals.get(sample) + normalizedCoverage);
             }
 
             out.println(kmer + "\t" + Joiner.on("\t").join(fields));
         }
+
+        List<Double> fields = new ArrayList<Double>();
+        for (String sample : samples) {
+            double total = totals.get(sample);
+
+            fields.add(total);
+        }
+
+        out.println("total" + "\t" + Joiner.on("\t").join(fields));
     }
 }
