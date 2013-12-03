@@ -40,6 +40,8 @@ public class CoverageOfSpecificKmers extends Module {
             }
         }
 
+        log.info("Found {} unique kmers in the genome", unitCoverageKmers.size());
+
         int numRecords = 0;
         int index = 0;
 
@@ -79,7 +81,7 @@ public class CoverageOfSpecificKmers extends Module {
             }
 
             // Show our progress
-            if (index % (CORTEX_GRAPH.getNumRecords() / 10) == 0) {
+            if (index % (CORTEX_GRAPH.getNumRecords() / 20) == 0) {
                 log.info("processed {} records", index);
             }
             index++;
