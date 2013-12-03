@@ -90,6 +90,8 @@ public class CoverageOfSpecificKmers extends Module {
         for (String sample : norms.keySet()) {
             double norm = norms.get(sample) / (double) numRecords;
             norms.put(sample, norm);
+
+            log.info("normalization: sample={} cov={} records={} norm={}", sample, norms.get(sample), numRecords, norm);
         }
 
         Set<String> samples = results.get(results.keySet().iterator().next()).keySet();
@@ -101,8 +103,6 @@ public class CoverageOfSpecificKmers extends Module {
             for (String sample : results.get(kmer).keySet()) {
                 double coverage = results.get(kmer).get(sample);
                 double normalizedCoverage = coverage / norms.get(sample);
-
-                log.info("Normalization: {}={}", sample, norms.get(sample));
 
                 fields.add(String.valueOf(coverage) + ":" + String.valueOf(normalizedCoverage));
             }
