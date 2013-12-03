@@ -31,12 +31,12 @@ public class CoverageOfSpecificKmers extends Module {
         Map<String, Double> norms = new HashMap<String, Double>();
 
         // Find kmers that are unique in the genome
-        Set<CortexRecord> unitCoverageKmers = new HashSet<CortexRecord>();
+        Set<CortexKmer> unitCoverageKmers = new HashSet<CortexKmer>();
         for (CortexRecord cr : NORMALIZATION_GRAPH) {
             int cov = cr.getCoverage(0);
 
             if (cov == 1) {
-                unitCoverageKmers.add(cr);
+                unitCoverageKmers.add(cr.getKmer());
             }
         }
 
