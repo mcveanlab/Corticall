@@ -24,6 +24,7 @@ public class CountMappingQualityZeroReads extends Module {
         bamReader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
         Map<String, Integer> mq0 = new HashMap<String, Integer>();
+        Map<String, Integer> unmapped = new HashMap<String, Integer>();
         Map<String, Integer> total = new HashMap<String, Integer>();
 
         for (SAMRecord record : bamReader) {
@@ -37,6 +38,14 @@ public class CountMappingQualityZeroReads extends Module {
                 mq0.put(sample, mq0.get(sample) + 1);
             }
 
+            if (record.getReadUnmappedFlag()) {
+                if (!unmapped.containsKey(sample)) {
+                    unmapped.put(sample, 0);
+                }
+
+                unmapped.put(sample, unmapped.get(sample) + 1);
+            }
+
             if (!total.containsKey(sample)) {
                 total.put(sample, 0);
             }
@@ -45,7 +54,7 @@ public class CountMappingQualityZeroReads extends Module {
         }
 
         for (String sample : mq0.keySet()) {
-            out.println(sample + "\t" + mq0.get(sample) + "\t" + total.get(sample));
+            out.println(sample + "\t" + mq0.get(sample) + "\t" + unmapped.get(sample) + "\t" + total.get(sample));
         }
     }
 }
