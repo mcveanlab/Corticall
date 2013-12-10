@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.analyses.roi;
 
+import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
@@ -19,6 +20,9 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="sequences", shortName="s", doc="Sequences FASTA")
     public FastaSequenceFile FASTA;
 
+    @Argument(fullName="highlight", shortName="hl", doc="Colon-separated regex:color list (e.g. 'Pf3D7:#ff0000') specifying the sequence(s) to highlight with the specified color.", required=false)
+    public ArrayList<String> HIGHLIGHT;
+
     @Argument(fullName="contigs", shortName="c", doc="Contigs to add to FASTA graph", required=false)
     public ArrayList<File> CONTIGS;
 
@@ -27,9 +31,6 @@ public class VisualizeSequenceTree extends Module {
 
     @Argument(fullName="skipSimplification", shortName="ss", doc="Don't simplify the graph")
     public Boolean SKIP_SIMPLIFICATION = false;
-
-    @Argument(fullName="highlight", shortName="hl", doc="Colon-separated regex:color list (e.g. 'Pf3D7:#ff0000') specifying the sequence(s) to highlight with the specified color.", required=false)
-    public ArrayList<String> HIGHLIGHT;
 
     @Argument(fullName="minThickness", shortName="minThickness", doc="Minimum thickness of plotted elements")
     public Float MIN_THICKNESS = 0.3f;
@@ -52,13 +53,20 @@ public class VisualizeSequenceTree extends Module {
     @Argument(fullName="numVerticesContext", shortName="nvc", doc="Number of vertices to show for context")
     public Integer NUM_VERTICES_CONTEXT = 10;
 
-    @Argument(fullName="roi", shortName="roi", doc="Extract a subgraph for the region of interest", required=false)
-    public ArrayList<String> ROI;
-
     @Output
     public File out;
 
     private int numSequences = 0;
+
+    private String joinAttributes(Map<String, Object> m) {
+        List<String> attrs = new ArrayList<String>();
+
+        for (String key : m.keySet()) {
+            attrs.add(key + "=\"" + m.get(key) + "\"");
+        }
+
+        return Joiner.on(" ").join(attrs);
+    }
 
     public void writeGraph(DirectedGraph<String, MultiWeightEdge> g, File f) {
         try {
@@ -70,12 +78,40 @@ public class VisualizeSequenceTree extends Module {
             ps.println(indent + "rankdir=\"LR\";");
 
             for (String vertex : g.vertexSet()) {
-                if (WITH_VERTEX_LABELS) {
-                    ps.println(indent + vertex + " [ label=\"" + vertex + "\" color=\"black\" width=\"0.10\" shape=\"circle\" fontsize=\"1\" ];");
-                } else {
-                    ps.println(indent + vertex + " [ label=\"\" color=\"black\" width=\"0.10\" shape=\"circle\" fontsize=\"1\" ];");
+                boolean isInvisible = true;
+                for (MultiWeightEdge e : g.incomingEdgesOf(vertex)) {
+                    Map<String, Integer> weights = e.getWeights();
+
+                    for (String color : weights.keySet()) {
+                        if (!color.contains("ffffff")) {
+                            isInvisible = false;
+                            break;
+                        }
+                    }
                 }
-                //ps.println(indent + vertex + " [ label=" + vertex + " color=\"black\" height=\"0.40\" shape=\"rect\" fontsize=\"1\" ];");
+
+                for (MultiWeightEdge e : g.outgoingEdgesOf(vertex)) {
+                    Map<String, Integer> weights = e.getWeights();
+
+                    for (String color : weights.keySet()) {
+                        if (!color.contains("ffffff")) {
+                            isInvisible = false;
+                            break;
+                        }
+                    }
+                }
+
+                Map<String, Object> vertexAttrs = new TreeMap<String, Object>();
+                vertexAttrs.put("label", WITH_VERTEX_LABELS ? vertex : "");
+                vertexAttrs.put("color", "black");
+                vertexAttrs.put("shape", "circle");
+                vertexAttrs.put("width", 0.10);
+                vertexAttrs.put("fontsize", 1);
+                if (isInvisible) { vertexAttrs.put("style", "invis"); }
+
+                String attributeStr = joinAttributes(vertexAttrs);
+
+                ps.println(indent + vertex + " [ " + attributeStr + " ];");
             }
 
             for (MultiWeightEdge e : g.edgeSet()) {
@@ -85,19 +121,18 @@ public class VisualizeSequenceTree extends Module {
                     for (String color : weights.keySet()) {
                         float penwidth = MIN_THICKNESS + weights.get(color)*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
 
-                        if (WITH_WEIGHT) {
-                            if (WITH_EDGE_LABELS) {
-                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                            } else {
-                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" weight=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                            }
-                        } else {
-                            if (WITH_EDGE_LABELS) {
-                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" label=\"" + weights.get(color) + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                            } else {
-                                ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ color=\"" + color + "\" penwidth=\"" + penwidth + "\" arrowsize=\"0.8\" arrowhead=\"normal\" ];");
-                            }
-                        }
+                        Map<String, Object> edgeAttrs = new TreeMap<String, Object>();
+                        edgeAttrs.put("penwidth", penwidth);
+                        edgeAttrs.put("arrowsize", 0.8);
+                        edgeAttrs.put("arrowhead", "normal");
+                        edgeAttrs.put("color", color);
+                        if (color.contains("ffffff")) { edgeAttrs.put("style", "invis"); }
+                        if (WITH_EDGE_LABELS) { edgeAttrs.put("label", weights.get(color)); }
+                        if (WITH_WEIGHT) { edgeAttrs.put("weight", weights.get(color)); }
+
+                        String attributeStr = joinAttributes(edgeAttrs);
+
+                        ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ " + attributeStr + " ];");
                     }
                 } else {
                     ps.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e));
@@ -217,6 +252,8 @@ public class VisualizeSequenceTree extends Module {
                     sequences.put(te.get("sample") + ":" + contig.hashCode(), contig);
                 }
             }
+
+            Graphs.addGraph(graph, contigGraph);
         }
 
         // Populate regex to color map
@@ -248,8 +285,6 @@ public class VisualizeSequenceTree extends Module {
 
         // Find all of the branch points in the graph.
         Set<String> branchVertices = new HashSet<String>();
-        Map<String, String> prevVertex = new HashMap<String, String>();
-        Map<String, String> nextVertex = new HashMap<String, String>();
 
         if (SKIP_SIMPLIFICATION) {
             branchVertices.addAll(graph.vertexSet());
@@ -257,12 +292,6 @@ public class VisualizeSequenceTree extends Module {
             for (String vertex : graph.vertexSet()) {
                 if (graph.inDegreeOf(vertex) != 1 || graph.outDegreeOf(vertex) != 1) {
                     branchVertices.add(vertex);
-
-//                    for (MultiWeightEdge edge : graph.incomingEdgesOf(vertex)) {
-//                        String source = graph.getEdgeSource(edge);
-//
-//                        prevVertex.put()
-//                    }
                 }
             }
         }
@@ -318,15 +347,6 @@ public class VisualizeSequenceTree extends Module {
         for (int i = 0; i < NUM_TOP_EDGES; i++) {
             log.info("\t{}: {} {}", i, sortedEdges.get(i).totalWeight(), sortedEdges.get(i));
         }
-
-        /*
-        if (ROI != null && ROI.size() > 0) {
-            DirectedGraph<String, MultiWeightEdge> subgraph = new DefaultDirectedGraph<String, MultiWeightEdge>(MultiWeightEdge.class);
-            for (String roivertex : ROI) {
-
-            }
-        }
-        */
 
         // Write the graph to disk.
         writeGraph(finalGraph, out);
