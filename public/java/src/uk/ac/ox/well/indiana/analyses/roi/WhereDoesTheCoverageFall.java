@@ -1,9 +1,12 @@
 package uk.ac.ox.well.indiana.analyses.roi;
 
 import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
+import net.sf.samtools.BAMFileWriter;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import processing.core.PFont;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.sketches.Sketch;
@@ -19,20 +22,25 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.text.DecimalFormat;
 import java.util.*;
-import java.util.List;
 
 /**
  * This sketch shows where a specified list of kmers appears on the given genome (and if provided, the genes in which they fall)
  */
-public class WhereDoTheseKmersComeFrom extends Sketch {
+public class WhereDoesTheCoverageFall extends Sketch {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")
     public FastaSequenceFile REFERENCE;
 
     @Argument(fullName="gff", shortName="gff", doc="Gene annotations", required=false)
     public GFF3 GFF;
 
-    @Argument(fullName="kmers", shortName="km", doc="Kmers to highlight")
-    public HashSet<String> KMERS;
+    @Argument(fullName="bam", shortName="B", doc="BAM file")
+    public SAMFileReader BAM;
+
+    @Argument(fullName="maxCoverage", shortName="mc", doc="Maximum coverage")
+    public Integer MAX_COVERAGE = 300;
+
+    @Argument(fullName="WINDOW", shortName="w", doc="Window size")
+    public Integer WINDOW = 1000;
 
     @Output
     public File out;
@@ -84,7 +92,7 @@ public class WhereDoTheseKmersComeFrom extends Sketch {
 
         background(Color.WHITE.getRGB());
 
-        int kmerSize = getKmerSize(KMERS);
+        //int kmerSize = getKmerSize(KMERS);
         DecimalFormat formatter = new DecimalFormat("#,###");
 
         int index = 0;
@@ -94,8 +102,6 @@ public class WhereDoTheseKmersComeFrom extends Sketch {
             int ypos0 = yMargin + index*ideogramMargin + index*ideogramHeight;
             int height = ideogramHeight;
 
-            stroke(Color.BLACK.getRGB());
-            strokeWeight(2.0f);
             fill(Color.decode("#F0F0F0").getRGB());
             rect(xpos0, ypos0, width, height, 15);
 
@@ -110,7 +116,22 @@ public class WhereDoTheseKmersComeFrom extends Sketch {
 
             Set<GFF3Record> records = new HashSet<GFF3Record>();
 
-            for (int i = 0; i <= sequences.get(name).length() - kmerSize; i++) {
+            for (int i = 0; i <= sequences.get(name).length(); i+=WINDOW) {
+                SAMRecordIterator it = BAM.queryOverlapping(name, i, i + WINDOW);
+
+                int coverage = 0;
+                SAMRecord read;
+                while ((read = it.next()) != null) {
+                    coverage += read.getMappingQuality() > 0 ? 1 : 0;
+                }
+
+                float xpos1 = xMargin + ((float) i*maxWidth/(float) maxLength);
+                stroke(Color.decode("#A90641").getRGB());
+                strokeWeight(2.0f);
+
+
+
+                /*
                 String fw = sequences.get(name).substring(i, i + kmerSize);
                 String rc = SequenceUtils.reverseComplement(fw);
 
@@ -126,15 +147,8 @@ public class WhereDoTheseKmersComeFrom extends Sketch {
                     Collection<GFF3Record> overlappingRecords = GFF3.getType("gene", GFF.getOverlapping(new Interval(name, i, i)));
                     records.addAll(overlappingRecords);
                 }
+                */
             }
-
-            noFill();
-            stroke(Color.WHITE.getRGB());
-            for (int i = 15; i >= 0; i--) {
-                rect(xpos0, ypos0, width, height, i);
-            }
-            stroke(Color.BLACK.getRGB());
-            rect(xpos0, ypos0, width, height, 15);
 
             for (GFF3Record record : records) {
                 float xpos2 = xMargin + ((float) record.getStart()*maxWidth/(float) maxLength);
