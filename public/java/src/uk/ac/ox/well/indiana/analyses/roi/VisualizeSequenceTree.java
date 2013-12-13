@@ -9,6 +9,7 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.io.jgrapht.MultiWeightEdge;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -104,9 +105,9 @@ public class VisualizeSequenceTree extends Module {
                 Map<String, Object> vertexAttrs = new TreeMap<String, Object>();
                 vertexAttrs.put("label", WITH_VERTEX_LABELS ? vertex : "");
                 vertexAttrs.put("color", "black");
-                vertexAttrs.put("shape", "circle");
-                vertexAttrs.put("width", 0.10);
-                vertexAttrs.put("fontsize", 1);
+                vertexAttrs.put("shape", WITH_VERTEX_LABELS ? "rect" : "circle");
+                vertexAttrs.put("height", 0.10);
+                vertexAttrs.put("fontsize", WITH_VERTEX_LABELS ? 10 : 1);
                 if (isInvisible) { vertexAttrs.put("style", "invis"); }
 
                 String attributeStr = joinAttributes(vertexAttrs);
@@ -120,12 +121,16 @@ public class VisualizeSequenceTree extends Module {
                 if (weights.size() > 0) {
                     for (String color : weights.keySet()) {
                         float penwidth = MIN_THICKNESS + weights.get(color)*((MAX_THICKNESS - MIN_THICKNESS) / (numSequences - 1));
+                        if (Float.isInfinite(penwidth)) {
+                            penwidth = MAX_THICKNESS;
+                        }
 
                         Map<String, Object> edgeAttrs = new TreeMap<String, Object>();
                         edgeAttrs.put("penwidth", penwidth);
                         edgeAttrs.put("arrowsize", 0.8);
                         edgeAttrs.put("arrowhead", "normal");
                         edgeAttrs.put("color", color);
+                        edgeAttrs.put("samples", Joiner.on(",").join(e.getSequences()));
                         if (color.contains("ffffff")) { edgeAttrs.put("style", "invis"); }
                         if (WITH_EDGE_LABELS) { edgeAttrs.put("label", weights.get(color)); }
                         if (WITH_WEIGHT) { edgeAttrs.put("weight", weights.get(color)); }
@@ -202,7 +207,9 @@ public class VisualizeSequenceTree extends Module {
             // Add all the graphs together.
             Graphs.addGraph(graph, sampleGraph);
 
-            sequences.put(rseq.getName(), seq);
+            String[] name = rseq.getName().split("\\s+");
+
+            sequences.put(name[0], seq);
             numSequences++;
         }
 
@@ -323,6 +330,7 @@ public class VisualizeSequenceTree extends Module {
                     if (prevContig != null) {
                         finalGraph.addEdge(prevContig, contig.toString());
                         finalGraph.getEdge(prevContig, contig.toString()).incrementWeight(seqColorMap.get(seqName));
+                        finalGraph.getEdge(prevContig, contig.toString()).addSequence(seqName);
                     }
 
                     prevContig = contig.toString();
