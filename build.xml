@@ -18,24 +18,24 @@
     <property name="release.dir" value="release" />
     <property name="testdata.dir" value="testdata" />
 
-	<property name="ivy.install.version" value="2.3.0-rc1" />
-	<property name="ivy.jar.dir" value="${lib.dir}" />
-	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+    <property name="ivy.install.version" value="2.3.0-rc1" />
+    <property name="ivy.jar.dir" value="${lib.dir}" />
+    <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
     <property name="ivy.settings.dir" value="settings"/>
     <property file="${ivy.settings.dir}/ivysettings.properties"/>
 
     <!-- If we don't have ivy already, download and install it -->
     <target name="install-ivy" unless="skip.download" description="install ivy">
-    	<mkdir dir="${ivy.jar.dir}"/>
+        <mkdir dir="${ivy.jar.dir}"/>
 
-    	<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
              dest="${ivy.jar.file}" usetimestamp="true"/>
 
-    	<path id="ivy.lib.path">
-    	    <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
-    	</path>
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+        </path>
 
-    	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
 
         <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
     </target>    
@@ -160,7 +160,7 @@
             <fileset dir="${testng.dir}" />
             <fileset dir="${out.dir}" />
             <fileset dir="${release.dir}" />
-    	</delete>
+        </delete>
         <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="false" quiet="true" />
     </target>
 </project>
