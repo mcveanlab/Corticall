@@ -1,9 +1,7 @@
 package uk.ac.ox.well.indiana.analyses.geo;
 
-import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import scala.ref.Reference;
 import uk.ac.ox.well.indiana.tools.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -11,7 +9,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.sql.Ref;
 import java.util.*;
 
 public class FindSubcontigs extends Module {

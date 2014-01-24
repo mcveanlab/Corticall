@@ -11,10 +11,7 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class GetDiagnosticKmers extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")
@@ -44,13 +41,17 @@ public class GetDiagnosticKmers extends Module {
                 if (SEQUENCES.contains(id)) {
                     log.info("Processing gene {}", id);
 
-                    ReferenceSequence rseq = REFERENCE.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd());
-                    String seq = new String(rseq.getBases());
+                    Collection<GFF3Record> exons = GFF3.getType("exon", GFF.getOverlapping(gr));
 
-                    for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                    for (GFF3Record exon : exons) {
+                        ReferenceSequence rseq = REFERENCE.getSubsequenceAt(exon.getSeqid(), exon.getStart(), exon.getEnd());
+                        String seq = new String(rseq.getBases());
 
-                        geneKmers.add(kmer);
+                        for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                            CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+
+                            geneKmers.add(kmer);
+                        }
                     }
                 }
 
