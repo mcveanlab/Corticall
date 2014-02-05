@@ -68,7 +68,7 @@
     </target>
 
     <!-- Compile everything into individual jar files -->
-    <target name="compile" depends="init" description="compile distribution">
+    <target name="compile" depends="init,properties" description="compile distribution">
         <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
             <classpath>  
                 <fileset dir="${lib.dir}">  
@@ -80,6 +80,7 @@
         <jar jarfile="${jars.dir}/indiana.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
+                <include name="**/*.properties" />
             </fileset>
 
             <manifest>
@@ -97,16 +98,22 @@
             <fileset dir="${jars.dir}"/>
         </unjar>
 
+        <!--
         <unjar dest="${staging.dir}" overwrite="true">
             <fileset dir="${jars.dir}" includes="**/indiana.jar"/>
         </unjar>
+        -->
     </target>
 
     <!-- Create a single executable jar with all of the INDIANA and dependency code wrapped up -->
-    <target name="dist" depends="compile,stage" description="bundle up an executable for distribution">
+    <target name="dist" depends="tidy,compile,stage" description="bundle up an executable for distribution">
         <mkdir dir="${dist.dir}" />
 
         <jar jarfile="${dist.dir}/indiana.jar">
+            <fileset dir="${build.dir}">
+                <include name="**/*.properties" />
+            </fileset>
+
             <fileset dir="${staging.dir}">
                 <include name="**/*.class" />
             </fileset>
@@ -133,6 +140,15 @@
         </testng>
     </target>
 
+    <target name="properties" depends="git.version,git.version.long,git.date,build.date">
+        <propertyfile file="${build.dir}/build.properties">
+            <entry key="git.version" value="${git.version.output}"/>
+            <entry key="git.version.long" value="${git.version.long.output}"/>
+            <entry key="git.date" value="${git.date.output}"/>
+            <entry key="build.date" value="${build.date.output}"/>
+        </propertyfile>
+    </target>
+
     <!-- Get a version number for the executable -->
     <target name="git.version">
         <exec executable="git" outputproperty="git.version.output" resultproperty="git.version.exit.value" failonerror="false">
@@ -141,6 +157,37 @@
         <condition property="git.version.succeeded">
             <equals arg1="${git.version.exit.value}" arg2="0" />
         </condition>
+        <echo message="${git.version.output}" />
+    </target>
+
+    <!-- Get a long version number for the executable -->
+    <target name="git.version.long">
+        <exec executable="git" outputproperty="git.version.long.output" resultproperty="git.version.long.exit.value" failonerror="false">
+            <arg line="rev-parse HEAD" />
+        </exec>
+        <condition property="git.version.long.succeeded">
+            <equals arg1="${git.version.long.exit.value}" arg2="0" />
+        </condition>
+        <echo message="${git.version.long.output}" />
+    </target>
+
+    <!-- Get a most recent commit date for the executable -->
+    <target name="git.date">
+        <exec executable="git" outputproperty="git.date.output" resultproperty="git.date.exit.value" failonerror="false">
+            <arg line="show -s --format='%ci' HEAD" />
+        </exec>
+        <condition property="git.date.succeeded">
+            <equals arg1="${git.date.exit.value}" arg2="0" />
+        </condition>
+        <echo message="${git.date.output}" />
+    </target>
+
+    <!-- Get a compilation date for the executable -->
+    <target name="build.date">
+        <tstamp>
+            <format property="build.date.output" pattern="yyyy-MM-dd hh:mm:ss Z" />
+        </tstamp>
+        <echo message="${build.date.output}" />
     </target>
 
     <!-- Make a fully tested release jar -->
@@ -148,6 +195,14 @@
         <mkdir dir="${release.dir}" />
 
         <copy file="${dist.dir}/indiana.jar" tofile="${release.dir}/indiana-${git.version.output}.jar" />
+    </target>
+
+    <!-- Tidy a little bit up -->
+    <target name="tidy" description="tidy the project up a little bit">
+        <delete includeemptydirs="true" verbose="false" quiet="true">
+            <fileset dir="${staging.dir}" />
+            <fileset dir="${dist.dir}" />
+        </delete>
     </target>
 
     <!-- Clean everything up -->
