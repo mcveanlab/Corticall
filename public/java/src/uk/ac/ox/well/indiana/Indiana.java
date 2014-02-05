@@ -9,17 +9,19 @@ import ch.qos.logback.core.ConsoleAppender;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
-import uk.ac.ox.well.indiana.sketches.Sketch;
-import uk.ac.ox.well.indiana.tools.Module;
+import uk.ac.ox.well.indiana.commands.IndianaCommand;
+import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.commands.Sketch;
+import uk.ac.ox.well.indiana.utils.arguments.Description;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Main class for INDIANA.  Sets up the logger, handles help message, selects the module to run and passes through command-line arguments.
@@ -44,7 +46,7 @@ public class Indiana {
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
-            Map<String, Class<? extends IndianaModule>> modules = new PackageInspector<IndianaModule>(IndianaModule.class).getExtendingClassesMap();
+            Map<String, Class<? extends IndianaCommand>> modules = new PackageInspector<IndianaCommand>(IndianaCommand.class, "uk.ac.ox.well.indiana").getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
@@ -135,36 +137,53 @@ public class Indiana {
         return log;
     }
 
+    private static Properties getBuildProperties() {
+        InputStream propStream = Indiana.class.getClassLoader().getResourceAsStream("build.properties");
+        Properties prop = new Properties();
+
+        try {
+            prop.load(propStream);
+
+            return prop;
+        } catch (IOException e) {
+            throw new IndianaException("Unable to read build.properties file from within indiana.jar package", e);
+        }
+    }
+
     /**
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        Map<String, Map<String, Class<? extends Module>>> tools = new PackageInspector<Module>(Module.class).getExtendingClassTree();
-        Map<String, Map<String, Class<? extends Sketch>>> sketches = new PackageInspector<Sketch>(Sketch.class).getExtendingClassTree();
+        Map<String, Class<? extends IndianaCommand>> commands = new PackageInspector<IndianaCommand>(IndianaCommand.class, "uk.ac.ox.well.indiana.commands").getExtendingClassesMap();
 
-        System.out.println();
-        System.out.println("usage: java -jar indiana.jar [-h|--help]");
-        System.out.println("                             <command> [<args>]");
-        System.out.println();
-
-        System.out.println("tools:");
-        for (String p : tools.keySet()) {
-            System.out.println("   " + p);
-
-            for (String t : tools.get(p).keySet()) {
-                System.out.println("      " + t);
-            }
+        int maxlength = 0;
+        for (String t : commands.keySet()) {
+            maxlength = (t.length() > maxlength) ? t.length() : maxlength;
         }
+
+        Properties prop = getBuildProperties();
+
+        System.out.println();
+        System.out.println("Program: INDIANA (tools for constructing and manipulating population reference graphs)");
+        System.out.println("Version: " + prop.get("git.version.long"));
+        System.out.println("Tstamps: repo=" + prop.get("git.date") + "; build=" + prop.get("build.date"));
+        System.out.println("Contact: Kiran V Garimella <kiran@well.ox.ac.uk>");
         System.out.println();
 
-        System.out.println("sketches:");
-        for (String p : sketches.keySet()) {
-            System.out.println("   " + p);
+        System.out.println("Usage:   java -jar indiana.jar <command> [options]");
+        System.out.println();
 
-            for (String t : sketches.get(p).keySet()) {
-                System.out.println("      " + t);
-            }
+        System.out.print("Command:");
+        int padwidth = 1;
+        for (String t : commands.keySet()) {
+            Description d = commands.get(t).getAnnotation(Description.class);
+            String description = (d == null) ? "no description available" : d.text();
+
+            System.out.format("%" + padwidth + "s%-" + maxlength + "s     %s%n", "", t, description);
+
+            padwidth = 9;
         }
+
         System.out.println();
     }
 

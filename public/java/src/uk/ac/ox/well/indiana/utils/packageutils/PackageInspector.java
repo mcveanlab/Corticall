@@ -18,17 +18,16 @@ import java.util.TreeMap;
  * @param <ClassType>  the type of class to look for in the package
  */
 public class PackageInspector<ClassType> {
-    private final String packageName = "uk.ac.ox.well.indiana";
-
     private Reflections reflections;
     private Class<ClassType> classType;
+    private String packageName;
 
     /**
      * Create a package inspector that looks for the specified type.
      *
      * @param classType  the type of class to look for in the package
      */
-    public PackageInspector(Class<ClassType> classType) {
+    public PackageInspector(Class<ClassType> classType, String packageName) {
         Set<URL> classPath = ClasspathHelper.forPackage(packageName);
 
         ConfigurationBuilder config = new ConfigurationBuilder();
@@ -37,6 +36,7 @@ public class PackageInspector<ClassType> {
 
         this.reflections = new Reflections(config);
         this.classType = classType;
+        this.packageName = packageName;
     }
 
     /**
@@ -50,7 +50,9 @@ public class PackageInspector<ClassType> {
 
         for (Class<? extends ClassType> c : extendingClasses) {
             if (!Modifier.isAbstract(c.getModifiers())) {
-                nonAbstractClasses.add(c);
+                if (c.getPackage().getName().contains(packageName)) {
+                    nonAbstractClasses.add(c);
+                }
             }
         }
 

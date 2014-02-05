@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.utils.packageutils;
 
-import uk.ac.ox.well.indiana.tools.Module;
+import uk.ac.ox.well.indiana.commands.Module;
 
 /**
  * Instantiates a module and passes it command-line arguments.
