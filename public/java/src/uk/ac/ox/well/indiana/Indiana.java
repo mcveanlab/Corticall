@@ -137,6 +137,11 @@ public class Indiana {
         return log;
     }
 
+    /**
+     * Extract the build properties from the file automatically built at compile time.
+     *
+     * @return a populated Properties object
+     */
     private static Properties getBuildProperties() {
         InputStream propStream = Indiana.class.getClassLoader().getResourceAsStream("build.properties");
         Properties prop = new Properties();
@@ -165,8 +170,9 @@ public class Indiana {
 
         System.out.println();
         System.out.println("Program: INDIANA (tools for constructing and manipulating population reference graphs)");
-        System.out.println("Version: " + prop.get("git.version.long"));
-        System.out.println("Tstamps: repo=" + prop.get("git.date") + "; build=" + prop.get("build.date"));
+        System.out.println();
+        System.out.format("Version: %s.%s.%s (%s)%n", prop.get("major.version"), prop.get("minor.version"), prop.get("git.version"), prop.getProperty("git.version.long"));
+        System.out.println("Times:   (repo) " + prop.get("git.date") + "; (build) " + prop.get("build.date"));
         System.out.println("Contact: Kiran V Garimella <kiran@well.ox.ac.uk>");
         System.out.println();
 
