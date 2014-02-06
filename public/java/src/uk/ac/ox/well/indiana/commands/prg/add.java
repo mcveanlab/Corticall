@@ -10,17 +10,20 @@ import java.util.HashMap;
 
 @Description(text="adds a FASTA file to the population reference graph")
 public class add extends Module {
-    @Argument(fullName="fasta", shortName="fa", doc="FASTA file")
+    @Argument(fullName="fasta", shortName="fa", doc="name:FASTA key-value pair")
     public HashMap<String, IndexedFastaSequenceFile> FASTAS;
-    //public IndexedFastaSequenceFile FASTA;
 
-    //@Argument(fullName="gff", shortName="g", doc="Gene feature format file")
-    //public GFF3 GFF;
+    @Argument(fullName="gff", shortName="g", doc="name:GFF key-value pair", required=false)
+    public HashMap<String, GFF3> GFFS;
 
     @Override
     public void execute() {
         for (String key : FASTAS.keySet()) {
             log.info("{}={}", key, FASTAS.get(key));
+        }
+
+        for (String key : GFFS.keySet()) {
+            log.info("{}={}", key, GFFS.get(key));
         }
     }
 }
