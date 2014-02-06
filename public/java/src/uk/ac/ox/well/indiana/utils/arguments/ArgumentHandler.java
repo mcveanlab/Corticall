@@ -19,10 +19,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class ArgumentHandler {
     private static JexlEngine je;
@@ -92,13 +89,21 @@ public class ArgumentHandler {
             CommandLine cmd = parser.parse(options, args);
 
             if (cmd.hasOption("help") || (numArgFields > 0 && args.length == 0)) {
-                HelpFormatter formatter = new HelpFormatter();
-
                 int width = System.getenv("COLUMNS") == null ? 100 : Integer.valueOf(System.getenv("COLUMNS"));
 
+                Description d = instance.getClass().getAnnotation(Description.class);
+                String header = (d == null) ? "no description available" : d.text();
+                String command = "java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]";
+                String footer = "";
+
+                HelpFormatter formatter = new HelpFormatter();
                 formatter.setWidth(width);
-                formatter.printHelp("java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]", options);
+                formatter.setSyntaxPrefix("Usage: ");
+
                 System.out.println();
+                formatter.printHelp(command, header, options, footer, false);
+                System.out.println();
+
                 System.exit(1);
             }
 
@@ -156,7 +161,7 @@ public class ArgumentHandler {
 
                 for (String avalue : value.split(",")) {
                     File valueAsFile = new File(avalue);
-                    if (valueAsFile.exists() && valueAsFile.getAbsolutePath().endsWith(".list")) {
+                    if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list") || valueAsFile.getAbsolutePath().endsWith(".txt"))) {
                         BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
 
                         String line;
@@ -176,6 +181,39 @@ public class ArgumentHandler {
                 for (String v : values) {
                     Method add = Collection.class.getDeclaredMethod("add", Object.class);
                     add.invoke(o, handleArgumentTypes(Class.forName(genericType), v));
+                }
+
+                field.set(instance, o);
+            } else if (Map.class.isAssignableFrom(type)) {
+                Map<String, String> pairs = new HashMap<String, String>();
+
+                for (String avalue : value.split(",")) {
+                    File valueAsFile = new File(avalue);
+                    if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list") || valueAsFile.getAbsolutePath().endsWith(".txt"))) {
+                        BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
+
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            String[] keyvalue = line.split("[:\\s]+");
+                            pairs.put(keyvalue[0], keyvalue[1]);
+                        }
+                    } else {
+                        String[] keyvalue = avalue.split("[:\t]");
+                        pairs.put(keyvalue[0], keyvalue[1]);
+                    }
+                }
+
+                Object o = field.getType().newInstance();
+
+                String containerType = field.getGenericType().toString();
+                String genericTypes = containerType.substring(containerType.indexOf("<") + 1, containerType.lastIndexOf(">"));
+                String[] keyvalueTypes = genericTypes.replaceAll("\\s+", "").split(",");
+
+                for (String k : pairs.keySet()) {
+                    String v = pairs.get(k);
+
+                    Method put = Map.class.getDeclaredMethod("put", Object.class, Object.class);
+                    put.invoke(o, k, handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
                 }
 
                 field.set(instance, o);
@@ -235,10 +273,8 @@ public class ArgumentHandler {
                 throw new RuntimeException("Unable to automatically handle argument of type '" + type.getSimpleName() + "'");
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Unable to process argument of type '" + type.getSimpleName() + "' and value '" + value + "'", e);
         }
-
-        return null;
     }
 
     private static void initializeJexlEngine() {
