@@ -97,12 +97,6 @@
         <unjar dest="${staging.dir}" overwrite="false">
             <fileset dir="${jars.dir}"/>
         </unjar>
-
-        <!--
-        <unjar dest="${staging.dir}" overwrite="true">
-            <fileset dir="${jars.dir}" includes="**/indiana.jar"/>
-        </unjar>
-        -->
     </target>
 
     <!-- Create a single executable jar with all of the INDIANA and dependency code wrapped up -->
@@ -140,6 +134,7 @@
         </testng>
     </target>
 
+    <!-- Update the build properties file with the git commit ID, commit date, and build date -->
     <target name="properties" depends="git.version,git.version.long,git.date,build.date">
         <propertyfile file="${build.dir}/build.properties">
             <entry key="major.version" value="0"/>
@@ -187,7 +182,7 @@
     <!-- Get a compilation date for the executable -->
     <target name="build.date">
         <tstamp>
-            <format property="build.date.output" pattern="yyyy-MM-dd hh:mm:ss Z" />
+            <format property="build.date.output" pattern="yyyy-MM-dd H:mm:ss Z" />
         </tstamp>
         <echo message="${build.date.output}" />
     </target>

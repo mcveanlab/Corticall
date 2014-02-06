@@ -52,7 +52,7 @@ public class ArgumentHandler {
                             descElements.add("default: " + field.get(instance));
                         }
 
-                        if (Collection.class.isAssignableFrom(field.getType())) {
+                        if (Collection.class.isAssignableFrom(field.getType()) || Map.class.isAssignableFrom(field.getType())) {
                             descElements.add("can be specified more than once");
                         }
 
