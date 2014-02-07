@@ -1,11 +1,17 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.*;
 
 public class SequenceUtilsTest {
     @Test
@@ -77,28 +83,66 @@ public class SequenceUtilsTest {
         Assert.assertEquals(4, cn50);
     }
 
-    /*
     @Test
-    public void testEditDistanceGeneration() {
-        //byte[] template = "TAC".getBytes();
-        byte[] template = SequenceUtils.generateRandomNucleotideSequenceOfLengthN(31);
+    public void testTranslateCodingSequence() {
+        String cds1 = "ATGGTGACTGGTAGTGGTGGTGAGGATAAGTATAAAAGTGCCAAAAATGCCAAGGAACTT";
+        String tr1  = "MVTGSGGEDKYKSAKNAKEL";
 
-        Collection<byte[]> seqs1 = SequenceUtils.generateSequencesWithEditDistance1(template);
-
-        System.out.println(new String(template));
-        for (byte[] seq : seqs1) {
-            System.out.println(new String(seq) + " " + SequenceUtils.editDistance(template, seq));
-        }
-        System.out.println(seqs1.size());
-
-        Collection<byte[]> seqs2 = SequenceUtils.generateSequencesWithEditDistance2(template);
-
-        System.out.println();
-        System.out.println(new String(template));
-        for (byte[] seq : seqs2) {
-            System.out.println(new String(seq) + " " + SequenceUtils.editDistance(template, seq));
-        }
-        System.out.println(seqs2.size());
+        Assert.assertEquals(tr1, SequenceUtils.translateCodingSequence(cds1));
     }
-    */
+
+    @Test
+    public void testExtractCodingSequenceAndTranslation() {
+        File fastaFile = new File("testdata/Pf3D7_14_v3.fasta");
+        File cdsFile = new File("testdata/Pf3D7_14_v3.cds.fasta");
+        File trFile = new File("testdata/Pf3D7_14_v3.tr.fasta");
+        File gffFile = new File("testdata/Pf3D7_14_v3.gff");
+
+        try {
+            IndexedFastaSequenceFile fastaRef = new IndexedFastaSequenceFile(fastaFile);
+            IndexedFastaSequenceFile cdsRef = new IndexedFastaSequenceFile(cdsFile);
+            IndexedFastaSequenceFile trRef = new IndexedFastaSequenceFile(trFile);
+
+            Set<String> cdsIds = new HashSet<String>();
+            Set<String> trIds = new HashSet<String>();
+
+            ReferenceSequence r;
+            while ((r = cdsRef.nextSequence()) != null) {
+                String[] names = r.getName().split("\\s+");
+                String name = names[0];
+
+                cdsIds.add(name);
+            }
+
+            while ((r = trRef.nextSequence()) != null) {
+                String[] names = r.getName().split("\\s+");
+                String name = names[0];
+
+                trIds.add(name);
+            }
+
+            GFF3 gff = new GFF3(gffFile);
+
+            for (GFF3Record gr : gff) {
+                if (gr.getType().equals("gene")) {
+                    String id = gr.getAttribute("ID");
+
+                    if (trIds.contains(id) && cdsIds.contains(id)) {
+                        String cdsExpected = new String(cdsRef.getSequence(id).getBases());
+                        String trExpected = new String(trRef.getSequence(id).getBases());
+
+                        Collection<GFF3Record> exons = GFF3.getType("exon", gff.getChildren(gr));
+
+                        String cds = SequenceUtils.extractCodingSequence(exons, fastaRef);
+                        String tr = SequenceUtils.translateCodingSequence(cds);
+
+                        Assert.assertEquals(cds, cdsExpected);
+                        Assert.assertEquals(tr, trExpected);
+                    }
+                }
+            }
+        } catch (FileNotFoundException e) {
+            throw new IndianaException("Error in opening test file '" + fastaFile.getAbsolutePath() + "'", e);
+        }
+    }
 }

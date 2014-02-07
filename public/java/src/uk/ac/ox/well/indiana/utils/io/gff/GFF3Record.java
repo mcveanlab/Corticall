@@ -19,7 +19,7 @@ public class GFF3Record implements Comparable<GFF3Record> {
     private TreeMap<String, String> attributes = new TreeMap<String, String>();
 
     public GFF3Record(String line) {
-        String[] fields = line.split("\t");
+        String[] fields = line.split("\\s+");
 
         seqid = fields[0];
         source = fields[1];
