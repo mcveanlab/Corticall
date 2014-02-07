@@ -48,14 +48,14 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
             LineReader lr = new LineReader(gffFile);
 
             String version = lr.getNextRecord();
-            if (!version.equalsIgnoreCase("##gff-version\t3")) {
-                throw new RuntimeException("Unable to parse GFF3 file. Expected first line of GFF3 file to say '##gff-version\t3', but found '" + version + "' instead.");
+            if (!version.equalsIgnoreCase("##gff-version\t3") && !version.equalsIgnoreCase("##gff-version 3")) {
+                throw new RuntimeException("Unable to parse GFF3 file '" + gffFile.getAbsolutePath() + "'. Expected first line of GFF3 file to say '##gff-version\t3', but found '" + version + "' instead.");
             }
 
             String line;
             while ((line = lr.getNextRecord()) != null) {
                 if (line.startsWith("##")) {
-                    String[] fields = line.replaceFirst("##", "").split("\\t");
+                    String[] fields = line.replaceFirst("##", "").split("\\s+");
 
                     if (fields[0].equalsIgnoreCase("sequence-region")) {
                         sequenceRegions.put(fields[1], new SequenceRegion(Integer.valueOf(fields[2]), Integer.valueOf(fields[3])));
@@ -155,6 +155,21 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
         }
 
         return records;
+    }
+
+    public Collection<GFF3Record> getChildren(GFF3Record record) {
+        String id = record.getAttribute("ID");
+        Collection<GFF3Record> exons = new ArrayList<GFF3Record>();
+
+        for (GFF3Record exon : GFF3.getType("exon", this.getOverlapping(record))) {
+            String exonId = exon.getAttribute("ID");
+
+            if (exonId.contains(id)) {
+                exons.add(exon);
+            }
+        }
+
+        return exons;
     }
 
     public Collection<GFF3Record> getContained(GFF3Record record) {

@@ -1,7 +1,9 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.util.*;
 
@@ -438,9 +440,9 @@ public class SequenceUtils {
         c2a.put("GTA", "V");
         c2a.put("GTG", "V");
 
-        c2a.put("TAA", "");
-        c2a.put("TGA", "");
-        c2a.put("TAG", "");
+        c2a.put("TAA", "*");
+        c2a.put("TGA", "*");
+        c2a.put("TAG", "*");
 
         codonToAminoAcidMap = Collections.unmodifiableMap(c2a);
     }
@@ -475,5 +477,51 @@ public class SequenceUtils {
         }
 
         return S1.substring(Start, (Start + Max));
+    }
+
+    public static String extractGeneSequence(GFF3Record gene, IndexedFastaSequenceFile ref) {
+        return new String(ref.getSubsequenceAt(gene.getSeqid(), gene.getStart(), gene.getEnd()).getBases());
+    }
+
+    public static String extractCodingSequence(Collection<GFF3Record> exons, IndexedFastaSequenceFile ref) {
+        List<GFF3Record> exonList = new ArrayList<GFF3Record>(exons);
+        Collections.sort(exonList, new Comparator<GFF3Record>() {
+            public int compare(GFF3Record c1, GFF3Record c2) {
+                return c1.getStart() - c2.getStart();
+            }
+        });
+
+        StringBuilder cdsb = new StringBuilder();
+
+        GFF3Record.Strand strand = GFF3Record.Strand.POSITIVE;
+        for (GFF3Record exon : exonList) {
+            String exonseq = new String(ref.getSubsequenceAt(exon.getSeqid(), exon.getStart(), exon.getEnd()).getBases());
+
+            cdsb.append(exonseq);
+
+            strand = exon.getStrand();
+        }
+
+        String cds = cdsb.toString();
+        if (strand.equals(GFF3Record.Strand.NEGATIVE)) {
+            cds = SequenceUtils.reverseComplement(cds);
+        }
+
+        return cds;
+    }
+
+    public static String translateCodingSequence(String cds) {
+        StringBuilder tr = new StringBuilder();
+
+        for (int pos = 0, aaPos = 0; pos < cds.length() - 3; pos += 3, aaPos++) {
+            String codon = cds.substring(pos, pos + 3);
+            String aa = codonToAminoAcid(codon);
+
+            if (!"*".equals(aa) || pos < cds.length() - 3) {
+                tr.append(aa);
+            }
+        }
+
+        return tr.toString();
     }
 }
