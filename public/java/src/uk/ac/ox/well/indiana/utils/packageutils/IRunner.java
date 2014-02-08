@@ -5,6 +5,8 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 
 import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -60,7 +62,22 @@ public class IRunner {
                 }
             }
 
-            instance.log.info("Invocation: {} {}    {}", instance.getClass().getSimpleName(), Joiner.on(" ").join(moduleArgs), Joiner.on(" ").join(defaultArgs));
+            //instance.log.info("Invocation: {} {}    {}", instance.getClass().getSimpleName(), Joiner.on(" ").join(moduleArgs), Joiner.on(" ").join(defaultArgs));
+
+            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+            List<String> arguments = runtimeMxBean.getInputArguments();
+            String jvmArgs = Joiner.on(" ").join(arguments);
+            String jar = System.getProperty("sun.java.command").split("\\s+")[0];
+            String indianaCmd = instance.getClass().getSimpleName();
+            String modArgs = Joiner.on(" ").join(moduleArgs);
+            String defArgs = Joiner.on(" ").join(defaultArgs);
+            String fullCmd = Joiner.on(" ").join("java", jvmArgs, "-jar", jar, indianaCmd, modArgs, defArgs);
+
+            instance.log.info("Invocation: {}", fullCmd);
+
+            //instance.log.info("jvmargs: {}", Joiner.on(" ").join(arguments));
+            //instance.log.info("command: {}", System.getProperty("sun.java.command"));
+
             instance.log.info("");
 
             instance.init();

@@ -31,7 +31,7 @@ public class clustergenes extends Module {
     @Override
     public void execute() {
         // Make a map of all protein kmers in all genome
-        log.info("Constructing map of all protein kmers in all genomes.");
+        log.info("Constructing map of all protein kmers in all genomes...");
 
         Map<String, Set<String>> kmerToSeqMap = new HashMap<String, Set<String>>();
 
@@ -39,7 +39,7 @@ public class clustergenes extends Module {
             IndexedFastaSequenceFile fasta = FASTAS.get(id);
 
             if (GFFS.containsKey(id)) {
-                log.info("    Processing genome '{}'.", fasta);
+                log.info("  Processing genome '{}'", id);
 
                 GFF3 gff = GFFS.get(id);
 
@@ -50,40 +50,32 @@ public class clustergenes extends Module {
                         Collection<GFF3Record> exons = GFF3.getType("exon", gff.getChildren(gr));
                         String cds = SequenceUtils.extractCodingSequence(exons, fasta);
 
-                        String pseq = SequenceUtils.translateCodingSequence(cds);
-
-                        int numKmers = 0;
-                        int numKmersIgnored = 0;
-
-                        for (int i = 0; i <= pseq.length() - PROTEIN_KMER_SIZE; i++) {
-                            String kmer = pseq.substring(i, i + PROTEIN_KMER_SIZE);
-
-                            if (!kmer.contains("N")) {
-                                if (!kmerToSeqMap.containsKey(kmer)) {
-                                    kmerToSeqMap.put(kmer, new HashSet<String>());
-                                }
-
-                                kmerToSeqMap.get(kmer).add(geneName);
-                            } else {
-                                numKmersIgnored++;
-                            }
-
-                            numKmers++;
-                        }
-
                         if (cds.contains("N")) {
-                            log.warn("        Gene {} contains 'N's in the sequence. {}/{} kmers ignored.", geneName, numKmersIgnored, numKmers);
-                        }
+                            log.warn("    Skipping gene {} (contains Ns in the sequence)", geneName);
+                        } else {
+                            String pseq = SequenceUtils.translateCodingSequence(cds);
 
+                            for (int i = 0; i <= pseq.length() - PROTEIN_KMER_SIZE; i++) {
+                                String kmer = pseq.substring(i, i + PROTEIN_KMER_SIZE);
+
+                                if (!kmer.contains("N")) {
+                                    if (!kmerToSeqMap.containsKey(kmer)) {
+                                        kmerToSeqMap.put(kmer, new HashSet<String>());
+                                    }
+
+                                    kmerToSeqMap.get(kmer).add(geneName);
+                                }
+                            }
+                        }
                     }
                 }
             } else {
-                log.warn("    Skipping genome '{}': did not find a GFF with the same ID, '{}'.", fasta, id);
+                log.warn("  Skipping genome '{}': did not find a GFF with the same ID, '{}'", fasta, id);
             }
         }
 
         // Compute sharing between all genes
-        log.info("Computing sharing between all genes in all genomes.");
+        log.info("Computing sharing between all genes in all genomes...");
 
         DataFrame<String, String, Float> rmat = new DataFrame<String, String, Float>(0.0f);
 
@@ -92,7 +84,7 @@ public class clustergenes extends Module {
         int kmersProcessed = 0;
         for (String kmer : kmerToSeqMap.keySet()) {
             if (kmersProcessed % (kmerToSeqMap.size() / 10) == 0) {
-                log.info("    Processed {}/{} kmers.", kmersProcessed, kmerToSeqMap.size());
+                log.info("  Processed {}/{} (~{}%) kmers", kmersProcessed, kmerToSeqMap.size(), String.format("%.1f", 100.0*kmersProcessed / kmerToSeqMap.size()));
             }
             kmersProcessed++;
 
@@ -109,7 +101,7 @@ public class clustergenes extends Module {
         }
 
         // Print table
-        log.info("Writing table to disk.");
+        log.info("Writing table to disk...");
 
         Collection<String> rowNames = rmat.getRowNames();
         Collection<String> colNames = rmat.getColNames();
