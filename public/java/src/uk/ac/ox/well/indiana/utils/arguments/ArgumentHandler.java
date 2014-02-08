@@ -8,7 +8,7 @@ import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.Indiana;
-import uk.ac.ox.well.indiana.commands.IndianaCommand;
+import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
@@ -26,7 +26,7 @@ public class ArgumentHandler {
 
     private ArgumentHandler() {}
 
-    public static void parse(IndianaCommand instance, String[] args) {
+    public static void parse(Command instance, String[] args) {
         try {
             Options options = new Options();
 
@@ -152,7 +152,7 @@ public class ArgumentHandler {
         }
     }
 
-    private static void processArgument(IndianaCommand instance, Field field, String value) {
+    private static void processArgument(Command instance, Field field, String value) {
         try {
             Class<?> type = field.getType();
 

@@ -39,6 +39,6 @@ public class PerformanceUtils {
         long totalMemory = runtime.totalMemory() / mb;
         long maxMemory = runtime.maxMemory() / mb;
 
-        return String.format("U:%dmb; F:%dmb; T:%dmb; M:%dmb", usedMemory, freeMemory, totalMemory, maxMemory);
+        return String.format("U:%dmb, F:%dmb, T:%dmb, M:%dmb", usedMemory, freeMemory, totalMemory, maxMemory);
     }
 }

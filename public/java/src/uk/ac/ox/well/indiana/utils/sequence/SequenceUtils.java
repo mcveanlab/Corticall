@@ -448,7 +448,9 @@ public class SequenceUtils {
     }
 
     public static String codonToAminoAcid(String codon) {
-        if (codonToAminoAcidMap.containsKey(codon)) {
+        if (codon.contains("N") && codon.length() == 3) {
+            return "N";
+        } else if (codonToAminoAcidMap.containsKey(codon)) {
             return codonToAminoAcidMap.get(codon);
         } else {
             throw new RuntimeException("Did not find corresponding amino acid for '" + codon + "'");

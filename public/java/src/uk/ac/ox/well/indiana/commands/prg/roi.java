@@ -35,19 +35,15 @@ public class roi extends Module {
                 if (IDS == null || IDS.contains(id)) {
                     String gene = SequenceUtils.extractGeneSequence(gr, FASTA);
 
-                    out.println(">" + id + ".gene");
-                    out.println(gene);
+                    out.println(">" + id + ".gene\n" + gene);
 
                     Collection<GFF3Record> exons = GFF3.getType("exon", GFF.getChildren(gr));
                     if (!exons.isEmpty()) {
                         String cds = SequenceUtils.extractCodingSequence(exons, FASTA);
                         String tr  = SequenceUtils.translateCodingSequence(cds);
 
-                        out.println(">" + id + ".cds");
-                        out.println(cds);
-
-                        out.println(">" + id + ".tr");
-                        out.println(tr);
+                        out.println(">" + id + ".cds\n" + cds);
+                        out.println(">" + id + ".tr\n" + tr);
                     }
                 }
             }

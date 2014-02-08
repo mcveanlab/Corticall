@@ -6,10 +6,11 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
-import uk.ac.ox.well.indiana.commands.IndianaCommand;
+import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -36,21 +37,21 @@ public class Indiana {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-        log.debug("Started up");
-
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
         } else if (args.length > 0) {
-            Date startTime = new Date();
-
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
-            Map<String, Class<? extends IndianaCommand>> modules = new PackageInspector<IndianaCommand>(IndianaCommand.class, "uk.ac.ox.well.indiana").getExtendingClassesMap();
+            Map<String, Class<? extends Command>> modules = new PackageInspector<Command>(Command.class, "uk.ac.ox.well.indiana").getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
             } else {
+                printBanner();
+
+                Date startTime = new Date();
+
                 Class module = modules.get(moduleName);
 
                 if (Module.class.isAssignableFrom(module)) {
@@ -62,17 +63,31 @@ public class Indiana {
 
                     PApplet.main(newArgs.toArray(new String[newArgs.size()]));
                 }
+
+                Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
+
+                log.info("Complete. (time) {}; (mem) {}",
+                        DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
+                        PerformanceUtils.getCompactMemoryUsageStats()
+                );
             }
 
-            Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
-
-            log.info("Performance:");
-            log.info("\ttime: {}", DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()));
-            log.info("\t mem: {}", PerformanceUtils.getCompactMemoryUsageStats());
         }
-
-        log.debug("Finished");
     }
+
+    /**
+     * Print the startup banner
+     */
+    private static void printBanner() {
+        Properties prop = getBuildProperties();
+
+        String version = prop.get("major.version") + "." + prop.get("minor.version") + "-" + prop.get("git.version");
+        String gitDate = (String) prop.get("git.date");
+        String buildDate = (String) prop.get("build.date");
+        String dates = "(repo) " + gitDate + "; (build) " + buildDate;
+        log.info("INDIANA {}; {}", version, dates);
+    }
+
 
     /**
      * Get the process id for this instance
@@ -97,12 +112,19 @@ public class Indiana {
     private static Logger configureLogger() {
         Logger rootLogger = (Logger) LoggerFactory.getLogger(Indiana.class);
 
+        String logLevel = System.getProperty("indiana.loglevel");
         LoggerContext loggerContext = rootLogger.getLoggerContext();
         loggerContext.reset();
 
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(loggerContext);
-        encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L] %message%n");
+
+        if (logLevel != null && logLevel.equals("DEBUG")) {
+            encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L] %message%n");
+        } else {
+            encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}] %message%n");
+        }
+
         encoder.start();
 
         ConsoleAppender<ILoggingEvent> appender = new ConsoleAppender<ILoggingEvent>();
@@ -112,7 +134,6 @@ public class Indiana {
 
         rootLogger.addAppender(appender);
 
-        String logLevel = System.getProperty("indiana.loglevel");
         if (logLevel != null) {
             if      (logLevel.equalsIgnoreCase("OFF"))   { rootLogger.setLevel(Level.OFF);   }
             else if (logLevel.equalsIgnoreCase("TRACE")) { rootLogger.setLevel(Level.TRACE); }
@@ -159,7 +180,7 @@ public class Indiana {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        Map<String, Class<? extends IndianaCommand>> commands = new PackageInspector<IndianaCommand>(IndianaCommand.class, "uk.ac.ox.well.indiana.commands").getExtendingClassesMap();
+        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, "uk.ac.ox.well.indiana.commands").getExtendingClassesMap();
 
         int maxlength = 0;
         for (String t : commands.keySet()) {

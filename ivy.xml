@@ -7,7 +7,7 @@
 
     <dependencies defaultconf="default">
         <!-- Dependencies that can be satisifed with Maven repository -->
-        <dependency org="ch.qos.logback" name="logback-classic" rev="1.0.6" />
+        <dependency org="ch.qos.logback" name="logback-classic" rev="1.1.1" />
         <dependency org="org.perf4j" name="perf4j" rev="0.9.16" />
         <dependency org="com.carrotsearch" name="java-sizeof" rev="0.0.3" />
         <dependency org="org.reflections" name="reflections" rev="0.9.8" />
