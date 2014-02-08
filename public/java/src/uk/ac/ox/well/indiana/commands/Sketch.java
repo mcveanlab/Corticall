@@ -5,7 +5,7 @@ import processing.core.PApplet;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.utils.arguments.ArgumentHandler;
 
-public abstract class Sketch extends PApplet implements IndianaCommand {
+public abstract class Sketch extends PApplet implements Command {
     public Logger log = Indiana.getLogger();
 
     public Sketch() {}

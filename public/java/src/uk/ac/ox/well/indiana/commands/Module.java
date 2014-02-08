@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.utils.arguments.ArgumentHandler;
 
-public abstract class Module implements IndianaCommand {
+public abstract class Module implements Command {
     public Logger log = Indiana.getLogger();
     public String[] args;
 
