@@ -6,7 +6,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
@@ -15,7 +14,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.packageutils.IRunner;
+import uk.ac.ox.well.indiana.utils.packageutils.Dispatch;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
@@ -48,14 +47,10 @@ public class Indiana {
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
             } else {
-                printBanner();
-
-                Date startTime = new Date();
-
                 Class module = modules.get(moduleName);
 
                 if (Module.class.isAssignableFrom(module)) {
-                    IRunner.main(module.getName(), moduleArgs);
+                    Dispatch.main(module.getName(), moduleArgs);
                 } else if (Sketch.class.isAssignableFrom(module)) {
                     ArrayList<String> newArgs = new ArrayList<String>();
                     newArgs.add(module.getName());
@@ -63,14 +58,6 @@ public class Indiana {
 
                     PApplet.main(newArgs.toArray(new String[newArgs.size()]));
                 }
-
-                Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
-
-                log.info("");
-                log.info("Complete. (time) {}; (mem) {}",
-                        DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
-                        PerformanceUtils.getCompactMemoryUsageStats()
-                );
             }
 
         }
@@ -88,7 +75,6 @@ public class Indiana {
         String dates = "(repo) " + gitDate + "; (build) " + buildDate;
         log.info("INDIANA {}; {}", version, dates);
     }
-
 
     /**
      * Get the process id for this instance
@@ -164,17 +150,21 @@ public class Indiana {
      *
      * @return a populated Properties object
      */
-    private static Properties getBuildProperties() {
+    public static Properties getBuildProperties() {
         InputStream propStream = Indiana.class.getClassLoader().getResourceAsStream("build.properties");
-        Properties prop = new Properties();
 
-        try {
-            prop.load(propStream);
+        if (propStream != null) {
+            try {
+                Properties prop = new Properties();
+                prop.load(propStream);
 
-            return prop;
-        } catch (IOException e) {
-            throw new IndianaException("Unable to read build.properties file from within indiana.jar package", e);
+                return prop;
+            } catch (IOException e) {
+                throw new IndianaException("Unable to read build.properties file from within indiana.jar package", e);
+            }
         }
+
+        return null;
     }
 
     /**

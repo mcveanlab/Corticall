@@ -4,7 +4,7 @@ import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.assembly.CortexGraphWalker;
+import uk.ac.ox.well.indiana.utils.assembly.cortex.CortexGraphWalker;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;

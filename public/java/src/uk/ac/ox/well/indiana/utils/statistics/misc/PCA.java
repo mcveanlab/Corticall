@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.statistics;
+package uk.ac.ox.well.indiana.utils.statistics.misc;
 
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.DoubleMatrix1D;

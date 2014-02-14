@@ -14,11 +14,11 @@ import java.util.*;
 
 @Description(text="Extracts regions of interest from a FASTA file")
 public class roi extends Module {
-    @Argument(fullName="fasta", shortName="f", doc="FASTA file")
-    public IndexedFastaSequenceFile FASTA;
+    @Argument(fullName="fasta", shortName="f", doc="ID:FASTA key-value pair")
+    public HashMap<String, IndexedFastaSequenceFile> FASTAS;
 
-    @Argument(fullName="gff", shortName="g", doc="GFF file")
-    public GFF3 GFF;
+    @Argument(fullName="gff", shortName="g", doc="ID:GFF key-value pair")
+    public HashMap<String, GFF3> GFFS;
 
     @Argument(fullName="ids", shortName="i", doc="Gene IDs to extract from GFF file", required=false)
     public HashSet<String> IDS;
@@ -28,25 +28,50 @@ public class roi extends Module {
 
     @Override
     public void execute() {
-        for (GFF3Record gr : GFF) {
-            if ("gene".equalsIgnoreCase(gr.getType())) {
-                String id = gr.getAttribute("ID");
+        log.info("Extracting {} genes of interest from FASTA files...", IDS.size());
 
-                if (IDS == null || IDS.contains(id)) {
-                    String gene = SequenceUtils.extractGeneSequence(gr, FASTA);
+        int seqsTotal = 0;
+        for (String id : FASTAS.keySet()) {
+            IndexedFastaSequenceFile fasta = FASTAS.get(id);
 
-                    out.println(">" + id + ".gene\n" + gene);
+            if (GFFS.containsKey(id)) {
+                log.info("  Processing genome '{}'", id);
 
-                    Collection<GFF3Record> exons = GFF3.getType("exon", GFF.getChildren(gr));
-                    if (!exons.isEmpty()) {
-                        String cds = SequenceUtils.extractCodingSequence(exons, FASTA);
-                        String tr  = SequenceUtils.translateCodingSequence(cds);
+                GFF3 gff = GFFS.get(id);
 
-                        out.println(">" + id + ".cds\n" + cds);
-                        out.println(">" + id + ".tr\n" + tr);
+                int seqsFound = 0;
+                for (GFF3Record gr : gff) {
+                    if ("gene".equalsIgnoreCase(gr.getType())) {
+                        String gid = gr.getAttribute("ID");
+
+                        if (IDS == null || IDS.contains(gid)) {
+                            String gene = SequenceUtils.extractGeneSequence(gr, fasta);
+
+                            if (gene.contains("N")) {
+                                log.warn("    Skipping gene {} (contains Ns in the sequence)", gid);
+                            } else {
+                                seqsFound++;
+
+                                out.println(">" + gid + ".gene\n" + gene);
+
+                                Collection<GFF3Record> exons = GFF3.getType("exon", gff.getChildren(gr));
+                                if (!exons.isEmpty()) {
+                                    String cds = SequenceUtils.extractCodingSequence(exons, fasta);
+                                    String tr  = SequenceUtils.translateCodingSequence(cds);
+
+                                    out.println(">" + gid + ".cds\n" + cds);
+                                    out.println(">" + gid + ".tr\n" + tr);
+                                }
+                            }
+                        }
                     }
                 }
+
+                log.info("    Extracted {} genes", seqsFound);
+                seqsTotal += seqsFound;
             }
         }
+
+        log.info("Extracted {} genes total", seqsTotal);
     }
 }

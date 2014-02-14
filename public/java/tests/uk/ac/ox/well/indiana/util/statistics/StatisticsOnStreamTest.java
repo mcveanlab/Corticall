@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.util.statistics;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import uk.ac.ox.well.indiana.utils.statistics.StatisticsOnStream;
+import uk.ac.ox.well.indiana.utils.statistics.misc.StatisticsOnStream;
 
 public class StatisticsOnStreamTest {
     StatisticsOnStream st = new StatisticsOnStream();

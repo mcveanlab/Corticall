@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.attic.tools.cortex;
 
 import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
-import uk.ac.ox.well.indiana.utils.statistics.StatisticsOnStream;
+import uk.ac.ox.well.indiana.utils.statistics.misc.StatisticsOnStream;
 
 import java.util.ArrayList;
 import java.util.HashMap;

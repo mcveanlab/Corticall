@@ -7,6 +7,7 @@ import org.jgrapht.ext.DOTExporter;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.assembly.cortex.*;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;

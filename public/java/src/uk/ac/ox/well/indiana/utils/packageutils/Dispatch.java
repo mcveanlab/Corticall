@@ -1,8 +1,11 @@
 package uk.ac.ox.well.indiana.utils.packageutils;
 
 import com.google.common.base.Joiner;
+import org.apache.commons.lang.time.DurationFormatUtils;
+import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
@@ -13,11 +16,11 @@ import java.util.*;
 /**
  * Instantiates a module and passes it command-line arguments.
  */
-public class IRunner {
+public class Dispatch {
     /**
      * Private constructor - this class cannot be instantiated!
      */
-    private IRunner() {}
+    private Dispatch() {}
 
     /**
      * Main method for instantiating INDIANA modules
@@ -62,8 +65,6 @@ public class IRunner {
                 }
             }
 
-            //instance.log.info("Invocation: {} {}    {}", instance.getClass().getSimpleName(), Joiner.on(" ").join(moduleArgs), Joiner.on(" ").join(defaultArgs));
-
             RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
             List<String> arguments = runtimeMxBean.getInputArguments();
             String jvmArgs = Joiner.on(" ").join(arguments);
@@ -73,21 +74,44 @@ public class IRunner {
             String defArgs = Joiner.on(" ").join(defaultArgs);
             String fullCmd = Joiner.on(" ").join("java", jvmArgs, "-jar", jar, indianaCmd, modArgs, defArgs);
 
-            instance.log.info("Invocation: {}", fullCmd);
-
-            //instance.log.info("jvmargs: {}", Joiner.on(" ").join(arguments));
-            //instance.log.info("command: {}", System.getProperty("sun.java.command"));
-
-            instance.log.info("");
-
             instance.init();
+
+            Indiana.getLogger().info("{}", getBanner());
+            Indiana.getLogger().info("Invocation: {}", fullCmd);
+            Indiana.getLogger().info("");
+
+            Date startTime = new Date();
+
             instance.execute();
+
+            Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
+
+            Indiana.getLogger().info("");
+            Indiana.getLogger().info("Complete. (time) {}; (mem) {}",
+                                     DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
+                                     PerformanceUtils.getCompactMemoryUsageStats() );
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static String getBanner() {
+        Properties prop = Indiana.getBuildProperties();
+
+        if (prop != null) {
+            String version = prop.get("major.version") + "." + prop.get("minor.version") + "-" + prop.get("git.version");
+            String gitDate = (String) prop.get("git.date");
+            String buildDate = (String) prop.get("build.date");
+            String dates = "(repo) " + gitDate + "; (build) " + buildDate;
+            String banner = "INDIANA " + version + "; " + dates;
+
+            return banner;
+        } else {
+            return "INDIANA unknown version; unknown build time";
         }
     }
 }
