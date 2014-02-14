@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.commands.prg;
 
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.util.RExecutor;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -11,6 +12,8 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -26,7 +29,12 @@ public class clustergenes extends Module {
     public Integer PROTEIN_KMER_SIZE = 7;
 
     @Output
-    public PrintStream out;
+    public File po;
+
+    @Output(fullName="groupsOut", shortName="go", doc="Output file for sequence groups")
+    public File go;
+
+    private final String clusterGenesScript = "R/clustergenes.R";
 
     @Override
     public void execute() {
@@ -83,7 +91,7 @@ public class clustergenes extends Module {
 
         int kmersProcessed = 0;
         for (String kmer : kmerToSeqMap.keySet()) {
-            if (kmersProcessed % (kmerToSeqMap.size() / 10) == 0) {
+            if (kmersProcessed % (kmerToSeqMap.size() / 4) == 0) {
                 log.info("  Processed {}/{} (~{}%) kmers", kmersProcessed, kmerToSeqMap.size(), String.format("%.1f", 100.0*kmersProcessed / kmerToSeqMap.size()));
             }
             kmersProcessed++;
@@ -100,27 +108,70 @@ public class clustergenes extends Module {
             }
         }
 
-        // Print table
-        log.info("Writing table to disk...");
+        // Figure out which genes to keep or ignore
+        int threshold = FASTAS.size() + 1;
+        log.info("Keeping genes that share sequence with at least {} other genes...", threshold);
+        Collection<String> goodNames = new ArrayList<String>();
 
-        Collection<String> rowNames = rmat.getRowNames();
-        Collection<String> colNames = rmat.getColNames();
+        int rowsProcessed = 0;
+        for (String name1 : rmat.getRowNames()) {
+            if (rowsProcessed % (rmat.getNumRows() / 4) == 0) {
+                log.info("  Processed {}/{} (~{}%) rows", rowsProcessed, rmat.getNumRows(), String.format("%.1f", 100.0*rowsProcessed / rmat.getNumRows()));
+            }
+            rowsProcessed++;
 
-        out.println("\t" + Joiner.on("\t").join(colNames));
+            float sum = 0.0f;
 
-        for (String name1 : rowNames) {
-            Collection<String> fields = new ArrayList<String>();
-            fields.add(name1);
-
-            for (String name2 : colNames) {
+            for (String name2 : rmat.getColNames()) {
                 float intersection = rmat.get(name1, name2);
                 float total = intersection / (totalKmers.get(name1) < totalKmers.get(name2) ? totalKmers.get(name1) : totalKmers.get(name2));
                 float distance = 1.0f - total;
 
-                fields.add(String.valueOf(distance));
+                sum += distance;
             }
 
-            out.println(Joiner.on("\t").join(fields));
+            if (sum < rmat.getNumCols() - threshold) {
+                goodNames.add(name1);
+            }
         }
+
+        log.info("  Kept {}/{} sequences", goodNames.size(), rmat.getNumRows());
+
+        // Print table
+        log.info("Writing table to disk...");
+
+        try {
+            PrintStream out = new PrintStream(po);
+
+            out.println("\t" + Joiner.on("\t").join(goodNames));
+
+            rowsProcessed = 0;
+            for (String name1 : goodNames) {
+                if (rowsProcessed % (goodNames.size() / 4) == 0) {
+                    log.info("  Processed {}/{} (~{}%) rows", rowsProcessed, goodNames.size(), String.format("%.1f", 100.0*rowsProcessed / goodNames.size()));
+                }
+                rowsProcessed++;
+
+                Collection<String> fields = new ArrayList<String>();
+                fields.add(name1);
+
+                for (String name2 : goodNames) {
+                    float intersection = rmat.get(name1, name2);
+                    float total = intersection / (totalKmers.get(name1) < totalKmers.get(name2) ? totalKmers.get(name1) : totalKmers.get(name2));
+                    float distance = 1.0f - total;
+
+                    fields.add(String.valueOf(distance));
+                }
+
+                out.println(Joiner.on("\t").join(fields));
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // Cluster sequences
+        log.info("Clustering genes...");
+
+        RExecutor.executeFromClasspath(clusterGenesScript, po.getAbsolutePath(), go.getAbsolutePath());
     }
 }

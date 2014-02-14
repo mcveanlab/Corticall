@@ -9,6 +9,7 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Command;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
@@ -199,7 +200,12 @@ public class ArgumentHandler {
                         }
                     } else {
                         String[] keyvalue = avalue.split("[:\t]");
-                        pairs.put(keyvalue[0], keyvalue[1]);
+
+                        if (keyvalue.length == 2) {
+                            pairs.put(keyvalue[0], keyvalue[1]);
+                        } else {
+                            throw new IndianaException("Argument for map types must be formatted as key value pairs");
+                        }
                     }
                 }
 

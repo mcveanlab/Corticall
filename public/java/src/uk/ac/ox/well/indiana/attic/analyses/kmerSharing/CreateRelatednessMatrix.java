@@ -7,7 +7,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
-import uk.ac.ox.well.indiana.utils.statistics.PCA;
+import uk.ac.ox.well.indiana.utils.statistics.misc.PCA;
 
 import java.io.File;
 import java.io.PrintStream;

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.statistics;
+package uk.ac.ox.well.indiana.utils.statistics.misc;
 
 /**
  * Computes running statistics as each data point is added to the class.

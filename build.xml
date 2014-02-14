@@ -8,6 +8,7 @@
     <description>Compile and distribute INDIANA</description>
 
     <property name="src.dir" value="public/java" />
+    <property name="src.R.dir" value="public/R" />
     <property name="lib.dir" value="lib" />
     <property name="build.dir" value="build" />
     <property name="jars.dir" value="build/jars" />
@@ -77,10 +78,15 @@
             </classpath>
         </javac>
 
+        <copy todir="${build.dir}/R">
+            <fileset dir="${src.R.dir}" />
+        </copy>
+
         <jar jarfile="${jars.dir}/indiana.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
                 <include name="**/*.properties" />
+                <include name="**/*.R" />
             </fileset>
 
             <manifest>
@@ -106,6 +112,7 @@
         <jar jarfile="${dist.dir}/indiana.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.properties" />
+                <include name="**/*.R" />
             </fileset>
 
             <fileset dir="${staging.dir}">

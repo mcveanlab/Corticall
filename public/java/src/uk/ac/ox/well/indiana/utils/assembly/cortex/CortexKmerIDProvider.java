@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.assembly;
+package uk.ac.ox.well.indiana.utils.assembly.cortex;
 
 import org.jgrapht.ext.VertexNameProvider;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;

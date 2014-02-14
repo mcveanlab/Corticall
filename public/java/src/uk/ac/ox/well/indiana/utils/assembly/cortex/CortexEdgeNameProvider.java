@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.assembly;
+package uk.ac.ox.well.indiana.utils.assembly.cortex;
 
 import org.jgrapht.ext.EdgeNameProvider;
 
