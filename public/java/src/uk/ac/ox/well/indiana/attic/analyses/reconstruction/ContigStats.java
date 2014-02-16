@@ -9,10 +9,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ContigStats extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig tables")
@@ -42,12 +39,15 @@ public class ContigStats extends Module {
             }
 
             for (String sample : contigsPerSample.keySet()) {
-                Map<String, String> te = new HashMap<String, String>();
+                Map<String, String> te = new LinkedHashMap<String, String>();
+                int minLength = SequenceUtils.minLength(contigsPerSample.get(sample));
                 int maxLength = SequenceUtils.maxLength(contigsPerSample.get(sample));
                 int n50Length = SequenceUtils.computeN50Length(contigsPerSample.get(sample));
                 int n50Value = SequenceUtils.computeN50Value(contigsPerSample.get(sample));
 
                 te.put("sample", sample);
+                te.put("numContigs", String.valueOf(contigsPerSample.get(sample).size()));
+                te.put("minLength", String.valueOf(maxLength));
                 te.put("maxLength", String.valueOf(maxLength));
                 te.put("n50Length", String.valueOf(n50Length));
                 te.put("n50Value", String.valueOf(n50Value));
