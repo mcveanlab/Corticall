@@ -262,6 +262,24 @@ public class SequenceUtils {
     }
 
     /**
+     * Compute the minimum length in a collection of sequences
+     *
+     * @param sequences  the sequences to process
+     * @return  the minimum sequence length observed
+     */
+    public static int minLength(Collection<? extends CharSequence> sequences) {
+        int length = Integer.MAX_VALUE;
+
+        for (CharSequence seq : sequences) {
+            if (seq.length() < length) {
+                length = seq.length();
+            }
+        }
+
+        return length;
+    }
+
+    /**
      * Compute the maximum length in a collection of sequences
      *
      * @param sequences  the sequences to process
