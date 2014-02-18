@@ -172,6 +172,6 @@ public class clustergenes extends Module {
         // Cluster sequences
         log.info("Clustering genes...");
 
-        RExecutor.executeFromClasspath(clusterGenesScript, po.getAbsolutePath(), go.getAbsolutePath());
+        RExecutor.executeFromClasspath(clusterGenesScript, po.getAbsolutePath(), go.getAbsolutePath(), "3");
     }
 }

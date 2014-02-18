@@ -47,7 +47,7 @@ public class ContigStats extends Module {
 
                 te.put("sample", sample);
                 te.put("numContigs", String.valueOf(contigsPerSample.get(sample).size()));
-                te.put("minLength", String.valueOf(maxLength));
+                te.put("minLength", String.valueOf(minLength));
                 te.put("maxLength", String.valueOf(maxLength));
                 te.put("n50Length", String.valueOf(n50Length));
                 te.put("n50Value", String.valueOf(n50Value));
