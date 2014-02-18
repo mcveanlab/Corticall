@@ -21,9 +21,6 @@ public class ClassifyContigs extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference FASTA files")
     public HashMap<String, IndexedFastaSequenceFile> REFERENCES;
 
-    //@Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel")
-    //public File KMER_REFERENCE_PANEL;
-
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 31;
 
@@ -32,24 +29,6 @@ public class ClassifyContigs extends Module {
 
     @Override
     public void execute() {
-        /*
-        log.info("Loading reference panel...");
-
-        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
-        Set<CortexKmer> kmers = new HashSet<CortexKmer>();
-
-        int kmerSize = 0;
-        for (Map<String, String> te : tr) {
-            CortexKmer kmer = new CortexKmer(te.get("kmer"));
-
-            kmers.add(kmer);
-
-            if (kmerSize == 0) {
-                kmerSize = kmer.length();
-            }
-        }
-        */
-
         log.info("Loading kmers from references...");
         Map<CortexKmer, Set<String>> rkmers = new HashMap<CortexKmer, Set<String>>();
         Map<String, Integer> seqids = new HashMap<String, Integer>();

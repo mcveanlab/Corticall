@@ -1,11 +1,13 @@
 dm.file = "/Users/kiran/repositories/INDIANA/test.matrix";
 groups.out = "/Users/kiran/repositories/INDIANA/cluster";
+filterlevel = 3;
 
 if (!interactive()) {
     args = commandArgs(TRUE);
 
     dm.file = args[1];
     groups.out = args[2];
+    filterlevel = args[3];
 }
 
 suppressMessages(library(R.utils));
@@ -53,7 +55,7 @@ numGroups.unfiltered = length(groups);
 # Filter gene lists
 elementsToKeep = c();
 for (i in 1:length(groups)) {
-    if (length(groups[[i]]) > 3) {
+    if (length(groups[[i]]) > filterlevel) {
         elementsToKeep = c(elementsToKeep, i);
     }
 }
