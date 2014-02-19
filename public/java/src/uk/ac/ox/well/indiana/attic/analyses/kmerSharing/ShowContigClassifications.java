@@ -1,22 +1,19 @@
 package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
 
-import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.util.RExecutor;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.statistics.clustering.HierarchicalClustering;
 
 import java.awt.Color;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.*;
 
 public class ShowContigClassifications extends Sketch {
@@ -26,21 +23,22 @@ public class ShowContigClassifications extends Sketch {
     @Argument(fullName="reference", shortName="r", doc="Reference FASTA files")
     public TreeMap<String, IndexedFastaSequenceFile> REFERENCES;
 
+    @Argument(fullName="colors", shortName="rgb", doc="Color map")
+    public HashMap<String, Color> COLORS;
+
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 31;
 
     @Output
     public File out;
 
-    @Output(fullName="mo", shortName="mo", doc="Distance matrix")
-    public File m;
-
-    @Output(fullName="go", shortName="go", doc="Groupings")
-    public File g1;
-
-    private Map<String, Map<String, String>> nameIdContigMap = new HashMap<String, Map<String, String>>();
+    private Map<String, Map<String, String>> nameIdContigMap = new TreeMap<String, Map<String, String>>();
     private Map<String, Map<String, Integer>> nameIdPosMap = new HashMap<String, Map<String, Integer>>();
+    private Map<String, Map<String, String>> nameIdOriginalNameMap = new HashMap<String, Map<String, String>>();
     private Map<CortexKmer, Color> kmerColorMap = new HashMap<CortexKmer, Color>();
+
+    private int longestContig = 0;
+    private int maxContigs = 0;
 
     private final int marginXRight = 50;
     private final int marginLabel = 160;
@@ -49,29 +47,14 @@ public class ShowContigClassifications extends Sketch {
     private final int marginTitle = 30;
     private final int marginContig = 5;
     private final int contigHeight = 10;
-    private int longestContig = 0;
-    private int maxContigs = 0;
 
-    private final String clusterGenesScript = "R/clustergenes.R";
-
-    public Map<String, Map<String, String>> clusterSequences(Map<String, Map<String, String>> seqMap) {
-        List<ReferenceSequence> seqs = new ArrayList<ReferenceSequence>();
-
-        for (String name : seqMap.keySet()) {
-            for (String id : seqMap.get(name).keySet()) {
-                String contig = seqMap.get(name).get(id);
-
-                ReferenceSequence rseq = new ReferenceSequence(name + "_" + id, 0, contig.getBytes());
-
-                log.info("{}", rseq.getName());
-
-                seqs.add(rseq);
-            }
-        }
-
+    public Map<String, Map<String, String>> clusterSequences(List<ReferenceSequence> seqs) {
         DataFrame<String, String, Float> distances = new DataFrame<String, String, Float>(0.0f);
+        Map<String, String> seqMap = new HashMap<String, String>();
 
         for (int i = 0; i < seqs.size(); i++) {
+            seqMap.put(seqs.get(i).getName(), new String(seqs.get(i).getBases()));
+
             for (int j = 0; j < seqs.size(); j++) {
                 String seqi = new String(seqs.get(i).getBases());
                 Set<CortexKmer> cki = new HashSet<CortexKmer>();
@@ -102,38 +85,28 @@ public class ShowContigClassifications extends Sketch {
             }
         }
 
-        Map<String, Map<String, String>> newSeqMap = new HashMap<String, Map<String, String>>();
+        HierarchicalClustering hc = new HierarchicalClustering();
+        hc.setMatrix(distances, false);
+        //hc.setMembershipLevel(1);
+        hc.cluster();
+        List<Set<String>> clusters = hc.getClusters();
 
-        try {
-            PrintStream mout = new PrintStream(m);
-            mout.print(distances);
+        Map<String, Map<String, String>> newSeqMap = new TreeMap<String, Map<String, String>>();
+        for (int i = 0; i < clusters.size(); i++) {
+            String clusterName = String.format("%02d", i);
+            newSeqMap.put(clusterName, new HashMap<String, String>());
+            nameIdOriginalNameMap.put(clusterName, new HashMap<String, String>());
 
-            RExecutor.executeFromClasspath(clusterGenesScript, m.getAbsolutePath(), g1.getAbsolutePath(), "-1");
+            for (String m : clusters.get(i)) {
+                String[] nameId = m.split("_");
+                String contigName = nameId[0];
+                String id = nameId[1];
 
-            TableReader tr = new TableReader(g1);
-            for (Map<String, String> te : tr) {
-                log.info("te:{}", te);
+                String contig = seqMap.get(m);
 
-                String[] members = te.get("groupMembers").split(",");
-
-                String newname = "group" + te.get("groupName");
-
-                if (!newSeqMap.containsKey(newname)) {
-                    newSeqMap.put(newname, new TreeMap<String, String>());
-                }
-
-                for (String member : members) {
-                    String[] names = member.split("_");
-
-                    String name = names[0];
-                    String id = names[1];
-                    String contig = seqMap.get(name).get(id);
-
-                    newSeqMap.get(newname).put(id, contig);
-                }
+                newSeqMap.get(clusterName).put(id, contig);
+                nameIdOriginalNameMap.get(clusterName).put(id, contigName);
             }
-        } catch (FileNotFoundException e) {
-            throw new IndianaException("Unable to cluster seqs", e);
         }
 
         return newSeqMap;
@@ -149,29 +122,18 @@ public class ShowContigClassifications extends Sketch {
             TableReader tr = new TableReader(CLASSIFICATIONS.get(id));
 
             int found = 0;
-
             for (Map<String, String> te : tr) {
                 int kmersHB3 = Integer.valueOf(te.get("HB3"));
                 int kmers3D7 = Integer.valueOf(te.get("3D7"));
 
-                if (kmersHB3 > 1 && kmers3D7 > 1) {
+                if (kmersHB3 > 0 && kmers3D7 > 0) {
                     String name = te.get("name");
                     String contig = te.get("contig");
 
-                    if (id.equals("pe2")) {
-                        if (!nameIdContigMap.containsKey(name)) {
-                            nameIdContigMap.put(name, new TreeMap<String, String>());
-                            nameIdPosMap.put(name, new HashMap<String, Integer>());
-                        }
-                        nameIdContigMap.get(name).put(id, contig);
-                        nameIdPosMap.get(name).put(id, 0);
-                    } else {
-                        ReferenceSequence seq = new ReferenceSequence(id, 0, contig.getBytes());
-                        seqs.add(seq);
-                    }
+                    ReferenceSequence seq = new ReferenceSequence(name + "_" + id, 0, contig.getBytes());
+                    seqs.add(seq);
 
                     found++;
-
                     if (contig.length() > longestContig) {
                         longestContig = contig.length();
                     }
@@ -181,59 +143,54 @@ public class ShowContigClassifications extends Sketch {
             log.info("  Found {} chimeric contigs in {}", found, id);
         }
 
-        log.info("  Found {} chimeric contigs total", nameIdContigMap.size() + seqs.size());
+        log.info("  Found {} chimeric contigs total", seqs.size());
 
+        log.info("Clustering contigs...");
+        nameIdContigMap = clusterSequences(seqs);
+
+        log.info("  Found {} clusters", nameIdContigMap.size());
+
+        log.info("Aligning contigs...");
         for (String name : nameIdContigMap.keySet()) {
-            String contig = nameIdContigMap.get(name).get("pe2");
+            String longestContig = "";
+            for (String id : nameIdContigMap.get(name).keySet()) {
+                String contig = nameIdContigMap.get(name).get(id);
 
-            for (ReferenceSequence rseq : seqs) {
-                String seq = new String(rseq.getBases());
+                if (contig.length() > longestContig.length()) {
+                    longestContig = contig;
+                }
+            }
 
-                if (contig.contains(seq)) {
-                    nameIdContigMap.get(name).put(rseq.getName(), seq);
-                    nameIdPosMap.get(name).put(rseq.getName(), contig.indexOf(seq));
+            nameIdPosMap.put(name, new HashMap<String, Integer>());
+            for (String id : nameIdContigMap.get(name).keySet()) {
+                String fw = nameIdContigMap.get(name).get(id);
+                String rc = SequenceUtils.reverseComplement(fw);
+
+                if (longestContig.contains(fw) || longestContig.contains(rc)) {
+                    String contig = fw;
+
+                    if (longestContig.contains(rc)) {
+                        contig = rc;
+                        nameIdContigMap.get(name).put(id, rc);
+                    }
+
+                    int offset = longestContig.indexOf(contig);
+                    nameIdPosMap.get(name).put(id, offset);
+                } else {
+                    log.info("  name={} id=={} was not contained in longest contig", name, id);
+                    log.info("    l:{}", longestContig);
+                    log.info("    f:{}", fw);
+                    log.info("    w:{}", rc);
+
+                    nameIdPosMap.get(name).put(id, 0);
                 }
             }
         }
 
-        /*
-        nameIdContigMap = clusterSequences(nameIdContigMap);
-        log.info("  Grouped chimeric contigs into {} bins", nameIdContigMap.size());
+        log.info("Painting kmers...");
 
-        for (String name : nameIdContigMap.keySet()) {
-            String contig = null;
-            if      (nameIdContigMap.get(name).containsKey("pe2")) { contig = nameIdContigMap.get(name).get("pe2"); }
-            else if (nameIdContigMap.get(name).containsKey("pe1")) { contig = nameIdContigMap.get(name).get("pe1"); }
-            else if (nameIdContigMap.get(name).containsKey("se"))  { contig = nameIdContigMap.get(name).get("se"); }
-            else if (nameIdContigMap.get(name).containsKey("sn"))  { contig = nameIdContigMap.get(name).get("sn"); }
-
-            if (contig != null) {
-                for (String id : nameIdContigMap.get(name).keySet()) {
-                    if (!nameIdPosMap.containsKey(name)) {
-                        nameIdPosMap.put(name, new HashMap<String, Integer>());
-                        nameIdPosMap.get(name).put(id, 0);
-                    }
-
-                    String acontig = nameIdContigMap.get(name).get(id);
-
-                    if (contig.contains(acontig)) {
-                        nameIdPosMap.get(name).put(id, contig.indexOf(acontig));
-                    }
-                }
-
-                log.info("{}: {}", name, nameIdContigMap.get(name));
-            }
-        }
-        */
-
-        //log.info("{}", nameIdContigMap);
-
-        log.info("Processing references...");
-        Color[] colors = generateColors(REFERENCES.size());
-
-        int colorIndex = 0;
         for (String refid : REFERENCES.keySet()) {
-            log.info("  {}:{}", refid, colors[colorIndex]);
+            log.info("  {} (r={} g={} b={})", refid, COLORS.get(refid).getRed(), COLORS.get(refid).getGreen(), COLORS.get(refid).getBlue());
 
             IndexedFastaSequenceFile ref = REFERENCES.get(refid);
 
@@ -245,25 +202,13 @@ public class ShowContigClassifications extends Sketch {
                     CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
                     if (!kmerColorMap.containsKey(kmer)) {
-                        kmerColorMap.put(kmer, colors[colorIndex]);
+                        kmerColorMap.put(kmer, COLORS.get(refid));
                     } else {
-                        kmerColorMap.put(kmer, Color.GRAY);
+                        kmerColorMap.put(kmer, Color.LIGHT_GRAY);
                     }
                 }
             }
-
-            colorIndex++;
         }
-    }
-
-    private Color[] generateColors(int n) {
-        Color[] cols = new Color[n];
-
-        for(int i = 0; i < n; i++) {
-            cols[i] = Color.getHSBColor((float) i / (float) n, 0.85f, 1.0f);
-        }
-
-        return cols;
     }
 
     public void setup() {
@@ -282,14 +227,14 @@ public class ShowContigClassifications extends Sketch {
         List<String> order = new ArrayList<String>();
         order.add("pe2");
         order.add("pe1");
-        order.add("sn");
         order.add("se");
+        order.add("sn");
 
         log.info("Making plots...");
 
         int index = 0;
         for (String name : nameIdContigMap.keySet()) {
-            log.info("  page {}", name);
+            log.info("  page {}", index);
             if (index > 0) { pdf.nextPage(); }
             index++;
 
@@ -298,7 +243,7 @@ public class ShowContigClassifications extends Sketch {
             fill(Color.BLACK.getRGB());
             textAlign(LEFT, CENTER);
             textSize(15);
-            text(name, marginX + 30, marginTitle / 2);
+            text("Cluster " + name, marginX + 30, marginTitle / 2);
 
             int i = 0;
             for (String id : order) {
@@ -321,16 +266,36 @@ public class ShowContigClassifications extends Sketch {
                     textSize(10);
                     textAlign(LEFT, TOP);
                     fill(Color.BLACK.getRGB());
-                    text(contig.length() + " bp", xpos + contig.length() + 3, ypos - 2);
+                    text(contig.length() + " bp (" + nameIdOriginalNameMap.get(name).get(id) + ")", xpos + contig.length() + 3, ypos - 2);
 
                     for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
                         CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
 
-                        Color color = kmerColorMap.containsKey(kmer) ? kmerColorMap.get(kmer) : Color.WHITE;
+                        if (kmerColorMap.containsKey(kmer) && kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
+                            Color color = kmerColorMap.get(kmer);
 
-                        stroke(color.getRGB(), 150.0f);
-                        strokeCap(PROJECT);
-                        line(xpos + k, ypos + 1, xpos + k, ypos + contigHeight - 1);
+                            stroke(color.getRGB(), 255.0f);
+                            strokeCap(PROJECT);
+
+                            for (int q = 0; q < KMER_SIZE; q++) {
+                                line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                            }
+                        }
+                    }
+
+                    for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
+                        CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
+
+                        if (kmerColorMap.containsKey(kmer) && !kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
+                            Color color = kmerColorMap.get(kmer);
+
+                            stroke(color.getRGB(), 255.0f);
+                            strokeCap(PROJECT);
+
+                            for (int q = 0; q < KMER_SIZE; q++) {
+                                line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                            }
+                        }
                     }
 
                     stroke(Color.BLACK.getRGB());

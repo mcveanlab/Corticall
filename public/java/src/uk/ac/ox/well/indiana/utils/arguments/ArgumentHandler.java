@@ -15,12 +15,14 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 
+import java.awt.*;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 
 public class ArgumentHandler {
     private static JexlEngine je;
@@ -271,6 +273,8 @@ public class ArgumentHandler {
                 return new PrintStream(value);
             } else if (type.equals(SAMFileReader.class)) {
                 return new SAMFileReader(new File(value));
+            } else if (type.equals(Color.class)) {
+                return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
             } else if (type.equals(Expression.class)) {
                 initializeJexlEngine();
 
