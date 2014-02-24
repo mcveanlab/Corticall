@@ -76,6 +76,8 @@ public class HierarchicalClustering {
             matrixTmpFile.deleteOnExit();
             writeMatrix(matrixTmpFile);
 
+            //System.out.println(matrixTmpFile);
+
             File clustersFile = File.createTempFile("clusters", ".tmp");
             clustersFile.deleteOnExit();
 
