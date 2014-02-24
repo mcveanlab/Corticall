@@ -7,7 +7,11 @@ import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.clustering.HierarchicalClustering;
@@ -23,6 +27,12 @@ public class ShowContigClassifications extends Sketch {
     @Argument(fullName="reference", shortName="r", doc="Reference FASTA files")
     public TreeMap<String, IndexedFastaSequenceFile> REFERENCES;
 
+    @Argument(fullName="parent", shortName="p", doc="Parent CTX files")
+    public TreeMap<String, CortexGraph> PARENTS;
+
+    @Argument(fullName="gff", shortName="g", doc="GFF files")
+    public TreeMap<String, GFF3> GFFS;
+
     @Argument(fullName="colors", shortName="rgb", doc="Color map")
     public HashMap<String, Color> COLORS;
 
@@ -36,11 +46,12 @@ public class ShowContigClassifications extends Sketch {
     private Map<String, Map<String, Integer>> nameIdPosMap = new HashMap<String, Map<String, Integer>>();
     private Map<String, Map<String, String>> nameIdOriginalNameMap = new HashMap<String, Map<String, String>>();
     private Map<CortexKmer, Color> kmerColorMap = new HashMap<CortexKmer, Color>();
+    private Map<CortexKmer, String> kmerNameMap = new HashMap<CortexKmer, String>();
 
     private int longestContig = 0;
     private int maxContigs = 0;
 
-    private final int marginXRight = 50;
+    private final int marginXRight = 150;
     private final int marginLabel = 160;
     private final int marginX = 10;
     private final int marginY = 10;
@@ -77,7 +88,7 @@ public class ShowContigClassifications extends Sketch {
                     intersection += (cki.contains(kmer) && ckj.contains(kmer)) ? 1.0f : 0.0f;
                 }
 
-                float denom = (float) (cki.size() < ckj.size() ? cki.size() : ckj.size());
+                float denom = (float) (cki.size() < ckj.size() ? cki.size() : ckj.size()) + 1.0f;
                 float distance = 1.0f - (intersection / denom);
 
                 distances.set(seqs.get(i).getName(), seqs.get(j).getName(), distance);
@@ -117,6 +128,7 @@ public class ShowContigClassifications extends Sketch {
         maxContigs = CLASSIFICATIONS.size();
 
         List<ReferenceSequence> seqs = new ArrayList<ReferenceSequence>();
+        List<String> seqStrings = new ArrayList<String>();
 
         for (String id : CLASSIFICATIONS.keySet()) {
             TableReader tr = new TableReader(CLASSIFICATIONS.get(id));
@@ -129,6 +141,8 @@ public class ShowContigClassifications extends Sketch {
                 if (kmersHB3 > 0 && kmers3D7 > 0) {
                     String name = te.get("name");
                     String contig = te.get("contig");
+
+                    seqStrings.add(contig);
 
                     ReferenceSequence seq = new ReferenceSequence(name + "_" + id, 0, contig.getBytes());
                     seqs.add(seq);
@@ -144,6 +158,38 @@ public class ShowContigClassifications extends Sketch {
         }
 
         log.info("  Found {} chimeric contigs total", seqs.size());
+
+        log.info("Finding non-chimeric contigs that overlap chimeras...");
+        int count = 0;
+        for (String id : CLASSIFICATIONS.keySet()) {
+            TableReader tr = new TableReader(CLASSIFICATIONS.get(id));
+
+            for (Map<String, String> te : tr) {
+                int kmersHB3 = Integer.valueOf(te.get("HB3"));
+                int kmers3D7 = Integer.valueOf(te.get("3D7"));
+
+                if ((kmersHB3 > 0 && kmers3D7 == 0) || (kmersHB3 == 0 && kmers3D7 > 0)) {
+                    String name = te.get("name");
+                    String contig = te.get("contig");
+
+                    for (String ocontig : seqStrings) {
+                        String fw = contig;
+                        String rc = SequenceUtils.reverseComplement(contig);
+
+                        if (ocontig.contains(fw) || ocontig.contains(rc)) {
+                            ReferenceSequence seq = new ReferenceSequence(name + "_" + id, 0, contig.getBytes());
+                            seqs.add(seq);
+
+                            count++;
+
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        log.info("  Found {} related non-chimeric contigs total", count);
 
         log.info("Clustering contigs...");
         nameIdContigMap = clusterSequences(seqs);
@@ -193,7 +239,20 @@ public class ShowContigClassifications extends Sketch {
             log.info("  {} (r={} g={} b={})", refid, COLORS.get(refid).getRed(), COLORS.get(refid).getGreen(), COLORS.get(refid).getBlue());
 
             IndexedFastaSequenceFile ref = REFERENCES.get(refid);
+            CortexGraph cg = PARENTS.get(refid);
+            GFF3 gff = GFFS.get(refid);
 
+            for (CortexRecord cr : cg) {
+                CortexKmer kmer = cr.getKmer();
+
+                if (!kmerColorMap.containsKey(kmer)) {
+                    kmerColorMap.put(kmer, COLORS.get(refid));
+                } else {
+                    kmerColorMap.put(kmer, Color.LIGHT_GRAY);
+                }
+            }
+
+            /*
             ReferenceSequence rseq;
             while ((rseq = ref.nextSequence()) != null) {
                 String seq = new String(rseq.getBases());
@@ -208,11 +267,28 @@ public class ShowContigClassifications extends Sketch {
                     }
                 }
             }
+            */
+
+            for (GFF3Record gr : gff) {
+                if (gr.getType().equals("gene")) {
+                    String geneseq = new String(ref.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBases());
+
+                    for (int i = 0; i <= geneseq.length() - KMER_SIZE; i++) {
+                        CortexKmer kmer = new CortexKmer(geneseq.substring(i, i + KMER_SIZE));
+
+                        if (!kmerNameMap.containsKey(kmer)) {
+                            kmerNameMap.put(kmer, gr.getAttribute("ID") + " (" + gr.getSeqid() + ":" + gr.getStart() + "-" + gr.getEnd() + ")");
+                        } else {
+                            kmerNameMap.put(kmer, "");
+                        }
+                    }
+                }
+            }
         }
     }
 
     public void setup() {
-        size(marginLabel + 2*marginX + longestContig + marginXRight, marginTitle + 2*marginY + (marginContig + contigHeight)*maxContigs, PGraphicsPDF.PDF, out.getAbsolutePath());
+        size(marginLabel + 2*marginX + longestContig + marginXRight, marginTitle + 2*marginY + (marginContig + contigHeight)*(maxContigs + 10), PGraphicsPDF.PDF, out.getAbsolutePath());
 
         background(Color.WHITE.getRGB());
 
@@ -234,75 +310,139 @@ public class ShowContigClassifications extends Sketch {
 
         int index = 0;
         for (String name : nameIdContigMap.keySet()) {
-            log.info("  page {}", index);
-            if (index > 0) { pdf.nextPage(); }
-            index++;
+            if (nameIdContigMap.get(name).size() > 1) {
+                log.info("  page {}", index);
+                if (index > 0) { pdf.nextPage(); }
+                index++;
 
-            background(Color.WHITE.getRGB());
+                background(Color.WHITE.getRGB());
 
-            fill(Color.BLACK.getRGB());
-            textAlign(LEFT, CENTER);
-            textSize(15);
-            text("Cluster " + name, marginX + 30, marginTitle / 2);
+                fill(Color.BLACK.getRGB());
+                textAlign(LEFT, CENTER);
+                textSize(15);
+                text("Cluster " + name, marginX + 30, marginTitle / 2);
 
-            int i = 0;
-            for (String id : order) {
-                if (nameIdContigMap.get(name).containsKey(id)) {
+                int cxpos = marginLabel + marginX;
+                int cypos = marginTitle + marginY;
+                String longestContig = "";
+                for (String id : nameIdContigMap.get(name).keySet()) {
                     String contig = nameIdContigMap.get(name).get(id);
 
-                    int offset = 0;
-                    if (nameIdPosMap.containsKey(name) && nameIdPosMap.get(name).containsKey(id)) {
-                        offset = nameIdPosMap.get(name).get(id);
+                    if (contig.length() > longestContig.length()) {
+                        longestContig = contig;
+                    }
+                }
+
+                textSize(11);
+                textAlign(LEFT, TOP);
+                fill(Color.BLACK.getRGB());
+                text("genes", marginX + 30, cypos + 5*(marginContig + contigHeight));
+                //int ypos = marginTitle + marginY + i*(marginContig + contigHeight);
+
+                String prevName = null;
+                int prevYFactor = 0;
+                int prevYPlace = 0;
+                for (int p = 0; p < longestContig.length(); p++) {
+                    char base = longestContig.charAt(p);
+
+                    Color baseColor;
+
+                    switch (base) {
+                        case 'A': baseColor = Color.GREEN;  break;
+                        case 'C': baseColor = Color.BLUE;   break;
+                        case 'G': baseColor = Color.ORANGE; break;
+                        case 'T': baseColor = Color.RED;    break;
+                        default:  baseColor = Color.BLACK;  break;
                     }
 
-                    int xpos = marginLabel + marginX + offset;
-                    int ypos = marginTitle + marginY + i*(marginContig + contigHeight);
+                    stroke(baseColor.getRGB(), 255.0f);
+                    strokeCap(PROJECT);
+                    line(cxpos + p, cypos + 1, cxpos + p, cypos + contigHeight - 1);
 
-                    textSize(11);
-                    textAlign(LEFT, TOP);
-                    fill(Color.BLACK.getRGB());
-                    text(labelMapping.get(id), marginX + 30, ypos - 2);
+                    if (p < longestContig.length() - KMER_SIZE) {
+                        CortexKmer kmer = new CortexKmer(longestContig.substring(p, p + KMER_SIZE));
+                        if (kmerNameMap.containsKey(kmer)) {
+                            String currentName = kmerNameMap.get(kmer);
 
-                    textSize(10);
-                    textAlign(LEFT, TOP);
-                    fill(Color.BLACK.getRGB());
-                    text(contig.length() + " bp (" + nameIdOriginalNameMap.get(name).get(id) + ")", xpos + contig.length() + 3, ypos - 2);
+                            if (!currentName.isEmpty() && (prevName == null || !prevName.equals(currentName))) {
+                                if (p - prevYPlace > 100) {
+                                    prevYFactor = 0;
+                                }
 
-                    for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
-                        CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
+                                textAlign(LEFT, BOTTOM);
+                                textSize(6);
+                                text(currentName, cxpos + p, cypos + (6 + prevYFactor)*(marginContig + contigHeight));
 
-                        if (kmerColorMap.containsKey(kmer) && kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
-                            Color color = kmerColorMap.get(kmer);
+                                log.info("    {} {} {}", currentName, prevYFactor, prevYPlace);
 
-                            stroke(color.getRGB(), 255.0f);
-                            strokeCap(PROJECT);
+                                prevYFactor++;
+                                prevYPlace = p;
 
-                            for (int q = 0; q < KMER_SIZE; q++) {
-                                line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                                prevName = currentName;
                             }
                         }
                     }
+                }
 
-                    for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
-                        CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
+                int i = 1;
+                for (String id : order) {
+                    if (nameIdContigMap.get(name).containsKey(id)) {
+                        String contig = nameIdContigMap.get(name).get(id);
 
-                        if (kmerColorMap.containsKey(kmer) && !kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
-                            Color color = kmerColorMap.get(kmer);
+                        int offset = 0;
+                        if (nameIdPosMap.containsKey(name) && nameIdPosMap.get(name).containsKey(id)) {
+                            offset = nameIdPosMap.get(name).get(id);
+                        }
 
-                            stroke(color.getRGB(), 255.0f);
-                            strokeCap(PROJECT);
+                        int xpos = marginLabel + marginX + offset;
+                        int ypos = marginTitle + marginY + i*(marginContig + contigHeight);
 
-                            for (int q = 0; q < KMER_SIZE; q++) {
-                                line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                        textSize(11);
+                        textAlign(LEFT, TOP);
+                        fill(Color.BLACK.getRGB());
+                        text(labelMapping.get(id), marginX + 30, ypos - 2);
+
+                        textSize(10);
+                        textAlign(LEFT, TOP);
+                        fill(Color.BLACK.getRGB());
+                        text(contig.length() + " bp (" + nameIdOriginalNameMap.get(name).get(id) + ")", xpos + contig.length() + 3, ypos - 2);
+
+                        for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
+                            CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
+
+                            if (kmerColorMap.containsKey(kmer) && kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
+                                Color color = kmerColorMap.get(kmer);
+
+                                stroke(color.getRGB(), 255.0f);
+                                strokeCap(PROJECT);
+
+                                for (int q = 0; q < KMER_SIZE; q++) {
+                                    line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                                }
                             }
                         }
+
+                        for (int k = 0; k <= contig.length() - KMER_SIZE; k++) {
+                            CortexKmer kmer = new CortexKmer(contig.substring(k, k + KMER_SIZE));
+
+                            if (kmerColorMap.containsKey(kmer) && !kmerColorMap.get(kmer).equals(Color.LIGHT_GRAY)) {
+                                Color color = kmerColorMap.get(kmer);
+
+                                stroke(color.getRGB(), 255.0f);
+                                strokeCap(PROJECT);
+
+                                for (int q = 0; q < KMER_SIZE; q++) {
+                                    line(xpos + k + q, ypos + 1, xpos + k + q, ypos + contigHeight - 1);
+                                }
+                            }
+                        }
+
+                        stroke(Color.BLACK.getRGB());
+                        noFill();
+                        rect(xpos - 1, ypos, contig.length() + 1, contigHeight);
+
+                        i++;
                     }
-
-                    stroke(Color.BLACK.getRGB());
-                    noFill();
-                    rect(xpos - 1, ypos, contig.length() + 1, contigHeight);
-
-                    i++;
                 }
             }
         }
