@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
@@ -13,24 +13,26 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.clustering.HierarchicalClustering;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 public class ShowContigClassifications extends Sketch {
     @Argument(fullName="classifications", shortName="c", doc="Classifications file")
     public LinkedHashMap<String, File> CLASSIFICATIONS;
 
-    @Argument(fullName="reference", shortName="r", doc="Reference FASTA files")
+    @Argument(fullName="reference", shortName="r", doc="Reference FASTA files", required=false)
     public TreeMap<String, IndexedFastaSequenceFile> REFERENCES;
 
-    @Argument(fullName="parent", shortName="p", doc="Parent CTX files")
+    @Argument(fullName="parent", shortName="p", doc="Parent CTX files", required=false)
     public TreeMap<String, CortexGraph> PARENTS;
 
-    @Argument(fullName="gff", shortName="g", doc="GFF files")
+    @Argument(fullName="gff", shortName="g", doc="GFF files", required=false)
     public TreeMap<String, GFF3> GFFS;
 
     @Argument(fullName="colors", shortName="rgb", doc="Color map")
@@ -39,8 +41,17 @@ public class ShowContigClassifications extends Sketch {
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 31;
 
+    @Argument(fullName="select1", shortName="s1", doc="Select first ID to color")
+    public String SELECT1;
+
+    @Argument(fullName="select2", shortName="s2", doc="Select second ID to color")
+    public String SELECT2;
+
     @Output
     public File out;
+
+    @Output(fullName="statsOut", shortName="so", doc="Output file for statistics")
+    public PrintStream sout;
 
     private Map<String, Map<String, String>> nameIdContigMap = new TreeMap<String, Map<String, String>>();
     private Map<String, Map<String, Integer>> nameIdPosMap = new HashMap<String, Map<String, Integer>>();
@@ -135,8 +146,10 @@ public class ShowContigClassifications extends Sketch {
 
             int found = 0;
             for (Map<String, String> te : tr) {
-                int kmersHB3 = Integer.valueOf(te.get("HB3"));
-                int kmers3D7 = Integer.valueOf(te.get("3D7"));
+                //int kmersHB3 = Integer.valueOf(te.get("HB3"));
+                //int kmers3D7 = Integer.valueOf(te.get("3D7"));
+                int kmersHB3 = Integer.valueOf(te.get(SELECT1));
+                int kmers3D7 = Integer.valueOf(te.get(SELECT2));
 
                 if (kmersHB3 > 0 && kmers3D7 > 0) {
                     String name = te.get("name");
@@ -165,8 +178,10 @@ public class ShowContigClassifications extends Sketch {
             TableReader tr = new TableReader(CLASSIFICATIONS.get(id));
 
             for (Map<String, String> te : tr) {
-                int kmersHB3 = Integer.valueOf(te.get("HB3"));
-                int kmers3D7 = Integer.valueOf(te.get("3D7"));
+                //int kmersHB3 = Integer.valueOf(te.get("HB3"));
+                //int kmers3D7 = Integer.valueOf(te.get("3D7"));
+                int kmersHB3 = Integer.valueOf(te.get(SELECT1));
+                int kmers3D7 = Integer.valueOf(te.get(SELECT2));
 
                 if ((kmersHB3 > 0 && kmers3D7 == 0) || (kmersHB3 == 0 && kmers3D7 > 0)) {
                     String name = te.get("name");
@@ -239,26 +254,12 @@ public class ShowContigClassifications extends Sketch {
             log.info("  {} (r={} g={} b={})", refid, COLORS.get(refid).getRed(), COLORS.get(refid).getGreen(), COLORS.get(refid).getBlue());
 
             IndexedFastaSequenceFile ref = REFERENCES.get(refid);
-            CortexGraph cg = PARENTS.get(refid);
-            GFF3 gff = GFFS.get(refid);
 
-            for (CortexRecord cr : cg) {
-                CortexKmer kmer = cr.getKmer();
+            if (PARENTS != null && !PARENTS.isEmpty()) {
+                CortexGraph cg = PARENTS.get(refid);
 
-                if (!kmerColorMap.containsKey(kmer)) {
-                    kmerColorMap.put(kmer, COLORS.get(refid));
-                } else {
-                    kmerColorMap.put(kmer, Color.LIGHT_GRAY);
-                }
-            }
-
-            /*
-            ReferenceSequence rseq;
-            while ((rseq = ref.nextSequence()) != null) {
-                String seq = new String(rseq.getBases());
-
-                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                for (CortexRecord cr : cg) {
+                    CortexKmer kmer = cr.getKmer();
 
                     if (!kmerColorMap.containsKey(kmer)) {
                         kmerColorMap.put(kmer, COLORS.get(refid));
@@ -266,20 +267,38 @@ public class ShowContigClassifications extends Sketch {
                         kmerColorMap.put(kmer, Color.LIGHT_GRAY);
                     }
                 }
-            }
-            */
+            } else {
+                ReferenceSequence rseq;
+                while ((rseq = ref.nextSequence()) != null) {
+                    String seq = new String(rseq.getBases());
 
-            for (GFF3Record gr : gff) {
-                if (gr.getType().equals("gene")) {
-                    String geneseq = new String(ref.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBases());
+                    for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
-                    for (int i = 0; i <= geneseq.length() - KMER_SIZE; i++) {
-                        CortexKmer kmer = new CortexKmer(geneseq.substring(i, i + KMER_SIZE));
-
-                        if (!kmerNameMap.containsKey(kmer)) {
-                            kmerNameMap.put(kmer, gr.getAttribute("ID") + " (" + gr.getSeqid() + ":" + gr.getStart() + "-" + gr.getEnd() + ")");
+                        if (!kmerColorMap.containsKey(kmer)) {
+                            kmerColorMap.put(kmer, COLORS.get(refid));
                         } else {
-                            kmerNameMap.put(kmer, "");
+                            kmerColorMap.put(kmer, Color.LIGHT_GRAY);
+                        }
+                    }
+                }
+
+                if (GFFS != null && !GFFS.isEmpty()) {
+                    GFF3 gff = GFFS.get(refid);
+
+                    for (GFF3Record gr : gff) {
+                        if (gr.getType().equals("gene")) {
+                            String geneseq = new String(ref.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBases());
+
+                            for (int i = 0; i <= geneseq.length() - KMER_SIZE; i++) {
+                                CortexKmer kmer = new CortexKmer(geneseq.substring(i, i + KMER_SIZE));
+
+                                if (!kmerNameMap.containsKey(kmer)) {
+                                    kmerNameMap.put(kmer, gr.getAttribute("ID") + " (" + gr.getSeqid() + ":" + gr.getStart() + "-" + gr.getEnd() + ")");
+                                } else {
+                                    kmerNameMap.put(kmer, "");
+                                }
+                            }
                         }
                     }
                 }
@@ -306,7 +325,16 @@ public class ShowContigClassifications extends Sketch {
         order.add("se");
         order.add("sn");
 
+        Map<String, Integer> longestContigMap = new HashMap<String, Integer>();
+        longestContigMap.put("sn", 0);
+        longestContigMap.put("se", 0);
+        longestContigMap.put("pe1", 0);
+        longestContigMap.put("pe2", 0);
+        int equalPe1Pe2 = 0;
+
         log.info("Making plots...");
+
+        TableWriter tw = new TableWriter(sout);
 
         int index = 0;
         for (String name : nameIdContigMap.keySet()) {
@@ -336,7 +364,10 @@ public class ShowContigClassifications extends Sketch {
                 textSize(11);
                 textAlign(LEFT, TOP);
                 fill(Color.BLACK.getRGB());
-                text("genes", marginX + 30, cypos + 5*(marginContig + contigHeight));
+
+                if (kmerNameMap.size() > 0) {
+                    text("genes", marginX + 30, cypos + 5*(marginContig + contigHeight));
+                }
                 //int ypos = marginTitle + marginY + i*(marginContig + contigHeight);
 
                 String prevName = null;
@@ -384,10 +415,31 @@ public class ShowContigClassifications extends Sketch {
                     }
                 }
 
+                String longestId = "sn";
+                int longestLength = 0;
+                int pe1Length = 0;
+                int pe2Length = 0;
+
+                Map<String, String> statsEntry = new LinkedHashMap<String, String>();
+                statsEntry.put("sn", "0");
+                statsEntry.put("se", "0");
+                statsEntry.put("pe1", "0");
+                statsEntry.put("pe2", "0");
+
                 int i = 1;
                 for (String id : order) {
                     if (nameIdContigMap.get(name).containsKey(id)) {
                         String contig = nameIdContigMap.get(name).get(id);
+
+                        if (contig.length() >= longestLength) {
+                            longestId = id;
+                            longestLength = contig.length();
+                        }
+
+                        if (id.equals("pe1")) { pe1Length = contig.length(); }
+                        if (id.equals("pe2")) { pe2Length = contig.length(); }
+
+                        statsEntry.put(id, String.valueOf(contig.length()));
 
                         int offset = 0;
                         if (nameIdPosMap.containsKey(name) && nameIdPosMap.get(name).containsKey(id)) {
@@ -444,8 +496,22 @@ public class ShowContigClassifications extends Sketch {
                         i++;
                     }
                 }
+
+                tw.addEntry(statsEntry);
+
+                longestContigMap.put(longestId, longestContigMap.get(longestId) + 1);
+                if (pe1Length == pe2Length) {
+                    equalPe1Pe2++;
+                }
             }
         }
+
+        log.info("Stats:");
+        log.info("     sn: {}", longestContigMap.get("sn"));
+        log.info("     se: {}", longestContigMap.get("se"));
+        log.info("    pe1: {}", longestContigMap.get("pe1"));
+        log.info("    pe2: {}", longestContigMap.get("pe2"));
+        log.info("pe1=pe2: {}", equalPe1Pe2);
     }
 
     public void draw() {

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
@@ -10,33 +10,38 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class FindSupernodesWithPanelKmers extends Module {
+public class FindSupernodesWithContigKmers extends Module {
     @Argument(fullName="supernodes", shortName="s", doc="Supernodes FASTA file")
     public FastaSequenceFile SUPERNODES;
 
-    @Argument(fullName="kmerReferencePanel", shortName="krp", doc="Kmer reference panel")
-    public File KMER_REFERENCE_PANEL;
+    @Argument(fullName="contigs", shortName="c", doc="Contigs FASTA file")
+    public ArrayList<FastaSequenceFile> CONTIGS;
+
+    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
+    public Integer KMER_SIZE = 31;
 
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
-        TableReader tr = new TableReader(KMER_REFERENCE_PANEL);
         Set<CortexKmer> kmers = new HashSet<CortexKmer>();
 
-        int kmerSize = 0;
-        for (Map<String, String> te : tr) {
-            CortexKmer kmer = new CortexKmer(te.get("kmer"));
+        for (FastaSequenceFile contigs : CONTIGS) {
+            ReferenceSequence rseq;
+            while ((rseq = contigs.nextSequence()) != null) {
+                String seq = new String(rseq.getBases());
 
-            kmers.add(kmer);
+                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
-            if (kmerSize == 0) {
-                kmerSize = kmer.length();
+                    kmers.add(kmer);
+                }
             }
         }
 
@@ -44,8 +49,8 @@ public class FindSupernodesWithPanelKmers extends Module {
         while ((rseq = SUPERNODES.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
 
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
                 if (kmers.contains(kmer)) {
                     out.println(">" + rseq.getName() + "\n" + seq);
