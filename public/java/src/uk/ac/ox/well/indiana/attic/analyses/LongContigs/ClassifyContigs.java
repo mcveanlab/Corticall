@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
+package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
@@ -29,6 +29,12 @@ public class GraphContigs extends Module {
 
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 31;
+
+    @Argument(fullName="select1", shortName="s1", doc="Select first ID to color")
+    public String SELECT1;
+
+    @Argument(fullName="select2", shortName="s2", doc="Select second ID to color")
+    public String SELECT2;
 
     @Output
     public PrintStream out;
@@ -83,8 +89,8 @@ public class GraphContigs extends Module {
         for (Map<String, String> te : tr) {
             String name = te.get("name");
             String contig = te.get("contig");
-            Integer kmersHB3 = Integer.valueOf(te.get("HB3"));
-            Integer kmers3D7 = Integer.valueOf(te.get("3D7"));
+            Integer kmersHB3 = Integer.valueOf(te.get(SELECT1));
+            Integer kmers3D7 = Integer.valueOf(te.get(SELECT2));
 
             if (kmersHB3 > 0 && kmers3D7 > 0) {
                 log.info("{} {} {}", name, kmersHB3, kmers3D7);
@@ -211,7 +217,8 @@ public class GraphContigs extends Module {
                 writeGraph(sg, o, ids);
 
                 try {
-                    Runtime.getRuntime().exec("dot -Tps2 " + o.getAbsolutePath() + " -o " + name + ".ps && ps2pdf " + name + ".ps");
+                    //Runtime.getRuntime().exec("dot -Tps2 " + o.getAbsolutePath() + " -o " + name + ".ps && ps2pdf " + name + ".ps");
+                    Runtime.getRuntime().exec("dot -Tpng " + o.getAbsolutePath() + " -o " + name + ".png");
                 } catch (IOException e) {
                     throw new IndianaException("Unable to convert .dot file to .pdf", e);
                 }
