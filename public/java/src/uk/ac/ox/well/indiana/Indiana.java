@@ -109,7 +109,8 @@ public class Indiana {
         if (logLevel != null && logLevel.equals("DEBUG")) {
             encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L] %message%n");
         } else {
-            encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + " %class{0}] %message%n");
+            //encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + " %class{0}] %message%n");
+            encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + "] %message%n");
         }
 
         encoder.start();
