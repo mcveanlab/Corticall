@@ -2,14 +2,11 @@ package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTreeMap;
-import net.sf.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -17,54 +14,97 @@ public class GetNonRedundantContigs extends Module {
     @Argument(fullName="fasta", shortName="f", doc="FASTA file")
     public FastaSequenceFile FASTA;
 
+    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
+    public Integer KMER_SIZE = 31;
+
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
-        Map<String, ReferenceSequence> seqs = new HashMap<String, ReferenceSequence>();
+        Map<CortexKmer, Set<String>> kmerSharing = new HashMap<CortexKmer, Set<String>>();
+        Map<String, String> seqs = new HashMap<String, String>();
         Map<String, Boolean> isContained = new HashMap<String, Boolean>();
 
         log.info("Loading sequences...");
+
         ReferenceSequence rseq;
         while ((rseq = FASTA.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
 
             if (seq.length() > 0) {
-                seqs.put(seq, rseq);
-                isContained.put(seq, false);
+                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+
+                    if (!kmerSharing.containsKey(kmer)) {
+                        kmerSharing.put(kmer, new HashSet<String>());
+                    }
+
+                    kmerSharing.get(kmer).add(rseq.getName());
+                }
+
+                seqs.put(rseq.getName(), new String(rseq.getBases()));
+                isContained.put(rseq.getName(), false);
             }
         }
 
         log.info("Identifying unique sequences...");
 
-        List<String> keys = new ArrayList<String>();
-        keys.addAll(seqs.keySet());
+        int index = 0;
+        for (CortexKmer kmer : kmerSharing.keySet()) {
+            if (index % (kmerSharing.keySet().size() / 10) == 0) {
+                log.info("  processed {}/{} (~{}%) kmers",
+                         index,
+                         kmerSharing.keySet().size(),
+                         String.format("%.1f", 100.0*index/kmerSharing.keySet().size())
+                );
+            }
+            index++;
 
-        for (int i = 0; i < keys.size() - 1; i++) {
-            if (i % (seqs.keySet().size() / 10) == 0) {
-                log.info("  processed {}/{} sequences (~{}%)", i, seqs.keySet().size(), 100.0*i/seqs.keySet().size());
+            List<String> contigs = new ArrayList<String>();
+            List<String> contigNames = new ArrayList<String>();
+
+            for (String contigName : kmerSharing.get(kmer)) {
+                contigs.add(seqs.get(contigName));
+                contigNames.add(contigName);
             }
 
-            String seq1 = keys.get(i);
-            for (int j = i + 1; j < keys.size(); j++) {
-                String seq2 = keys.get(j);
+            for (int i = 0; i < contigs.size(); i++) {
+                String c1name = contigNames.get(i);
 
-                if (seq1.contains(seq2)) {
-                    isContained.put(seq1, true);
-                    break;
+                if (!isContained.get(c1name)) {
+                    String c1 = contigs.get(i);
+                    //String c1rc = SequenceUtils.reverseComplement(c1);
+
+                    for (int j = 0; j < contigs.size(); j++) {
+                        if (i != j) {
+                            String c2 = contigs.get(j);
+
+                            if (c1.contains(c2)) {
+                                String c2name = contigNames.get(j);
+
+                                isContained.put(c2name, true);
+                            }
+                        }
+                    }
                 }
             }
         }
 
         log.info("Writing unique sequences...");
-        for (String seq1 : seqs.keySet()) {
-            if (!isContained.get(seq1)) {
-                ReferenceSequence rseq1 = seqs.get(seq1);
 
-                out.println(">" + rseq1.getName());
-                out.println(seq1);
+        int numseqs = 0;
+        for (String name : seqs.keySet()) {
+            if (!isContained.get(name)) {
+                String seq = seqs.get(name);
+
+                out.println(">" + name);
+                out.println(seq);
+
+                numseqs++;
             }
         }
+
+        log.info("  wrote {} non-redundant sequences", numseqs);
     }
 }
