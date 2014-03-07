@@ -6,7 +6,9 @@ import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -14,8 +16,8 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class RefKmersInContigs extends Module {
-    @Argument(fullName="reference", shortName="R", doc="Reference FASTA")
-    public HashMap<String, IndexedFastaSequenceFile> REFERENCES;
+    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex binary")
+    public HashMap<String, CortexGraph> CORTEX_GRAPHS;
 
     @Argument(fullName="contigs", shortName="c", doc="Contigs FASTA")
     public HashMap<String, FastaSequenceFile> CONTIGS;
@@ -32,30 +34,24 @@ public class RefKmersInContigs extends Module {
 
         Map<CortexKmer, Map<String, Boolean>> refKmersSeen = new HashMap<CortexKmer, Map<String,Boolean>>();
         Map<String, Integer> refKmersTotal = new HashMap<String, Integer>();
-        for (String refid : REFERENCES.keySet()) {
+        for (String refid : CORTEX_GRAPHS.keySet()) {
             log.info("  {}...", refid);
 
-            IndexedFastaSequenceFile ref = REFERENCES.get(refid);
+            CortexGraph ref = CORTEX_GRAPHS.get(refid);
+            for (CortexRecord cr : ref) {
+                CortexKmer kmer = cr.getKmer();
 
-            ReferenceSequence rseq;
-            while ((rseq = ref.nextSequence()) != null) {
-                String seq = new String(rseq.getBases());
+                if (!refKmersSeen.containsKey(kmer)) {
+                    refKmersSeen.put(kmer, new HashMap<String, Boolean>());
+                }
 
-                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                if (!refKmersSeen.get(kmer).containsKey(refid)) {
+                    refKmersSeen.get(kmer).put(refid, false);
 
-                    if (!refKmersSeen.containsKey(kmer)) {
-                        refKmersSeen.put(kmer, new HashMap<String, Boolean>());
-                    }
-
-                    if (!refKmersSeen.get(kmer).containsKey(refid)) {
-                        refKmersSeen.get(kmer).put(refid, false);
-
-                        if (!refKmersTotal.containsKey(refid)) {
-                            refKmersTotal.put(refid, 1);
-                        } else {
-                            refKmersTotal.put(refid, refKmersTotal.get(refid) + 1);
-                        }
+                    if (!refKmersTotal.containsKey(refid)) {
+                        refKmersTotal.put(refid, 1);
+                    } else {
+                        refKmersTotal.put(refid, refKmersTotal.get(refid) + 1);
                     }
                 }
             }

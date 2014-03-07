@@ -3,7 +3,9 @@ package uk.ac.ox.well.indiana.utils.arguments;
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileWriterFactory;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
@@ -68,6 +70,7 @@ public class ArgumentHandler {
 
                         Option option = new Option(arg.shortName(), arg.fullName(), hasArgument, description);
                         option.setType(field.getType());
+                        //option.setArgs(2);
                         options.addOption(option);
                     } else if (annotation.annotationType().equals(Output.class)) {
                         numArgFields++;
