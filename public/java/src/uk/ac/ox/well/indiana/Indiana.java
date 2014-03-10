@@ -110,7 +110,8 @@ public class Indiana {
             encoder.setPattern("%level [%date{dd/MM/yy HH:mm:ss} " + getProcessID() + " %class{0}:%L] %message%n");
         } else {
             //encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + " %class{0}] %message%n");
-            encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + "] %message%n");
+            //encoder.setPattern("%.-1level [%date{dd/MM/yy HH:mm} " + getProcessID() + "] %message%n");
+            encoder.setPattern("%.-1level [%date{yyyy-MM-dd HH:mm} " + getProcessID() + "] %message%n");
         }
 
         encoder.start();
