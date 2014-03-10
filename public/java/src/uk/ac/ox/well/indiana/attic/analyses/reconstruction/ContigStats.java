@@ -23,6 +23,11 @@ public class ContigStats extends Module {
         TableWriter tw = new TableWriter(out);
 
         for (File table : CONTIG_TABLES) {
+            String[] id = table.getName().split(".");
+            //String idsample = id[0];
+            String idalg = id[2];
+            String idfam = id[3];
+
             Map<String, Collection<String>> contigsPerSample = new HashMap<String, Collection<String>>();
 
             TableReader tr = new TableReader(table);
@@ -46,6 +51,8 @@ public class ContigStats extends Module {
                 int n50Value = SequenceUtils.computeN50Value(contigsPerSample.get(sample));
 
                 te.put("sample", sample);
+                te.put("algorithm", idalg);
+                te.put("locus", idfam);
                 te.put("numContigs", String.valueOf(contigsPerSample.get(sample).size()));
                 te.put("minLength", String.valueOf(minLength));
                 te.put("maxLength", String.valueOf(maxLength));

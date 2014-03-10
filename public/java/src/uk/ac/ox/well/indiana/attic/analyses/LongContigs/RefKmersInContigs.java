@@ -128,6 +128,7 @@ public class RefKmersInContigs extends Module {
 
             for (String refid : seen.keySet()) {
                 Map<String, String> te = new LinkedHashMap<String, String>();
+
                 te.put("id", cid);
                 te.put("num_contigs", String.valueOf(contigs.size()));
                 te.put("n50", String.valueOf(SequenceUtils.computeN50Value(contigs)));
@@ -135,9 +136,21 @@ public class RefKmersInContigs extends Module {
                 te.put("total", String.valueOf(refKmersTotal.get(refid)));
                 te.put("unique", String.valueOf(refKmersUnique.get(refid)));
                 te.put("seen_total", String.valueOf(seen.get(refid)));
-                te.put("seen_unique", String.valueOf(unique.get(refid)));
-                te.put("pct_seen_total", String.valueOf(100.0 * seen.get(refid) / refKmersTotal.get(refid)));
-                te.put("pct_seen_unique", String.valueOf(100.0 * unique.get(refid) / refKmersUnique.get(refid)));
+
+                if (unique.containsKey(refid)) {
+                    te.put("seen_unique", String.valueOf(unique.get(refid)));
+                } else {
+                    te.put("seen_unique", String.valueOf(0.0));
+                }
+
+                te.put("pct_seen_total", String.valueOf(100.0 * seen.get(refid) / (refKmersTotal.get(refid))));
+
+                if (unique.containsKey(refid)) {
+                    te.put("pct_seen_unique", String.valueOf(100.0 * unique.get(refid) / (refKmersUnique.get(refid))));
+                } else {
+                    te.put("pct_seen_unique", String.valueOf(0.0));
+                }
+
                 tw.addEntry(te);
             }
         }
