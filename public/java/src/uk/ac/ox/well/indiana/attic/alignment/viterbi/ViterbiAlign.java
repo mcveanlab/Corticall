@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.alignment;
+package uk.ac.ox.well.indiana.attic.alignment.viterbi;
 
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.DoubleFactory3D;
