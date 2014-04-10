@@ -23,10 +23,16 @@ public class ContigStats extends Module {
         TableWriter tw = new TableWriter(out);
 
         for (File table : CONTIG_TABLES) {
-            String[] id = table.getName().split(".");
+            log.info("id={}", table.getName());
+
+            String[] id = table.getName().split("\\.");
             //String idsample = id[0];
             String idalg = id[2];
             String idfam = id[3];
+            if (table.getName().contains("supernode")) {
+                idalg = id[1];
+                idfam = id[2];
+            }
 
             Map<String, Collection<String>> contigsPerSample = new HashMap<String, Collection<String>>();
 

@@ -1,7 +1,16 @@
 package uk.ac.ox.well.indiana.utils.math;
 
-/**
- * Created by kiran on 20/03/2014.
- */
 public class MoreMathUtils {
+    private MoreMathUtils() {}
+
+    public static double max(double... values) {
+        double max = Double.NEGATIVE_INFINITY;
+
+        for (double tmp : values) {
+            max = max < tmp ? tmp : max;
+        }
+
+        return max;
+    }
+
 }

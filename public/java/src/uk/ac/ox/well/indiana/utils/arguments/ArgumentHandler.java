@@ -16,6 +16,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
 
 import java.awt.*;
 import java.io.*;
@@ -270,6 +271,8 @@ public class ArgumentHandler {
                 return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {
                 return new FastaSequenceFile(new File(value), false);
+            } else if (type.equals(XMFASequenceFile.class)) {
+                return new XMFASequenceFile(value);
             } else if (type.equals(IndexedFastaSequenceFile.class)) {
                 return new IndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {

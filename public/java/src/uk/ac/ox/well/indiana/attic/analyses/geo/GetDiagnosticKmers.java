@@ -9,18 +9,19 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.PrintStream;
 import java.util.*;
 
 public class GetDiagnosticKmers extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")
-    public IndexedFastaSequenceFile REFERENCE;
+    public ArrayList<IndexedFastaSequenceFile> REFERENCES;
 
     @Argument(fullName="gff", shortName="gff", doc="GFF file")
-    public GFF3 GFF;
+    public ArrayList<GFF3> GFFS;
 
-    @Argument(fullName="sequenceName", shortName="sn", doc="Sequence names to include")
+    @Argument(fullName="sequenceName", shortName="sn", doc="Sequence names to include", required=false)
     public HashSet<String> SEQUENCES;
 
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
@@ -34,66 +35,90 @@ public class GetDiagnosticKmers extends Module {
         Set<CortexKmer> geneKmers = new HashSet<CortexKmer>();
         Map<String, IntervalTree<String>> geneRegions = new HashMap<String, IntervalTree<String>>();
 
-        for (GFF3Record gr : GFF) {
-            if (gr.getType().equals("gene")) {
-                String id = gr.getAttribute("ID");
+        log.info("Processing gene kmers...");
+        for (int index = 0; index < REFERENCES.size(); index++) {
+            IndexedFastaSequenceFile ref = REFERENCES.get(index);
+            GFF3 gff = GFFS.get(index);
 
-                if (SEQUENCES.contains(id)) {
-                    log.info("Processing gene {}", id);
+            for (GFF3Record gr : gff) {
+                if (gr.getType().equals("gene")) {
+                    String id = gr.getAttribute("ID");
 
-                    Collection<GFF3Record> exons = GFF3.getType("exon", GFF.getOverlapping(gr));
+                    if (SEQUENCES == null || SEQUENCES.isEmpty() || SEQUENCES.contains(id)) {
+                        Collection<GFF3Record> exons = GFF3.getType("exon", gff.getOverlapping(gr));
 
-                    for (GFF3Record exon : exons) {
-                        ReferenceSequence rseq = REFERENCE.getSubsequenceAt(exon.getSeqid(), exon.getStart(), exon.getEnd());
-                        String seq = new String(rseq.getBases());
+                        for (GFF3Record exon : exons) {
+                            ReferenceSequence rseq = ref.getSubsequenceAt(exon.getSeqid(), exon.getStart(), exon.getEnd());
+                            String seq = new String(rseq.getBases());
 
-                        for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                            CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                                CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
-                            geneKmers.add(kmer);
+                                geneKmers.add(kmer);
+                            }
+
+                            if (!geneRegions.containsKey(gr.getSeqid())) {
+                                geneRegions.put(gr.getSeqid(), new IntervalTree<String>());
+                            }
+
+                            geneRegions.get(gr.getSeqid()).put(exon.getStart(), exon.getEnd(), id);
+
+                            //log.info("store name={}", gr.getSeqid());
                         }
-
-                        if (!geneRegions.containsKey(gr.getSeqid())) {
-                            geneRegions.put(gr.getSeqid(), new IntervalTree<String>());
-                        }
-
-                        geneRegions.get(gr.getSeqid()).put(exon.getStart(), exon.getEnd(), id);
-
-                        //log.info("store name={}", gr.getSeqid());
                     }
                 }
             }
         }
 
-        log.info("Found {} gene kmers", geneKmers.size());
+        log.info("\tfound {} gene kmers", geneKmers.size());
+
+        log.info("Storing kmers outside of specified gene regions...");
 
         Set<CortexKmer> kmerCopyNumber = new HashSet<CortexKmer>();
 
-        ReferenceSequence rseq;
-        while ((rseq = REFERENCE.nextSequence()) != null) {
-            String[] names = rseq.getName().split("\\s+");
-            String name = names[0];
+        for (int index = 0; index < REFERENCES.size(); index++) {
+            IndexedFastaSequenceFile ref = REFERENCES.get(index);
 
-            String seq = new String(rseq.getBases());
+            ReferenceSequence rseq;
+            while ((rseq = ref.nextSequence()) != null) {
+                String[] names = rseq.getName().split("\\s+");
+                String name = names[0];
 
-            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                //log.info("recall name={}", name);
-                if (geneRegions.containsKey(name) && geneRegions.get(name).minOverlapper(i, i+1) == null) {
-                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                String seq = new String(rseq.getBases());
 
-                    kmerCopyNumber.add(kmer);
+                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                    //log.info("recall name={}", name);
+                    if (geneRegions.containsKey(name) && geneRegions.get(name).minOverlapper(i, i+1) == null) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+
+                        kmerCopyNumber.add(kmer);
+                    }
                 }
             }
         }
 
+        log.info("\tfound {} genome kmers", kmerCopyNumber.size());
+
+        log.info("Printing kmers...");
+
+        TableWriter tw = new TableWriter(out);
+
         int numKmersFound = 0;
         for (CortexKmer kmer : geneKmers) {
             if (!kmerCopyNumber.contains(kmer)) {
-                out.println(kmer);
                 numKmersFound++;
+
+                //out.println(">kmer." + numKmersFound);
+                //out.println(kmer);
+
+                Map<String, String> te = new LinkedHashMap<String, String>();
+                te.put("gene", "multiple");
+                te.put("kmer", kmer.getKmerAsString());
+
+                tw.addEntry(te);
             }
         }
 
-        log.info("Found {} gene kmers unique to gene set (absent from rest of genome)", numKmersFound);
+        log.info("\tfound {} gene kmers unique to gene set (absent from rest of genome)", numKmersFound);
     }
 }
