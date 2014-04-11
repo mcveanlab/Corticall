@@ -1,6 +1,8 @@
 package uk.ac.ox.well.indiana.utils.alignment;
 
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.alignment.sw.ConstrainedSmithWaterman;
+import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 
 public class ConstrainedSmithWatermanTest {
     @Test(enabled = false)
