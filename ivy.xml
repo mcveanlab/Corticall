@@ -42,6 +42,7 @@
         <dependency org="net.sf.picard" name="sam" rev="latest" />
         <dependency org="net.sf.picard" name="picard" rev="latest" />
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
+        <dependency org="com.eaio.stringsearch" name="stringsearch" rev="2" />
         <!--<dependency org="com.aliasi" name="lingpipe" rev="4.1.0" />-->
         <!--<dependency org="de.lmu.ifi.dbs.elki" name="elki" rev="0.6.0" />-->
 
