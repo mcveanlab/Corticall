@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="com.javacodegeeks.stringsearch" module="stringsearch" revision="1.0.0" />
+</ivy-module>
