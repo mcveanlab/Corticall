@@ -1,18 +1,20 @@
-package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
+package uk.ac.ox.well.indiana.attic.tools.sequence;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 
 import java.io.PrintStream;
 import java.util.*;
 
-public class GetNonRedundantContigs extends Module {
-    @Argument(fullName="fasta", shortName="f", doc="FASTA file")
-    public FastaSequenceFile FASTA;
+@Description(text="Removes redundant contigs from FASTA file(s)")
+public class RemoveRedundantFastaSequences extends Module {
+    @Argument(fullName="fasta", shortName="f", doc="FASTA file(s)")
+    public ArrayList<FastaSequenceFile> FASTAS;
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
     public Integer KMER_SIZE = 31;
@@ -28,23 +30,25 @@ public class GetNonRedundantContigs extends Module {
 
         log.info("Loading sequences...");
 
-        ReferenceSequence rseq;
-        while ((rseq = FASTA.nextSequence()) != null) {
-            String seq = new String(rseq.getBases());
+        for (FastaSequenceFile fasta : FASTAS) {
+            ReferenceSequence rseq;
+            while ((rseq = fasta.nextSequence()) != null) {
+                String seq = new String(rseq.getBases());
 
-            if (seq.length() > 0) {
-                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+                if (seq.length() > 0) {
+                    for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + KMER_SIZE));
 
-                    if (!kmerSharing.containsKey(kmer)) {
-                        kmerSharing.put(kmer, new HashSet<String>());
+                        if (!kmerSharing.containsKey(kmer)) {
+                            kmerSharing.put(kmer, new HashSet<String>());
+                        }
+
+                        kmerSharing.get(kmer).add(rseq.getName());
                     }
 
-                    kmerSharing.get(kmer).add(rseq.getName());
+                    seqs.put(rseq.getName(), new String(rseq.getBases()));
+                    isContained.put(rseq.getName(), false);
                 }
-
-                seqs.put(rseq.getName(), new String(rseq.getBases()));
-                isContained.put(rseq.getName(), false);
             }
         }
 
