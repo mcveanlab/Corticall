@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.nahr;
+package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;

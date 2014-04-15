@@ -13,7 +13,7 @@ import java.util.*;
 
 @Description(text="Removes redundant contigs from FASTA file(s)")
 public class RemoveRedundantFastaSequences extends Module {
-    @Argument(fullName="fasta", shortName="f", doc="FASTA file(s)")
+    @Argument(fullName="fasta", shortName="f", doc="FASTA file")
     public ArrayList<FastaSequenceFile> FASTAS;
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")

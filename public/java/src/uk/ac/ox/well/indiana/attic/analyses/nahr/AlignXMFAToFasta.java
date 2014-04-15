@@ -1,10 +1,7 @@
-package uk.ac.ox.well.indiana.attic.nahr;
+package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import com.google.common.base.Joiner;
-import com.javacodegeeks.stringsearch.BF;
-import com.javacodegeeks.stringsearch.BM;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
