@@ -21,26 +21,43 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
     private List<Long> lineBreakPositions;
     private String[] header;
     private int nextRecordIndex;
+    private int firstRecord = 1;
 
     private Logger log;
 
     public TableReader(String fileToRead) {
-        loadTable(new File(fileToRead), null);
+        loadTable(new File(fileToRead), null, null);
     }
 
     public TableReader(File fileToRead) {
-        loadTable(fileToRead, null);
+        loadTable(fileToRead, null, null);
+    }
+
+    public TableReader(String fileToRead, String[] header) {
+        loadTable(new File(fileToRead), header, null);
+    }
+
+    public TableReader(File fileToRead, String[] header) {
+        loadTable(fileToRead, header, null);
     }
 
     public TableReader(String fileToRead, Logger log) {
-        loadTable(new File(fileToRead), log);
+        loadTable(new File(fileToRead), null, log);
     }
 
     public TableReader(File fileToRead, Logger log) {
-        loadTable(fileToRead, log);
+        loadTable(fileToRead, null, log);
     }
 
-    private void loadTable(File fileToRead, Logger log) {
+    public TableReader(String fileToRead, String[] header, Logger log) {
+        loadTable(new File(fileToRead), header, log);
+    }
+
+    public TableReader(File fileToRead, String[] header, Logger log) {
+        loadTable(fileToRead, header, log);
+    }
+
+    private void loadTable(File fileToRead, String[] header, Logger log) {
         this.log = log;
 
         try {
@@ -62,10 +79,16 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
 
             mappedRecordBuffer.position(0);
 
-            byte[] headerBuffer = new byte[lineBreakPositions.get(0).intValue()];
-            mappedRecordBuffer.read(headerBuffer);
+            if (header == null) {
+                byte[] headerBuffer = new byte[lineBreakPositions.get(0).intValue()];
+                mappedRecordBuffer.read(headerBuffer);
 
-            header = (new String(headerBuffer)).split("\t");
+                this.header = (new String(headerBuffer)).split("\t");
+
+                firstRecord = 1;
+            } else {
+                this.header = header;
+            }
 
             moveToBeginningOfRecords();
         } catch (FileNotFoundException e) {
@@ -76,8 +99,13 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
     }
 
     private void moveToBeginningOfRecords() {
-        nextRecordIndex = 1;
-        mappedRecordBuffer.position(lineBreakPositions.get(nextRecordIndex - 1).intValue() + 1);
+        nextRecordIndex = firstRecord;
+
+        if (nextRecordIndex > 0) {
+            mappedRecordBuffer.position(lineBreakPositions.get(nextRecordIndex - 1).intValue() + 1);
+        } else {
+            mappedRecordBuffer.position(0);
+        }
     }
 
     @Override
