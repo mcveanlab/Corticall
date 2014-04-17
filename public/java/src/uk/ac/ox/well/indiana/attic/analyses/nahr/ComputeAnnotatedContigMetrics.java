@@ -1,5 +1,9 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -14,8 +18,21 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="annotatedContigs", shortName="ac", doc="Annotated contigs")
     public ArrayList<File> ANNS;
 
+    @Argument(fullName="bams1", shortName="b1", doc="BAMs")
+    public ArrayList<SAMFileReader> BAMS1;
+
+    @Argument(fullName="bams2", shortName="b2", doc="BAMs")
+    public ArrayList<SAMFileReader> BAMS2;
+
     @Output
     public PrintStream out;
+
+    private class ContigInfo {
+        public boolean alignedToRef1 = false;
+        public boolean alignedToRef2 = false;
+        public boolean clippedInRef1 = false;
+        public boolean clippedInRef2 = false;
+    }
 
     private int longestRun(String ann, char entry) {
         Set<Integer> runs = new HashSet<Integer>();
@@ -61,16 +78,45 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
     @Override
     public void execute() {
+        Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
+
+        for (SAMFileReader bam1 : BAMS1) {
+            for (SAMRecord read : bam1) {
+                ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
+
+                ci.alignedToRef1 = read.getAlignmentStart() > 0;
+                for (CigarElement ce : read.getCigar().getCigarElements()) {
+                    ci.clippedInRef1 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
+                }
+
+                cis.put(read.getReadName(), ci);
+            }
+        }
+
+        for (SAMFileReader bam2 : BAMS2) {
+            for (SAMRecord read : bam2) {
+                ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
+
+                ci.alignedToRef2 = read.getAlignmentStart() > 0;
+                for (CigarElement ce : read.getCigar().getCigarElements()) {
+                    ci.clippedInRef2 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
+                }
+
+                cis.put(read.getReadName(), ci);
+            }
+        }
+
         TableWriter tw = new TableWriter(out);
 
+        log.info("Processing annotated contigs...");
         for (File ann : ANNS) {
+            log.info("  {}", ann.getName());
+
             String sampleName = ann.getName().replaceAll(".contigs.unique.ann.fasta", "");
 
             TableReader tr = new TableReader(ann, new String[] {"contigName", "contig", "ann"});
 
             for (Map<String, String> te : tr) {
-                //out.println(te);
-
                 int baseLength = te.get("contig").length();
                 int kmerLength = te.get("ann").length();
 
@@ -109,6 +155,20 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("lrunBoth", String.valueOf(lrunBoth));
                 entry.put("lrunNone", String.valueOf(lrunNone));
                 entry.put("numSwitches", String.valueOf(numSwitches));
+
+                if (cis.containsKey(te.get("contigName"))) {
+                    ContigInfo ci = cis.get(te.get("contigName"));
+
+                    entry.put("alignedToRef1", ci.alignedToRef1 ? "1" : "0");
+                    entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
+                    entry.put("alignedToRef2", ci.alignedToRef2 ? "1" : "0");
+                    entry.put("clippedInRef2", ci.clippedInRef2 ? "1" : "0");
+                } else {
+                    entry.put("alignedToRef1", "0");
+                    entry.put("clippedInRef1", "0");
+                    entry.put("alignedToRef2", "0");
+                    entry.put("clippedInRef2", "0");
+                }
 
                 tw.addEntry(entry);
             }
