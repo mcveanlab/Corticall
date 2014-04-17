@@ -32,6 +32,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public boolean alignedToRef2 = false;
         public boolean clippedInRef1 = false;
         public boolean clippedInRef2 = false;
+        public int numAlignmentsInRef1 = 0;
+        public int numAlignmentsInRef2 = 0;
     }
 
     private int longestRun(String ann, char entry) {
@@ -84,6 +86,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
             for (SAMRecord read : bam1) {
                 ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
 
+                ci.numAlignmentsInRef1++;
                 ci.alignedToRef1 = read.getAlignmentStart() > 0;
                 for (CigarElement ce : read.getCigar().getCigarElements()) {
                     ci.clippedInRef1 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
@@ -97,6 +100,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
             for (SAMRecord read : bam2) {
                 ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
 
+                ci.numAlignmentsInRef2++;
                 ci.alignedToRef2 = read.getAlignmentStart() > 0;
                 for (CigarElement ce : read.getCigar().getCigarElements()) {
                     ci.clippedInRef2 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
@@ -161,13 +165,17 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
                     entry.put("alignedToRef1", ci.alignedToRef1 ? "1" : "0");
                     entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
+                    entry.put("numAlignmentsInRef1", String.valueOf(ci.numAlignmentsInRef1));
                     entry.put("alignedToRef2", ci.alignedToRef2 ? "1" : "0");
                     entry.put("clippedInRef2", ci.clippedInRef2 ? "1" : "0");
+                    entry.put("numAlignmentsInRef2", String.valueOf(ci.numAlignmentsInRef2));
                 } else {
                     entry.put("alignedToRef1", "0");
                     entry.put("clippedInRef1", "0");
+                    entry.put("numAlignmentsInRef1", "0");
                     entry.put("alignedToRef2", "0");
                     entry.put("clippedInRef2", "0");
+                    entry.put("numAlignmentsInRef2", "0");
                 }
 
                 tw.addEntry(entry);
