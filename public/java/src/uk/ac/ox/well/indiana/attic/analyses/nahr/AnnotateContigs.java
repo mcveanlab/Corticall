@@ -5,83 +5,71 @@ import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AnnotateContigs extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (in FASTA format)")
     public FastaSequenceFile CONTIGS;
 
-    @Argument(fullName="referenceSample", shortName="rs", doc="Reference (in Cortex format)")
-    public HashMap<String, CortexGraph> REFERENCES;
+    @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
+    public CortexMap PARENTS;
 
     @Output
     public PrintStream out;
 
+
+    private boolean isContiguous(String prevStr, String curStr, int color) {
+        CortexKmer prevKmer = new CortexKmer(prevStr);
+        CortexKmer curKmer = new CortexKmer(curStr);
+
+        CortexRecord prevCr = PARENTS.get(prevKmer);
+        CortexRecord curCr = PARENTS.get(curKmer);
+
+        if (prevCr != null && curCr != null) {
+            Set<CortexKmer> computedCurOutKmers = new HashSet<CortexKmer>();
+            if (!prevKmer.isFlipped()) {
+                for (String outEdge : prevCr.getOutEdgesAsStrings(color)) {
+                    CortexKmer outKmer = new CortexKmer(prevKmer.getKmerAsString().substring(1, prevKmer.length()) + outEdge);
+                    computedCurOutKmers.add(outKmer);
+                }
+            } else {
+                for (String outEdge : prevCr.getInEdgesAsStrings(color)) {
+                    CortexKmer outKmer = new CortexKmer(outEdge + prevKmer.getKmerAsString().substring(0, prevKmer.length() - 1));
+                    computedCurOutKmers.add(outKmer);
+                }
+            }
+
+            Set<CortexKmer> computedPrevInKmers = new HashSet<CortexKmer>();
+            if (!curKmer.isFlipped()) {
+                for (String inEdge : curCr.getInEdgesAsStrings(color)) {
+                    CortexKmer inKmer = new CortexKmer(inEdge + curKmer.getKmerAsString().substring(0, curKmer.length() - 1));
+                    computedPrevInKmers.add(inKmer);
+                }
+            } else {
+                for (String inEdge : curCr.getOutEdgesAsStrings(color)) {
+                    CortexKmer inKmer = new CortexKmer(curKmer.getKmerAsString().substring(1, curKmer.length()) + inEdge);
+                    computedPrevInKmers.add(inKmer);
+                }
+            }
+
+            return (computedCurOutKmers.contains(curKmer) && computedPrevInKmers.contains(prevKmer));
+        }
+
+        return false;
+    }
+
     @Override
     public void execute() {
-        Map<String, Integer> refIndex = new LinkedHashMap<String, Integer>();
+        int kmerSize = PARENTS.keySet().iterator().next().length();
 
-        int index = 0;
-        for (String refid : REFERENCES.keySet()) {
-            refIndex.put(refid, index);
-            index++;
-        }
-
-        log.info("Loading reference sequences...");
-        Map<CortexKmer, boolean[]> kmerMap = new HashMap<CortexKmer, boolean[]>();
-        for (String refid : REFERENCES.keySet()) {
-            log.info("\t{}", refid);
-
-            CortexGraph cg = REFERENCES.get(refid);
-
-            for (CortexRecord cr : cg) {
-                CortexKmer kmer = cr.getKmer();
-
-                if (!kmerMap.containsKey(kmer)) {
-                    kmerMap.put(kmer, new boolean[refIndex.size()]);
-                }
-
-                boolean[] mask = kmerMap.get(kmer);
-                mask[refIndex.get(refid)] = true;
-                kmerMap.put(kmer, mask);
-            }
-        }
-
-        log.info("\t{} kmers total", kmerMap.size());
-
-        /*
-        log.info("Removing kmers found in multiple references...");
-        Set<CortexKmer> kmersToRemove = new HashSet<CortexKmer>();
-        for (CortexKmer kmer : kmerMap.keySet()) {
-            boolean[] mask = kmerMap.get(kmer);
-
-            int presenceCount = 0;
-            for (boolean value : mask) {
-                if (value) {
-                    presenceCount++;
-                }
-            }
-
-            if (presenceCount > 1) {
-                kmersToRemove.add(kmer);
-            }
-        }
-
-        for (CortexKmer kmer : kmersToRemove) {
-            kmerMap.remove(kmer);
-        }
-
-        log.info("\t{} kmers to remove, {} kmers remaining", kmersToRemove.size(), kmerMap.size());
-
-        kmersToRemove.clear();
-        */
-
-        int kmerSize = kmerMap.keySet().iterator().next().length();
+        out.println("contigName\tseq\tkmerOrigin\tkmerContiguity");
 
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
@@ -92,29 +80,41 @@ public class AnnotateContigs extends Module {
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                if (!kmerMap.containsKey(kmer)) {
+                if (!PARENTS.containsKey(kmer)) {
                     annotation.append(".");
                 } else {
-                    boolean[] mask = kmerMap.get(kmer);
-                    int presenceIndex = 0;
-                    int presenceCount = 0;
+                    CortexRecord cr = PARENTS.get(kmer);
 
-                    for (int j = 0; j < mask.length; j++) {
-                        if (mask[j]) {
-                            presenceCount++;
-                            presenceIndex = j;
-                        }
-                    }
-
-                    if (presenceCount == 1) {
-                        annotation.append(String.valueOf(presenceIndex));
+                    if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
+                        annotation.append("1");
+                    } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
+                        annotation.append("0");
                     } else {
                         annotation.append("B");
                     }
                 }
             }
 
-            out.println(rseq.getName() + "\t" + seq + "\t" + annotation.toString());
+            StringBuilder contiguity = new StringBuilder();
+            contiguity.append("0");
+            for (int i = 1; i <= seq.length() - kmerSize; i++) {
+                String prevStr = seq.substring(i - 1, i - 1 + kmerSize);
+                String curStr  = seq.substring(i, i + kmerSize);
+
+                char colorChar = annotation.charAt(i);
+
+                boolean isContiguous;
+                switch (colorChar) {
+                    case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
+                    case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
+                    case 'B': isContiguous = isContiguous(prevStr, curStr, 0) || isContiguous(prevStr, curStr, 1); break;
+                    default:  isContiguous = false; break;
+                }
+
+                contiguity.append(isContiguous ? "1" : "0");
+            }
+
+            out.println(rseq.getName() + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString());
         }
     }
 }

@@ -17,6 +17,12 @@ public class CortexRecord implements Comparable<CortexRecord> {
         this.kmer = new CortexKmer(decodeBinaryKmer(binaryKmer, kmerSize, kmerBits), true);
     }
 
+    public CortexRecord(CortexKmer kmer, int[] coverages, byte[] edges) {
+        this.coverages = coverages;
+        this.edges = edges;
+        this.kmer = kmer;
+    }
+
     private byte binaryNucleotideToChar(long nucleotide) {
         switch ((int) nucleotide) {
             case 0: return 'A';
@@ -71,6 +77,10 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
     public String getKmerAsString() {
         return kmer.getKmerAsString();
+    }
+
+    public byte[] getEdges() {
+        return edges;
     }
 
     public byte[][] getEdgesAsBytes() {

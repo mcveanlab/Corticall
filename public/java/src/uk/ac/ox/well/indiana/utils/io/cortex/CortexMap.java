@@ -1,18 +1,24 @@
 package uk.ac.ox.well.indiana.utils.io.cortex;
 
+import ch.qos.logback.classic.Logger;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import ch.qos.logback.classic.Logger;
-
 public class CortexMap implements Map<CortexKmer, CortexRecord> {
     private CortexGraph cortexGraph;
     private Logger log;
 
     private Map<CortexKmer, CortexRecord> recordHash;
+
+    public CortexMap() {}
+
+    public CortexMap(Logger log) {
+        this.log = log;
+    }
 
     public CortexMap(String cortexGraphPath) {
         initialize(new CortexGraph(cortexGraphPath), null);
@@ -36,6 +42,41 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
 
     public CortexMap(CortexGraph cortexGraph, Logger log) {
         initialize(cortexGraph, log);
+    }
+
+    public void addGraph(CortexGraph cortexGraph) {
+        if (recordHash == null) {
+            recordHash = new HashMap<CortexKmer, CortexRecord>((int) cortexGraph.getNumRecords());
+        }
+
+        if (this.log != null) { this.log.info("Loading Cortex records"); }
+
+        int i = 0;
+        for (CortexRecord cr : cortexGraph) {
+            CortexKmer kmer = cr.getKmer();
+
+            if (!containsKey(kmer)) {
+                put(kmer, cr);
+            } else {
+                CortexRecord crold = get(kmer);
+
+                int[] coverages = new int[crold.getCoverages().length + cr.getCoverages().length];
+                byte[] edges = new byte[crold.getEdges().length + cr.getEdges().length];
+
+                System.arraycopy(crold.getCoverages(), 0, coverages, 0, crold.getCoverages().length);
+                System.arraycopy(crold.getEdges(),     0, edges,     0, crold.getEdges().length);
+
+                System.arraycopy(cr.getCoverages(), 0, coverages, crold.getCoverages().length, cr.getCoverages().length);
+                System.arraycopy(cr.getEdges(),     0, edges,     crold.getEdges().length,     cr.getEdges().length);
+
+                put(kmer, new CortexRecord(kmer, coverages, edges));
+            }
+
+            if (this.log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {
+                this.log.info("Loaded {}/{} Cortex records", i + 1, cortexGraph.getNumRecords());
+            }
+            i++;
+        }
     }
 
     private void initialize(CortexGraph cortexGraph, Logger log) {
