@@ -1,6 +1,5 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
 import net.sf.samtools.CigarElement;
@@ -10,13 +9,9 @@ import net.sf.samtools.SAMRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
-import uk.ac.ox.well.indiana.utils.io.xmfa.XMFARecord;
-import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -32,28 +27,18 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="bams2", shortName="b2", doc="BAMs")
     public ArrayList<SAMFileReader> BAMS2;
 
-    //@Argument(fullName="xmfa", shortName="xmfa", doc="XMFA file (Mauve alignment)")
-    //public XMFASequenceFile XMFA;
-
     @Argument(fullName="deltas", shortName="d", doc="Delta")
-    public File DELTA;
-
-    @Argument(fullName="ref0", shortName="r0", doc="Ref 0")
-    public String REF0;
-
-    @Argument(fullName="ref1", shortName="r1", doc="Ref 1")
-    public String REF1;
-
-    @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
-    public Integer KMER_SIZE = 31;
+    public ArrayList<File> DELTAS;
 
     @Output
     public PrintStream out;
 
     private class ContigInfo {
-        public Interval ref0Locus;
-        public Interval ref1Locus;
-        public Interval ref1ToRef0Interval;
+        public Interval originalRef0Locus;
+        public Interval originalRef1Locus;
+        public Interval convertedRef0Locus;
+        public Interval convertedRef1Locus;
+        public boolean sameChromosome = false;
         public boolean sameEffectiveLocus = false;
         public boolean alignedToRef0 = false;
         public boolean alignedToRef1 = false;
@@ -108,67 +93,40 @@ public class ComputeAnnotatedContigMetrics extends Module {
         return numSwitches;
     }
 
-    /*
-    private Map<CortexKmer, Set<String>> hashAlignments() {
-        Map<CortexKmer, Set<String>> h = new HashMap<CortexKmer, Set<String>>();
-
-        int processed = 0;
-        for (XMFARecord xr : XMFA) {
-            if (processed % (XMFA.getNumRecords() / 10) == 0) {
-                log.info("  processed {}/{} (~{}%) records", processed, XMFA.getNumRecords(), String.format("%.2f", 100.0 * processed / XMFA.getNumRecords()));
-            }
-            processed++;
-
-            String r0 = xr.containsKey(REF0) ? new String(xr.get(REF0).getBases()).replaceAll("-", "") : "";
-            String r1 = xr.containsKey(REF1) ? new String(xr.get(REF1).getBases()) : "";
-
-            for (int i = 0; i <= r0.length() - KMER_SIZE; i++) {
-                CortexKmer kmer = new CortexKmer(r0.substring(i, i + KMER_SIZE));
-
-                if (!h.containsKey(kmer)) {
-                    h.put(kmer, new HashSet<String>());
-                }
-
-                h.get(kmer).add(r1);
-            }
-        }
-
-        return h;
-    }
-    */
-
     private IntervalTreeMap<Interval> loadDeltas() {
         IntervalTreeMap<Interval> imap = new IntervalTreeMap<Interval>();
 
-        LineReader lr = new LineReader(DELTA);
+        for (File delta : DELTAS) {
+            LineReader lr = new LineReader(delta);
 
-        String currentHeader = null;
-        String refContig = null;
-        String altContig = null;
+            String currentHeader = null;
+            String refContig = null;
+            String altContig = null;
 
-        String line;
-        while ((line = lr.getNextRecord()) != null) {
-            if (line.startsWith(">")) {
-                currentHeader = line;
+            String line;
+            while ((line = lr.getNextRecord()) != null) {
+                if (line.startsWith(">")) {
+                    currentHeader = line;
 
-                line = line.replace(">", "");
-                String[] fields = line.split("\\s+");
-                refContig = fields[0];
-                altContig = fields[1];
-            }
-            else {
-                if (currentHeader != null) {
+                    line = line.replace(">", "");
                     String[] fields = line.split("\\s+");
-                    if (fields.length == 7) {
-                        int refStart = Integer.valueOf(fields[0]);
-                        int refEnd = Integer.valueOf(fields[1]);
-                        int altStart = Integer.valueOf(fields[2]);
-                        int altEnd = Integer.valueOf(fields[3]);
+                    refContig = fields[0];
+                    altContig = fields[1];
+                }
+                else {
+                    if (currentHeader != null) {
+                        String[] fields = line.split("\\s+");
+                        if (fields.length == 7) {
+                            int refStart = Integer.valueOf(fields[0]);
+                            int refEnd = Integer.valueOf(fields[1]);
+                            int altStart = Integer.valueOf(fields[2]);
+                            int altEnd = Integer.valueOf(fields[3]);
 
-                        Interval refInterval = refStart < refEnd ? new Interval(refContig, refStart, refEnd) : new Interval(refContig, refEnd, refStart);
-                        Interval altInterval = altStart < altEnd ? new Interval(altContig, altStart, altEnd) : new Interval(altContig, altEnd, altStart);
+                            Interval refInterval = refStart < refEnd ? new Interval(refContig, refStart, refEnd) : new Interval(refContig, refEnd, refStart);
+                            Interval altInterval = altStart < altEnd ? new Interval(altContig, altStart, altEnd) : new Interval(altContig, altEnd, altStart);
 
-                        imap.put(altInterval, refInterval);
+                            imap.put(altInterval, refInterval);
+                        }
                     }
                 }
             }
@@ -193,7 +151,15 @@ public class ComputeAnnotatedContigMetrics extends Module {
             for (SAMRecord read : bam1) {
                 ContigInfo ci = cis.containsKey(sampleName + "." + read.getReadName()) ? cis.get(sampleName + "." + read.getReadName()) : new ContigInfo();
 
-                ci.ref0Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+                ci.originalRef0Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+                ci.convertedRef0Locus = ci.originalRef0Locus;
+
+                if (imap.getOverlapping(ci.originalRef0Locus).size() == 1) {
+                    ci.convertedRef0Locus = imap.getOverlapping(ci.originalRef0Locus).iterator().next();
+                } else if (imap.getOverlapping(ci.originalRef0Locus).size() > 1) {
+                    ci.convertedRef0Locus = null;
+                }
+
                 ci.numAlignmentsInRef0++;
                 ci.alignedToRef0 = read.getAlignmentStart() > 0;
                 for (CigarElement ce : read.getCigar().getCigarElements()) {
@@ -220,17 +186,17 @@ public class ComputeAnnotatedContigMetrics extends Module {
             for (SAMRecord read : bam2) {
                 ContigInfo ci = cis.containsKey(sampleName + "." + read.getReadName()) ? cis.get(sampleName + "." + read.getReadName()) : new ContigInfo();
 
-                ci.ref1Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+                ci.originalRef1Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+                ci.convertedRef1Locus = ci.originalRef1Locus;
 
-                log.info("{} {} {}", ci.ref1Locus, imap.get(ci.ref1Locus), imap.getOverlapping(ci.ref1Locus));
-                for (Interval refLoci : imap.getOverlapping(ci.ref1Locus)) {
-                    log.info("  {} {} {}", refLoci, ci.ref0Locus, ci.ref0Locus.intersects(refLoci));
-
-                    if (ci.ref0Locus.intersects(refLoci)) {
-                        ci.ref1ToRef0Interval = refLoci;
-                        ci.sameEffectiveLocus = true;
-                    }
+                if (imap.getOverlapping(ci.originalRef1Locus).size() == 1) {
+                    ci.convertedRef1Locus = imap.getOverlapping(ci.originalRef1Locus).iterator().next();
+                } else if (imap.getOverlapping(ci.originalRef1Locus).size() > 1) {
+                    ci.convertedRef1Locus = null;
                 }
+
+                ci.sameChromosome = (ci.convertedRef0Locus != null && ci.convertedRef1Locus != null && ci.convertedRef0Locus.getSequence().equals(ci.convertedRef1Locus.getSequence()));
+                ci.sameEffectiveLocus = (ci.convertedRef0Locus != null && ci.convertedRef1Locus != null && ci.convertedRef0Locus.intersects(ci.convertedRef1Locus));
 
                 ci.numAlignmentsInRef1++;
                 ci.alignedToRef1 = read.getAlignmentStart() > 0;
@@ -262,10 +228,6 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
             TableReader tr = new TableReader(ann);
             for (Map<String, String> te : tr) {
-                if (te.get("contigName").equals("contig53046")) {
-                    log.info("Hello!");
-                }
-
                 int baseLength = te.get("seq").length();
                 int kmerLength = te.get("kmerOrigin").length();
 
@@ -309,43 +271,6 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 int lrunNone = longestRun(te.get("kmerOrigin"), '.');
                 int numSwitches = numSwitches(te.get("kmerOrigin"));
 
-                int numRef1KmersInSameStretchAsRef0Kmers = 0;
-                int numRef1KmersNotInSameStretchAsRef0Kmers = 0;
-
-                /*
-                Set<String> relatedSeqs = new HashSet<String>();
-                for (int i = 0; i < kmerLength; i++) {
-                    char kmerOrigin = te.get("kmerOrigin").charAt(i);
-
-                    if (kmerOrigin == '0' || kmerOrigin == 'B') {
-                        CortexKmer kmer = new CortexKmer(te.get("seq").substring(i, i + KMER_SIZE));
-                        if (h.containsKey(kmer)) { relatedSeqs.addAll(h.get(kmer)); }
-                    }
-                }
-
-                for (int i = 0; i < kmerLength; i++) {
-                    char kmerOrigin = te.get("kmerOrigin").charAt(i);
-
-                    if (kmerOrigin == '1') {
-                        String fw = te.get("seq").substring(i, i + KMER_SIZE);
-                        String rc = SequenceUtils.reverseComplement(fw);
-
-                        boolean found = false;
-
-                        for (String relatedSeq : relatedSeqs) {
-                            String seq = relatedSeq.replaceAll("-", "");
-                            if (seq.contains(fw) || seq.contains(rc)) {
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (found) { numRef1KmersInSameStretchAsRef0Kmers++; }
-                        else { numRef1KmersNotInSameStretchAsRef0Kmers++; }
-                    }
-                }
-                */
-
                 Map<String, String> entry = new LinkedHashMap<String, String>();
                 entry.put("sampleName", sampleName);
                 entry.put("contigName", te.get("contigName"));
@@ -366,10 +291,13 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 if (cis.containsKey(sampleName + "." + te.get("contigName"))) {
                     ContigInfo ci = cis.get(sampleName + "." + te.get("contigName"));
 
-                    entry.put("ref0Locus", ci.ref0Locus.toString());
-                    entry.put("ref1Locus", ci.ref1Locus.toString());
-                    entry.put("ref1ToRef0Interval", ci.ref1ToRef0Interval != null ? ci.ref1ToRef0Interval.toString() : "NA");
+                    entry.put("originalRef0Locus", ci.originalRef0Locus.toString());
+                    entry.put("originalRef1Locus", ci.originalRef1Locus.toString());
+                    entry.put("convertedRef0Locus", ci.convertedRef0Locus == null ? "NA" : ci.convertedRef0Locus.toString());
+                    entry.put("convertedRef1Locus", ci.convertedRef1Locus == null ? "NA" : ci.convertedRef1Locus.toString());
+                    entry.put("sameChromosome", ci.sameChromosome ? "1" : "0");
                     entry.put("sameEffectiveLocus", ci.sameEffectiveLocus ? "1" : "0");
+
                     entry.put("alignedToRef0", ci.alignedToRef0 ? "1" : "0");
                     entry.put("clippedInRef0", ci.clippedInRef0 ? "1" : "0");
                     entry.put("numAlignmentsInRef0", String.valueOf(ci.numAlignmentsInRef0));
@@ -379,9 +307,11 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("numAlignmentsInRef1", String.valueOf(ci.numAlignmentsInRef1));
                     entry.put("perfectAlignmentInRef1", ci.perfectAlignmentInRef1 ? "1" : "0");
                 } else {
-                    entry.put("ref0Locus", "NA");
-                    entry.put("ref1Locus", "NA");
-                    entry.put("ref1ToRef0Interval", "NA");
+                    entry.put("originalRef0Locus", "NA");
+                    entry.put("originalRef1Locus", "NA");
+                    entry.put("convertedRef0Locus", "NA");
+                    entry.put("convertedRef1Locus", "NA");
+                    entry.put("sameChromosome", "NA");
                     entry.put("sameEffectiveLocus", "NA");
                     entry.put("alignedToRef0", "NA");
                     entry.put("clippedInRef0", "NA");
@@ -392,9 +322,6 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("numAlignmentsInRef1", "NA");
                     entry.put("perfectAlignmentInRef1", "NA");
                 }
-
-                entry.put("ref1KmersInRef0Stretches", String.valueOf(numRef1KmersInSameStretchAsRef0Kmers));
-                entry.put("ref1KmersNotInRef0Stretches", String.valueOf(numRef1KmersNotInSameStretchAsRef0Kmers));
 
                 entry.put("seq", te.get("seq"));
                 entry.put("kmerOrigin", te.get("kmerOrigin"));
