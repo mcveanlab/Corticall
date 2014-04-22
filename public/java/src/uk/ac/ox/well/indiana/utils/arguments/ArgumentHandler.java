@@ -191,7 +191,7 @@ public class ArgumentHandler {
                 }
 
                 field.set(instance, o);
-            } else if (Map.class.isAssignableFrom(type)) {
+            } else if (Map.class.isAssignableFrom(type) && !CortexMap.class.isAssignableFrom(type)) {
                 Map<String, String> pairs = new HashMap<String, String>();
 
                 for (String avalue : value.split(",")) {

@@ -83,8 +83,16 @@ public class ComputeAnnotatedContigMetrics extends Module {
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
 
         for (SAMFileReader bam1 : BAMS1) {
+            String sampleName = bam1.getFileHeader().getReadGroups().iterator().next().getSample();
+
+            log.info("Sample: {}", sampleName);
+
             for (SAMRecord read : bam1) {
-                ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
+                if (read.getReadName().equals("contig7060")) {
+                    log.info("Hello!");
+                }
+
+                ContigInfo ci = cis.containsKey(sampleName + "." + read.getReadName()) ? cis.get(sampleName + "." + read.getReadName()) : new ContigInfo();
 
                 ci.numAlignmentsInRef1++;
                 ci.alignedToRef1 = read.getAlignmentStart() > 0;
@@ -92,13 +100,19 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     ci.clippedInRef1 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
                 }
 
-                cis.put(read.getReadName(), ci);
+                cis.put(sampleName + "." + read.getReadName(), ci);
             }
         }
 
         for (SAMFileReader bam2 : BAMS2) {
+            String sampleName = bam2.getFileHeader().getReadGroups().iterator().next().getSample();
+
             for (SAMRecord read : bam2) {
-                ContigInfo ci = cis.containsKey(read.getReadName()) ? cis.get(read.getReadName()) : new ContigInfo();
+                if (read.getReadName().equals("contig7060")) {
+                    log.info("Hello!");
+                }
+
+                ContigInfo ci = cis.containsKey(sampleName + "." + read.getReadName()) ? cis.get(sampleName + "." + read.getReadName()) : new ContigInfo();
 
                 ci.numAlignmentsInRef2++;
                 ci.alignedToRef2 = read.getAlignmentStart() > 0;
@@ -106,7 +120,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     ci.clippedInRef2 = (ce.getOperator().equals(CigarOperator.H) || ce.getOperator().equals(CigarOperator.S));
                 }
 
-                cis.put(read.getReadName(), ci);
+                cis.put(sampleName + "." + read.getReadName(), ci);
             }
         }
 
@@ -114,12 +128,11 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
         log.info("Processing annotated contigs...");
         for (File ann : ANNS) {
-            log.info("  {}", ann.getName());
-
             String sampleName = ann.getName().replaceAll(".contigs.unique.ann.fasta", "");
 
-            TableReader tr = new TableReader(ann, new String[] {"contigName", "contig", "ann"});
+            log.info("  {}", sampleName);
 
+            TableReader tr = new TableReader(ann, new String[] {"contigName", "contig", "ann"});
             for (Map<String, String> te : tr) {
                 int baseLength = te.get("contig").length();
                 int kmerLength = te.get("ann").length();
@@ -160,8 +173,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("lrunNone", String.valueOf(lrunNone));
                 entry.put("numSwitches", String.valueOf(numSwitches));
 
-                if (cis.containsKey(te.get("contigName"))) {
-                    ContigInfo ci = cis.get(te.get("contigName"));
+                if (cis.containsKey(sampleName + "." + te.get("contigName"))) {
+                    ContigInfo ci = cis.get(sampleName + "." + te.get("contigName"));
 
                     entry.put("alignedToRef1", ci.alignedToRef1 ? "1" : "0");
                     entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
@@ -170,12 +183,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInRef2", ci.clippedInRef2 ? "1" : "0");
                     entry.put("numAlignmentsInRef2", String.valueOf(ci.numAlignmentsInRef2));
                 } else {
-                    entry.put("alignedToRef1", "0");
-                    entry.put("clippedInRef1", "0");
-                    entry.put("numAlignmentsInRef1", "0");
-                    entry.put("alignedToRef2", "0");
-                    entry.put("clippedInRef2", "0");
-                    entry.put("numAlignmentsInRef2", "0");
+                    entry.put("alignedToRef1", "-1");
+                    entry.put("clippedInRef1", "-1");
+                    entry.put("numAlignmentsInRef1", "-1");
+                    entry.put("alignedToRef2", "-1");
+                    entry.put("clippedInRef2", "-1");
+                    entry.put("numAlignmentsInRef2", "-1");
                 }
 
                 tw.addEntry(entry);
