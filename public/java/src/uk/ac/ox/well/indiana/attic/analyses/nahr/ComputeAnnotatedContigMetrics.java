@@ -334,17 +334,20 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     Set<String> genes0 = new TreeSet<String>();
                     Set<String> genes1 = new TreeSet<String>();
 
-                    if (ci.convertedRef0Locus != null) {
-                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.convertedRef0Locus))) {
+                    if (ci.exactRef0Locus != null) {
+                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.exactRef0Locus))) {
                             genes0.add(gr.getAttribute("ID"));
                         }
                     }
 
-                    if (ci.convertedRef1Locus != null) {
-                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.convertedRef1Locus))) {
+                    if (ci.exactRef1Locus != null) {
+                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.exactRef1Locus))) {
                             genes1.add(gr.getAttribute("ID"));
                         }
                     }
+
+                    entry.put("genesRef0", Joiner.on(",").join(genes0));
+                    entry.put("genesRef1", Joiner.on(",").join(genes1));
 
 //                    log.info("g1: {}", Joiner.on(",").join(genes0));
 //                    log.info("g2: {}", Joiner.on(",").join(genes1));
