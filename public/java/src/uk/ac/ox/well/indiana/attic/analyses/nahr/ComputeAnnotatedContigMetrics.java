@@ -346,8 +346,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         }
                     }
 
-                    entry.put("genesRef0", Joiner.on(",").join(genes0));
-                    entry.put("genesRef1", Joiner.on(",").join(genes1));
+                    entry.put("genesRef0", genes0.size() > 0 ? "NA" : Joiner.on(",").join(genes0));
+                    entry.put("genesRef1", genes1.size() > 0 ? "NA" : Joiner.on(",").join(genes1));
 
 //                    log.info("g1: {}", Joiner.on(",").join(genes0));
 //                    log.info("g2: {}", Joiner.on(",").join(genes1));
