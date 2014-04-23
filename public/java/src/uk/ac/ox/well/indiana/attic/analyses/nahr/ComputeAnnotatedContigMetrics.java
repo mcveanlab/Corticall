@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
+import com.google.common.base.Joiner;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalTreeMap;
 import net.sf.samtools.CigarElement;
@@ -9,6 +10,8 @@ import net.sf.samtools.SAMRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
@@ -30,6 +33,9 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="deltas", shortName="d", doc="Delta")
     public ArrayList<File> DELTAS;
 
+    @Argument(fullName="gff", shortName="g", doc="GFF file")
+    public GFF3 GFF;
+
     @Output
     public PrintStream out;
 
@@ -38,6 +44,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public Interval originalRef1Locus;
         public Interval convertedRef0Locus;
         public Interval convertedRef1Locus;
+        public Interval exactRef0Locus;
+        public Interval exactRef1Locus;
         public boolean sameChromosome = false;
         public boolean sameEffectiveLocus = false;
         public boolean alignedToRef0 = false;
@@ -93,7 +101,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
         return numSwitches;
     }
 
-    private IntervalTreeMap<Interval> loadDeltas() {
+    private IntervalTreeMap<Interval> loadDeltas(boolean reverse) {
         IntervalTreeMap<Interval> imap = new IntervalTreeMap<Interval>();
 
         for (File delta : DELTAS) {
@@ -125,7 +133,11 @@ public class ComputeAnnotatedContigMetrics extends Module {
                             Interval refInterval = refStart < refEnd ? new Interval(refContig, refStart, refEnd) : new Interval(refContig, refEnd, refStart);
                             Interval altInterval = altStart < altEnd ? new Interval(altContig, altStart, altEnd) : new Interval(altContig, altEnd, altStart);
 
-                            imap.put(altInterval, refInterval);
+                            if (reverse) {
+                                imap.put(refInterval, altInterval);
+                            } else {
+                                imap.put(altInterval, refInterval);
+                            }
                         }
                     }
                 }
@@ -141,7 +153,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
         //Map<CortexKmer, Set<String>> h = hashAlignments();
 
         log.info("Load alt vs. ref deltas...");
-        IntervalTreeMap<Interval> imap = loadDeltas();
+        IntervalTreeMap<Interval> imap = loadDeltas(false);
+        IntervalTreeMap<Interval> rmap = loadDeltas(true);
 
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
 
@@ -153,11 +166,20 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
                 ci.originalRef0Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
                 ci.convertedRef0Locus = ci.originalRef0Locus;
+                ci.exactRef0Locus = ci.originalRef0Locus;
 
                 if (imap.getOverlapping(ci.originalRef0Locus).size() == 1) {
                     ci.convertedRef0Locus = imap.getOverlapping(ci.originalRef0Locus).iterator().next();
+
+                    if (ci.convertedRef0Locus != null && rmap.containsKey(ci.convertedRef0Locus)) {
+                        Interval revLocus = rmap.get(ci.convertedRef0Locus);
+                        ci.exactRef0Locus = new Interval(ci.convertedRef0Locus.getSequence(),
+                                                         ci.convertedRef0Locus.getStart() + ci.originalRef0Locus.getStart() - revLocus.getStart(),
+                                                         ci.convertedRef0Locus.getStart() + ci.originalRef0Locus.getEnd() - revLocus.getStart());
+                    }
                 } else if (imap.getOverlapping(ci.originalRef0Locus).size() > 1) {
                     ci.convertedRef0Locus = null;
+                    ci.exactRef0Locus = null;
                 }
 
                 ci.numAlignmentsInRef0++;
@@ -193,6 +215,15 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     ci.convertedRef1Locus = imap.getOverlapping(ci.originalRef1Locus).iterator().next();
                 } else if (imap.getOverlapping(ci.originalRef1Locus).size() > 1) {
                     ci.convertedRef1Locus = null;
+                }
+
+                //I [2014-04-23 02:07 19499] Supercontig_1.1:1742-1983 Pf3D7_14_v3:2650339-2705858 Supercontig_1.1:1524-57055
+
+                if (ci.convertedRef1Locus != null && rmap.containsKey(ci.convertedRef1Locus)) {
+                    Interval revLocus = rmap.get(ci.convertedRef1Locus);
+                    ci.exactRef1Locus = new Interval(ci.convertedRef1Locus.getSequence(),
+                                                     ci.convertedRef1Locus.getStart() + ci.originalRef1Locus.getStart() - revLocus.getStart(),
+                                                     ci.convertedRef1Locus.getStart() + ci.originalRef1Locus.getEnd() - revLocus.getStart());
                 }
 
                 ci.sameChromosome = (ci.convertedRef0Locus != null && ci.convertedRef1Locus != null && ci.convertedRef0Locus.getSequence().equals(ci.convertedRef1Locus.getSequence()));
@@ -295,8 +326,28 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("originalRef1Locus", ci.originalRef1Locus.toString());
                     entry.put("convertedRef0Locus", ci.convertedRef0Locus == null ? "NA" : ci.convertedRef0Locus.toString());
                     entry.put("convertedRef1Locus", ci.convertedRef1Locus == null ? "NA" : ci.convertedRef1Locus.toString());
+                    entry.put("exactRef0Locus", ci.exactRef0Locus == null ? "NA" : ci.exactRef0Locus.toString());
+                    entry.put("exactRef1Locus", ci.exactRef1Locus == null ? "NA" : ci.exactRef1Locus.toString());
                     entry.put("sameChromosome", ci.sameChromosome ? "1" : "0");
                     entry.put("sameEffectiveLocus", ci.sameEffectiveLocus ? "1" : "0");
+
+                    Set<String> genes0 = new TreeSet<String>();
+                    Set<String> genes1 = new TreeSet<String>();
+
+                    if (ci.convertedRef0Locus != null) {
+                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.convertedRef0Locus))) {
+                            genes0.add(gr.getAttribute("ID"));
+                        }
+                    }
+
+                    if (ci.convertedRef1Locus != null) {
+                        for (GFF3Record gr : GFF3.getType("gene", GFF.getOverlapping(ci.convertedRef1Locus))) {
+                            genes1.add(gr.getAttribute("ID"));
+                        }
+                    }
+
+//                    log.info("g1: {}", Joiner.on(",").join(genes0));
+//                    log.info("g2: {}", Joiner.on(",").join(genes1));
 
                     entry.put("alignedToRef0", ci.alignedToRef0 ? "1" : "0");
                     entry.put("clippedInRef0", ci.clippedInRef0 ? "1" : "0");
@@ -311,6 +362,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("originalRef1Locus", "NA");
                     entry.put("convertedRef0Locus", "NA");
                     entry.put("convertedRef1Locus", "NA");
+                    entry.put("exactRef0Locus", "NA");
+                    entry.put("exactRef1Locus", "NA");
                     entry.put("sameChromosome", "NA");
                     entry.put("sameEffectiveLocus", "NA");
                     entry.put("alignedToRef0", "NA");
