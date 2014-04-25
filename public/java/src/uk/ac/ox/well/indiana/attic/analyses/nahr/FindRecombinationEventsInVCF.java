@@ -225,20 +225,22 @@ public class FindRecombinationEventsInVCF extends Module {
                 List<String> altHaps = recombKmers.get(sampleName);
                 List<Interval> altInts = recombSites.get(sampleName);
 
-                for (int i = 0; i < altHaps.size(); i++) {
-                    Interval altInt = altInts.get(i);
-                    String altHapFw = altHaps.get(i);
-                    String altHapRc = SequenceUtils.reverseComplement(altHapFw);
+                if (recombKmers.containsKey(sampleName)) {
+                    for (int i = 0; i < altHaps.size(); i++) {
+                        Interval altInt = altInts.get(i);
+                        String altHapFw = altHaps.get(i);
+                        String altHapRc = SequenceUtils.reverseComplement(altHapFw);
 
-                    if (seq.contains(altHapFw) || seq.contains(altHapRc)) {
-                        Map<String, String> entry = new LinkedHashMap<String, String>();
+                        if (seq.contains(altHapFw) || seq.contains(altHapRc)) {
+                            Map<String, String> entry = new LinkedHashMap<String, String>();
 
-                        entry.put("sampleName", sampleName);
-                        entry.put("contigName", rseq.getName());
-                        entry.put("locus", altInt.toString());
-                        entry.put("diagnosticKmer", SequenceUtils.alphanumericallyLowestOrientation(altHapFw));
+                            entry.put("sampleName", sampleName);
+                            entry.put("contigName", rseq.getName());
+                            entry.put("locus", altInt.toString());
+                            entry.put("diagnosticKmer", SequenceUtils.alphanumericallyLowestOrientation(altHapFw));
 
-                        tw.addEntry(entry);
+                            tw.addEntry(entry);
+                        }
                     }
                 }
             }
