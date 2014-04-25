@@ -124,9 +124,16 @@ public class FindRecombinationEventsInVCF extends Module {
                     Map<String, String> pentry = vcfRecords.get(i-1);
                     Map<String, String> entry = vcfRecords.get(i);
 
+                    String prevCopyingFrom = pentry.get(sampleName).equals(pentry.get(PARENT1)) ? PARENT1 : PARENT2;
+                    String prevCopiedAllele = pentry.get(prevCopyingFrom);
+
+                    String curCopyingFrom = entry.get(sampleName).equals(entry.get(PARENT1)) ? PARENT1 : PARENT2;
+                    String curCopiedAllele = entry.get(curCopyingFrom);
+
                     boolean isSwitch = false;
 
-                    if (pentry.get("CHROM").equals(entry.get("CHROM")) && !pentry.get(sampleName).equals(entry.get(sampleName))) {
+                    //if (pentry.get("CHROM").equals(entry.get("CHROM")) && !pentry.get(sampleName).equals(entry.get(sampleName))) {
+                    if (pentry.get("CHROM").equals(entry.get("CHROM")) && !prevCopiedAllele.equals(curCopiedAllele)) {
                         if (pentry.get(sampleName).equals("0")) { switchIndices.add(i); }
                         else { switchIndices.add(i-1); }
 
