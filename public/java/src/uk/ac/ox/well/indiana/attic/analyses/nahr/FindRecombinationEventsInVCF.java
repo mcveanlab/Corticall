@@ -4,6 +4,7 @@ import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
+import net.sf.picard.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -20,23 +21,20 @@ public class FindRecombinationEventsInVCF extends Module {
     @Argument(fullName="vcf", shortName="vcf", doc="VCF file")
     public File VCF;
 
-    @Argument(fullName="parent1", shortName="p1", doc="Parent 1")
-    public String PARENT1;
-
-    @Argument(fullName="parent2", shortName="p2", doc="Parent 2")
-    public String PARENT2;
-
     @Argument(fullName="ref", shortName="r", doc="Reference FASTA")
     public IndexedFastaSequenceFile REF;
 
-    @Argument(fullName="metrics", shortName="m", doc="Metrics file")
-    public File METRICS;
+    @Argument(fullName="recombLoci", shortName="rl", doc="Recomb loci table")
+    public File RECOMB_LOCI;
+
+    @Argument(fullName="contigs", shortName="c", doc="Contigs")
+    public ArrayList<File> CONTIGS;
 
     @Output
     public PrintStream out;
 
-    private List<Map<String, String>> loadVCF() {
-        List<Map<String, String>> vcfRecords = new ArrayList<Map<String, String>>();
+    private IntervalTreeMap<Map<String, String>> loadVCF() {
+        IntervalTreeMap<Map<String, String>> vcfRecords = new IntervalTreeMap<Map<String, String>>();
 
         LineReader lr = new LineReader(VCF);
 
@@ -68,7 +66,9 @@ public class FindRecombinationEventsInVCF extends Module {
                     }
 
                     if (entry.get("FILTER").equals("PASS")) {
-                        vcfRecords.add(entry);
+                        Interval interval = new Interval(entry.get("CHROM"), Integer.valueOf(entry.get("POS")), Integer.valueOf(entry.get("POS")));
+
+                        vcfRecords.put(interval, entry);
                     }
                 }
             }
@@ -102,190 +102,147 @@ public class FindRecombinationEventsInVCF extends Module {
         return sampleNames;
     }
 
+    private Map<String, Set<Interval>> loadRecombTable() {
+        TableReader tr = new TableReader(RECOMB_LOCI);
+
+        Map<String, Set<Interval>> loci = new HashMap<String, Set<Interval>>();
+
+        for (Map<String, String> te : tr) {
+            String[] sampleFields = te.get("sample").split("/");
+            String sampleName = sampleFields[1];
+
+            if (!loci.containsKey(sampleName)) {
+                loci.put(sampleName, new TreeSet<Interval>());
+            }
+
+            Interval interval = new Interval(te.get("chrom"), Integer.valueOf(te.get("pos_max")) - 20, Integer.valueOf(te.get("pos_max")) + 21);
+            loci.get(sampleName).add(interval);
+        }
+
+        return loci;
+    }
+
     @Override
     public void execute() {
         log.info("Loading VCF...");
-        List<Map<String, String>> vcfRecords = loadVCF();
-        log.info("  loaded {} records", vcfRecords.size());
-
-        log.info("Finding recombination events...");
-        Map<String, Set<String>> recombSeqs = new HashMap<String, Set<String>>();
-        Map<String, Map<String, Interval>> recombLoci = new HashMap<String, Map<String, Interval>>();
-
+        IntervalTreeMap<Map<String, String>> vcf = loadVCF();
         List<String> sampleNames = getSampleNames();
+
+        log.info("Loading recombination events...");
+        Map<String, Set<Interval>> recombTable = loadRecombTable();
+
+        log.info("Extracting diagnostic kmers from HR sites...");
+        Map<String, List<String>> recombKmers = new HashMap<String, List<String>>();
+        Map<String, List<Interval>> recombSites = new HashMap<String, List<Interval>>();
+
         for (String sampleName : sampleNames) {
-            recombSeqs.put(sampleName, new HashSet<String>());
-            recombLoci.put(sampleName, new HashMap<String, Interval>());
+            log.debug("recombs: {} {}", sampleName, recombTable.get(sampleName));
 
-            if (!sampleName.equals(PARENT1) && !sampleName.equals(PARENT2)) {
-                Set<Integer> switchIndices = new HashSet<Integer>();
+            if (recombTable.containsKey(sampleName)) {
+                recombKmers.put(sampleName, new ArrayList<String>());
+                recombSites.put(sampleName, new ArrayList<Interval>());
 
-                for (int i = 2; i < vcfRecords.size(); i++) {
-                    Map<String, String> pentry = vcfRecords.get(i-1);
-                    Map<String, String> entry = vcfRecords.get(i);
+                for (Interval interval : recombTable.get(sampleName)) {
+                    Interval vinterval = interval;
 
-                    String prevCopyingFrom = pentry.get(sampleName).equals(pentry.get(PARENT1)) ? PARENT1 : PARENT2;
-                    String prevCopiedAllele = pentry.get(prevCopyingFrom);
+                    boolean found = false;
+                    for (int j = vinterval.getEnd() - 21; j > 0 && !found; j--) {
+                        Interval jinterval = new Interval(interval.getSequence(), j, j);
 
-                    String curCopyingFrom = entry.get(sampleName).equals(entry.get(PARENT1)) ? PARENT1 : PARENT2;
-                    String curCopiedAllele = entry.get(curCopyingFrom);
+                        Collection<Map<String, String>> records = vcf.getOverlapping(jinterval);
+                        for (Map<String, String> record : records) {
+                            String allele = record.get(sampleName);
 
-                    boolean isSwitch = false;
+                            log.debug("  {}", jinterval);
 
-                    //if (pentry.get("CHROM").equals(entry.get("CHROM")) && !pentry.get(sampleName).equals(entry.get(sampleName))) {
-                    if (pentry.get("CHROM").equals(entry.get("CHROM")) && !prevCopiedAllele.equals(curCopiedAllele)) {
-                        if (pentry.get(sampleName).equals("0")) { switchIndices.add(i); }
-                        else { switchIndices.add(i-1); }
+                            if (!allele.equals("0") && !allele.equals("./.")) {
+                                found = true;
 
-                        isSwitch = true;
+                                if (j != vinterval.getStart()) {
+                                    vinterval = new Interval(jinterval.getSequence(), jinterval.getStart() - 20, jinterval.getStart() + 21);
+                                }
+                            }
+                        }
                     }
 
-                    log.debug("{} {}:{} ::::: {} {} {} {} {} {} {}", sampleName, entry.get("CHROM"), entry.get("POS"), entry.get(PARENT1), entry.get(PARENT2), entry.get(sampleName), isSwitch, i, entry.get("REF"), entry.get("ALT"));
-                }
+                    String refhap = new String(REF.getSubsequenceAt(vinterval.getSequence(), vinterval.getStart(), vinterval.getEnd()).getBases());
+                    StringBuilder modHapBuilder = new StringBuilder();
 
-                for (int index : switchIndices) {
-                    Map<String, String> pentry = vcfRecords.get(index - 1);
-                    Map<String, String> entry = vcfRecords.get(index);
-                    int bhapLength = 0;
-                    int fhapLength = 0;
-                    Interval bInterval = null;
-                    Interval interval = new Interval(entry.get("CHROM"), Integer.valueOf(entry.get("POS")), Integer.valueOf(entry.get("POS")));
-                    Interval fInterval = null;
-                    int bIndex = 0;
-                    int fIndex = 0;
+                    Map<Interval, String> modRefAlleles = new TreeMap<Interval, String>();
+                    Map<Interval, String> modAltAlleles = new TreeMap<Interval, String>();
 
-                    for (int b = index - 2; b > 0; b--) {
-                        Map<String, String> bentry = vcfRecords.get(b);
+                    Collection<Map<String, String>> records = vcf.getOverlapping(vinterval);
+                    for (Map<String, String> record : records) {
+                        if (!record.get(sampleName).equals("./.") && !record.get(sampleName).equals("0")) {
+                            Interval rinterval = new Interval(record.get("CHROM"), Integer.valueOf(record.get("POS")), Integer.valueOf(record.get("POS")));
 
-                        if (bentry.get("CHROM").equals(pentry.get("CHROM"))) {
-                            if (bentry.get(sampleName).equals(pentry.get(sampleName))) {
-                                bhapLength++;
-                                bIndex = b;
-                                bInterval = new Interval(bentry.get("CHROM"), Integer.valueOf(bentry.get("POS")), Integer.valueOf(bentry.get("POS")));
+                            String refAllele = record.get("REF");
+                            String[] altAlleles = record.get("ALT").split(",");
+                            int altIndex = Integer.valueOf(record.get(sampleName)) - 1;
 
-                                //log.debug("{} {} {} {} {} {}", index, b, bhapLength, bInterval, bentry.get(sampleName), pentry.get(sampleName));
-                            } else {
-                                break;
-                            }
+                            String altAllele = altAlleles[altIndex];
+
+                            modRefAlleles.put(rinterval, refAllele);
+                            modAltAlleles.put(rinterval, altAllele);
+                        }
+                    }
+
+                    for (int i = 0; i < refhap.length(); i++) {
+                        Interval rinterval = new Interval(vinterval.getSequence(), vinterval.getStart() + i, vinterval.getStart() + i);
+
+                        if (!modRefAlleles.containsKey(rinterval)) {
+                            modHapBuilder.append(refhap.charAt(i));
                         } else {
-                            break;
+                            String refAllele = modRefAlleles.get(rinterval);
+                            String altAllele = modAltAlleles.get(rinterval);
+                            modHapBuilder.append(altAllele);
+                            i += refAllele.length() - 1;
                         }
                     }
 
-                    for (int f = index + 1; f < vcfRecords.size(); f++) {
-                        Map<String, String> fentry = vcfRecords.get(f);
+                    log.debug("{} {} {} {}", interval, vinterval, modRefAlleles, modAltAlleles);
+                    log.debug("ref: {}", refhap);
+                    log.debug("alt: {}", modHapBuilder.toString());
 
-                        if (entry.get("CHROM").equals(fentry.get("CHROM"))) {
-                            if (fentry.get(sampleName).equals(entry.get(sampleName))) {
-                                fhapLength++;
-                                fIndex = f;
-                                fInterval = new Interval(fentry.get("CHROM"), Integer.valueOf(fentry.get("POS")), Integer.valueOf(fentry.get("POS")));
-                            } else {
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if (bInterval != null && fInterval != null) {
-                        int length = fInterval.getEnd() - bInterval.getStart();
-
-                        if (length > 20000 && bhapLength > 100 && fhapLength > 100) {
-                            log.debug("RECOMB ::::: {} {} {} {} {} {} {} {}", sampleName, index, bhapLength, fhapLength, interval, bInterval, fInterval, length);
-
-                            Interval shortInterval = new Interval(interval.getSequence(), interval.getStart() - 20, interval.getStart() + 21);
-
-                            String refHap = new String(REF.getSubsequenceAt(shortInterval.getSequence(), shortInterval.getStart(), shortInterval.getEnd()).getBases());
-
-                            Map<Integer, String> mods = new HashMap<Integer, String>();
-                            Map<Integer, String> modsRef = new HashMap<Integer, String>();
-                            Map<Integer, String> modsAlt = new HashMap<Integer, String>();
-
-                            for (int q = bIndex; q <= fIndex; q++) {
-                                Map<String, String> qentry = vcfRecords.get(q);
-
-                                Interval qInterval = new Interval(qentry.get("CHROM"), Integer.valueOf(qentry.get("POS")), Integer.valueOf(qentry.get("POS")));
-
-                                if (qInterval.intersects(shortInterval) && !qentry.get(sampleName).equals("0") && !qentry.get(sampleName).equals("./.")) {
-                                    String[] alts = qentry.get("ALT").split(",");
-                                    int altIndex = Integer.valueOf(qentry.get(sampleName)) - 1;
-                                    String alt = alts[altIndex];
-
-                                    int offset = Integer.valueOf(qentry.get("POS")) - shortInterval.getStart();
-                                    mods.put(offset, qentry.get("REF") + " (" + alt + ")");
-                                    modsRef.put(offset, qentry.get("REF"));
-                                    modsAlt.put(offset, alt);
-
-                                    log.debug("mod: found {} at offset {} ({}:{})", qentry.get("REF"), offset, qentry.get("CHROM"), qentry.get("POS"));
-                                }
-                            }
-
-                            StringBuilder modHapBuilder = new StringBuilder();
-                            StringBuilder altHapBuilder = new StringBuilder();
-                            for (int i = 0; i < refHap.length(); i++) {
-                                if (!mods.containsKey(i)) {
-                                    modHapBuilder.append(" ");
-                                } else {
-                                    modHapBuilder.append(mods.get(i));
-                                }
-
-                                if (!modsRef.containsKey(i)) {
-                                    altHapBuilder.append(refHap.charAt(i));
-                                } else {
-                                    altHapBuilder.append(modsAlt.get(i));
-                                    i += modsRef.get(i).length() - 1;
-                                }
-                            }
-
-                            log.debug("refhap: {}", refHap);
-                            log.debug("modhap: {}", modHapBuilder.toString());
-                            log.debug("althap: {}", altHapBuilder.toString());
-
-                            recombSeqs.get(sampleName).add(altHapBuilder.toString());
-                            recombLoci.get(sampleName).put(altHapBuilder.toString(), shortInterval);
-                        }
-                    }
+                    recombKmers.get(sampleName).add(modHapBuilder.toString());
+                    recombSites.get(sampleName).add(vinterval);
                 }
             }
-
-            log.info("  found {} events in {}", recombSeqs.get(sampleName).size(), sampleName);
         }
 
-        log.info("Looking for contigs that span recombination events...");
-        Map<String, Set<String>> recombsFound = new HashMap<String, Set<String>>();
-
+        log.info("Finding contigs that contain diagnostic kmers...");
         TableWriter tw = new TableWriter(out);
-        TableReader tr = new TableReader(METRICS);
-        for (Map<String, String> te : tr) {
-            String sampleName = te.get("sampleName");
-            String seq = te.get("seq");
+        for (File contigsFile : CONTIGS) {
+            String sampleName = contigsFile.getName().replace(".contigs.unique.fasta", "");
+            log.info("  {}", sampleName);
 
-            for (String recombFw : recombSeqs.get(sampleName)) {
-                String recombRc = SequenceUtils.reverseComplement(recombFw);
+            FastaSequenceFile contigs = new FastaSequenceFile(contigsFile, true);
 
-                if (seq.contains(recombFw) || seq.contains(recombRc)) {
-                    String contigName = te.get("contigName");
+            ReferenceSequence rseq;
+            while ((rseq = contigs.nextSequence()) != null) {
+                String seq = new String(rseq.getBases());
 
-                    if (!recombsFound.containsKey(sampleName)) {
-                        recombsFound.put(sampleName, new HashSet<String>());
+                List<String> altHaps = recombKmers.get(sampleName);
+                List<Interval> altInts = recombSites.get(sampleName);
+
+                for (int i = 0; i < altHaps.size(); i++) {
+                    Interval altInt = altInts.get(i);
+                    String altHapFw = altHaps.get(i);
+                    String altHapRc = SequenceUtils.reverseComplement(altHapFw);
+
+                    if (seq.contains(altHapFw) || seq.contains(altHapRc)) {
+                        Map<String, String> entry = new LinkedHashMap<String, String>();
+
+                        entry.put("sampleName", sampleName);
+                        entry.put("contigName", rseq.getName());
+                        entry.put("locus", altInt.toString());
+                        entry.put("diagnosticKmer", SequenceUtils.alphanumericallyLowestOrientation(altHapFw));
+
+                        tw.addEntry(entry);
                     }
-
-                    recombsFound.get(sampleName).add(contigName);
-
-                    Map<String, String> entry = new LinkedHashMap<String, String>();
-                    entry.put("sampleName", sampleName);
-                    entry.put("contigName", contigName);
-                    entry.put("locus", recombLoci.get(sampleName).get(recombFw).toString());
-                    entry.put("spansRecombinationEvent", "1");
-
-                    tw.addEntry(entry);
                 }
             }
         }
 
-        for (String sampleName : recombsFound.keySet()) {
-            log.info("  {}: {}", sampleName, recombsFound.get(sampleName).size());
-        }
     }
 }
