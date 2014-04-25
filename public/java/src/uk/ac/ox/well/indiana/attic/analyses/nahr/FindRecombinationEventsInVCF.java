@@ -120,7 +120,7 @@ public class FindRecombinationEventsInVCF extends Module {
             if (!sampleName.equals(PARENT1) && !sampleName.equals(PARENT2)) {
                 Set<Integer> switchIndices = new HashSet<Integer>();
 
-                for (int i = 1; i < vcfRecords.size(); i++) {
+                for (int i = 2; i < vcfRecords.size(); i++) {
                     Map<String, String> pentry = vcfRecords.get(i-1);
                     Map<String, String> entry = vcfRecords.get(i);
 
