@@ -52,39 +52,41 @@ public class FindContigsThatSpanRecombinationEvents extends Module {
             for (SAMRecord contig : BAM) {
                 Interval contigLocus = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
 
-                for (Interval knownLocus : loci.get(sampleName)) {
-                    if (knownLocus.intersects(contigLocus)) {
-                        boolean isClipped = false;
-                        for (CigarElement ce : contig.getCigar().getCigarElements()) {
-                            if (ce.getOperator().equals(CigarOperator.S) || ce.getOperator().equals(CigarOperator.H)) {
-                                isClipped = true;
-                                break;
-                            }
-                        }
-
-                        boolean perfectAlignment = false;
-                        if (contig.getCigar().getCigarElements().size() == 1 && contig.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.M)) {
-                            String md = contig.getStringAttribute("MD");
-                            try {
-                                int length = Integer.parseInt(md);
-                                if (length == contig.getReadLength()) {
-                                    perfectAlignment = true;
+                if (loci.containsKey(sampleName)) {
+                    for (Interval knownLocus : loci.get(sampleName)) {
+                        if (knownLocus.intersects(contigLocus)) {
+                            boolean isClipped = false;
+                            for (CigarElement ce : contig.getCigar().getCigarElements()) {
+                                if (ce.getOperator().equals(CigarOperator.S) || ce.getOperator().equals(CigarOperator.H)) {
+                                    isClipped = true;
+                                    break;
                                 }
-                            } catch (NumberFormatException e) {}
+                            }
+
+                            boolean perfectAlignment = false;
+                            if (contig.getCigar().getCigarElements().size() == 1 && contig.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.M)) {
+                                String md = contig.getStringAttribute("MD");
+                                try {
+                                    int length = Integer.parseInt(md);
+                                    if (length == contig.getReadLength()) {
+                                        perfectAlignment = true;
+                                    }
+                                } catch (NumberFormatException e) {}
+                            }
+
+                            Map<String, String> te = new LinkedHashMap<String, String>();
+                            te.put("sampleName", sampleName);
+                            te.put("contigName", contig.getReadName());
+                            te.put("contigLocus", contigLocus.toString());
+                            te.put("knownLocus", knownLocus.toString());
+                            te.put("contigLength", String.valueOf(contig.getReadLength()));
+                            te.put("isClipped", isClipped ? "1" : "0");
+                            te.put("perfectAlignment", perfectAlignment ? "1" : "0");
+                            te.put("cigar", contig.getCigarString());
+                            te.put("md", contig.getStringAttribute("MD"));
+
+                            tw.addEntry(te);
                         }
-
-                        Map<String, String> te = new LinkedHashMap<String, String>();
-                        te.put("sampleName", sampleName);
-                        te.put("contigName", contig.getReadName());
-                        te.put("contigLocus", contigLocus.toString());
-                        te.put("knownLocus", knownLocus.toString());
-                        te.put("contigLength", String.valueOf(contig.getReadLength()));
-                        te.put("isClipped", isClipped ? "1" : "0");
-                        te.put("perfectAlignment", perfectAlignment ? "1" : "0");
-                        te.put("cigar", contig.getCigarString());
-                        te.put("md", contig.getStringAttribute("MD"));
-
-                        tw.addEntry(te);
                     }
                 }
             }
