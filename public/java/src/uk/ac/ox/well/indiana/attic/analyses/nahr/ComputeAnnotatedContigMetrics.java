@@ -33,6 +33,9 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="deltas", shortName="d", doc="Delta")
     public ArrayList<File> DELTAS;
 
+    @Argument(fullName="recombs", shortName="rc", doc="Recombs info")
+    public File RECOMBS;
+
     @Argument(fullName="gff", shortName="g", doc="GFF file")
     public GFF3 GFF;
 

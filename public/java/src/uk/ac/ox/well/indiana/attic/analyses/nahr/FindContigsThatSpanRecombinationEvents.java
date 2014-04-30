@@ -49,6 +49,15 @@ public class FindContigsThatSpanRecombinationEvents extends Module {
         for (SAMFileReader BAM : BAMS) {
             String sampleName = BAM.getFileHeader().getReadGroups().iterator().next().getSample();
 
+            Map<String, Integer> numAlignments = new HashMap<String, Integer>();
+            for (SAMRecord contig : BAM) {
+                if (!numAlignments.containsKey(contig)) {
+                    numAlignments.put(contig.getReadName(), 1);
+                } else {
+                    numAlignments.put(contig.getReadName(), numAlignments.get(contig.getReadName()) + 1);
+                }
+            }
+
             for (SAMRecord contig : BAM) {
                 Interval contigLocus = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
 
@@ -80,6 +89,7 @@ public class FindContigsThatSpanRecombinationEvents extends Module {
                             te.put("contigLocus", contigLocus.toString());
                             te.put("knownLocus", knownLocus.toString());
                             te.put("contigLength", String.valueOf(contig.getReadLength()));
+                            te.put("numAlignments", String.valueOf(numAlignments.get(contig.getReadName())));
                             te.put("isClipped", isClipped ? "1" : "0");
                             te.put("perfectAlignment", perfectAlignment ? "1" : "0");
                             te.put("cigar", contig.getCigarString());
