@@ -50,15 +50,19 @@ public class FindContigsThatSpanRecombinationEvents extends Module {
             String sampleName = BAM.getFileHeader().getReadGroups().iterator().next().getSample();
 
             Map<String, Integer> numAlignments = new HashMap<String, Integer>();
+            List<SAMRecord> contigs = new ArrayList<SAMRecord>();
             for (SAMRecord contig : BAM) {
-                if (!numAlignments.containsKey(contig)) {
+                if (!numAlignments.containsKey(contig.getReadName())) {
                     numAlignments.put(contig.getReadName(), 1);
                 } else {
                     numAlignments.put(contig.getReadName(), numAlignments.get(contig.getReadName()) + 1);
                 }
+
+                contigs.add(contig);
             }
 
-            for (SAMRecord contig : BAM) {
+            //for (SAMRecord contig : BAM) {
+            for (SAMRecord contig : contigs) {
                 Interval contigLocus = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
 
                 if (loci.containsKey(sampleName)) {
