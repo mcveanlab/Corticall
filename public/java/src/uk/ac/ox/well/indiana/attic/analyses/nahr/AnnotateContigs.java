@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class AnnotateContigs extends Module {
@@ -21,9 +22,11 @@ public class AnnotateContigs extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexMap PARENTS;
 
+    @Argument(fullName="parentsSupp", shortName="ps", doc="Supplemental parental information")
+    public CortexMap PARENTS_SUPP;
+
     @Output
     public PrintStream out;
-
 
     private boolean isContiguous(String prevStr, String curStr, int color) {
         CortexKmer prevKmer = new CortexKmer(prevStr);
@@ -31,6 +34,11 @@ public class AnnotateContigs extends Module {
 
         CortexRecord prevCr = PARENTS.get(prevKmer);
         CortexRecord curCr = PARENTS.get(curKmer);
+
+        if (prevCr == null) {
+            prevCr = PARENTS_SUPP.get(prevKmer);
+            curCr = PARENTS_SUPP.get(curKmer);
+        }
 
         if (prevCr != null && curCr != null) {
             Set<CortexKmer> computedCurOutKmers = new HashSet<CortexKmer>();
