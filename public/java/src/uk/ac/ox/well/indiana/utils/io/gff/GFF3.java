@@ -85,6 +85,8 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
 
     @Override
     public Iterator<GFF3Record> iterator() {
+        index = 0;
+
         return this;
     }
 
