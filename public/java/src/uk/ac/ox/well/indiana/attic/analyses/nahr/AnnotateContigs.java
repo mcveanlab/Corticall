@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
+import com.google.common.base.Joiner;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -11,19 +12,20 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class AnnotateContigs extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (in FASTA format)")
     public FastaSequenceFile CONTIGS;
 
+    @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph for sample")
+    public CortexMap SAMPLE;
+
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexMap PARENTS;
 
-    @Argument(fullName="parentsSupp", shortName="ps", doc="Supplemental parental information")
-    public CortexMap PARENTS_SUPP;
+    //@Argument(fullName="parentsSupp", shortName="ps", doc="Supplemental parental information")
+    //public CortexMap PARENTS_SUPP;
 
     @Output
     public PrintStream out;
@@ -35,10 +37,15 @@ public class AnnotateContigs extends Module {
         CortexRecord prevCr = PARENTS.get(prevKmer);
         CortexRecord curCr = PARENTS.get(curKmer);
 
+        /*
         if (prevCr == null) {
             prevCr = PARENTS_SUPP.get(prevKmer);
+        }
+
+        if (curCr == null) {
             curCr = PARENTS_SUPP.get(curKmer);
         }
+        */
 
         if (prevCr != null && curCr != null) {
             Set<CortexKmer> computedCurOutKmers = new HashSet<CortexKmer>();
@@ -77,52 +84,59 @@ public class AnnotateContigs extends Module {
     public void execute() {
         int kmerSize = PARENTS.keySet().iterator().next().length();
 
-        out.println("contigName\tseq\tkmerOrigin\tkmerContiguity");
+        out.println("contigName\tseq\tkmerOrigin\tkmerContiguity\tkmerCoverage");
 
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
-            String seq = new String(rseq.getBases());
+            if (rseq.length() > 0) {
+                String seq = new String(rseq.getBases());
 
-            StringBuilder annotation = new StringBuilder();
+                StringBuilder annotation = new StringBuilder();
+                List<String> coverages = new ArrayList<String>();
 
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+                for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                if (!PARENTS.containsKey(kmer)) {
-                    annotation.append(".");
-                } else {
-                    CortexRecord cr = PARENTS.get(kmer);
+                    coverages.add(String.valueOf(SAMPLE.get(kmer).getCoverage(0)));
 
-                    if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
-                        annotation.append("1");
-                    } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
-                        annotation.append("0");
+                    if (!PARENTS.containsKey(kmer)) {
+                        annotation.append(".");
                     } else {
-                        annotation.append("B");
+                        CortexRecord cr = PARENTS.get(kmer);
+
+                        if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
+                            annotation.append("1");
+                        } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
+                            annotation.append("0");
+                        } else {
+                            annotation.append("B");
+                        }
                     }
                 }
-            }
 
-            StringBuilder contiguity = new StringBuilder();
-            contiguity.append("0");
-            for (int i = 1; i <= seq.length() - kmerSize; i++) {
-                String prevStr = seq.substring(i - 1, i - 1 + kmerSize);
-                String curStr  = seq.substring(i, i + kmerSize);
+                StringBuilder contiguity = new StringBuilder();
+                contiguity.append("0");
+                for (int i = 1; i <= seq.length() - kmerSize; i++) {
+                    String prevStr = seq.substring(i - 1, i - 1 + kmerSize);
+                    String curStr  = seq.substring(i, i + kmerSize);
 
-                char colorChar = annotation.charAt(i);
+                    char colorChar = annotation.charAt(i);
 
-                boolean isContiguous;
-                switch (colorChar) {
-                    case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
-                    case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
-                    case 'B': isContiguous = isContiguous(prevStr, curStr, 0) || isContiguous(prevStr, curStr, 1); break;
-                    default:  isContiguous = false; break;
+                    boolean isContiguous;
+                    switch (colorChar) {
+                        case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
+                        case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
+                        case 'B': isContiguous = isContiguous(prevStr, curStr, 0) || isContiguous(prevStr, curStr, 1); break;
+                        default:  isContiguous = false; break;
+                    }
+
+                    contiguity.append(isContiguous ? "1" : "0");
                 }
 
-                contiguity.append(isContiguous ? "1" : "0");
-            }
+                String coverage = Joiner.on(",").join(coverages);
 
-            out.println(rseq.getName() + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString());
+                out.println(rseq.getName() + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString() + "\t" + coverage);
+            }
         }
     }
 }

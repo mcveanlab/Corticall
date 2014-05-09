@@ -256,7 +256,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
         log.info("Processing annotated contigs...");
         for (File ann : ANNS) {
-            String sampleName = ann.getName().replaceAll(".contigs.unique.ann", "");
+            //String sampleName = ann.getName().replaceAll(".contigs.unique.ann2", "");
+            String sampleName = ann.getName().replaceAll(".contigs.unique..+", "");
 
             log.info("  {}", sampleName);
 
@@ -385,6 +386,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("seq", te.get("seq"));
                 entry.put("kmerOrigin", te.get("kmerOrigin"));
                 entry.put("kmerContiguity", te.get("kmerContiguity"));
+                entry.put("kmerCoverage", te.get("kmerCoverage"));
 
                 tw.addEntry(entry);
             }
