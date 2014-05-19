@@ -1,4 +1,4 @@
 INDIANA
 =======
 
-Tools for reconstruction of complex genomic loci in populations.
+Tools to manipulate and analyze genome assemblies.
