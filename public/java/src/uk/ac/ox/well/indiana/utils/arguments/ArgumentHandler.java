@@ -10,6 +10,7 @@ import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.Indiana;
+import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
@@ -266,7 +267,7 @@ public class ArgumentHandler {
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
             } else if (type.equals(CortexMap.class)) {
-                return new CortexMap(value, Indiana.getLogger());
+                return new CortexMap(value, Main.getLogger());
             } else if (type.equals(GFF3.class)) {
                 return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {
