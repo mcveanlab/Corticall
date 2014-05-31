@@ -297,6 +297,24 @@ public class SequenceUtils {
         return length;
     }
 
+    /**
+     * Compute the mean length in a collection of sequences
+     *
+     * @param sequences  the sequences to process
+     * @return  the mean sequence length observed
+     */
+    public static float meanLength(Collection<? extends CharSequence> sequences) {
+        int length = 0;
+        int numSequences = 0;
+
+        for (CharSequence seq : sequences) {
+            length += seq.length();
+            numSequences++;
+        }
+
+        return (float) length / (float) numSequences;
+    }
+
     private static final byte[] nucleotides = {'A', 'C', 'G', 'T'};
     private static Random randomGenerator = new Random(0);
 
