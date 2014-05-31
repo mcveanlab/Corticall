@@ -1,8 +1,5 @@
 package uk.ac.ox.well.indiana.attic.analyses.ContigErrors;
 
-import com.google.common.base.Joiner;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTreeMap;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileReader;
@@ -11,26 +8,15 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
-import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ContigErrorStats extends Module {
+public class FoldedContigErrorStats extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (in BAM format)")
     public SAMFileReader CONTIGS;
-
-    @Argument(fullName="lengthMin", shortName="lmin", doc="Minimum contig length to process")
-    public Integer LENGTH_MIN;
-
-    @Argument(fullName="lengthMax", shortName="lmax", doc="Maximum contig length to process")
-    public Integer LENGTH_MAX;
-
-    @Argument(fullName="countInBothOrientations", shortName="cb", doc="Count mismatches in contigs in both orientations of the contig")
-    public Boolean COUNT_IN_BOTH_ORIENTATIONS = false;
 
     @Output
     public PrintStream out;
@@ -38,22 +24,25 @@ public class ContigErrorStats extends Module {
     @Output(fullName="out2", shortName="o2")
     public PrintStream out2;
 
-    private Set<Integer> reverseErrorSet(Set<Integer> errorSet, int contigLength) {
-        Set<Integer> newErrorSet = new TreeSet<Integer>();
-        for (Integer errorPos : errorSet) {
-            newErrorSet.add(contigLength - errorPos);
-        }
-
-        return newErrorSet;
-    }
-
     private void incrementErrorsArray(Set<Integer> errorSet, int[] errors, int[] norms, int contigLength) {
         for (Integer error : errorSet) {
-            errors[error]++;
+            if (error < contigLength/2) {
+                errors[error]++;
+            } else {
+                if (contigLength - error >= 0) {
+                    errors[contigLength - error]++;
+                }
+            }
         }
 
         for (int i = 0; i < contigLength; i++) {
-            norms[i]++;
+            if (i < contigLength/2) {
+                norms[i]++;
+            } else {
+                if (contigLength - i >= 0) {
+                    norms[contigLength - i]++;
+                }
+            }
         }
     }
 
@@ -61,19 +50,21 @@ public class ContigErrorStats extends Module {
     public void execute() {
         Pattern p = Pattern.compile("[0-9]+|[A-Z]|\\^[A-Z]+");
 
-        int[] mismatches = new int[LENGTH_MAX];
-        int[] mismatchesTotal = new int[LENGTH_MAX];
-        int[] insertions = new int[LENGTH_MAX];
-        int[] insertionsTotal = new int[LENGTH_MAX];
-        int[] deletions = new int[LENGTH_MAX];
-        int[] deletionsTotal = new int[LENGTH_MAX];
-        int[] all = new int[LENGTH_MAX];
-        int[] allTotal = new int[LENGTH_MAX];
-
         TableWriter tw2 = new TableWriter(out2);
 
+        int lengthMax = 100000;
+
+        int[] mismatches = new int[lengthMax];
+        int[] mismatchesTotal = new int[lengthMax];
+        int[] insertions = new int[lengthMax];
+        int[] insertionsTotal = new int[lengthMax];
+        int[] deletions = new int[lengthMax];
+        int[] deletionsTotal = new int[lengthMax];
+        int[] all = new int[lengthMax];
+        int[] allTotal = new int[lengthMax];
+
         for (SAMRecord read : CONTIGS) {
-            if (read.getAlignmentStart() > 0 && read.getReadLength() >= LENGTH_MIN && read.getReadLength() < LENGTH_MAX) {
+            if (read.getAlignmentStart() > 0) { // && read.getReadLength() >= 0 && read.getReadLength() < lengthMax) {
                 String md = read.getStringAttribute("MD");
 
                 int numMatches = 0;
@@ -131,23 +122,10 @@ public class ContigErrorStats extends Module {
                     }
                 }
 
-                //String joined = Joiner.on(",").join(pieces);
-                //out.println(Joiner.on("\t").useForNull("").join(read.getCigarString(), md, joined, numMatches, numMismatches, numDeletions, numInsertions));
-                //out.println("I " + Joiner.on(", ").join(insertionPositions));
-                //out.println("D " + Joiner.on(", ").join(deletionPositions));
-                //out.println("M " + Joiner.on(", ").join(mismatchPositions));
-
                 incrementErrorsArray(mismatchPositions, mismatches, mismatchesTotal, read.getReadLength());
                 incrementErrorsArray(insertionPositions, insertions, insertionsTotal, read.getReadLength());
                 incrementErrorsArray(deletionPositions, deletions, deletionsTotal, read.getReadLength());
                 incrementErrorsArray(allPositions, all, allTotal, read.getReadLength());
-
-                if (COUNT_IN_BOTH_ORIENTATIONS) {
-                    incrementErrorsArray(reverseErrorSet(mismatchPositions, read.getReadLength()), mismatches, mismatchesTotal, read.getReadLength());
-                    incrementErrorsArray(reverseErrorSet(insertionPositions, read.getReadLength()), insertions, insertionsTotal, read.getReadLength());
-                    incrementErrorsArray(reverseErrorSet(deletionPositions, read.getReadLength()), deletions, deletionsTotal, read.getReadLength());
-                    incrementErrorsArray(reverseErrorSet(allPositions, read.getReadLength()), all, allTotal, read.getReadLength());
-                }
 
                 Map<String, String> entry = new LinkedHashMap<String, String>();
                 entry.put("numMatches", String.valueOf(numMatches));
@@ -160,7 +138,7 @@ public class ContigErrorStats extends Module {
         }
 
         TableWriter tw = new TableWriter(out);
-        for (int i = 0; i < LENGTH_MAX; i++) {
+        for (int i = 0; i < lengthMax; i++) {
             Map<String, String> entry = new LinkedHashMap<String, String>();
 
             entry.put("index", String.valueOf(i));
@@ -181,7 +159,9 @@ public class ContigErrorStats extends Module {
             entry.put("allNorm", String.valueOf(allTotal[i]));
             entry.put("allRate", String.valueOf((float) all[i] / (float) allTotal[i]));
 
-            tw.addEntry(entry);
+            if (allTotal[i] > 0) {
+                tw.addEntry(entry);
+            }
         }
     }
 }
