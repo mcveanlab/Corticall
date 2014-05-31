@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.packageutils;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import uk.ac.ox.well.indiana.Indiana;
+import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
@@ -76,9 +77,9 @@ public class Dispatch {
 
             instance.init();
 
-            Indiana.getLogger().info("{}", getBanner());
-            Indiana.getLogger().info("Invocation: {}", fullCmd);
-            Indiana.getLogger().info("");
+            Main.getLogger().info("{}", getBanner());
+            Main.getLogger().info("Invocation: {}", fullCmd);
+            Main.getLogger().info("");
 
             Date startTime = new Date();
 
@@ -86,10 +87,10 @@ public class Dispatch {
 
             Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
 
-            Indiana.getLogger().info("");
-            Indiana.getLogger().info("Complete. (time) {}; (mem) {}",
-                                     DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
-                                     PerformanceUtils.getCompactMemoryUsageStats() );
+            Main.getLogger().info("");
+            Main.getLogger().info("Complete. (time) {}; (mem) {}",
+                                  DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
+                                  PerformanceUtils.getCompactMemoryUsageStats() );
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
@@ -100,7 +101,7 @@ public class Dispatch {
     }
 
     private static String getBanner() {
-        Properties prop = Indiana.getBuildProperties();
+        Properties prop = Main.getBuildProperties();
 
         if (prop != null) {
             String version = prop.get("major.version") + "." + prop.get("minor.version") + "-" + prop.get("git.version");
