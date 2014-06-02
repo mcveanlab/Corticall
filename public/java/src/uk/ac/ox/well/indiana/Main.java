@@ -182,7 +182,8 @@ public class Main {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
+        //Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
+        Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
 
         int maxlength = 0;
         for (String t : commands.keySet()) {
@@ -199,7 +200,7 @@ public class Main {
         System.out.println("Contact: Kiran V Garimella <kiran@well.ox.ac.uk>");
         System.out.println();
 
-        System.out.println("Usage:   java -jar indiana.jar <command> [options]");
+        System.out.println("Usage:   java -jar " + progName.toLowerCase() + ".jar <command> [options]");
         System.out.println();
 
         System.out.print("Command:");
@@ -222,7 +223,7 @@ public class Main {
      * @param module  The name of the requested module
      */
     private static void showInvalidModuleMessage(String module) {
-        System.out.println("indiana: '" + module + "' is not a valid module. See 'java -jar indiana.jar --help'.");
+        System.out.println(progName.toLowerCase() + ": '" + module + "' is not a valid module. See 'java -jar " + progName.toLowerCase() + ".jar --help'.");
 
         System.exit(1);
     }
