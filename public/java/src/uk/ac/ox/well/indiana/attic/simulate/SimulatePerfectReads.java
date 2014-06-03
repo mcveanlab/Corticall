@@ -8,6 +8,7 @@ import net.sf.samtools.util.StringUtil;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -19,6 +20,9 @@ public class SimulatePerfectReads extends Module {
 
     @Argument(fullName="reference", shortName="r", doc="Reference sequence")
     public IndexedFastaSequenceFile REF;
+
+    @Argument(fullName="numReads", shortName="n", doc="Number of reads to process")
+    public Integer N = 10;
 
     @Output(fullName="out_end1", shortName="o1", doc="File to which end1 should be written")
     public PrintStream o1;
@@ -46,38 +50,52 @@ public class SimulatePerfectReads extends Module {
                 qualStrings.put(read.getReadLength(), StringUtil.repeatCharNTimes('I', read.getReadLength()));
             }
 
-            String seqName = read.getReadName();
+            if (!read.getNotPrimaryAlignmentFlag()) {
+                String seqName = read.getReadName();
 
-            try {
-                String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentStart() + read.getReadLength() - 1).getBases());
+                try {
+                    String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentStart() + read.getReadLength() - 1).getBases());
+                    //String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getUnclippedStart(), read.getUnclippedEnd()).getBases());
+                    if (read.getReadNegativeStrandFlag()) {
+                        seq = SequenceUtils.reverseComplement(seq);
+                    }
 
-                if (!peReads.containsKey(seqName)) {
-                    peReads.put(seqName, new PairedEndRead());
+                    //log.info("{} {} {}", seqName, seq.)
 
-                    peReads.get(seqName).end1 = seq;
-                } else {
-                    peReads.get(seqName).end2 = seq;
+                    if (seq.length() == read.getReadLength()) {
+                        if (!peReads.containsKey(seqName)) {
+                            peReads.put(seqName, new PairedEndRead());
 
-                    o1.println("@" + seqName);
-                    o1.println(peReads.get(seqName).end1);
-                    o1.println("+");
-                    o1.println(qualStrings.get(read.getReadLength()));
+                            peReads.get(seqName).end1 = seq;
+                        } else {
+                            peReads.get(seqName).end2 = seq;
 
-                    o2.println("@" + seqName);
-                    o2.println(peReads.get(seqName).end2);
-                    o2.println("+");
-                    o2.println(qualStrings.get(read.getReadLength()));
+                            o1.println("@" + seqName);
+                            o1.println(peReads.get(seqName).end1);
+                            o1.println("+");
+                            o1.println(qualStrings.get(read.getReadLength()));
 
-                    peReads.remove(seqName);
+                            o2.println("@" + seqName);
+                            o2.println(peReads.get(seqName).end2);
+                            o2.println("+");
+                            o2.println(qualStrings.get(read.getReadLength()));
+
+                            peReads.remove(seqName);
+
+                            writtenReads++;
+
+                            if (N > 0 && writtenReads >= N) {
+                                break;
+                            }
+                        }
+                    }
+                } catch (PicardException e) {
+                    //log.warn("Discarded exception: {}", e);
                 }
-
-                writtenReads++;
-            } catch (PicardException e) {
-                //log.warn("Discarded exception: {}", e);
             }
 
             if (seenReads % 1000000 == 0) {
-                log.info("  processed {} reads", seenReads);
+                log.info("  processed {} reads, wrote {} perfect reads", seenReads, writtenReads);
             }
             seenReads++;
         }
