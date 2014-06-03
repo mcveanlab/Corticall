@@ -50,7 +50,7 @@ public class SimulatePerfectReads extends Module {
                 try {
                     String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd()).getBases());
 
-                    if (seq.length() == read.getReadLength()) {
+                    if (seq.length() == read.getReadString().length()) {
                         if (read.getReadNegativeStrandFlag()) {
                             seq = SequenceUtils.reverseComplement(seq);
                         }
