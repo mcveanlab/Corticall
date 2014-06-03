@@ -43,6 +43,7 @@ public class ExtractPerfectlyAligningReads extends Module {
         int allReads = 0;
         int perfectReads = 0;
 
+        log.info("Processing reads...");
         for (SAMRecord read : SAM) {
             String readName = read.getReadName();
 
@@ -78,12 +79,15 @@ public class ExtractPerfectlyAligningReads extends Module {
                     o2.println("+");
                     o2.println(read2.getBaseQualityString());
 
-                    perfectReads++;
+                    perfectReads += 2;
                 }
 
                 peReads.remove(readName);
             }
 
+            if (allReads % 1000000 == 0) {
+                log.info("  processed {} reads", allReads);
+            }
             allReads++;
         }
 
