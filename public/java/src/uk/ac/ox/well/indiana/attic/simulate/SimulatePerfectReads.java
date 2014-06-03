@@ -70,12 +70,12 @@ public class SimulatePerfectReads extends Module {
                             o1.println("@" + seqName);
                             o1.println(peReads.get(seqName).end1);
                             o1.println("+");
-                            o1.println(StringUtil.repeatCharNTimes('I', peReads.get(seqName).end1.length()));
+                            o1.println(qualStrings.get(peReads.get(seqName).end1.length()));
 
                             o2.println("@" + seqName);
                             o2.println(peReads.get(seqName).end2);
                             o2.println("+");
-                            o2.println(StringUtil.repeatCharNTimes('I', peReads.get(seqName).end2.length()));
+                            o2.println(qualStrings.get(peReads.get(seqName).end2.length()));
 
                             peReads.remove(seqName);
 
