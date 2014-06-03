@@ -45,44 +45,46 @@ public class ExtractPerfectlyAligningReads extends Module {
 
         log.info("Processing reads...");
         for (SAMRecord read : SAM) {
-            String readName = read.getReadName();
+            if (read.getMappingQuality() > 0) {
+                String readName = read.getReadName();
 
-            if (!peReads.containsKey(readName)) {
-                peReads.put(readName, new AlignedPairedEndRead());
+                if (!peReads.containsKey(readName)) {
+                    peReads.put(readName, new AlignedPairedEndRead());
 
-                peReads.get(readName).end1 = read;
-            } else {
-                peReads.get(readName).end2 = read;
+                    peReads.get(readName).end1 = read;
+                } else {
+                    peReads.get(readName).end2 = read;
 
-                SAMRecord read1 = peReads.get(readName).end1;
-                SAMRecord read2 = peReads.get(readName).end2;
+                    SAMRecord read1 = peReads.get(readName).end1;
+                    SAMRecord read2 = peReads.get(readName).end2;
 
-                if (isPerfectRead(read1) && isPerfectRead(read2)) {
-                    String seq1 = read1.getReadString();
-                    String seq2 = read2.getReadString();
+                    if (isPerfectRead(read1) && isPerfectRead(read2)) {
+                        String seq1 = read1.getReadString();
+                        String seq2 = read2.getReadString();
 
-                    if (read1.getReadNegativeStrandFlag()) {
-                        seq1 = SequenceUtils.reverseComplement(seq1);
+                        if (read1.getReadNegativeStrandFlag()) {
+                            seq1 = SequenceUtils.reverseComplement(seq1);
+                        }
+
+                        if (read2.getReadNegativeStrandFlag()) {
+                            seq2 = SequenceUtils.reverseComplement(seq2);
+                        }
+
+                        o1.println("@" + readName);
+                        o1.println(seq1);
+                        o1.println("+");
+                        o1.println(read1.getBaseQualityString());
+
+                        o2.println("@" + readName);
+                        o2.println(seq2);
+                        o2.println("+");
+                        o2.println(read2.getBaseQualityString());
+
+                        perfectReads += 2;
                     }
 
-                    if (read2.getReadNegativeStrandFlag()) {
-                        seq2 = SequenceUtils.reverseComplement(seq2);
-                    }
-
-                    o1.println("@" + readName);
-                    o1.println(seq1);
-                    o1.println("+");
-                    o1.println(read1.getBaseQualityString());
-
-                    o2.println("@" + readName);
-                    o2.println(seq2);
-                    o2.println("+");
-                    o2.println(read2.getBaseQualityString());
-
-                    perfectReads += 2;
+                    peReads.remove(readName);
                 }
-
-                peReads.remove(readName);
             }
 
             if (allReads % 1000000 == 0) {
