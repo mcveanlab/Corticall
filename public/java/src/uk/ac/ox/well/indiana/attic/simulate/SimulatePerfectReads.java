@@ -8,6 +8,7 @@ import net.sf.samtools.util.StringUtil;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
@@ -24,11 +25,17 @@ public class SimulatePerfectReads extends Module {
     @Argument(fullName="numReads", shortName="n", doc="Number of reads to process")
     public Integer N = 10;
 
+    @Argument(fullName="readLength", shortName="rl", doc="Read length to require")
+    public Integer READ_LENGTH = 76;
+
     @Output(fullName="out_end1", shortName="o1", doc="File to which end1 should be written")
     public PrintStream o1;
 
     @Output(fullName="out_end2", shortName="o2", doc="File to which end2 should be written")
     public PrintStream o2;
+
+    @Output
+    public PrintStream out;
 
     private class PairedEndRead {
         private String end1;
@@ -39,6 +46,7 @@ public class SimulatePerfectReads extends Module {
     public void execute() {
         Map<String, PairedEndRead> peReads = new HashMap<String, PairedEndRead>();
 
+        int allReads = 0;
         int seenReads = 0;
         int writtenReads = 0;
 
@@ -46,7 +54,7 @@ public class SimulatePerfectReads extends Module {
 
         log.info("Processing reads...");
         for (SAMRecord read : BAM) {
-            if (!read.getNotPrimaryAlignmentFlag()) {
+            if (!read.getNotPrimaryAlignmentFlag() && read.getReadLength() == READ_LENGTH) {
                 try {
                     String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd()).getBases());
 
@@ -87,16 +95,24 @@ public class SimulatePerfectReads extends Module {
                         }
                     }
                 } catch (PicardException e) {
-                    //log.warn("Discarded exception: {}", e);
                 }
+
+                seenReads++;
             }
 
-            if (seenReads % 1000000 == 0) {
-                log.info("  processed {} reads, wrote {} perfect reads", seenReads, writtenReads);
+            if (allReads % 1000000 == 0) {
+                log.info("  processed {} reads", allReads);
             }
-            seenReads++;
+            allReads++;
         }
 
-        log.info("Saw {} reads, wrote {} perfect reads.", seenReads, writtenReads);
+        TableWriter tw = new TableWriter(out);
+
+        Map<String, String> te = new HashMap<String, String>();
+        te.put("processed", String.valueOf(allReads));
+        te.put("examined", String.valueOf(seenReads));
+        te.put("wrote", String.valueOf(writtenReads));
+
+        tw.addEntry(te);
     }
 }
