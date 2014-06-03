@@ -46,23 +46,20 @@ public class SimulatePerfectReads extends Module {
 
         log.info("Processing reads...");
         for (SAMRecord read : BAM) {
-            if (!qualStrings.containsKey(read.getReadLength())) {
-                qualStrings.put(read.getReadLength(), StringUtil.repeatCharNTimes('I', read.getReadLength()));
-            }
-
             if (!read.getNotPrimaryAlignmentFlag()) {
-                String seqName = read.getReadName();
-
                 try {
-                    String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentStart() + read.getReadLength() - 1).getBases());
-                    //String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getUnclippedStart(), read.getUnclippedEnd()).getBases());
-                    if (read.getReadNegativeStrandFlag()) {
-                        seq = SequenceUtils.reverseComplement(seq);
-                    }
-
-                    //log.info("{} {} {}", seqName, seq.)
+                    String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd()).getBases());
 
                     if (seq.length() == read.getReadLength()) {
+                        if (read.getReadNegativeStrandFlag()) {
+                            seq = SequenceUtils.reverseComplement(seq);
+                        }
+
+                        if (!qualStrings.containsKey(seq.length())) {
+                            qualStrings.put(seq.length(), StringUtil.repeatCharNTimes('I', seq.length()));
+                        }
+
+                        String seqName = read.getReadName();
                         if (!peReads.containsKey(seqName)) {
                             peReads.put(seqName, new PairedEndRead());
 
@@ -73,12 +70,12 @@ public class SimulatePerfectReads extends Module {
                             o1.println("@" + seqName);
                             o1.println(peReads.get(seqName).end1);
                             o1.println("+");
-                            o1.println(qualStrings.get(read.getReadLength()));
+                            o1.println(qualStrings.get(seq.length()));
 
                             o2.println("@" + seqName);
                             o2.println(peReads.get(seqName).end2);
                             o2.println("+");
-                            o2.println(qualStrings.get(read.getReadLength()));
+                            o2.println(qualStrings.get(seq.length()));
 
                             peReads.remove(seqName);
 
