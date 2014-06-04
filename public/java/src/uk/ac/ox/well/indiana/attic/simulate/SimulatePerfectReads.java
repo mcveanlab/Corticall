@@ -54,11 +54,11 @@ public class SimulatePerfectReads extends Module {
 
         log.info("Processing reads...");
         for (SAMRecord read : BAM) {
-            if (!read.getNotPrimaryAlignmentFlag() && read.getReadLength() == READ_LENGTH) {
+            if (!read.getNotPrimaryAlignmentFlag() && read.getReadLength() == READ_LENGTH && read.getMappingQuality() > 0) {
                 try {
                     String seq = new String(REF.getSubsequenceAt(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd()).getBases());
 
-                    if (seq.length() == read.getReadString().length()) {
+                    if (seq.length() == READ_LENGTH) {
                         if (read.getReadNegativeStrandFlag()) {
                             seq = SequenceUtils.reverseComplement(seq);
                         }
@@ -87,7 +87,7 @@ public class SimulatePerfectReads extends Module {
 
                             peReads.remove(seqName);
 
-                            writtenReads++;
+                            writtenReads += 2;
 
                             if (N > 0 && writtenReads >= N) {
                                 break;
