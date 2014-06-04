@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.sequence;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.samtools.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -145,4 +146,55 @@ public class SequenceUtilsTest {
             throw new IndianaException("Error in opening test file '" + fastaFile.getAbsolutePath() + "'", e);
         }
     }
+
+    @Test
+    public void testPicardInferredInsertSizeReport() {
+        SAMFileReader sfr = new SAMFileReader(new File("testdata/oneread.bam"));
+
+        for (SAMRecord read : sfr) {
+            System.out.println("  name: " + read.getReadName());
+            System.out.println("   fop: " + read.getFirstOfPairFlag());
+            System.out.println("    rl: " + read.getReadLength());
+            System.out.println(" start: " + read.getAlignmentStart());
+            System.out.println("   end: " + read.getAlignmentEnd());
+            System.out.println("insert: " + read.getInferredInsertSize());
+            System.out.println();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

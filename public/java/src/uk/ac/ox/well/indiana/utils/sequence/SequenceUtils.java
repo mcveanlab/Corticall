@@ -562,4 +562,16 @@ public class SequenceUtils {
 
         return tr.toString();
     }
+
+    public static float fractionGC(String seq) {
+        int gcBases = 0;
+
+        for (int i = 0; i < seq.length(); i++) {
+            if (seq.charAt(i) == 'G' || seq.charAt(i) == 'g' || seq.charAt(i) == 'C' || seq.charAt(i) == 'c') {
+                gcBases++;
+            }
+        }
+
+        return (float) gcBases / (float) seq.length();
+    }
 }

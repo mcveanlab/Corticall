@@ -45,7 +45,7 @@ public class ExtractPerfectlyAligningReads extends Module {
 
         log.info("Processing reads...");
         for (SAMRecord read : SAM) {
-            if (read.getMappingQuality() > 0) {
+            if (!read.getNotPrimaryAlignmentFlag() && read.getMappingQuality() > 0) {
                 String readName = read.getReadName();
 
                 if (!peReads.containsKey(readName)) {
