@@ -48,7 +48,7 @@ public class AssemblyStatsPerGene extends Module {
             String[] groupMembers = te.get("groupMembers").split(",");
 
             for (String groupMember : groupMembers) {
-                geneIDToClusterID.put(groupMember, groupName);
+                geneIDToClusterID.put(groupMember, groupName.replace(" ", "_"));
 
                 //log.info("{} -> {}", groupMember, groupName);
             }
