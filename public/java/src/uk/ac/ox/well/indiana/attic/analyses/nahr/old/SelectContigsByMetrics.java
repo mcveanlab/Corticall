@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.nahr;
+package uk.ac.ox.well.indiana.attic.analyses.nahr.old;
 
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
@@ -13,7 +13,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class SelectContigs extends Module {
+public class SelectContigsByMetrics extends Module {
     @Argument(fullName="contigMetrics", shortName="cm", doc="Contig metrics")
     public File ANN;
 

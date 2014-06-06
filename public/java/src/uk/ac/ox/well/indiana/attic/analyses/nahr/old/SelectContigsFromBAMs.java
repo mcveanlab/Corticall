@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.nahr;
+package uk.ac.ox.well.indiana.attic.analyses.nahr.old;
 
 import net.sf.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;

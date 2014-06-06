@@ -78,7 +78,7 @@ public class Dispatch {
             instance.init();
 
             Main.getLogger().info("{}", getBanner());
-            Main.getLogger().info("Invocation: {}", fullCmd);
+            //Main.getLogger().info("Invocation: {}", fullCmd);
             Main.getLogger().info("");
 
             Date startTime = new Date();

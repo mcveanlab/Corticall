@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.analyses.nahr;
+package uk.ac.ox.well.indiana.attic.analyses.nahr.old;
 
 import com.google.common.base.Joiner;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
