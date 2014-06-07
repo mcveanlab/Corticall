@@ -182,8 +182,8 @@ public class Main {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        //Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
-        Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
+        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
+        //Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
 
         int maxlength = 0;
         for (String t : commands.keySet()) {
