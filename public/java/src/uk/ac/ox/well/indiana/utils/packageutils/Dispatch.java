@@ -108,11 +108,12 @@ public class Dispatch {
             String gitDate = (String) prop.get("git.date");
             String buildDate = (String) prop.get("build.date");
             String dates = "(repo) " + gitDate + "; (build) " + buildDate;
-            String banner = "INDIANA " + version + "; " + dates;
+            //String banner = "INDIANA " + version + "; " + dates;
+            String banner = Main.progName + " " + version + "; " + dates;
 
             return banner;
         } else {
-            return "INDIANA unknown version; unknown build time";
+            return Main.progName + " unknown version; unknown build time";
         }
     }
 }
