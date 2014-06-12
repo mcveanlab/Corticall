@@ -195,7 +195,7 @@
     </target>
 
     <!-- Make a fully tested release jar -->
-    <target name="release" depends="test,git.version,tidy,dist">
+    <target name="release" depends="clean,test,git.version,dist">
         <mkdir dir="${release.dir}" />
 
         <copy file="${dist.dir}/indiana.jar" tofile="${release.dir}/indiana-${git.version.output}.jar" />
