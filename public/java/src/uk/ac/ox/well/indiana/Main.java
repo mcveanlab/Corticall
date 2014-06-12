@@ -47,6 +47,8 @@ public class Main {
         rootPackage = newRootPackage;
         commandPackage = newCommandPackage;
 
+        org.apache.log4j.PropertyConfigurator.configure("/dev/null");
+
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
         } else if (args.length > 0) {
@@ -182,8 +184,8 @@ public class Main {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
-        //Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
+        //Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
+        Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
 
         int maxlength = 0;
         for (String t : commands.keySet()) {

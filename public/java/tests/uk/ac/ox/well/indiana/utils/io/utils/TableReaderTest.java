@@ -69,7 +69,7 @@ public class TableReaderTest {
         return record;
     }
 
-    @BeforeClass
+    @BeforeClass(enabled = false)
     public void writeLargeTable() {
         try {
             largeTable = new File("testdata/indianaLargeTableTest.table");
@@ -125,7 +125,7 @@ public class TableReaderTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void readLargeTable() {
         TableReader tr = new TableReader(largeTable);
 

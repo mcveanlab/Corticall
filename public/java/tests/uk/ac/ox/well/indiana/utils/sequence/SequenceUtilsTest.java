@@ -84,7 +84,7 @@ public class SequenceUtilsTest {
         Assert.assertEquals(4, cn50);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testTranslateCodingSequence() {
         String cds1 = "ATGGTGACTGGTAGTGGTGGTGAGGATAAGTATAAAAGTGCCAAAAATGCCAAGGAACTT";
         String tr1  = "MVTGSGGEDKYKSAKNAKEL";
@@ -146,55 +146,4 @@ public class SequenceUtilsTest {
             throw new IndianaException("Error in opening test file '" + fastaFile.getAbsolutePath() + "'", e);
         }
     }
-
-    @Test
-    public void testPicardInferredInsertSizeReport() {
-        SAMFileReader sfr = new SAMFileReader(new File("testdata/oneread.bam"));
-
-        for (SAMRecord read : sfr) {
-            System.out.println("  name: " + read.getReadName());
-            System.out.println("   fop: " + read.getFirstOfPairFlag());
-            System.out.println("    rl: " + read.getReadLength());
-            System.out.println(" start: " + read.getAlignmentStart());
-            System.out.println("   end: " + read.getAlignmentEnd());
-            System.out.println("insert: " + read.getInferredInsertSize());
-            System.out.println();
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
