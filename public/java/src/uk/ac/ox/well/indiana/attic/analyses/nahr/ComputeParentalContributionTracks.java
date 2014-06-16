@@ -1,8 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
-import net.sf.samtools.AlignmentBlock;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -10,7 +8,9 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -23,6 +23,15 @@ public class ComputeParentalContributionTracks extends Module {
 
     @Output
     public PrintStream out;
+
+    @Output(fullName="bout", shortName="bo", doc="Kmer BAM out")
+    public File bout;
+
+    @Output(fullName="bedout", shortName="beo", doc="BED file out")
+    public PrintStream beout;
+
+    @Output(fullName="sout", shortName="so", doc="Stats out")
+    public PrintStream sout;
 
     @Override
     public void execute() {
@@ -51,14 +60,6 @@ public class ComputeParentalContributionTracks extends Module {
         Set<CortexKmer> contigKmers = new HashSet<CortexKmer>();
 
         for (SAMRecord contig : CONTIGS) {
-            log.info("{}", contig.getSAMString());
-
-            for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
-                log.info("  {} {} {}", ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
-            }
-
-            log.info("");
-
             String seq = contig.getReadString();
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
@@ -74,7 +75,6 @@ public class ComputeParentalContributionTracks extends Module {
         log.info("Examining kmer parentage...");
 
         Map<CortexKmer, String> kmerParentage = new HashMap<CortexKmer, String>();
-
         for (String parentName : PARENT_GRAPH.keySet()) {
             CortexGraph parentGraph = PARENT_GRAPH.get(parentName);
 
@@ -98,79 +98,96 @@ public class ComputeParentalContributionTracks extends Module {
 
         log.info("Constructing inheritance vectors...");
 
+        SAMFileHeader sfh = CONTIGS.getFileHeader();
+        SAMReadGroupRecord rgrNone = new SAMReadGroupRecord("none");
+        rgrNone.setSample("none");
+        sfh.addReadGroup(rgrNone);
+
+        SAMFileWriterFactory sfwf = new SAMFileWriterFactory();
+        sfwf.setCreateIndex(true);
+        SAMFileWriter sfw = sfwf.makeBAMWriter(sfh, false, bout);
+
+        TableWriter tw = new TableWriter(sout);
 
         out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
+        int withZero = 0;
         for (SAMRecord contig : contigs) {
             String seq = contig.getReadString();
 
-            Map<String, Byte[]> wig = new HashMap<String, Byte[]>();
-            for (String parentName : parentIndices.keySet()) {
-                wig.put(parentName, new Byte[seq.length()]);
-            }
+            beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+            int p1 = 0, p2 = 0, shared = 0, none = 0;
+            for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
+                //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
 
-                if (kmerParentage.containsKey(kmer)) {
-                    String parentName = kmerParentage.get(kmer);
-                    byte parentIndex = parentIndices.get(parentName);
+                for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
+                    if (i + kmerSize < seq.length()) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                    int j = i;
-                    //for (int j = i; j < i + kmerSize; j++) {
-                        wig.get(parentName)[j] = parentIndex;
-                    //}
-                }
-            }
+                        SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
+                        skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
 
-            log.info("{}: {}", contig.getReadName(), contig.getReadString());
+                        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+                        cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
+                        Cigar cigar = new Cigar(cigarElements);
 
-            for (String parentName : wig.keySet()) {
-                StringBuilder sb = new StringBuilder();
+                        skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
+                        skmer.setReferenceName(contig.getReferenceName());
+                        skmer.setCigar(cigar);
+                        skmer.setReadPairedFlag(false);
+                        skmer.setDuplicateReadFlag(false);
+                        skmer.setMateNegativeStrandFlag(false);
+                        skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
+                        skmer.setAttribute("RG", "none");
+                        skmer.setMappingQuality(0);
 
-                for (int i = 0; i < wig.get(parentName).length; i++) {
-                    Byte wigValue = wig.get(parentName)[i];
+                        if (kmerParentage.containsKey(kmer)) {
+                            String parentName = kmerParentage.get(kmer);
+                            byte parentIndex = parentIndices.get(parentName);
 
-                    if (wigValue == null) {
-                        sb.append(" ");
-                    } else {
-                        sb.append(wigValue);
-                    }
-                }
+                            if (parentIndex == 3) { p1++; }
+                            if (parentIndex == 1) { p2++; }
+                            if (parentIndex == 2) { shared++; }
 
-                log.info("{}: {}", contig.getReadName(), sb.toString());
-            }
+                            String parentReadGroupId = null;
+                            String sampleReadGroupId = null;
+                            for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
+                                if (rgr.getSample().equals(parentName)) {
+                                    parentReadGroupId = rgr.getReadGroupId();
+                                }
 
-            log.info("");
+                                if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
+                                    sampleReadGroupId = rgr.getReadGroupId();
+                                }
+                            }
 
-            Byte[] finalWig = new Byte[seq.length()];
-            for (int i = 0; i < finalWig.length; i++) {
-                if (wig.get("shared")[i] != null) {
-                    finalWig[i] = parentIndices.get("shared");
-                } else {
-                    for (String parentName : wig.keySet()) {
-                        if (!parentName.equals("shared") && wig.get(parentName)[i] != null) {
-                            finalWig[i] = parentIndices.get(parentName);
+                            out.printf("%s\t%d\t%d\t%s\t%d\n", contig.getReferenceName(), contig.getAlignmentStart() + i, contig.getAlignmentStart() + i + 1, "parentage", parentIndex);
+
+                            skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
+                            skmer.setMappingQuality(99);
+                        } else {
+                            none++;
                         }
+
+                        sfw.addAlignment(skmer);
                     }
                 }
             }
 
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < finalWig.length; i++) {
-                if (finalWig[i] == null) {
-                    sb.append(" ");
-                } else {
-                    sb.append(finalWig[i]);
+            //log.info("{}:{} length={} p1={} p2={} shared={} none={}", contig.getReferenceName(), contig.getAlignmentStart(), contig.getReadLength(), p1, p2, shared, none);
+            Map<String, String> stats = new LinkedHashMap<String, String>();
+            stats.put("contigName", contig.getReadName());
+            stats.put("p1", String.valueOf(p1));
+            stats.put("p2", String.valueOf(p2));
+            stats.put("shared", String.valueOf(shared));
+            stats.put("none", String.valueOf(none));
+            tw.addEntry(stats);
 
-                    out.printf("%s\t%d\t%d\t%s\t%d\n", contig.getReferenceName(), contig.getAlignmentStart() + i, contig.getAlignmentStart() + i + 1, "parentage", finalWig[i]);
-                }
+            if (p1 == 0 || p2 == 0) {
+                withZero++;
             }
-
-            log.info("{}: {}", contig.getReadName(), sb.toString());
-
-            log.info("");
-
-
         }
+
+        sfw.close();
     }
 }
