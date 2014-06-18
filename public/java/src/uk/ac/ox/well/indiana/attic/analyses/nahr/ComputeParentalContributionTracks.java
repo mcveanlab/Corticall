@@ -177,6 +177,7 @@ public class ComputeParentalContributionTracks extends Module {
             //log.info("{}:{} length={} p1={} p2={} shared={} none={}", contig.getReferenceName(), contig.getAlignmentStart(), contig.getReadLength(), p1, p2, shared, none);
             Map<String, String> stats = new LinkedHashMap<String, String>();
             stats.put("contigName", contig.getReadName());
+            stats.put("sampleName", contig.getReadGroup().getSample());
             stats.put("p1", String.valueOf(p1));
             stats.put("p2", String.valueOf(p2));
             stats.put("shared", String.valueOf(shared));
