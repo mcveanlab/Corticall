@@ -257,7 +257,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
         log.info("Processing annotated contigs...");
         for (File ann : ANNS) {
             //String sampleName = ann.getName().replaceAll(".contigs.unique.ann2", "");
-            String sampleName = ann.getName().replaceAll(".contigs.unique..+", "");
+            //String sampleName = ann.getName().replaceAll(".contigs.unique..+", "");
+            String sampleName = ann.getName().split("\\.")[0];
 
             log.info("  {}", sampleName);
 
