@@ -135,7 +135,7 @@ public class AnnotateContigs extends Module {
 
                 String coverage = Joiner.on(",").join(coverages);
 
-                out.println(rseq.getName() + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString() + "\t" + coverage);
+                out.println(rseq.getName().split("\\s+")[0] + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString() + "\t" + coverage);
             }
         }
     }
