@@ -21,6 +21,9 @@ public class ComputeParentalContributionTracks extends Module {
     @Argument(fullName="parentGraph", shortName="pg", doc="Parent graph")
     public LinkedHashMap<String, CortexGraph> PARENT_GRAPH;
 
+    @Argument(fullName="contigNames", shortName="cn", doc="Contig names")
+    public HashSet<String> CONTIG_NAMES;
+
     @Output
     public PrintStream out;
 
@@ -112,80 +115,82 @@ public class ComputeParentalContributionTracks extends Module {
         out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
         int withZero = 0;
         for (SAMRecord contig : contigs) {
-            String seq = contig.getReadString();
+            if (CONTIG_NAMES.contains(contig.getReadName())) {
+                String seq = contig.getReadString();
 
-            beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
+                beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-            int p1 = 0, p2 = 0, shared = 0, none = 0;
-            for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
-                //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
+                int p1 = 0, p2 = 0, shared = 0, none = 0;
+                for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
+                    //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
 
-                for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
-                    if (i + kmerSize < seq.length()) {
-                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+                    for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
+                        if (i + kmerSize < seq.length()) {
+                            CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                        SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
-                        skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
+                            SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
+                            skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
 
-                        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
-                        cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
-                        Cigar cigar = new Cigar(cigarElements);
+                            List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+                            cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
+                            Cigar cigar = new Cigar(cigarElements);
 
-                        skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
-                        skmer.setReferenceName(contig.getReferenceName());
-                        skmer.setCigar(cigar);
-                        skmer.setReadPairedFlag(false);
-                        skmer.setDuplicateReadFlag(false);
-                        skmer.setMateNegativeStrandFlag(false);
-                        skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
-                        skmer.setAttribute("RG", "none");
-                        skmer.setMappingQuality(0);
+                            skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
+                            skmer.setReferenceName(contig.getReferenceName());
+                            skmer.setCigar(cigar);
+                            skmer.setReadPairedFlag(false);
+                            skmer.setDuplicateReadFlag(false);
+                            skmer.setMateNegativeStrandFlag(false);
+                            skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
+                            skmer.setAttribute("RG", "none");
+                            skmer.setMappingQuality(0);
 
-                        if (kmerParentage.containsKey(kmer)) {
-                            String parentName = kmerParentage.get(kmer);
-                            byte parentIndex = parentIndices.get(parentName);
+                            if (kmerParentage.containsKey(kmer)) {
+                                String parentName = kmerParentage.get(kmer);
+                                byte parentIndex = parentIndices.get(parentName);
 
-                            if (parentIndex == 3) { p1++; }
-                            if (parentIndex == 1) { p2++; }
-                            if (parentIndex == 2) { shared++; }
+                                if (parentIndex == 3) { p1++; }
+                                if (parentIndex == 1) { p2++; }
+                                if (parentIndex == 2) { shared++; }
 
-                            String parentReadGroupId = null;
-                            String sampleReadGroupId = null;
-                            for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
-                                if (rgr.getSample().equals(parentName)) {
-                                    parentReadGroupId = rgr.getReadGroupId();
+                                String parentReadGroupId = null;
+                                String sampleReadGroupId = null;
+                                for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
+                                    if (rgr.getSample().equals(parentName)) {
+                                        parentReadGroupId = rgr.getReadGroupId();
+                                    }
+
+                                    if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
+                                        sampleReadGroupId = rgr.getReadGroupId();
+                                    }
                                 }
 
-                                if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
-                                    sampleReadGroupId = rgr.getReadGroupId();
-                                }
+                                out.printf("%s\t%d\t%d\t%s\t%d\n", contig.getReferenceName(), contig.getAlignmentStart() + i, contig.getAlignmentStart() + i + 1, "parentage", parentIndex);
+
+                                skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
+                                skmer.setMappingQuality(99);
+                            } else {
+                                none++;
                             }
 
-                            out.printf("%s\t%d\t%d\t%s\t%d\n", contig.getReferenceName(), contig.getAlignmentStart() + i, contig.getAlignmentStart() + i + 1, "parentage", parentIndex);
-
-                            skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
-                            skmer.setMappingQuality(99);
-                        } else {
-                            none++;
+                            sfw.addAlignment(skmer);
                         }
-
-                        sfw.addAlignment(skmer);
                     }
                 }
-            }
 
-            //log.info("{}:{} length={} p1={} p2={} shared={} none={}", contig.getReferenceName(), contig.getAlignmentStart(), contig.getReadLength(), p1, p2, shared, none);
-            Map<String, String> stats = new LinkedHashMap<String, String>();
-            stats.put("contigName", contig.getReadName());
-            stats.put("sampleName", contig.getReadGroup().getSample());
-            stats.put("p1", String.valueOf(p1));
-            stats.put("p2", String.valueOf(p2));
-            stats.put("shared", String.valueOf(shared));
-            stats.put("none", String.valueOf(none));
-            tw.addEntry(stats);
+                //log.info("{}:{} length={} p1={} p2={} shared={} none={}", contig.getReferenceName(), contig.getAlignmentStart(), contig.getReadLength(), p1, p2, shared, none);
+                Map<String, String> stats = new LinkedHashMap<String, String>();
+                stats.put("contigName", contig.getReadName());
+                stats.put("sampleName", contig.getReadGroup().getSample());
+                stats.put("p1", String.valueOf(p1));
+                stats.put("p2", String.valueOf(p2));
+                stats.put("shared", String.valueOf(shared));
+                stats.put("none", String.valueOf(none));
+                tw.addEntry(stats);
 
-            if (p1 == 0 || p2 == 0) {
-                withZero++;
+                if (p1 == 0 || p2 == 0) {
+                    withZero++;
+                }
             }
         }
 
