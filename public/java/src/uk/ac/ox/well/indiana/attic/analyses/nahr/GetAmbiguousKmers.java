@@ -41,19 +41,20 @@ public class GetAmbiguousKmers extends Module {
         int lineNum = 0;
         while ((line = lr.getNextRecord()) != null) {
             if (lineNum >= 3) {
+                line = line.replaceAll("^\\s+", "");
                 String chr, type;
                 int start, stop;
 
                 try {
                     String[] fields = line.split("\\s+");
-                    chr = fields[5];
-                    start = Integer.valueOf(fields[6]);
-                    stop = Integer.valueOf(fields[7]);
-                    type = fields[11];
+                    chr = fields[4];
+                    start = Integer.valueOf(fields[5]);
+                    stop = Integer.valueOf(fields[6]);
+                    type = fields[10];
                 } catch (NumberFormatException e) {
                     log.info("{}: {}", lineNum, line);
 
-                    throw new IndianaException("Failed to parse line" + e);
+                    throw new IndianaException("Failed to parse line: " + e);
                 }
 
                 log.info("chr={} start={} end={} type={}", chr, start, stop, type);
