@@ -7,6 +7,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
@@ -20,6 +21,9 @@ public class ComputeParentalContributionTracks extends Module {
 
     @Argument(fullName="parentGraph", shortName="pg", doc="Parent graph")
     public LinkedHashMap<String, CortexGraph> PARENT_GRAPH;
+
+    @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
+    public CortexMap MASKED_KMERS;
 
     @Argument(fullName="contigNames", shortName="cn", doc="Contig names")
     public HashSet<String> CONTIG_NAMES;
@@ -53,6 +57,7 @@ public class ComputeParentalContributionTracks extends Module {
             index -= 2;
         }
         parentIndices.put("shared", (byte) 2);
+        parentIndices.put("ambiguous", (byte) -1);
 
         log.info("  kmer size: {}", kmerSize);
         log.info("  parent indices: {}", parentIndices);
@@ -85,10 +90,14 @@ public class ComputeParentalContributionTracks extends Module {
             for (CortexRecord cr : parentGraph) {
                 CortexKmer ck = cr.getKmer();
 
-                if (!kmerParentage.containsKey(ck)) {
-                    kmerParentage.put(ck, parentName);
+                if (MASKED_KMERS.containsKey(ck)) {
+                    kmerParentage.put(ck, "ambiguous");
                 } else {
-                    kmerParentage.put(ck, "shared");
+                    if (!kmerParentage.containsKey(ck)) {
+                        kmerParentage.put(ck, parentName);
+                    } else {
+                        kmerParentage.put(ck, "shared");
+                    }
                 }
 
                 if (recordsSeen % (parentGraph.getNumRecords() / 2) == 0) {
@@ -120,7 +129,7 @@ public class ComputeParentalContributionTracks extends Module {
 
                 beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-                int p1 = 0, p2 = 0, shared = 0, none = 0;
+                int p1 = 0, p2 = 0, shared = 0, ambiguous = 0, none = 0;
                 for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
                     //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
 
@@ -152,6 +161,7 @@ public class ComputeParentalContributionTracks extends Module {
                                 if (parentIndex == 3) { p1++; }
                                 if (parentIndex == 1) { p2++; }
                                 if (parentIndex == 2) { shared++; }
+                                if (parentIndex == -1) { ambiguous++; }
 
                                 String parentReadGroupId = null;
                                 String sampleReadGroupId = null;
@@ -185,6 +195,7 @@ public class ComputeParentalContributionTracks extends Module {
                 stats.put("p1", String.valueOf(p1));
                 stats.put("p2", String.valueOf(p2));
                 stats.put("shared", String.valueOf(shared));
+                stats.put("ambiguous", String.valueOf(ambiguous));
                 stats.put("none", String.valueOf(none));
                 tw.addEntry(stats);
 

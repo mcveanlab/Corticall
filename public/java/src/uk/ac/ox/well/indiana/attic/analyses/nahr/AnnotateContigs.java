@@ -24,7 +24,8 @@ public class AnnotateContigs extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexMap PARENTS;
 
-
+    @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
+    public CortexMap MASKED_KMERS;
 
     @Output
     public PrintStream out;
@@ -101,14 +102,18 @@ public class AnnotateContigs extends Module {
                     if (!PARENTS.containsKey(kmer)) {
                         annotation.append(".");
                     } else {
-                        CortexRecord cr = PARENTS.get(kmer);
-
-                        if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
-                            annotation.append("1");
-                        } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
-                            annotation.append("0");
+                        if (MASKED_KMERS.containsKey(kmer)) {
+                            annotation.append("A");
                         } else {
-                            annotation.append("B");
+                            CortexRecord cr = PARENTS.get(kmer);
+
+                            if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
+                                annotation.append("1");
+                            } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
+                                annotation.append("0");
+                            } else {
+                                annotation.append("B");
+                            }
                         }
                     }
                 }
