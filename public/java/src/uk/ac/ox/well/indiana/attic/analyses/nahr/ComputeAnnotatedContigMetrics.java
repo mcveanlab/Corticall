@@ -271,6 +271,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 int ref1 = 0;
                 int refBoth = 0;
                 int refNone = 0;
+                int refAmb = 0;
 
                 for (int i = 0; i < kmerLength; i++) {
                     switch (te.get("kmerOrigin").charAt(i)) {
@@ -278,6 +279,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         case '1': ref1++;    break;
                         case 'B': refBoth++; break;
                         case '.': refNone++; break;
+                        case 'A': refAmb++;  break;
                         default :            break;
                     }
                 }
@@ -305,6 +307,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 int lrun1 = longestRun(te.get("kmerOrigin"), '1');
                 int lrunBoth = longestRun(te.get("kmerOrigin"), 'B');
                 int lrunNone = longestRun(te.get("kmerOrigin"), '.');
+                int lrunAmb = longestRun(te.get("kmerOrigin"), 'A');
                 int numSwitches = numSwitches(te.get("kmerOrigin"));
 
                 Map<String, String> entry = new LinkedHashMap<String, String>();
@@ -316,10 +319,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("ref1", String.valueOf(ref1));
                 entry.put("refBoth", String.valueOf(refBoth));
                 entry.put("refNone", String.valueOf(refNone));
+                entry.put("refAmb", String.valueOf(refAmb));
                 entry.put("lrun0", String.valueOf(lrun0));
                 entry.put("lrun1", String.valueOf(lrun1));
                 entry.put("lrunBoth", String.valueOf(lrunBoth));
                 entry.put("lrunNone", String.valueOf(lrunNone));
+                entry.put("lrunAmb", String.valueOf(lrunAmb));
                 entry.put("numSwitches", String.valueOf(numSwitches));
                 entry.put("hasDiscontiguities", hasDiscontiguities ? "1" : "0");
                 entry.put("numDiscontiguities", String.valueOf(numDiscontiguities));
