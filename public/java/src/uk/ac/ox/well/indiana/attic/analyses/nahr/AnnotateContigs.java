@@ -98,10 +98,23 @@ public class AnnotateContigs extends Module {
         Set<CortexKmer> maskedKmers = loadMaskedKmers();
         int kmerSize = PARENTS.keySet().iterator().next().length();
 
+        List<ReferenceSequence> contigs = new ArrayList<ReferenceSequence>();
+        ReferenceSequence rseqa;
+        while ((rseqa = CONTIGS.nextSequence()) != null) {
+            contigs.add(rseqa);
+        }
+
         out.println("contigName\tseq\tkmerOrigin\tkmerContiguity\tkmerCoverage");
 
-        ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
+        //while ((rseq = CONTIGS.nextSequence()) != null) {
+        log.info("Annotating contigs...");
+        int contigsSeen = 0;
+        for (ReferenceSequence rseq : contigs) {
+            if (contigsSeen % contigs.size() / 10 == 0) {
+                log.info("  annotated {}/{} contigs", contigsSeen, contigs.size());
+            }
+            contigsSeen++;
+
             if (rseq.length() > 0) {
                 String seq = new String(rseq.getBases());
 
