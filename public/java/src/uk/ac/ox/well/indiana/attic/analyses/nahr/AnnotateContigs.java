@@ -110,7 +110,7 @@ public class AnnotateContigs extends Module {
         log.info("Annotating contigs...");
         int contigsSeen = 0;
         for (ReferenceSequence rseq : contigs) {
-            if (contigsSeen % contigs.size() / 10 == 0) {
+            if (contigsSeen % (contigs.size() / 10) == 0) {
                 log.info("  annotated {}/{} contigs", contigsSeen, contigs.size());
             }
             contigsSeen++;
