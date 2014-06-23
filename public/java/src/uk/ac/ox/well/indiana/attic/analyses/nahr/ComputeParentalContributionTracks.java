@@ -101,11 +101,11 @@ public class ComputeParentalContributionTracks extends Module {
                 }
 
                 if (recordsSeen % (parentGraph.getNumRecords() / 2) == 0) {
-                    log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%0.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
+                    log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
                 }
                 recordsSeen++;
             }
-            log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%0.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
+            log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
         }
 
         log.info("Constructing inheritance vectors...");
