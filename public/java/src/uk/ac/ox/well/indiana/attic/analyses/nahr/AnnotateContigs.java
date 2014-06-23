@@ -24,8 +24,7 @@ public class AnnotateContigs extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexMap PARENTS;
 
-    //@Argument(fullName="parentsSupp", shortName="ps", doc="Supplemental parental information")
-    //public CortexMap PARENTS_SUPP;
+
 
     @Output
     public PrintStream out;
