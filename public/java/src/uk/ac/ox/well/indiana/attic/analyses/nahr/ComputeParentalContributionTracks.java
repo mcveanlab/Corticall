@@ -105,7 +105,7 @@ public class ComputeParentalContributionTracks extends Module {
                 }
                 recordsSeen++;
             }
-            log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
+            //log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
         }
 
         log.info("Constructing inheritance vectors...");
@@ -114,7 +114,7 @@ public class ComputeParentalContributionTracks extends Module {
         SAMReadGroupRecord rgrNone = new SAMReadGroupRecord("none");
         rgrNone.setSample("none");
         SAMReadGroupRecord rgrAmb = new SAMReadGroupRecord("ambiguous");
-        rgrNone.setSample("ambiguous");
+        rgrAmb.setSample("ambiguous");
         sfh.addReadGroup(rgrNone);
         sfh.addReadGroup(rgrAmb);
 
