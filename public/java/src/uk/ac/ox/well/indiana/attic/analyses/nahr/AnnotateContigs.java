@@ -25,10 +25,24 @@ public class AnnotateContigs extends Module {
     public CortexMap PARENTS;
 
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
-    public CortexMap MASKED_KMERS;
+    public FastaSequenceFile MASKED_KMERS;
 
     @Output
     public PrintStream out;
+
+    private Set<CortexKmer> loadMaskedKmers() {
+        Set<CortexKmer> maskedKmers = new HashSet<CortexKmer>();
+
+        ReferenceSequence rseq;
+        while ((rseq = MASKED_KMERS.nextSequence()) != null) {
+            String seq = new String(rseq.getBases());
+            CortexKmer kmer = new CortexKmer(seq);
+
+            maskedKmers.add(kmer);
+        }
+
+        return maskedKmers;
+    }
 
     private boolean isContiguous(String prevStr, String curStr, int color) {
         CortexKmer prevKmer = new CortexKmer(prevStr);
@@ -82,6 +96,7 @@ public class AnnotateContigs extends Module {
 
     @Override
     public void execute() {
+        Set<CortexKmer> maskedKmers = loadMaskedKmers();
         int kmerSize = PARENTS.keySet().iterator().next().length();
 
         out.println("contigName\tseq\tkmerOrigin\tkmerContiguity\tkmerCoverage");
@@ -102,7 +117,7 @@ public class AnnotateContigs extends Module {
                     if (!PARENTS.containsKey(kmer)) {
                         annotation.append(".");
                     } else {
-                        if (MASKED_KMERS.containsKey(kmer)) {
+                        if (maskedKmers.contains(kmer)) {
                             annotation.append("A");
                         } else {
                             CortexRecord cr = PARENTS.get(kmer);

@@ -25,8 +25,8 @@ public class ComputeParentalContributionTracks extends Module {
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
     public CortexMap MASKED_KMERS;
 
-    @Argument(fullName="contigNames", shortName="cn", doc="Contig names")
-    public HashSet<String> CONTIG_NAMES;
+    //@Argument(fullName="contigNames", shortName="cn", doc="Contig names")
+    //public HashSet<String> CONTIG_NAMES;
 
     @Output
     public PrintStream out;
@@ -57,7 +57,7 @@ public class ComputeParentalContributionTracks extends Module {
             index -= 2;
         }
         parentIndices.put("shared", (byte) 2);
-        parentIndices.put("ambiguous", (byte) -1);
+        parentIndices.put("ambiguous", (byte) 6);
 
         log.info("  kmer size: {}", kmerSize);
         log.info("  parent indices: {}", parentIndices);
@@ -101,11 +101,11 @@ public class ComputeParentalContributionTracks extends Module {
                 }
 
                 if (recordsSeen % (parentGraph.getNumRecords() / 2) == 0) {
-                    log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), 100*recordsSeen/parentGraph.getNumRecords());
+                    log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%0.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
                 }
                 recordsSeen++;
             }
-            log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), 100*recordsSeen/parentGraph.getNumRecords());
+            log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%0.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
         }
 
         log.info("Constructing inheritance vectors...");
@@ -113,7 +113,10 @@ public class ComputeParentalContributionTracks extends Module {
         SAMFileHeader sfh = CONTIGS.getFileHeader();
         SAMReadGroupRecord rgrNone = new SAMReadGroupRecord("none");
         rgrNone.setSample("none");
+        SAMReadGroupRecord rgrAmb = new SAMReadGroupRecord("ambiguous");
+        rgrNone.setSample("ambiguous");
         sfh.addReadGroup(rgrNone);
+        sfh.addReadGroup(rgrAmb);
 
         SAMFileWriterFactory sfwf = new SAMFileWriterFactory();
         sfwf.setCreateIndex(true);
@@ -124,7 +127,7 @@ public class ComputeParentalContributionTracks extends Module {
         out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
         int withZero = 0;
         for (SAMRecord contig : contigs) {
-            if (CONTIG_NAMES.contains(contig.getReadName())) {
+            //if (CONTIG_NAMES.contains(contig.getReadName())) {
                 String seq = contig.getReadString();
 
                 beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
@@ -202,7 +205,7 @@ public class ComputeParentalContributionTracks extends Module {
                 if (p1 == 0 || p2 == 0) {
                     withZero++;
                 }
-            }
+            //}
         }
 
         sfw.close();
