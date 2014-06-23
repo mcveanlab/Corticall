@@ -6,6 +6,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
@@ -25,7 +26,7 @@ public class AnnotateContigs extends Module {
     public CortexMap PARENTS;
 
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
-    public FastaSequenceFile MASKED_KMERS;
+    public CortexGraph MASKED_KMERS;
 
     @Output
     public PrintStream out;
@@ -33,10 +34,8 @@ public class AnnotateContigs extends Module {
     private Set<CortexKmer> loadMaskedKmers() {
         Set<CortexKmer> maskedKmers = new HashSet<CortexKmer>();
 
-        ReferenceSequence rseq;
-        while ((rseq = MASKED_KMERS.nextSequence()) != null) {
-            String seq = new String(rseq.getBases());
-            CortexKmer kmer = new CortexKmer(seq);
+        for (CortexRecord cr : MASKED_KMERS) {
+            CortexKmer kmer = cr.getKmer();
 
             maskedKmers.add(kmer);
         }
