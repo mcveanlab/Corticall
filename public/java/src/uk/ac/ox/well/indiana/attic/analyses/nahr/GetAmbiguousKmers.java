@@ -3,9 +3,11 @@ package uk.ac.ox.well.indiana.attic.analyses.nahr;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
@@ -39,11 +41,20 @@ public class GetAmbiguousKmers extends Module {
         int lineNum = 0;
         while ((line = lr.getNextRecord()) != null) {
             if (lineNum >= 3) {
-                String[] fields = line.split("\\s+");
-                String chr = fields[5];
-                int start = Integer.valueOf(fields[6]);
-                int stop = Integer.valueOf(fields[7]);
-                String type = fields[11];
+                String chr, type;
+                int start, stop;
+
+                try {
+                    String[] fields = line.split("\\s+");
+                    chr = fields[5];
+                    start = Integer.valueOf(fields[6]);
+                    stop = Integer.valueOf(fields[7]);
+                    type = fields[11];
+                } catch (NumberFormatException e) {
+                    log.info("{}: {}", lineNum, line);
+
+                    throw new IndianaException("Failed to parse line" + e);
+                }
 
                 log.info("chr={} start={} end={} type={}", chr, start, stop, type);
 
