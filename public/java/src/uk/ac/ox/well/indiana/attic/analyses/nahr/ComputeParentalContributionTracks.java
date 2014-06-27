@@ -25,8 +25,8 @@ public class ComputeParentalContributionTracks extends Module {
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
     public CortexMap MASKED_KMERS;
 
-    //@Argument(fullName="contigNames", shortName="cn", doc="Contig names")
-    //public HashSet<String> CONTIG_NAMES;
+    @Argument(fullName="contigNames", shortName="cn", doc="Contig names", required=false)
+    public HashSet<String> CONTIG_NAMES;
 
     @Output
     public PrintStream out;
@@ -57,7 +57,8 @@ public class ComputeParentalContributionTracks extends Module {
             index -= 2;
         }
         parentIndices.put("shared", (byte) 2);
-        parentIndices.put("ambiguous", (byte) 6);
+        parentIndices.put("repeat", (byte) 6);
+        parentIndices.put("none", (byte) 0);
 
         log.info("  kmer size: {}", kmerSize);
         log.info("  parent indices: {}", parentIndices);
@@ -65,24 +66,24 @@ public class ComputeParentalContributionTracks extends Module {
         log.info("Loading contigs...");
 
         Set<SAMRecord> contigs = new HashSet<SAMRecord>();
-        Set<CortexKmer> contigKmers = new HashSet<CortexKmer>();
+        Map<CortexKmer, String> kmerParentage = new HashMap<CortexKmer, String>();
 
         for (SAMRecord contig : CONTIGS) {
             String seq = contig.getReadString();
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                contigKmers.add(kmer);
+                //contigKmers.add(kmer);
+                kmerParentage.put(kmer, "none");
             }
 
             contigs.add(contig);
         }
 
-        log.info("  loaded {} contigs with {} unique kmers", contigs.size(), contigKmers.size());
+        log.info("  loaded {} contigs with {} unique kmers", contigs.size(), kmerParentage.size());
 
         log.info("Examining kmer parentage...");
 
-        Map<CortexKmer, String> kmerParentage = new HashMap<CortexKmer, String>();
         for (String parentName : PARENT_GRAPH.keySet()) {
             CortexGraph parentGraph = PARENT_GRAPH.get(parentName);
 
@@ -90,13 +91,15 @@ public class ComputeParentalContributionTracks extends Module {
             for (CortexRecord cr : parentGraph) {
                 CortexKmer ck = cr.getKmer();
 
-                if (MASKED_KMERS.containsKey(ck)) {
-                    kmerParentage.put(ck, "ambiguous");
-                } else {
-                    if (!kmerParentage.containsKey(ck)) {
-                        kmerParentage.put(ck, parentName);
+                if (kmerParentage.containsKey(ck)) {
+                    if (MASKED_KMERS.containsKey(ck)) {
+                        kmerParentage.put(ck, "repeat");
                     } else {
-                        kmerParentage.put(ck, "shared");
+                        if (!kmerParentage.containsKey(ck) || kmerParentage.get(ck).equalsIgnoreCase("none")) {
+                            kmerParentage.put(ck, parentName);
+                        } else {
+                            kmerParentage.put(ck, "shared");
+                        }
                     }
                 }
 
@@ -108,15 +111,17 @@ public class ComputeParentalContributionTracks extends Module {
             //log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
         }
 
+        log.info("  total parental kmers: {}", kmerParentage.size());
+
         log.info("Constructing inheritance vectors...");
 
         SAMFileHeader sfh = CONTIGS.getFileHeader();
-        SAMReadGroupRecord rgrNone = new SAMReadGroupRecord("none");
-        rgrNone.setSample("none");
-        SAMReadGroupRecord rgrAmb = new SAMReadGroupRecord("ambiguous");
-        rgrAmb.setSample("ambiguous");
-        sfh.addReadGroup(rgrNone);
-        sfh.addReadGroup(rgrAmb);
+        //for (String parentName : PARENT_GRAPH.keySet()) {
+        for (String parentName : parentIndices.keySet()) {
+            SAMReadGroupRecord rgr = new SAMReadGroupRecord(parentName);
+            rgr.setSample(parentName);
+            sfh.addReadGroup(rgr);
+        }
 
         SAMFileWriterFactory sfwf = new SAMFileWriterFactory();
         sfwf.setCreateIndex(true);
@@ -127,12 +132,12 @@ public class ComputeParentalContributionTracks extends Module {
         out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
         int withZero = 0;
         for (SAMRecord contig : contigs) {
-            //if (CONTIG_NAMES.contains(contig.getReadName())) {
+            if (CONTIG_NAMES == null || CONTIG_NAMES.size() == 0 || CONTIG_NAMES.contains(contig.getReadName())) {
                 String seq = contig.getReadString();
 
                 beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-                int p1 = 0, p2 = 0, shared = 0, ambiguous = 0, none = 0;
+                int p1 = 0, p2 = 0, shared = 0, repeat = 0, none = 0;
                 for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
                     //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
 
@@ -159,12 +164,16 @@ public class ComputeParentalContributionTracks extends Module {
 
                             if (kmerParentage.containsKey(kmer)) {
                                 String parentName = kmerParentage.get(kmer);
+
+                                log.debug("  parentName: {}", parentName);
+
                                 byte parentIndex = parentIndices.get(parentName);
 
                                 if (parentIndex == 3) { p1++; }
                                 if (parentIndex == 1) { p2++; }
                                 if (parentIndex == 2) { shared++; }
-                                if (parentIndex == -1) { ambiguous++; }
+                                if (parentIndex == 6) { repeat++; }
+                                if (parentIndex == 0) { none++; }
 
                                 String parentReadGroupId = null;
                                 String sampleReadGroupId = null;
@@ -198,14 +207,14 @@ public class ComputeParentalContributionTracks extends Module {
                 stats.put("p1", String.valueOf(p1));
                 stats.put("p2", String.valueOf(p2));
                 stats.put("shared", String.valueOf(shared));
-                stats.put("ambiguous", String.valueOf(ambiguous));
+                stats.put("repeat", String.valueOf(repeat));
                 stats.put("none", String.valueOf(none));
                 tw.addEntry(stats);
 
                 if (p1 == 0 || p2 == 0) {
                     withZero++;
                 }
-            //}
+            }
         }
 
         sfw.close();
