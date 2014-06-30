@@ -87,94 +87,95 @@ public class LearnContigMetricThresholds extends Module {
 
         log.info("  found {} training contigs for {}", trainingContigNames.size(), SAMPLE_NAME);
 
+        if (trainingContigNames.size() > 0) {
+            log.info("Processing annotated contigs...");
+            List<Map<String, String>> metrics = new ArrayList<Map<String, String>>();
+            Map<String, Integer> metricMaxValue = new HashMap<String, Integer>();
 
-        log.info("Processing annotated contigs...");
-        List<Map<String, String>> metrics = new ArrayList<Map<String, String>>();
-        Map<String, Integer> metricMaxValue = new HashMap<String, Integer>();
+            TableReader tr = new TableReader(CM);
+            for (Map<String, String> te : tr) {
+                metrics.add(te);
 
-        TableReader tr = new TableReader(CM);
-        for (Map<String, String> te : tr) {
-            metrics.add(te);
+                for (String metric : te.keySet()) {
+                    try {
+                        int value = Integer.valueOf(te.get(metric));
 
-            for (String metric : te.keySet()) {
-                try {
-                    int value = Integer.valueOf(te.get(metric));
-
-                    if (!metricMaxValue.containsKey(metric) || value > metricMaxValue.get(metric)) {
-                        metricMaxValue.put(metric, value);
-                    }
-                } catch (NumberFormatException e) {}
-            }
-        }
-
-        log.info("Scanning parameter space for good metric thresholds...");
-        List<String> allMetrics = new ArrayList<String>();
-        allMetrics.addAll(METRICS_BOOLEAN);
-        allMetrics.addAll(METRICS_INTEGER);
-
-        Map<String, Integer> finalValues = new LinkedHashMap<String, Integer>();
-
-        for (String metric : allMetrics) {
-            if (METRICS_BOOLEAN.contains(metric)) {
-                List<Map<String, String>> submetrics0 = subsetBoolean(metrics, metric, 0);
-                int numSelected0 = submetrics0.size();
-                int numRecovered0 = numTrainingRecovered(submetrics0, trainingContigNames);
-
-                List<Map<String, String>> submetrics1 = subsetBoolean(metrics, metric, 1);
-                int numSelected1 = submetrics1.size();
-                int numRecovered1 = numTrainingRecovered(submetrics1, trainingContigNames);
-
-                finalValues.put(metric, numRecovered0 > numRecovered1 ? 0 : 1);
-
-                if (numRecovered0 > numRecovered1) {
-                    log.info("  {}: value={} selected={} recovered={}", metric, 0, numSelected0, numRecovered0);
-                } else {
-                    log.info("  {}: value={} selected={} recovered={}", metric, 1, numSelected1, numRecovered1);
+                        if (!metricMaxValue.containsKey(metric) || value > metricMaxValue.get(metric)) {
+                            metricMaxValue.put(metric, value);
+                        }
+                    } catch (NumberFormatException e) {}
                 }
-            } else if (METRICS_INTEGER.contains(metric)) {
-                int finalValue = 0;
-                int numSelected = metrics.size();
-                int numRecovered = numTrainingRecovered(metrics, trainingContigNames);
+            }
 
-                for (int v = 0; v < metricMaxValue.get(metric); v++) {
-                    List<Map<String, String>> submetrics = subsetInteger(metrics, metric, v);
-                    int newNumSelected = submetrics.size();
-                    int newNumRecovered = numTrainingRecovered(submetrics, trainingContigNames);
+            log.info("Scanning parameter space for good metric thresholds...");
+            List<String> allMetrics = new ArrayList<String>();
+            allMetrics.addAll(METRICS_BOOLEAN);
+            allMetrics.addAll(METRICS_INTEGER);
 
-                    //log.info("  {}: value={} selected={} recovered={}", metric, v, newNumSelected, newNumRecovered);
+            Map<String, Integer> finalValues = new LinkedHashMap<String, Integer>();
 
-                    if (newNumRecovered == numRecovered) {
-                        finalValue = v;
-                        numSelected = newNumSelected;
-                        numRecovered = newNumRecovered;
+            for (String metric : allMetrics) {
+                if (METRICS_BOOLEAN.contains(metric)) {
+                    List<Map<String, String>> submetrics0 = subsetBoolean(metrics, metric, 0);
+                    int numSelected0 = submetrics0.size();
+                    int numRecovered0 = numTrainingRecovered(submetrics0, trainingContigNames);
+
+                    List<Map<String, String>> submetrics1 = subsetBoolean(metrics, metric, 1);
+                    int numSelected1 = submetrics1.size();
+                    int numRecovered1 = numTrainingRecovered(submetrics1, trainingContigNames);
+
+                    finalValues.put(metric, numRecovered0 > numRecovered1 ? 0 : 1);
+
+                    if (numRecovered0 > numRecovered1) {
+                        log.info("  {}: value={} selected={} recovered={}", metric, 0, numSelected0, numRecovered0);
                     } else {
-                        break;
+                        log.info("  {}: value={} selected={} recovered={}", metric, 1, numSelected1, numRecovered1);
                     }
+                } else if (METRICS_INTEGER.contains(metric)) {
+                    int finalValue = 0;
+                    int numSelected = metrics.size();
+                    int numRecovered = numTrainingRecovered(metrics, trainingContigNames);
+
+                    for (int v = 0; v < metricMaxValue.get(metric); v++) {
+                        List<Map<String, String>> submetrics = subsetInteger(metrics, metric, v);
+                        int newNumSelected = submetrics.size();
+                        int newNumRecovered = numTrainingRecovered(submetrics, trainingContigNames);
+
+                        //log.info("  {}: value={} selected={} recovered={}", metric, v, newNumSelected, newNumRecovered);
+
+                        if (newNumRecovered == numRecovered) {
+                            finalValue = v;
+                            numSelected = newNumSelected;
+                            numRecovered = newNumRecovered;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    finalValues.put(metric, finalValue == 0 && numSelected == metrics.size() ? 0 : finalValue - 1);
+
+                    log.info("  {}: value={} selected={} recovered={}", metric, finalValues.get(metric), numSelected, numRecovered);
                 }
-
-                finalValues.put(metric, finalValue == 0 && numSelected == metrics.size() ? 0 : finalValue - 1);
-
-                log.info("  {}: value={} selected={} recovered={}", metric, finalValues.get(metric), numSelected, numRecovered);
             }
-        }
 
-        List<Map<String, String>> subset = metrics;
+            List<Map<String, String>> subset = metrics;
 
-        out.println("sample\tmetric\tvalue");
-        for (String metric : finalValues.keySet()) {
-            out.println(SAMPLE_NAME + "\t" + metric + "\t" + finalValues.get(metric));
+            out.println("sample\tmetric\tvalue");
+            for (String metric : finalValues.keySet()) {
+                out.println(SAMPLE_NAME + "\t" + metric + "\t" + finalValues.get(metric));
 
-            if (METRICS_BOOLEAN.contains(metric)) {
-                subset = subsetBoolean(subset, metric, finalValues.get(metric));
-            } else {
-                subset = subsetInteger(subset, metric, finalValues.get(metric));
+                if (METRICS_BOOLEAN.contains(metric)) {
+                    subset = subsetBoolean(subset, metric, finalValues.get(metric));
+                } else {
+                    subset = subsetInteger(subset, metric, finalValues.get(metric));
+                }
             }
-        }
 
-        for (Map<String, String> te : subset) {
-            cout.println(te.get("contigName"));
-        }
+            for (Map<String, String> te : subset) {
+                cout.println(te.get("contigName"));
+            }
 
-        log.info("Final: selected={} recovered={}", subset.size(), numTrainingRecovered(subset, trainingContigNames));
+            log.info("Final: selected={} recovered={}", subset.size(), numTrainingRecovered(subset, trainingContigNames));
+        }
     }
 }
