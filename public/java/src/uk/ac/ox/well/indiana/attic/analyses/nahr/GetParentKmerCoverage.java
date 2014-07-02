@@ -13,6 +13,9 @@ public class GetParentKmerCoverage extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexGraph PARENTS;
 
+    @Argument(fullName="sample", shortName="s", doc="Sample (in Cortex format)", required=false)
+    public CortexMap SAMPLE;
+
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers", required=false)
     public CortexMap MASKED_KMERS;
 
@@ -31,6 +34,11 @@ public class GetParentKmerCoverage extends Module {
 
         log.info("Computing coverage distribution for diagnostic kmers...");
 
+        if (SAMPLE != null) {
+            oref1.println("ref\tsample");
+            oref0.println("ref\tsample");
+        }
+
         int numRecords = 0;
         for (CortexRecord cr : PARENTS) {
             if (numRecords % (PARENTS.getNumRecords() / 5) == 0) {
@@ -42,11 +50,23 @@ public class GetParentKmerCoverage extends Module {
                 if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
                     // HB3
                     ref1++;
-                    oref1.println(cr.getCoverage(1));
+
+                    if (SAMPLE != null) {
+                        int cov = SAMPLE.containsKey(cr.getKmer()) ? SAMPLE.get(cr.getKmer()).getCoverage(0) : 0;
+                        oref1.println(cr.getCoverage(1) + "\t" + cov);
+                    } else {
+                        oref1.println(cr.getCoverage(1));
+                    }
                 } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
                     // 3D7
                     ref0++;
-                    oref0.println(cr.getCoverage(0));
+
+                    if (SAMPLE != null) {
+                        int cov = SAMPLE.containsKey(cr.getKmer()) ? SAMPLE.get(cr.getKmer()).getCoverage(0) : 0;
+                        oref0.println(cr.getCoverage(0) + "\t" + cov);
+                    } else {
+                        oref0.println(cr.getCoverage(0));
+                    }
                 } else {
                     refBoth++;
                 }
