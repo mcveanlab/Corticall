@@ -69,13 +69,16 @@ public class SelectContigsByMetrics extends Module {
             }
 
             if (allSatisfied) {
-                tw.addEntry(te);
+                te.put("isKnownAHR", "0");
 
                 if (knownEvents.contains(te.get("contigName"))) {
                     knownContigs++;
-                }
 
+                    te.put("isKnownAHR", "1");
+                }
                 selectedContigs++;
+
+                tw.addEntry(te);
             }
 
             numContigs++;
