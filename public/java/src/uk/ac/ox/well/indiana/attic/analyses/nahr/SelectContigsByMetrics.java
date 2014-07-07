@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
+import com.google.common.base.Joiner;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.apache.commons.jexl2.Expression;
@@ -29,8 +30,14 @@ public class SelectContigsByMetrics extends Module {
     @Argument(fullName="trainingContigs", shortName="tc", doc="Training contigs (BAM)")
     public SAMFileReader TRAINING;
 
+    @Argument(fullName="sampleName", shortName="sn", doc="Sample name")
+    public String SAMPLE_NAME;
+
     @Output
     public PrintStream out;
+
+    @Output(fullName="statsOut", shortName="so", doc="Stats out")
+    public PrintStream sout;
 
     @Override
     public void execute() {
@@ -85,5 +92,7 @@ public class SelectContigsByMetrics extends Module {
         }
 
         log.info("Found {}/{} (~{}%) contigs that met criteria, {} training contigs recovered.", selectedContigs, numContigs, String.format("%.2f", 100.0f * (float) selectedContigs / (float) numContigs), knownContigs);
+
+        sout.println(Joiner.on("\t").join(SAMPLE_NAME, numContigs, selectedContigs, knownEvents.size(), knownContigs));
     }
 }
