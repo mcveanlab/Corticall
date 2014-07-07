@@ -22,11 +22,17 @@ public class AnnotateContigs extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph for sample")
     public CortexMap SAMPLE;
 
+    @Argument(fullName="cortexCoverage", shortName="cc", doc="Cortex graph with coverage for sample")
+    public CortexGraph COVERAGE;
+
     @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
     public CortexMap PARENTS;
 
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
     public CortexGraph MASKED_KMERS;
+
+    @Argument(fullName="covThreshold", shortName="ct", doc="Coverage threshold")
+    public Integer COV_THRESHOLD = 10;
 
     @Output
     public PrintStream out;
@@ -49,16 +55,6 @@ public class AnnotateContigs extends Module {
 
         CortexRecord prevCr = PARENTS.get(prevKmer);
         CortexRecord curCr = PARENTS.get(curKmer);
-
-        /*
-        if (prevCr == null) {
-            prevCr = PARENTS_SUPP.get(prevKmer);
-        }
-
-        if (curCr == null) {
-            curCr = PARENTS_SUPP.get(curKmer);
-        }
-        */
 
         if (prevCr != null && curCr != null) {
             Set<CortexKmer> computedCurOutKmers = new HashSet<CortexKmer>();
@@ -104,6 +100,21 @@ public class AnnotateContigs extends Module {
             contigs.add(rseqa);
         }
 
+        log.info("Loading coverage for sample's kmers...");
+        Map<CortexKmer, Integer> sampleCoverage = new HashMap<CortexKmer, Integer>();
+        int recIndex = 0;
+        for (CortexRecord cr : COVERAGE) {
+            if (recIndex % (COVERAGE.getNumRecords() / 10) == 0) {
+                log.info("  {}/{} records", recIndex, COVERAGE.getNumRecords());
+            }
+            recIndex++;
+
+            if (SAMPLE.containsKey(cr.getKmer())) {
+                sampleCoverage.put(cr.getKmer(), cr.getCoverage(0));
+            }
+        }
+        log.info("  loaded {} records", sampleCoverage.size());
+
         out.println("contigName\tseq\tkmerOrigin\tkmerContiguity\tkmerCoverage");
 
         //while ((rseq = CONTIGS.nextSequence()) != null) {
@@ -124,24 +135,30 @@ public class AnnotateContigs extends Module {
                 for (int i = 0; i <= seq.length() - kmerSize; i++) {
                     CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                    coverages.add(String.valueOf(SAMPLE.get(kmer).getCoverage(0)));
+                    int cov = sampleCoverage.containsKey(kmer) ? sampleCoverage.get(kmer) : 0;
 
-                    if (!PARENTS.containsKey(kmer)) {
-                        annotation.append(".");
-                    } else {
-                        if (maskedKmers.contains(kmer)) {
-                            annotation.append("A");
+                    //coverages.add(String.valueOf(SAMPLE.get(kmer).getCoverage(0)));
+                    coverages.add(String.valueOf(cov));
+
+                    if (maskedKmers.contains(kmer)) {
+                        annotation.append("A");
+                    } else if (cov < COV_THRESHOLD) {
+                        annotation.append("C");
+                    } else if (PARENTS.containsKey(kmer)) {
+                        int cov0 = PARENTS.get(kmer).getCoverage(0);
+                        int cov1 = PARENTS.get(kmer).getCoverage(1);
+
+                        if (cov0 == 0 && cov1 >= COV_THRESHOLD) {
+                            annotation.append("1");
+                        } else if (cov0 >= COV_THRESHOLD && cov1 == 0) {
+                            annotation.append("0");
+                        } else if (cov0 >= COV_THRESHOLD && cov1 >= COV_THRESHOLD) {
+                            annotation.append("B");
                         } else {
-                            CortexRecord cr = PARENTS.get(kmer);
-
-                            if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
-                                annotation.append("1");
-                            } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
-                                annotation.append("0");
-                            } else {
-                                annotation.append("B");
-                            }
+                            annotation.append("_");
                         }
+                    } else {
+                        annotation.append(".");
                     }
                 }
 
