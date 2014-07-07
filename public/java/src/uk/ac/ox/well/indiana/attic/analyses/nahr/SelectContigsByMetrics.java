@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
@@ -13,7 +15,9 @@ import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class SelectContigsByMetrics extends Module {
     @Argument(fullName="contigMetrics", shortName="cm", doc="Contig metrics")
@@ -22,16 +26,25 @@ public class SelectContigsByMetrics extends Module {
     @Argument(fullName="constraint", shortName="c", doc="A JEXL constraint to apply when selecting contigs to consider")
     public ArrayList<Expression> CONSTRAINTS;
 
+    @Argument(fullName="trainingContigs", shortName="tc", doc="Training contigs (BAM)")
+    public SAMFileReader TRAINING;
+
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
+        Set<String> knownEvents = new HashSet<String>();
+        for (SAMRecord read : TRAINING) {
+            knownEvents.add(read.getReadName());
+        }
+
         TableReader tr = new TableReader(ANN);
         TableWriter tw = new TableWriter(out);
 
         int numContigs = 0;
         int selectedContigs = 0;
+        int knownContigs = 0;
 
         for (Map<String, String> te : tr) {
             JexlContext jexlContext = new MapContext();
@@ -58,12 +71,16 @@ public class SelectContigsByMetrics extends Module {
             if (allSatisfied) {
                 tw.addEntry(te);
 
+                if (knownEvents.contains(te.get("contigName"))) {
+                    knownContigs++;
+                }
+
                 selectedContigs++;
             }
 
             numContigs++;
         }
 
-        log.info("Found {}/{} (~{}%) contigs that met criteria.", selectedContigs, numContigs, String.format("%.2f", 100.0f * (float) selectedContigs / (float) numContigs));
+        log.info("Found {}/{} (~{}%) contigs that met criteria, {} training contigs recovered.", selectedContigs, numContigs, String.format("%.2f", 100.0f * (float) selectedContigs / (float) numContigs), knownContigs);
     }
 }
