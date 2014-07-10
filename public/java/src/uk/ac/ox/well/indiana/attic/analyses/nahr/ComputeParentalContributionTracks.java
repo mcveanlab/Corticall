@@ -9,6 +9,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.File;
@@ -19,14 +20,11 @@ public class ComputeParentalContributionTracks extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Aligned contigs (BAM)")
     public SAMFileReader CONTIGS;
 
-    @Argument(fullName="parentGraph", shortName="pg", doc="Parent graph")
-    public LinkedHashMap<String, CortexGraph> PARENT_GRAPH;
+    @Argument(fullName="ann", shortName="ann", doc="Contig annotations")
+    public File ANN;
 
-    @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
-    public CortexMap MASKED_KMERS;
-
-    @Argument(fullName="contigNames", shortName="cn", doc="Contig names", required=false)
-    public HashSet<String> CONTIG_NAMES;
+    @Argument(fullName="kmerCodeName", shortName="kcn", doc="Kmer code names", required=false)
+    public HashMap<String, String> KMER_CODE_NAMES;
 
     @Output
     public PrintStream out;
@@ -40,86 +38,93 @@ public class ComputeParentalContributionTracks extends Module {
     @Output(fullName="sout", shortName="so", doc="Stats out")
     public PrintStream sout;
 
+    private class IGVEntry implements Comparable<IGVEntry> {
+        public String chromosome;
+        public int start;
+        public String parentageName;
+        public int parentage;
+
+        @Override
+        public int compareTo(IGVEntry o) {
+            if (!chromosome.equals(o.chromosome)) { return chromosome.compareTo(o.chromosome); }
+
+            return Integer.valueOf(start).compareTo(o.start);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof IGVEntry) {
+                IGVEntry oi = (IGVEntry) o;
+                return (chromosome.equals(oi.chromosome) && start == oi.start && parentage == oi.parentage);
+            }
+
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return chromosome.hashCode() + Integer.valueOf(start).hashCode() - Integer.valueOf(parentage).hashCode();
+        }
+    }
+
     @Override
     public void execute() {
-        if (PARENT_GRAPH.size() != 2) {
-            throw new IndianaException("Must supply two (and only two) parental graphs");
+        log.info("Initializing kmer code map...");
+        Map<Character, Integer> kmerCodeIndices = new HashMap<Character, Integer>();
+        kmerCodeIndices.put('0', 1);
+        kmerCodeIndices.put('A', 3);
+        kmerCodeIndices.put('B', 4);
+        kmerCodeIndices.put('C', 5);
+        kmerCodeIndices.put('_', 6);
+        kmerCodeIndices.put('.', 7);
+        kmerCodeIndices.put('1', 9);
+
+        Map<Character, String> kmerCodeNames = new LinkedHashMap<Character, String>();
+        kmerCodeNames.put('0', "ref0");
+        kmerCodeNames.put('A', "repetitive");
+        kmerCodeNames.put('B', "both");
+        kmerCodeNames.put('C', "lowcoverage");
+        kmerCodeNames.put('_', "lowconfidence");
+        kmerCodeNames.put('.', "novel");
+        kmerCodeNames.put('1', "ref1");
+
+        if (KMER_CODE_NAMES != null) {
+            for (Character c : kmerCodeNames.keySet()) {
+                String cStr = String.valueOf(c);
+                if (KMER_CODE_NAMES.containsKey(cStr)) {
+                    kmerCodeNames.put(c, KMER_CODE_NAMES.get(cStr));
+                }
+            }
         }
 
-        log.info("Initializing...");
-        int kmerSize = PARENT_GRAPH.values().iterator().next().getKmerSize();
-
-        Map<String, Byte> parentIndices = new TreeMap<String, Byte>();
-        byte index = 3;
-        for (String parentName : PARENT_GRAPH.keySet()) {
-            parentIndices.put(parentName, index);
-
-            index -= 2;
+        for (Character c : kmerCodeNames.keySet()) {
+            log.info("  {} {}: {}", c, kmerCodeIndices.get(c), kmerCodeNames.get(c));
         }
-        parentIndices.put("shared", (byte) 2);
-        parentIndices.put("repeat", (byte) 6);
-        parentIndices.put("none", (byte) 0);
 
+        log.info("Loading annotated contigs...");
+        Map<String, Map<String, String>> annotatedContigs = new HashMap<String, Map<String, String>>();
+        int kmerSize = 0;
+
+        TableReader tr = new TableReader(ANN);
+        for (Map<String, String> te : tr) {
+            String contigName = te.get("contigName");
+
+            if (kmerSize == 0) {
+                kmerSize = te.get("seq").length() - te.get("kmerOrigin").length() + 1;
+            }
+
+            annotatedContigs.put(contigName, te);
+        }
+
+        log.info("    contigs: {}", annotatedContigs.size());
         log.info("  kmer size: {}", kmerSize);
-        log.info("  parent indices: {}", parentIndices);
 
-        log.info("Loading contigs...");
-
-        Set<SAMRecord> contigs = new HashSet<SAMRecord>();
-        Map<CortexKmer, String> kmerParentage = new HashMap<CortexKmer, String>();
-
-        for (SAMRecord contig : CONTIGS) {
-            String seq = contig.getReadString();
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
-
-                //contigKmers.add(kmer);
-                kmerParentage.put(kmer, "none");
-            }
-
-            contigs.add(contig);
-        }
-
-        log.info("  loaded {} contigs with {} unique kmers", contigs.size(), kmerParentage.size());
-
-        log.info("Examining kmer parentage...");
-
-        for (String parentName : PARENT_GRAPH.keySet()) {
-            CortexGraph parentGraph = PARENT_GRAPH.get(parentName);
-
-            int recordsSeen = 0;
-            for (CortexRecord cr : parentGraph) {
-                CortexKmer ck = cr.getKmer();
-
-                if (kmerParentage.containsKey(ck)) {
-                    if (MASKED_KMERS.containsKey(ck)) {
-                        kmerParentage.put(ck, "repeat");
-                    } else {
-                        if (!kmerParentage.containsKey(ck) || kmerParentage.get(ck).equalsIgnoreCase("none")) {
-                            kmerParentage.put(ck, parentName);
-                        } else {
-                            kmerParentage.put(ck, "shared");
-                        }
-                    }
-                }
-
-                if (recordsSeen % (parentGraph.getNumRecords() / 2) == 0) {
-                    log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
-                }
-                recordsSeen++;
-            }
-            //log.info("  {}: processed {}/{} (~{}%) records", parentName, recordsSeen, parentGraph.getNumRecords(), String.format("%.2f", 100.0f*((float) recordsSeen)/((float) parentGraph.getNumRecords())));
-        }
-
-        log.info("  total parental kmers: {}", kmerParentage.size());
-
-        log.info("Constructing inheritance vectors...");
+        log.info("Computing kmer inheritance information...");
 
         SAMFileHeader sfh = CONTIGS.getFileHeader();
-        //for (String parentName : PARENT_GRAPH.keySet()) {
-        for (String parentName : parentIndices.keySet()) {
-            SAMReadGroupRecord rgr = new SAMReadGroupRecord(parentName);
-            rgr.setSample(parentName);
+        for (Character c : kmerCodeNames.keySet()) {
+            SAMReadGroupRecord rgr = new SAMReadGroupRecord(kmerCodeNames.get(c));
+            rgr.setSample(kmerCodeNames.get(c));
             sfh.addReadGroup(rgr);
         }
 
@@ -129,92 +134,108 @@ public class ComputeParentalContributionTracks extends Module {
 
         TableWriter tw = new TableWriter(sout);
 
-        out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
-        int withZero = 0;
-        for (SAMRecord contig : contigs) {
-            if (CONTIG_NAMES == null || CONTIG_NAMES.size() == 0 || CONTIG_NAMES.contains(contig.getReadName())) {
-                String seq = contig.getReadString();
+        Set<IGVEntry> igvEntries = new TreeSet<IGVEntry>();
+        int numContigs = 0;
+        for (SAMRecord contig : CONTIGS) {
+            if (contig.getReadName().equals("contig-19293")) {
+                log.debug("Found contig...");
+            }
 
-                beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
+            if (numContigs % (annotatedContigs.size() / 10) == 0) {
+                log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
+            }
+            numContigs++;
 
-                int p1 = 0, p2 = 0, shared = 0, repeat = 0, none = 0;
-                for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
-                    //log.info("{}: {} {} {}", contig.getReadName(), ab.getReadStart(), ab.getReferenceStart(), ab.getLength());
+            String seq = contig.getReadString();
 
-                    for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
-                        if (i + kmerSize < seq.length()) {
-                            CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+            beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-                            SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
-                            skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
+            Map<String, String> te = annotatedContigs.get(contig.getReadName());
+            String annSeq = te.get("seq");
+            String kmerOrigin = te.get("kmerOrigin");
 
-                            List<CigarElement> cigarElements = new ArrayList<CigarElement>();
-                            cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
-                            Cigar cigar = new Cigar(cigarElements);
+            Map<CortexKmer, Character> kmerCodes = new HashMap<CortexKmer, Character>();
+            for (int i = 0; i < kmerOrigin.length(); i++) {
+                CortexKmer kmer = new CortexKmer(annSeq.substring(i, i + kmerSize));
+                Character code = kmerOrigin.charAt(i);
 
-                            skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
-                            skmer.setReferenceName(contig.getReferenceName());
-                            skmer.setCigar(cigar);
-                            skmer.setReadPairedFlag(false);
-                            skmer.setDuplicateReadFlag(false);
-                            skmer.setMateNegativeStrandFlag(false);
-                            skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
-                            skmer.setAttribute("RG", "none");
-                            skmer.setMappingQuality(0);
+                kmerCodes.put(kmer, code);
+            }
 
-                            if (kmerParentage.containsKey(kmer)) {
-                                String parentName = kmerParentage.get(kmer);
+            Map<Character, Integer> kmerStats = new HashMap<Character, Integer>();
+            for (Character c : kmerCodeNames.keySet()) {
+                kmerStats.put(c, 0);
+            }
 
-                                log.debug("  parentName: {}", parentName);
+            for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
+                for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
+                    if (i + kmerSize < seq.length()) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                                byte parentIndex = parentIndices.get(parentName);
+                        SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
+                        skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
 
-                                if (parentIndex == 3) { p1++; }
-                                if (parentIndex == 1) { p2++; }
-                                if (parentIndex == 2) { shared++; }
-                                if (parentIndex == 6) { repeat++; }
-                                if (parentIndex == 0) { none++; }
+                        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+                        cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
+                        Cigar cigar = new Cigar(cigarElements);
 
-                                String parentReadGroupId = null;
-                                String sampleReadGroupId = null;
-                                for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
-                                    if (rgr.getSample().equals(parentName)) {
-                                        parentReadGroupId = rgr.getReadGroupId();
-                                    }
+                        skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
+                        skmer.setReferenceName(contig.getReferenceName());
+                        skmer.setCigar(cigar);
+                        skmer.setReadPairedFlag(false);
+                        skmer.setDuplicateReadFlag(false);
+                        skmer.setMateNegativeStrandFlag(false);
+                        skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
+                        skmer.setAttribute("RG", "none");
+                        skmer.setMappingQuality(0);
 
-                                    if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
-                                        sampleReadGroupId = rgr.getReadGroupId();
-                                    }
-                                }
+                        Character c = kmerCodes.get(kmer);
+                        String codeName = kmerCodeNames.get(c);
 
-                                out.printf("%s\t%d\t%d\t%s\t%d\n", contig.getReferenceName(), contig.getAlignmentStart() + i, contig.getAlignmentStart() + i + 1, "parentage", parentIndex);
-
-                                skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
-                                skmer.setMappingQuality(99);
-                            } else {
-                                none++;
+                        String parentReadGroupId = null;
+                        String sampleReadGroupId = null;
+                        for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
+                            if (rgr.getSample().equals(codeName)) {
+                                parentReadGroupId = rgr.getReadGroupId();
                             }
 
-                            sfw.addAlignment(skmer);
+                            if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
+                                sampleReadGroupId = rgr.getReadGroupId();
+                            }
                         }
+
+                        skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
+                        skmer.setMappingQuality(99);
+
+                        sfw.addAlignment(skmer);
+
+                        kmerStats.put(c, kmerStats.get(c) + 1);
+
+                        IGVEntry igvEntry = new IGVEntry();
+                        igvEntry.chromosome = contig.getReferenceName();
+                        igvEntry.start = ab.getReferenceStart() - ab.getReadStart() + i;
+                        igvEntry.parentageName = kmerCodeNames.get(c);
+                        igvEntry.parentage = kmerCodeIndices.get(c);
+                        igvEntries.add(igvEntry);
                     }
                 }
-
-                //log.info("{}:{} length={} p1={} p2={} shared={} none={}", contig.getReferenceName(), contig.getAlignmentStart(), contig.getReadLength(), p1, p2, shared, none);
-                Map<String, String> stats = new LinkedHashMap<String, String>();
-                stats.put("contigName", contig.getReadName());
-                stats.put("sampleName", contig.getReadGroup().getSample());
-                stats.put("p1", String.valueOf(p1));
-                stats.put("p2", String.valueOf(p2));
-                stats.put("shared", String.valueOf(shared));
-                stats.put("repeat", String.valueOf(repeat));
-                stats.put("none", String.valueOf(none));
-                tw.addEntry(stats);
-
-                if (p1 == 0 || p2 == 0) {
-                    withZero++;
-                }
             }
+
+            Map<String, String> stats = new LinkedHashMap<String, String>();
+            stats.put("contigName", contig.getReadName());
+            stats.put("sampleName", contig.getReadGroup().getSample());
+            for (Character c : kmerCodeNames.keySet()) {
+                stats.put(kmerCodeNames.get(c), String.valueOf(kmerStats.get(c)));
+            }
+            tw.addEntry(stats);
+
+            //}
+        }
+
+        log.info("Writing kmer inheritance information...");
+        out.printf("%s\t%s\t%s\t%s\t%s\n", "Chromosome", "Start", "End", "Feature", "Parentage");
+        for (IGVEntry igvEntry : igvEntries) {
+            out.printf("%s\t%d\t%d\t%s\t%d\n", igvEntry.chromosome, igvEntry.start, igvEntry.start + 1, igvEntry.parentageName, igvEntry.parentage);
         }
 
         sfw.close();
