@@ -277,7 +277,9 @@ public class ArgumentHandler {
             } else if (type.equals(IndexedFastaSequenceFile.class)) {
                 return new IndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {
-                return new PrintStream(value);
+                FileOutputStream fdout = new FileOutputStream(value);
+                BufferedOutputStream bos = new BufferedOutputStream(fdout, 1048576);
+                return new PrintStream(bos, false);
             } else if (type.equals(SAMFileReader.class)) {
                 return new SAMFileReader(new File(value));
             } else if (type.equals(Color.class)) {

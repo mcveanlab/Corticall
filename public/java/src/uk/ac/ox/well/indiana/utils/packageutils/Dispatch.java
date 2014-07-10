@@ -6,8 +6,10 @@ import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 
+import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
@@ -84,6 +86,16 @@ public class Dispatch {
             Date startTime = new Date();
 
             instance.execute();
+
+            for (Field field : fields) {
+                for (Annotation annotation : field.getDeclaredAnnotations()) {
+                    if (annotation.annotationType().equals(Output.class)) {
+                        if (field.get(instance) instanceof PrintStream) {
+                            ((PrintStream) field.get(instance)).close();
+                        }
+                    }
+                }
+            }
 
             Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
 
