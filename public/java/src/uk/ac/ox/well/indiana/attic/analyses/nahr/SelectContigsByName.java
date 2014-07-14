@@ -35,6 +35,8 @@ public class SelectContigsByName extends Module {
 
         for (SAMRecord contig : CONTIGS) {
             if (CONTIG_NAMES.contains(contig.getReadName())) {
+                contig.setAttribute("XC", 1);
+
                 sfw.addAlignment(contig);
 
                 SAMRecordIterator sri = READS.queryOverlapping(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
