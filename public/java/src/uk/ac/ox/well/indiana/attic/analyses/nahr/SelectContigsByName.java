@@ -36,10 +36,13 @@ public class SelectContigsByName extends Module {
             if (CONTIG_NAMES.contains(contig.getReadName())) {
                 sfw.addAlignment(contig);
 
-                SAMRecord read;
-                while ((read = READS.queryOverlapping(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd()).next()) != null) {
+                SAMRecordIterator sri = READS.queryOverlapping(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
+                while (sri.hasNext()) {
+                    SAMRecord read = sri.next();
+
                     sfw.addAlignment(read);
                 }
+                sri.close();
             }
         }
 
