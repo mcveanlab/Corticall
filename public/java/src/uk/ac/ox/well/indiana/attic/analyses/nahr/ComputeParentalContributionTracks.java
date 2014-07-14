@@ -139,7 +139,6 @@ public class ComputeParentalContributionTracks extends Module {
             if (numContigs % (annotatedContigs.size() / 10) == 0) {
                 log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
             }
-            numContigs++;
 
             if (CONTIG_NAMES == null || CONTIG_NAMES.isEmpty() || CONTIG_NAMES.contains(contig.getReadName())) {
                 String seq = contig.getReadString();
@@ -149,6 +148,8 @@ public class ComputeParentalContributionTracks extends Module {
                 Map<String, String> te = annotatedContigs.get(contig.getReadName());
 
                 if (annotatedContigs.containsKey(contig.getReadName())) {
+                    numContigs++;
+
                     log.debug("  te: {}", te);
 
                     String annSeq = te.get("seq");
