@@ -39,6 +39,9 @@ public class SelectContigsByMetrics extends Module {
     @Output(fullName="statsOut", shortName="so", doc="Stats out")
     public PrintStream sout;
 
+    @Output(fullName="contigsOut", shortName="co", doc="Contig names out")
+    public PrintStream cout;
+
     @Override
     public void execute() {
         Set<String> knownEvents = new HashSet<String>();
@@ -86,6 +89,8 @@ public class SelectContigsByMetrics extends Module {
                 selectedContigs++;
 
                 tw.addEntry(te);
+
+                cout.println(te.get("contigName"));
             }
 
             numContigs++;
