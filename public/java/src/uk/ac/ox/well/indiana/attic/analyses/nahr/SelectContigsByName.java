@@ -25,12 +25,13 @@ public class SelectContigsByName extends Module {
     public void execute() {
         SAMFileWriterFactory sfwf = new SAMFileWriterFactory();
         sfwf.setCreateIndex(true);
-        SAMFileWriter sfw = sfwf.makeBAMWriter(CONTIGS.getFileHeader(), false, out);
 
         SAMFileHeader sfh = CONTIGS.getFileHeader();
         for (SAMReadGroupRecord srg : READS.getFileHeader().getReadGroups()) {
             sfh.addReadGroup(srg);
         }
+
+        SAMFileWriter sfw = sfwf.makeBAMWriter(sfh, false, out);
 
         for (SAMRecord contig : CONTIGS) {
             if (CONTIG_NAMES.contains(contig.getReadName())) {
