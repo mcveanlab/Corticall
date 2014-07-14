@@ -141,16 +141,16 @@ public class ComputeParentalContributionTracks extends Module {
             }
 
             if (CONTIG_NAMES == null || CONTIG_NAMES.isEmpty() || CONTIG_NAMES.contains(contig.getReadName())) {
-                String seq = contig.getReadString();
-
-                beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
-
                 Map<String, String> te = annotatedContigs.get(contig.getReadName());
 
                 if (annotatedContigs.containsKey(contig.getReadName())) {
                     numContigs++;
 
-                    log.debug("  te: {}", te);
+                    String seq = contig.getReadString();
+
+                    beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
+
+                    //log.debug("  te: {}", te);
 
                     String annSeq = te.get("seq");
                     String kmerOrigin = te.get("kmerOrigin");
