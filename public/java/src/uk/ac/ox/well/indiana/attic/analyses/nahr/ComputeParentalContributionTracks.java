@@ -4,11 +4,7 @@ import net.sf.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
@@ -25,6 +21,9 @@ public class ComputeParentalContributionTracks extends Module {
 
     @Argument(fullName="kmerCodeName", shortName="kcn", doc="Kmer code names", required=false)
     public HashMap<String, String> KMER_CODE_NAMES;
+
+    @Argument(fullName="contigNames", shortName="cn", doc="Contigs to select", required=false)
+    public HashSet<String> CONTIG_NAMES;
 
     @Output
     public PrintStream out;
@@ -137,99 +136,98 @@ public class ComputeParentalContributionTracks extends Module {
         Set<IGVEntry> igvEntries = new TreeSet<IGVEntry>();
         int numContigs = 0;
         for (SAMRecord contig : CONTIGS) {
-            if (contig.getReadName().equals("contig-19293")) {
-                log.debug("Found contig...");
-            }
-
             if (numContigs % (annotatedContigs.size() / 10) == 0) {
                 log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
             }
             numContigs++;
 
-            String seq = contig.getReadString();
+            if (CONTIG_NAMES == null || CONTIG_NAMES.isEmpty() || CONTIG_NAMES.contains(contig.getReadName())) {
+                String seq = contig.getReadString();
 
-            beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
+                beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
-            Map<String, String> te = annotatedContigs.get(contig.getReadName());
-            String annSeq = te.get("seq");
-            String kmerOrigin = te.get("kmerOrigin");
+                Map<String, String> te = annotatedContigs.get(contig.getReadName());
 
-            Map<CortexKmer, Character> kmerCodes = new HashMap<CortexKmer, Character>();
-            for (int i = 0; i < kmerOrigin.length(); i++) {
-                CortexKmer kmer = new CortexKmer(annSeq.substring(i, i + kmerSize));
-                Character code = kmerOrigin.charAt(i);
+                log.debug("  te: {}", te);
 
-                kmerCodes.put(kmer, code);
-            }
+                String annSeq = te.get("seq");
+                String kmerOrigin = te.get("kmerOrigin");
 
-            Map<Character, Integer> kmerStats = new HashMap<Character, Integer>();
-            for (Character c : kmerCodeNames.keySet()) {
-                kmerStats.put(c, 0);
-            }
+                Map<CortexKmer, Character> kmerCodes = new HashMap<CortexKmer, Character>();
+                for (int i = 0; i < kmerOrigin.length(); i++) {
+                    CortexKmer kmer = new CortexKmer(annSeq.substring(i, i + kmerSize));
+                    Character code = kmerOrigin.charAt(i);
 
-            for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
-                for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
-                    if (i + kmerSize < seq.length()) {
-                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
+                    kmerCodes.put(kmer, code);
+                }
 
-                        SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
-                        skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
+                Map<Character, Integer> kmerStats = new HashMap<Character, Integer>();
+                for (Character c : kmerCodeNames.keySet()) {
+                    kmerStats.put(c, 0);
+                }
 
-                        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
-                        cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
-                        Cigar cigar = new Cigar(cigarElements);
+                for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
+                    for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
+                        if (i + kmerSize < seq.length()) {
+                            CortexKmer kmer = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                        skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
-                        skmer.setReferenceName(contig.getReferenceName());
-                        skmer.setCigar(cigar);
-                        skmer.setReadPairedFlag(false);
-                        skmer.setDuplicateReadFlag(false);
-                        skmer.setMateNegativeStrandFlag(false);
-                        skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
-                        skmer.setAttribute("RG", "none");
-                        skmer.setMappingQuality(0);
+                            SAMRecord skmer = new SAMRecord(CONTIGS.getFileHeader());
+                            skmer.setReadBases(seq.substring(i, i + kmerSize).getBytes());
 
-                        Character c = kmerCodes.get(kmer);
-                        String codeName = kmerCodeNames.get(c);
+                            List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+                            cigarElements.add(new CigarElement(kmerSize, CigarOperator.M));
+                            Cigar cigar = new Cigar(cigarElements);
 
-                        String parentReadGroupId = null;
-                        String sampleReadGroupId = null;
-                        for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
-                            if (rgr.getSample().equals(codeName)) {
-                                parentReadGroupId = rgr.getReadGroupId();
+                            skmer.setReadName(contig.getReadName() + "." + kmer.getKmerAsString());
+                            skmer.setReferenceName(contig.getReferenceName());
+                            skmer.setCigar(cigar);
+                            skmer.setReadPairedFlag(false);
+                            skmer.setDuplicateReadFlag(false);
+                            skmer.setMateNegativeStrandFlag(false);
+                            skmer.setAlignmentStart(ab.getReferenceStart() - ab.getReadStart() + 1 + i);
+                            skmer.setAttribute("RG", "none");
+                            skmer.setMappingQuality(0);
+
+                            Character c = kmerCodes.get(kmer);
+                            String codeName = kmerCodeNames.get(c);
+
+                            String parentReadGroupId = null;
+                            String sampleReadGroupId = null;
+                            for (SAMReadGroupRecord rgr : sfh.getReadGroups()) {
+                                if (rgr.getSample().equals(codeName)) {
+                                    parentReadGroupId = rgr.getReadGroupId();
+                                }
+
+                                if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
+                                    sampleReadGroupId = rgr.getReadGroupId();
+                                }
                             }
 
-                            if (rgr.getSample().equals(contig.getReadGroup().getSample())) {
-                                sampleReadGroupId = rgr.getReadGroupId();
-                            }
+                            skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
+                            skmer.setMappingQuality(99);
+
+                            sfw.addAlignment(skmer);
+
+                            kmerStats.put(c, kmerStats.get(c) + 1);
+
+                            IGVEntry igvEntry = new IGVEntry();
+                            igvEntry.chromosome = contig.getReferenceName();
+                            igvEntry.start = ab.getReferenceStart() - ab.getReadStart() + i;
+                            igvEntry.parentageName = kmerCodeNames.get(c);
+                            igvEntry.parentage = kmerCodeIndices.get(c);
+                            igvEntries.add(igvEntry);
                         }
-
-                        skmer.setAttribute("RG", parentReadGroupId != null ? parentReadGroupId : sampleReadGroupId);
-                        skmer.setMappingQuality(99);
-
-                        sfw.addAlignment(skmer);
-
-                        kmerStats.put(c, kmerStats.get(c) + 1);
-
-                        IGVEntry igvEntry = new IGVEntry();
-                        igvEntry.chromosome = contig.getReferenceName();
-                        igvEntry.start = ab.getReferenceStart() - ab.getReadStart() + i;
-                        igvEntry.parentageName = kmerCodeNames.get(c);
-                        igvEntry.parentage = kmerCodeIndices.get(c);
-                        igvEntries.add(igvEntry);
                     }
                 }
-            }
 
-            Map<String, String> stats = new LinkedHashMap<String, String>();
-            stats.put("contigName", contig.getReadName());
-            stats.put("sampleName", contig.getReadGroup().getSample());
-            for (Character c : kmerCodeNames.keySet()) {
-                stats.put(kmerCodeNames.get(c), String.valueOf(kmerStats.get(c)));
+                Map<String, String> stats = new LinkedHashMap<String, String>();
+                stats.put("contigName", contig.getReadName());
+                stats.put("sampleName", contig.getReadGroup().getSample());
+                for (Character c : kmerCodeNames.keySet()) {
+                    stats.put(kmerCodeNames.get(c), String.valueOf(kmerStats.get(c)));
+                }
+                tw.addEntry(stats);
             }
-            tw.addEntry(stats);
-
-            //}
         }
 
         log.info("Writing kmer inheritance information...");

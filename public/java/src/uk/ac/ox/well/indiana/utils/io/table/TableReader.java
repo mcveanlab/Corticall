@@ -134,7 +134,8 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
             mappedRecordBuffer.read(new byte[1]);
 
             String[] fields = (new String(record)).split("\t");
-            Map<String, String> entry = new HashMap<String, String>();
+            //Map<String, String> entry = new HashMap<String, String>();
+            Map<String, String> entry = new LinkedHashMap<String, String>();
 
             for (int i = 0; i < header.length; i++) {
                 entry.put(header[i], fields[i]);
