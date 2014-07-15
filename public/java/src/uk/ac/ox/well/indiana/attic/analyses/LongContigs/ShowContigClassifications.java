@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

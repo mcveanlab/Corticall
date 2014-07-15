@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.ContigErrors;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.fastq.FastqReader;
-import net.sf.picard.fastq.FastqRecord;
+import htsjdk.samtools.fastq.FastqReader;
+import htsjdk.samtools.fastq.FastqRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;

@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.utils.io.gff;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTreeMap;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
 import java.io.File;

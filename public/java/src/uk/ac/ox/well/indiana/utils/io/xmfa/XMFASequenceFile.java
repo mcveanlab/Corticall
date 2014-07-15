@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.utils.io.xmfa;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
 import java.io.File;

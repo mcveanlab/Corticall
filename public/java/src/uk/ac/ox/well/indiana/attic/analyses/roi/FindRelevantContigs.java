@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.roi;
 
-import net.sf.picard.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.FastaSequenceFile;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 

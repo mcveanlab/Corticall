@@ -1,10 +1,9 @@
 package uk.ac.ox.well.indiana.attic.simulate;
 
-import net.sf.picard.PicardException;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.StringUtil;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.StringUtil;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -94,7 +93,7 @@ public class SimulatePerfectReads extends Module {
                             }
                         }
                     }
-                } catch (PicardException e) {
+                } catch (Exception e) {
                 }
 
                 seenReads++;

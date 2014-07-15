@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.roi;
 
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileReader;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 

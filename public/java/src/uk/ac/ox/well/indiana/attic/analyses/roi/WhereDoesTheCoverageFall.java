@@ -1,10 +1,10 @@
 package uk.ac.ox.well.indiana.attic.analyses.roi;
 
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
 import processing.core.PFont;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;

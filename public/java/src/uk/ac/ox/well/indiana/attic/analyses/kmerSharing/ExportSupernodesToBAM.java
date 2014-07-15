@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

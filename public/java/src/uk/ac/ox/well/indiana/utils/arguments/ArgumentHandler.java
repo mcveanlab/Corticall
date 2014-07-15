@@ -1,15 +1,12 @@
 package uk.ac.ox.well.indiana.utils.arguments;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileReader;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
-import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;

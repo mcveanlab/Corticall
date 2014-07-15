@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.utils.alignment.sw;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.ArrayList;

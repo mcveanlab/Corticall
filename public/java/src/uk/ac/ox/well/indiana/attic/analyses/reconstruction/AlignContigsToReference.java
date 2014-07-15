@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.reconstruction;
 
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

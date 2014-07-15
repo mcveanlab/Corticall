@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.utils.io.gff;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.util.Interval;
+import htsjdk.samtools.util.Interval;
 
 import java.util.TreeMap;
 
