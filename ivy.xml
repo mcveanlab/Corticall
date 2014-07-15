@@ -39,9 +39,11 @@
         <dependency org="org.processing" name="jogl-all-natives-windows-i586" rev="latest" />
 
         <dependency org="org.gicentre" name="gicentreUtils" rev="3.2.0" />
-        <dependency org="net.sf.picard" name="sam" rev="latest" />
-        <dependency org="net.sf.picard" name="picard" rev="latest" />
+        <!--<dependency org="net.sf.picard" name="sam" rev="latest" />
+        <dependency org="net.sf.picard" name="picard" rev="latest" />-->
+        <dependency org="org.apache.ant.bzip2" name="bzip2" rev="1.8.2" />
         <dependency org="htsjdk" name="htsjdk" rev="1.117" />
+        <dependency org="org.broadinstitute.picard" name="picard" rev="1.117" />
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
         <dependency org="com.javacodegeeks.stringsearch" name="stringsearch" rev="1.0.0" />
 
