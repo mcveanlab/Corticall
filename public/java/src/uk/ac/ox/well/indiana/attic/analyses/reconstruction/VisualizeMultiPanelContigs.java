@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.reconstruction;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

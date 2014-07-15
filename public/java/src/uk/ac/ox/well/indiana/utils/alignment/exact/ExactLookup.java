@@ -1,9 +1,9 @@
 package uk.ac.ox.well.indiana.utils.alignment.exact;
 
 import com.javacodegeeks.stringsearch.BM;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.util.Interval;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.util.Interval;
 
 import java.util.*;
 

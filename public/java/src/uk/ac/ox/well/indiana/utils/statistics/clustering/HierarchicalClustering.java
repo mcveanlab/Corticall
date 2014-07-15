@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.utils.statistics.clustering;
 
 import com.google.common.base.Joiner;
-import net.sf.picard.util.RExecutor;
+import picard.util.RExecutor;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;

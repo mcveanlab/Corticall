@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
 
 import cern.colt.matrix.DoubleMatrix1D;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTreeMap;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import org.gicentre.utils.colour.ColourTable;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.util.*;

@@ -1,7 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.roi;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.ValidationStringency;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -21,7 +22,7 @@ public class CountMappingQualityZeroReads extends Module {
     @Override
     public void execute() {
         SAMFileReader bamReader = new SAMFileReader(BAM);
-        bamReader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        bamReader.setValidationStringency(ValidationStringency.SILENT);
 
         Map<String, Integer> mq0 = new HashMap<String, Integer>();
         Map<String, Integer> unmapped = new HashMap<String, Integer>();

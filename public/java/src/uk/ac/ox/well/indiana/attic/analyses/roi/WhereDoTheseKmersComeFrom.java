@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.roi;
 
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.util.Interval;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
 import processing.core.PFont;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;

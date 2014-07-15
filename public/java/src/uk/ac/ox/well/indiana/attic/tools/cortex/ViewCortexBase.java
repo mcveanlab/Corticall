@@ -1,6 +1,6 @@
 package uk.ac.ox.well.indiana.attic.tools.cortex;
 
-import net.sf.picard.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.FastaSequenceFile;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;

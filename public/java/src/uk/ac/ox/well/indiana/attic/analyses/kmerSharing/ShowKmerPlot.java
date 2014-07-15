@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.attic.analyses.kmerSharing;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalTreeMap;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

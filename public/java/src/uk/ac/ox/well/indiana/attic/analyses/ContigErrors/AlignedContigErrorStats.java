@@ -1,8 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.ContigErrors;
 
-import net.sf.picard.util.IntervalTree;
-import net.sf.picard.util.IntervalTreeMap;
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.IntervalTree;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -10,7 +9,6 @@ import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.PrintStream;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AlignedContigErrorStats extends Module {
