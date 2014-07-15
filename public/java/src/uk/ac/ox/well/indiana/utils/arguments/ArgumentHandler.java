@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.variant.vcf.VCFFileReader;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
@@ -279,6 +280,8 @@ public class ArgumentHandler {
                 return new PrintStream(bos, false);
             } else if (type.equals(SAMFileReader.class)) {
                 return new SAMFileReader(new File(value));
+            } else if (type.equals(VCFFileReader.class)) {
+                return new VCFFileReader(new File(value), false);
             } else if (type.equals(Color.class)) {
                 return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
             } else if (type.equals(Expression.class)) {
