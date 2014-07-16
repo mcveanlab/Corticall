@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.sequence;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;

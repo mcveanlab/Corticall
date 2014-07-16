@@ -13,7 +13,10 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import java.awt.*;
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ColorSupernodes extends Sketch {
     @Argument(fullName="reference", shortName="R", doc="Reference genome")

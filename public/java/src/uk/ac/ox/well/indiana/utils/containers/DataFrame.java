@@ -4,7 +4,10 @@ import com.google.common.base.Joiner;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 
 public class DataFrame<R, C, D> {
     private LinkedHashMap<R, LinkedHashMap<C, D>> data = new LinkedHashMap<R, LinkedHashMap<C, D>>();

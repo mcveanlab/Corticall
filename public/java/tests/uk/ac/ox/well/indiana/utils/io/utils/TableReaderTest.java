@@ -6,8 +6,14 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class TableReaderTest {
     private File smallTable;

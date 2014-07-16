@@ -8,7 +8,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
-import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Description;

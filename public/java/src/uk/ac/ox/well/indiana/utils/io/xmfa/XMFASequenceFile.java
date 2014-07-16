@@ -5,8 +5,9 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class XMFASequenceFile implements Iterable<XMFARecord>, Iterator<XMFARecord> {
     private File xmfaFile;

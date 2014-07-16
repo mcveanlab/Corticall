@@ -10,7 +10,9 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 
 @Description(text="Extracts regions of interest from a FASTA file")
 public class roi extends Module {

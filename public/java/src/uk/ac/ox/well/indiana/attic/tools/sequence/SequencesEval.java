@@ -10,7 +10,8 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.performance.PerformanceUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;

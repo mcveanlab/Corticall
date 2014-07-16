@@ -11,7 +11,10 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class FindEctopicRecombinationContigs extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs")

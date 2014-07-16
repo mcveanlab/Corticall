@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.utils.io.cortex;
 
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.lang.CharSequence;import java.lang.Override;import java.lang.String;import java.lang.System;import java.util.Arrays;
+import java.util.Arrays;
 
 public class CortexKmer implements CharSequence {
     private byte[] kmer;

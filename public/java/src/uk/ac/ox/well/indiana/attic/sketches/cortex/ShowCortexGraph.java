@@ -15,7 +15,10 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ShowCortexGraph extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")

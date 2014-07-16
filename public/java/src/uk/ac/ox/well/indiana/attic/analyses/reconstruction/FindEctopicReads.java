@@ -15,7 +15,10 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class FindEctopicReads extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")

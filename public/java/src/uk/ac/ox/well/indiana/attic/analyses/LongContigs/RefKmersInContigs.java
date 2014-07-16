@@ -1,7 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.LongContigs;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

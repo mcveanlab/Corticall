@@ -3,7 +3,9 @@ package uk.ac.ox.well.indiana.attic.tools.examples;
 import be.ac.ulg.montefiore.run.jahmm.*;
 import uk.ac.ox.well.indiana.commands.Module;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
 
 public class RainySunnyHMM extends Module {
     private enum Task {

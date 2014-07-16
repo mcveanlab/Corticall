@@ -1,25 +1,23 @@
 package uk.ac.ox.well.indiana.commands.prg;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
-import uk.ac.ox.well.indiana.utils.io.jgrapht.MultiWeightEdge;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Description(text="Create a population reference graph from the given FASTA file")
 public class createprg extends Module {
