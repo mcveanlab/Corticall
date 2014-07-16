@@ -170,6 +170,7 @@ public class AnnotateContigs extends Module {
                     char colorChar = annotation.charAt(i);
 
                     boolean isContiguous;
+
                     switch (colorChar) {
                         case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
                         case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
