@@ -1,9 +1,9 @@
 package uk.ac.ox.well.indiana.utils.arguments;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.variant.vcf.VCFFileReader;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;

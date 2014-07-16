@@ -2,12 +2,14 @@ package uk.ac.ox.well.indiana.utils.io.jgrapht;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
-import org.jgrapht.ext.*;
+import org.jgrapht.ext.ComponentAttributeProvider;
+import org.jgrapht.ext.EdgeNameProvider;
+import org.jgrapht.ext.IntegerNameProvider;
+import org.jgrapht.ext.VertexNameProvider;
 
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Map;
-import java.util.Set;
 
 public class ExtendedDOTExporter<V, E> {
     //~ Instance fields --------------------------------------------------------

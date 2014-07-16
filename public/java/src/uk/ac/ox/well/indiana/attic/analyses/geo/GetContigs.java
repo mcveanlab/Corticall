@@ -8,7 +8,9 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class GetContigs extends Module {
     @Argument(fullName="diagnosticKmers", shortName="dk", doc="Diagnostic kmers")

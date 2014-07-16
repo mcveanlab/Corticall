@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.packageutils;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
-import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;

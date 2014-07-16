@@ -1,8 +1,5 @@
 package uk.ac.ox.well.indiana.attic.analyses.ContigErrors;
 
-import com.google.common.base.Joiner;
-import htsjdk.samtools.util.Interval;
-import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileReader;
@@ -11,9 +8,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
-import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Matcher;

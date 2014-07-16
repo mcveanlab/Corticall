@@ -1,7 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.utils;
 
 import java.io.*;
-import java.util.Iterator;
 
 public class LineReader extends Reader {
     protected BufferedReader br = null;

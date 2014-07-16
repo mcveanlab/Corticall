@@ -1,10 +1,10 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr.old;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.exact.ExactLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -14,7 +14,10 @@ import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class AlignXMFAToFasta extends Module {
     @Argument(fullName="xfma", shortName="xf", doc="XMFA file")

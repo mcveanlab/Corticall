@@ -3,11 +3,9 @@ package uk.ac.ox.well.indiana.utils.io.table;
 import com.google.common.base.Joiner;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

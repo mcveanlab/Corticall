@@ -5,13 +5,10 @@ import it.unimi.dsi.io.ByteBufferInputStream;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;

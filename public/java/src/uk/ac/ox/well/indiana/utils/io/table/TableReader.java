@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.table;
 
+import ch.qos.logback.classic.Logger;
 import it.unimi.dsi.io.ByteBufferInputStream;
 
 import java.io.File;
@@ -8,8 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.*;
-
-import ch.qos.logback.classic.Logger;
 
 /**
  * Streams very large text-based tables by first making a pass through the file to find all the line breaks

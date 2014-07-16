@@ -17,10 +17,11 @@ import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.clustering.HierarchicalClustering;
 
-import java.awt.Color;
+import java.awt.*;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.List;
 
 public class ShowContigClassifications extends Sketch {
     @Argument(fullName="classifications", shortName="c", doc="Classifications file")

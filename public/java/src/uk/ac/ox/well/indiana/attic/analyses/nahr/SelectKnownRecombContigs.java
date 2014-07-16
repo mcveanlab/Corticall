@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
-import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.*;
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;

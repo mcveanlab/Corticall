@@ -9,8 +9,12 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ComputeSampleRelatedness2 extends Module {
     @Argument(fullName="cortexGraph", shortName="cg", doc="Cortex graph")

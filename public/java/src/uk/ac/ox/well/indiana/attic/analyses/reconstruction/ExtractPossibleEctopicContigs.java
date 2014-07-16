@@ -7,7 +7,10 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ExtractPossibleEctopicContigs extends Module {
     @Argument(fullName="contigTable", shortName="ct", doc="Contig table")
