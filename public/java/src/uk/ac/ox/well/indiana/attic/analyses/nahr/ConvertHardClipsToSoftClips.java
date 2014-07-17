@@ -48,6 +48,10 @@ public class ConvertHardClipsToSoftClips extends Module {
                     }
                 }
 
+                if (changed) {
+                    log.info("  {}: {}", read.getCigar(), read.getReadString());
+                }
+
                 read.setCigar(new Cigar(ces));
 
                 sfw.addAlignment(read);
