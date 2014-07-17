@@ -54,11 +54,11 @@ public class PaintTransmittedHaplotypes extends Module {
                     } else {
                         Genotype gp = vc.getGenotype(sampleName);
 
-                        int parentIndex = 0;
+                        int parentIndex = 4;
 
-                        if ( ((gp.getPloidy() == 1) || (g1.isPhased() && g2.isPhased() && gp.isPhased())) &&
-                             (!g1.isNoCall() && !g2.isNoCall() && !gp.isNoCall()) ) {
-
+                        if ( g1.isNoCall() || g2.isNoCall() || gp.isNoCall() ) {
+                            parentIndex = 0;
+                        } else if ( ( (gp.getPloidy() == 1) || (g1.isPhased() && g2.isPhased() && gp.isPhased()) ) ) {
                             if (gp.sameGenotype(g1, false) && !gp.sameGenotype(g2, false)) {
                                 parentIndex = 1;
                             } else if (gp.sameGenotype(g2, false) && !gp.sameGenotype(g1, false)) {
