@@ -44,7 +44,7 @@ public class MergeContigsAndOverlappingReads extends Module {
                 int alignmentEnd = contig.getAlignmentEnd();
 
                 CigarElement firstCe = contig.getCigar().getCigarElements().get(0);
-                CigarElement lastCe = contig.getCigar().getCigarElements().get(contig.getCigar().getCigarElements().size());
+                CigarElement lastCe = contig.getCigar().getCigarElements().get(contig.getCigar().getCigarElements().size() - 1);
 
                 if (firstCe.getOperator().equals(CigarOperator.S)) {
                     alignmentStart = contig.getAlignmentStart() - firstCe.getLength();
