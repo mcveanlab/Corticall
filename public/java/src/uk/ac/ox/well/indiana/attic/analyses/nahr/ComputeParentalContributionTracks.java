@@ -136,19 +136,10 @@ public class ComputeParentalContributionTracks extends Module {
         Set<IGVEntry> igvEntries = new TreeSet<IGVEntry>();
         int numContigs = 0;
         for (SAMRecord contig : CONTIGS) {
-            if (numContigs % (annotatedContigs.size() / 10) == 0) {
-                log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
-            }
-
             if (CONTIG_NAMES == null || CONTIG_NAMES.isEmpty() || CONTIG_NAMES.contains(contig.getReadName())) {
                 Map<String, String> te = annotatedContigs.get(contig.getReadName());
 
                 if (annotatedContigs.containsKey(contig.getReadName())) {
-                    if (!contig.isSecondaryOrSupplementary()) {
-                        beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
-                        numContigs++;
-                    }
-
                     String seq = contig.getReadString();
 
                     //log.debug("  te: {}", te);
@@ -183,9 +174,13 @@ public class ComputeParentalContributionTracks extends Module {
                     }
 
                     if (changed) {
-                        log.info("Alignment start (before): {}", contig.getAlignmentStart());
+                        CigarElement firstCe = contig.getCigar().getCigarElements().get(0);
+
+                        if (firstCe.getOperator().equals(CigarOperator.S)) {
+                            contig.setAlignmentStart(contig.getAlignmentStart() - firstCe.getLength());
+                        }
+
                         contig.setCigar(new Cigar(ces));
-                        log.info("Alignment start (after) : {}", contig.getAlignmentStart());
                     }
 
                     for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
@@ -240,6 +235,15 @@ public class ComputeParentalContributionTracks extends Module {
                                 igvEntries.add(igvEntry);
                             }
                         }
+                    }
+
+                    if (!contig.isSecondaryOrSupplementary()) {
+                        beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd() + "\t" + contig.getReadName() + "." + contig.getReadGroup().getSample());
+
+                        if (numContigs % (annotatedContigs.size() / 10) == 0) {
+                            log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
+                        }
+                        numContigs++;
                     }
 
                     Map<String, String> stats = new LinkedHashMap<String, String>();
