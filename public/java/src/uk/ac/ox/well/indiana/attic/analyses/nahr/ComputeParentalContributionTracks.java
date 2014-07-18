@@ -144,11 +144,12 @@ public class ComputeParentalContributionTracks extends Module {
                 Map<String, String> te = annotatedContigs.get(contig.getReadName());
 
                 if (annotatedContigs.containsKey(contig.getReadName())) {
-                    numContigs++;
+                    if (!contig.isSecondaryOrSupplementary()) {
+                        beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
+                        numContigs++;
+                    }
 
                     String seq = contig.getReadString();
-
-                    beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd());
 
                     //log.debug("  te: {}", te);
 
