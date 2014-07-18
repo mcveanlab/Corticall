@@ -178,6 +178,8 @@ public class ComputeParentalContributionTracks extends Module {
                         }
                     }
 
+                    contig.setCigar(new Cigar(ces));
+
                     for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
                         for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
                             if (i + kmerSize < seq.length()) {
