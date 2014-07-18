@@ -168,6 +168,16 @@ public class ComputeParentalContributionTracks extends Module {
                         kmerStats.put(c, 0);
                     }
 
+                    // We want to be able to examine soft-clipped regions as well.
+                    List<CigarElement> ces = new ArrayList<CigarElement>();
+                    for (CigarElement ce : contig.getCigar().getCigarElements()) {
+                        if (ce.getOperator().equals(CigarOperator.S)) {
+                            ces.add(new CigarElement(ce.getLength(), CigarOperator.M));
+                        } else {
+                            ces.add(ce);
+                        }
+                    }
+
                     for (AlignmentBlock ab : contig.getAlignmentBlocks()) {
                         for (int i = ab.getReadStart() - 1; i < ab.getReadStart() + ab.getLength(); i++) {
                             if (i + kmerSize < seq.length()) {
