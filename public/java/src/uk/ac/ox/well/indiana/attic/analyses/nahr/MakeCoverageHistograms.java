@@ -30,7 +30,10 @@ public class MakeCoverageHistograms extends Module {
         //int minCoverage = 100;
         //int maxCoverage = 0;
 
+        log.info("Processing samples...");
         for (String sample : COV.keySet()) {
+            log.info("  {}", sample);
+
             File covDist = COV.get(sample);
 
             covHist.put(sample, new TreeMap<Integer, Integer>());
