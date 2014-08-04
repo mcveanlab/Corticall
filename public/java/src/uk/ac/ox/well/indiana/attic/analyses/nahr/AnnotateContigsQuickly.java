@@ -10,8 +10,10 @@ import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -28,8 +30,8 @@ public class AnnotateContigsQuickly extends Module {
     @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers")
     public CortexGraph MASKED_KMERS;
 
-    @Argument(fullName="covThreshold", shortName="ct", doc="Coverage threshold")
-    public Integer COV_THRESHOLD = 10;
+    @Argument(fullName="covThresholds", shortName="ct", doc="Coverage thresholds table")
+    public File COV_THRESHOLDS;
 
     @Output
     public PrintStream out;
@@ -44,6 +46,35 @@ public class AnnotateContigsQuickly extends Module {
     @Override
     public void execute() {
         int kmerSize = COVERAGE.getKmerSize();
+
+        // Section: load coverage thresholds
+        log.info("Load coverage thresholds...");
+        int sampleP0Threshold = 0;
+        int sampleP1Threshold = 0;
+        int p1Threshold = 0;
+        int p2Threshold = 0;
+
+        TableReader tr = new TableReader(COV_THRESHOLDS);
+        for (Map<String, String> te : tr) {
+            String sample = te.get("sample");
+
+            if (COVERAGE.getColor(0).getSampleName().contains(sample)) {
+                sampleP0Threshold = Integer.valueOf(te.get("p1"));
+                sampleP1Threshold = Integer.valueOf(te.get("p2"));
+            } else if (PARENTS.getColor(0).getSampleName().contains(sample)) {
+                p1Threshold = Integer.valueOf(te.get("p1"));
+            } else if (PARENTS.getColor(1).getSampleName().contains(sample)) {
+                p2Threshold = Integer.valueOf(te.get("p2"));
+            }
+        }
+
+        int sampleThreshold = sampleP0Threshold > sampleP1Threshold ? sampleP0Threshold : sampleP1Threshold;
+
+        log.info("  sampleP0Threshold: {}", sampleP0Threshold);
+        log.info("  sampleP1Threshold: {}", sampleP1Threshold);
+        log.info("    sampleThreshold: {}", sampleThreshold);
+        log.info("        p1Threshold: {}", p1Threshold);
+        log.info("        p2Threshold: {}", p2Threshold);
 
         // Section: load contigs
         log.info("Loading contigs...");
@@ -150,14 +181,14 @@ public class AnnotateContigsQuickly extends Module {
 
                     if (isMasked) {
                         annotation.append("A");
-                    } else if (cov < COV_THRESHOLD) {
+                    } else if (cov < sampleThreshold) {
                         annotation.append("C");
                     } else if (cov0 > 0 || cov1 > 0) {
-                        if (cov0 == 0 && cov1 >= COV_THRESHOLD) {
+                        if (cov0 == 0 && cov1 >= p2Threshold) {
                             annotation.append("1");
-                        } else if (cov0 >= COV_THRESHOLD && cov1 == 0) {
+                        } else if (cov0 >= p1Threshold && cov1 == 0) {
                             annotation.append("0");
-                        } else if (cov0 >= COV_THRESHOLD && cov1 >= COV_THRESHOLD) {
+                        } else if (cov0 >= p1Threshold && cov1 >= p2Threshold) {
                             annotation.append("B");
                         } else {
                             annotation.append("_");
@@ -170,6 +201,7 @@ public class AnnotateContigsQuickly extends Module {
                 StringBuilder contiguity = new StringBuilder();
                 contiguity.append("0");
                 for (int i = 1; i <= seq.length() - kmerSize; i++) {
+                    /*
                     String prevStr = seq.substring(i - 1, i - 1 + kmerSize);
                     String curStr  = seq.substring(i, i + kmerSize);
 
@@ -177,16 +209,17 @@ public class AnnotateContigsQuickly extends Module {
 
                     boolean isContiguous = true;
 
-                    /*
                     switch (colorChar) {
                         case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
                         case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
                         case 'B': isContiguous = isContiguous(prevStr, curStr, 0) || isContiguous(prevStr, curStr, 1); break;
                         default:  isContiguous = false; break;
                     }
-                    */
 
                     contiguity.append(isContiguous ? "1" : "0");
+                    */
+
+                    contiguity.append("1");
                 }
 
                 String coverage = Joiner.on(",").join(coverages);
