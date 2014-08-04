@@ -224,7 +224,12 @@ public class AnnotateContigsQuickly extends Module {
 
                 String coverage = Joiner.on(",").join(coverages);
 
+                if (annotation.length() == 0) { annotation.append("."); }
+                if (coverage.length() == 0) { coverage = "0"; }
+
+                //if (seq.length() >= kmerSize) {
                 out.println(rseq.getName().split("\\s+")[0] + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString() + "\t" + coverage);
+                //}
             }
         }
     }
