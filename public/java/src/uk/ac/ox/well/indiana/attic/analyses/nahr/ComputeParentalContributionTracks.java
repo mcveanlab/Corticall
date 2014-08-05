@@ -240,7 +240,7 @@ public class ComputeParentalContributionTracks extends Module {
                     if (!contig.isSecondaryOrSupplementary()) {
                         beout.println(contig.getReferenceName() + "\t" + contig.getAlignmentStart() + "\t" + contig.getAlignmentEnd() + "\t" + contig.getReadName() + "." + contig.getReadGroup().getSample());
 
-                        if (numContigs % (annotatedContigs.size() / 10) == 0) {
+                        if (annotatedContigs.size() > 10 && numContigs % (annotatedContigs.size() / 10) == 0) {
                             log.info("  processed {}/{} contigs", numContigs, annotatedContigs.size());
                         }
                         numContigs++;
