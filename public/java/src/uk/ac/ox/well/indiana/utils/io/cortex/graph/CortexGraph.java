@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.io.cortex;
+package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
@@ -31,7 +31,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private long recordsSeen = 0;
 
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
-    private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
+    //private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
     private ByteBufferInputStream mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
@@ -105,7 +105,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 String sampleNameStr = new String(sampleName);
 
                 colors.get(color).setSampleName(sampleNameStr);
-                nameToColor.put(sampleNameStr, color);
+                //nameToColor.put(sampleNameStr, color);
             }
 
             // Todo: fix this at some point - we're not actually getting the error rate properly

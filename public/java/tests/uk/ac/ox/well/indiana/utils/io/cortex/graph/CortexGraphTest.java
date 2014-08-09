@@ -1,7 +1,9 @@
-package uk.ac.ox.well.indiana.utils.io.cortex;
+package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.ArrayList;
 import java.util.HashSet;

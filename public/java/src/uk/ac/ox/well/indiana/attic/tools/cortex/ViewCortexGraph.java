@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.attic.tools.cortex;
 
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 public class ViewCortexGraph extends ViewCortexBase {
     @Argument(fullName="headerOnly", shortName="H", doc="Only print the header")

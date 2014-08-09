@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.attic.analyses.roi;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;

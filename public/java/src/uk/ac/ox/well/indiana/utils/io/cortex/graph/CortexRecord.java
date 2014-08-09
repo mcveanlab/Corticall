@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.io.cortex;
+package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
