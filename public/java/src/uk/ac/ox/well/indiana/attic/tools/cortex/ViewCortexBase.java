@@ -7,8 +7,8 @@ import org.apache.commons.jexl2.MapContext;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;

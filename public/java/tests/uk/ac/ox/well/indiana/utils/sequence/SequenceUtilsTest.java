@@ -5,7 +5,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 

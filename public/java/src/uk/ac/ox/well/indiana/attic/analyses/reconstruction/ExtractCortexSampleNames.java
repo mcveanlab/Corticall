@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.attic.analyses.reconstruction;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 
 import java.io.PrintStream;
 import java.util.ArrayList;

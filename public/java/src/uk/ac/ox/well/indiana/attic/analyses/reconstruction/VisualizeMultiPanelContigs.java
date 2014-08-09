@@ -5,7 +5,7 @@ import processing.pdf.PGraphicsPDF;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;

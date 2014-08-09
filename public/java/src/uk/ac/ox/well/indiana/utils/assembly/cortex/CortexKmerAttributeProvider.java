@@ -1,7 +1,7 @@
 package uk.ac.ox.well.indiana.utils.assembly.cortex;
 
 import org.jgrapht.ext.ComponentAttributeProvider;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 
 import java.util.HashMap;
 import java.util.Map;

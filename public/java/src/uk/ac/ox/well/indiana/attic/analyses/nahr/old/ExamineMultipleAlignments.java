@@ -7,9 +7,9 @@ import htsjdk.samtools.SAMRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.PrintStream;
 import java.util.*;

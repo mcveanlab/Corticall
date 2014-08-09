@@ -2,9 +2,9 @@ package uk.ac.ox.well.indiana.utils.assembly.cortex;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexMap;
-import uk.ac.ox.well.indiana.utils.io.cortex.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.*;
