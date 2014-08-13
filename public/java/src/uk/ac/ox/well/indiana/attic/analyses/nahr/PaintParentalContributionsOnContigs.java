@@ -82,7 +82,7 @@ public class PaintParentalContributionsOnContigs extends Sketch {
 
             int recordsSeen = 0;
             for (CortexRecord cr : parentGraph) {
-                CortexKmer ck = cr.getKmer();
+                CortexKmer ck = cr.getCortexKmer();
 
                 if (contigKmerColors.containsKey(ck)) {
                     if (contigKmerColors.get(ck) == null) {

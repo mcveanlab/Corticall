@@ -38,7 +38,7 @@ public class RefKmersInContigs extends Module {
 
             CortexGraph ref = CORTEX_GRAPHS.get(refid);
             for (CortexRecord cr : ref) {
-                CortexKmer kmer = cr.getKmer();
+                CortexKmer kmer = cr.getCortexKmer();
 
                 if (!refKmersSeen.containsKey(kmer)) {
                     refKmersSeen.put(kmer, new HashMap<String, Boolean>());

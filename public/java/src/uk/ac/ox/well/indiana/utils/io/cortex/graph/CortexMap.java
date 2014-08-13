@@ -53,7 +53,7 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
 
         int i = 0;
         for (CortexRecord cr : cortexGraph) {
-            CortexKmer kmer = cr.getKmer();
+            CortexKmer kmer = cr.getCortexKmer();
 
             if (!containsKey(kmer)) {
                 put(kmer, cr);
@@ -70,7 +70,7 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
                 System.arraycopy(cr.getEdges(),     0, edges,     crold.getEdges().length,     cr.getEdges().length);
 
                 //put(kmer, new CortexRecord(kmer, coverages, edges));
-                put(kmer, new CortexRecord(cr.getBinaryKmer(), coverages, edges, cr.getKmerSize(), cr.getKmerBits()));
+                put(kmer, new CortexRecord(cr.getKmer(), coverages, edges, cr.getKmerSize(), cr.getKmerBits()));
             }
 
             if (this.log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {

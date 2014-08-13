@@ -117,7 +117,7 @@ public class KmerOverlapWithReference extends Module {
             }
 
             for (CortexRecord cr : cg) {
-                CortexKmer kmer = cr.getKmer();
+                CortexKmer kmer = cr.getCortexKmer();
 
                 if (kmerMap.containsKey(kmer)) {
                     boolean[] mask = kmerMap.get(kmer);

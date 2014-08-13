@@ -98,8 +98,8 @@ public class AnnotateContigsQuickly extends Module {
         log.info("Loading masked kmers...");
         int maskCount = 0;
         for (CortexRecord cr : MASKED_KMERS) {
-            if (contigKmers.containsKey(cr.getKmer())) {
-                contigKmers.get(cr.getKmer()).isMasked = true;
+            if (contigKmers.containsKey(cr.getCortexKmer())) {
+                contigKmers.get(cr.getCortexKmer()).isMasked = true;
 
                 maskCount++;
             }
@@ -117,8 +117,8 @@ public class AnnotateContigsQuickly extends Module {
             }
             recIndex++;
 
-            if (contigKmers.containsKey(cr.getKmer())) {
-                contigKmers.get(cr.getKmer()).coverageInSample = cr.getCoverage(0);
+            if (contigKmers.containsKey(cr.getCortexKmer())) {
+                contigKmers.get(cr.getCortexKmer()).coverageInSample = cr.getCoverage(0);
 
                 recWithCoverageInfo++;
             }
@@ -136,12 +136,12 @@ public class AnnotateContigsQuickly extends Module {
             }
             recIndex++;
 
-            if (contigKmers.containsKey(cr.getKmer())) {
+            if (contigKmers.containsKey(cr.getCortexKmer())) {
                 int cov0 = cr.getCoverage(0);
                 int cov1 = cr.getCoverage(1);
 
-                contigKmers.get(cr.getKmer()).coverageInParent0 = cov0;
-                contigKmers.get(cr.getKmer()).coverageInParent1 = cov1;
+                contigKmers.get(cr.getCortexKmer()).coverageInParent0 = cov0;
+                contigKmers.get(cr.getCortexKmer()).coverageInParent1 = cov1;
 
                 recWithCoverageInfo++;
             }

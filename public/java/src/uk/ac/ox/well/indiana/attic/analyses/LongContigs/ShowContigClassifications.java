@@ -260,7 +260,7 @@ public class ShowContigClassifications extends Sketch {
                 CortexGraph cg = PARENTS.get(refid);
 
                 for (CortexRecord cr : cg) {
-                    CortexKmer kmer = cr.getKmer();
+                    CortexKmer kmer = cr.getCortexKmer();
 
                     if (!kmerColorMap.containsKey(kmer)) {
                         kmerColorMap.put(kmer, COLORS.get(refid));

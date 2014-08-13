@@ -27,7 +27,7 @@ public class ComputeKmerFrequency extends Module {
 
         for (CortexGraph cg : CORTEX_GRAPHS) {
             for (CortexRecord cr : cg) {
-                CortexKmer ck = cr.getKmer();
+                CortexKmer ck = cr.getCortexKmer();
 
                 if (!kmerFreq.containsKey(ck)) {
                     kmerFreq.put(ck, 1);
