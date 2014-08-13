@@ -29,8 +29,8 @@ public class CortexGraphWalker {
 
             contig.append(new String(currentKmer));
 
-            while (record != null && !seenKmers.contains(record.getKmer()) && leftEdges.size() == 1) {
-                seenKmers.add(record.getKmer());
+            while (record != null && !seenKmers.contains(record.getCortexKmer()) && leftEdges.size() == 1) {
+                seenKmers.add(record.getCortexKmer());
 
                 byte[] newKmer = new byte[currentKmer.length];
 
@@ -55,8 +55,8 @@ public class CortexGraphWalker {
 
             seenKmers.remove(panelKmer);
 
-            while (record != null && !seenKmers.contains(record.getKmer()) && rightEdges.size() == 1) {
-                seenKmers.add(record.getKmer());
+            while (record != null && !seenKmers.contains(record.getCortexKmer()) && rightEdges.size() == 1) {
+                seenKmers.add(record.getCortexKmer());
 
                 byte[] newKmer = new byte[currentKmer.length];
 
@@ -138,10 +138,10 @@ public class CortexGraphWalker {
             boolean first = true;
 
             // If there's only one next edge, proceed
-            while (record != null && !seenKmers.contains(record.getKmer()) && edges.size() == 1) {
+            while (record != null && !seenKmers.contains(record.getCortexKmer()) && edges.size() == 1) {
                 System.out.println("\tTraverse: color=" + color + " kmer=" + new CortexKmer(currentKmer) + " goLeft=" + goLeft + " maxForks=" + maxForks + " numVertices=" + g.vertexSet().size());
 
-                seenKmers.add(record.getKmer());
+                seenKmers.add(record.getCortexKmer());
 
                 // Construct the next kmer based on this edge
                 byte[] newKmer = new byte[currentKmer.length];

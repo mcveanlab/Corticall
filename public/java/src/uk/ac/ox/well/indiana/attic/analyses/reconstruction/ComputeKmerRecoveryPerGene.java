@@ -62,7 +62,7 @@ public class ComputeKmerRecoveryPerGene extends Module {
             }
             recordNum++;
 
-            CortexKmer ck = cr.getKmer();
+            CortexKmer ck = cr.getCortexKmer();
 
             if (krp.containsKey(ck)) {
                 kmerPresence.put(ck, cr);

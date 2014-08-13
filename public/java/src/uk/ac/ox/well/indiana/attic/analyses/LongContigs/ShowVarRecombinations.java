@@ -249,7 +249,7 @@ public class ShowVarRecombinations extends Sketch {
             GFF3 gff = GFFS.get(refid);
 
             for (CortexRecord cr : cg) {
-                CortexKmer kmer = cr.getKmer();
+                CortexKmer kmer = cr.getCortexKmer();
 
                 if (!kmerColorMap.containsKey(kmer)) {
                     kmerColorMap.put(kmer, COLORS.get(refid));

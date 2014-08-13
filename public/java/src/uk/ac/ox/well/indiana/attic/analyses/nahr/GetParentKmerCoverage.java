@@ -46,13 +46,13 @@ public class GetParentKmerCoverage extends Module {
             }
             numRecords++;
 
-            if (MASKED_KMERS == null || !MASKED_KMERS.containsKey(cr.getKmer())) {
+            if (MASKED_KMERS == null || !MASKED_KMERS.containsKey(cr.getCortexKmer())) {
                 if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
                     // HB3
                     ref1++;
 
                     if (SAMPLE != null) {
-                        int cov = SAMPLE.containsKey(cr.getKmer()) ? SAMPLE.get(cr.getKmer()).getCoverage(0) : 0;
+                        int cov = SAMPLE.containsKey(cr.getCortexKmer()) ? SAMPLE.get(cr.getCortexKmer()).getCoverage(0) : 0;
                         oref1.println(cr.getCoverage(1) + "\t" + cov);
                     } else {
                         oref1.println(cr.getCoverage(1));
@@ -62,7 +62,7 @@ public class GetParentKmerCoverage extends Module {
                     ref0++;
 
                     if (SAMPLE != null) {
-                        int cov = SAMPLE.containsKey(cr.getKmer()) ? SAMPLE.get(cr.getKmer()).getCoverage(0) : 0;
+                        int cov = SAMPLE.containsKey(cr.getCortexKmer()) ? SAMPLE.get(cr.getCortexKmer()).getCoverage(0) : 0;
                         oref0.println(cr.getCoverage(0) + "\t" + cov);
                     } else {
                         oref0.println(cr.getCoverage(0));

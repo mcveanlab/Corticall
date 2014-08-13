@@ -40,7 +40,7 @@ public class AnnotateContigs extends Module {
         Set<CortexKmer> maskedKmers = new HashSet<CortexKmer>();
 
         for (CortexRecord cr : MASKED_KMERS) {
-            CortexKmer kmer = cr.getKmer();
+            CortexKmer kmer = cr.getCortexKmer();
 
             maskedKmers.add(kmer);
         }
@@ -108,8 +108,8 @@ public class AnnotateContigs extends Module {
             }
             recIndex++;
 
-            if (SAMPLE.containsKey(cr.getKmer())) {
-                sampleCoverage.put(cr.getKmer(), cr.getCoverage(0));
+            if (SAMPLE.containsKey(cr.getCortexKmer())) {
+                sampleCoverage.put(cr.getCortexKmer(), cr.getCoverage(0));
             }
         }
         log.info("  loaded {} records", sampleCoverage.size());

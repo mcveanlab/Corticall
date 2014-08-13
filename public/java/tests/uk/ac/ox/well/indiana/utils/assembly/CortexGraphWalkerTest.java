@@ -76,7 +76,7 @@ public class CortexGraphWalkerTest {
         for (CortexRecord cr : cg14Map.values()) {
             if (cr.getCoverage(0) == 1) {
                 if (random.nextBoolean()) {
-                    panel.add(cr.getKmer());
+                    panel.add(cr.getCortexKmer());
                 }
             }
 

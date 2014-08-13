@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class CortexRecord implements Comparable<CortexRecord> {
-    //private CortexKmer kmer;
     private int kmerSize, kmerBits;
     private long[] kmer;
     private int[] coverages;
@@ -22,24 +21,9 @@ public class CortexRecord implements Comparable<CortexRecord> {
         this.coverages = Arrays.copyOf(coverages, coverages.length);
         this.edges = Arrays.copyOf(edges, edges.length);
 
-        /*
-        this.kmer = binaryKmer;
-        this.coverages = coverages;
-        this.edges = edges;
-        */
-        //this.kmer = new CortexKmer(decodeBinaryKmer(binaryKmer, kmerSize, kmerBits), true);
-
         this.kmerSize = kmerSize;
         this.kmerBits = kmerBits;
     }
-
-    /*
-    public CortexRecord(CortexKmer kmer, int[] coverages, byte[] edges) {
-        this.coverages = coverages;
-        this.edges = edges;
-        //this.kmer = kmer;
-    }
-    */
 
     private byte binaryNucleotideToChar(long nucleotide) {
         switch ((int) nucleotide) {
@@ -89,26 +73,14 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
     public int getKmerSize() { return kmerSize; }
     public int getKmerBits() { return kmerBits; }
-    public long[] getBinaryKmer() { return this.kmer; }
+    public int getNumColors() { return coverages.length; }
 
-    public CortexKmer getKmer() {
-        //return kmer;
-        return new CortexKmer(getKmerAsBytes(), true);
-    }
+    public long[] getKmer() { return this.kmer; }
+    public byte[] getKmerAsBytes() { return decodeBinaryKmer(); }
+    public CortexKmer getCortexKmer() { return new CortexKmer(getKmerAsBytes(), true); }
+    public String getKmerAsString() { return getCortexKmer().getKmerAsString(); }
 
-    public byte[] getKmerAsBytes() {
-        //return kmer.getKmerAsBytes();
-        return decodeBinaryKmer();
-    }
-
-    public String getKmerAsString() {
-        //return kmer.getKmerAsString();
-        return getKmer().getKmerAsString();
-    }
-
-    public byte[] getEdges() {
-        return edges;
-    }
+    public byte[] getEdges() { return edges; }
 
     public byte[][] getEdgesAsBytes() {
         int numColors = edges.length;
@@ -175,7 +147,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public int hashCode() {
-        //return kmer.hashCode() - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
         return Arrays.hashCode(kmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 

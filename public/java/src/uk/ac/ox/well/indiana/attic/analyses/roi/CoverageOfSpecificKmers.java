@@ -38,7 +38,7 @@ public class CoverageOfSpecificKmers extends Module {
             int cov = cr.getCoverage(0);
 
             if (cov == 1) {
-                unitCoverageKmers.add(cr.getKmer());
+                unitCoverageKmers.add(cr.getCortexKmer());
             }
         }
 
@@ -67,7 +67,7 @@ public class CoverageOfSpecificKmers extends Module {
                 }
             }
 
-            if (unitCoverageKmers.contains(cr.getKmer())) {
+            if (unitCoverageKmers.contains(cr.getCortexKmer())) {
                 for (int color = 0; color < CORTEX_GRAPH.getNumColors(); color++) {
                     String sample = CORTEX_GRAPH.getColor(color).getSampleName();
                     int cov = cr.getCoverage(color);

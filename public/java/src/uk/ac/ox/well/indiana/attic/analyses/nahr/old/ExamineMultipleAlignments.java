@@ -45,7 +45,7 @@ public class ExamineMultipleAlignments extends Module {
             CortexGraph cg = REFERENCES.get(refid);
 
             for (CortexRecord cr : cg) {
-                CortexKmer kmer = cr.getKmer();
+                CortexKmer kmer = cr.getCortexKmer();
 
                 if (!kmerMap.containsKey(kmer)) {
                     kmerMap.put(kmer, new boolean[refIndex.size()]);
