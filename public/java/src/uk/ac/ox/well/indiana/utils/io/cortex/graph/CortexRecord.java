@@ -7,21 +7,39 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class CortexRecord implements Comparable<CortexRecord> {
-    private CortexKmer kmer;
+    //private CortexKmer kmer;
+    private int kmerSize, kmerBits;
+    private long[] kmer;
     private int[] coverages;
     private byte[] edges;
 
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
+        this.kmer = new long[binaryKmer.length];
+        this.coverages = new int[coverages.length];
+        this.edges = new byte[edges.length];
+
+        this.kmer = Arrays.copyOf(binaryKmer, binaryKmer.length);
+        this.coverages = Arrays.copyOf(coverages, coverages.length);
+        this.edges = Arrays.copyOf(edges, edges.length);
+
+        /*
+        this.kmer = binaryKmer;
         this.coverages = coverages;
         this.edges = edges;
-        this.kmer = new CortexKmer(decodeBinaryKmer(binaryKmer, kmerSize, kmerBits), true);
+        */
+        //this.kmer = new CortexKmer(decodeBinaryKmer(binaryKmer, kmerSize, kmerBits), true);
+
+        this.kmerSize = kmerSize;
+        this.kmerBits = kmerBits;
     }
 
+    /*
     public CortexRecord(CortexKmer kmer, int[] coverages, byte[] edges) {
         this.coverages = coverages;
         this.edges = edges;
-        this.kmer = kmer;
+        //this.kmer = kmer;
     }
+    */
 
     private byte binaryNucleotideToChar(long nucleotide) {
         switch ((int) nucleotide) {
@@ -34,8 +52,10 @@ public class CortexRecord implements Comparable<CortexRecord> {
         }
     }
 
-    private byte[] decodeBinaryKmer(long[] binaryKmer, int kmerSize, int kmerBits) {
+    private byte[] decodeBinaryKmer() {
         byte[] rawKmer = new byte[kmerSize];
+
+        long[] binaryKmer = Arrays.copyOf(kmer, kmer.length);
 
         for (int i = 0; i < binaryKmer.length; i++) {
             binaryKmer[i] = reverse(binaryKmer[i]);
@@ -67,16 +87,23 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return bbuf.getLong(0);
     }
 
+    public int getKmerSize() { return kmerSize; }
+    public int getKmerBits() { return kmerBits; }
+    public long[] getBinaryKmer() { return this.kmer; }
+
     public CortexKmer getKmer() {
-        return kmer;
+        //return kmer;
+        return new CortexKmer(getKmerAsBytes(), true);
     }
 
     public byte[] getKmerAsBytes() {
-        return kmer.getKmerAsBytes();
+        //return kmer.getKmerAsBytes();
+        return decodeBinaryKmer();
     }
 
     public String getKmerAsString() {
-        return kmer.getKmerAsString();
+        //return kmer.getKmerAsString();
+        return getKmer().getKmerAsString();
     }
 
     public byte[] getEdges() {
@@ -148,7 +175,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public int hashCode() {
-        return kmer.hashCode() - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+        //return kmer.hashCode() - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+        return Arrays.hashCode(kmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 
     public int compareTo(CortexRecord cortexRecord) {
