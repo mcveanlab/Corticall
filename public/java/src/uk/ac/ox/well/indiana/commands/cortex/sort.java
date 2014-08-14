@@ -7,8 +7,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
-import java.io.File;
-import java.io.PrintStream;
 import java.util.Arrays;
 
 public class sort extends Module {
@@ -16,7 +14,7 @@ public class sort extends Module {
     public CortexGraph CORTEX_GRAPH;
 
     @Output
-    public File out;
+    public CortexGraphWriter out;
 
     @Override
     public void execute() {
@@ -37,20 +35,15 @@ public class sort extends Module {
         Arrays.sort(records, 0, records.length);
 
         log.info("Writing records...");
-        CortexGraphWriter cgw = new CortexGraphWriter(out);
-
         recordsProcessed = 0;
         for (CortexRecord cr : records) {
             recordsProcessed++;
 
-            //out.println(cr);
-            cgw.addRecord(cr);
+            out.addRecord(cr);
 
             if (recordsProcessed % (records.length / 10) == 0) {
                 log.info("  {}/{} records", recordsProcessed, records.length);
             }
         }
-
-        cgw.close();
     }
 }
