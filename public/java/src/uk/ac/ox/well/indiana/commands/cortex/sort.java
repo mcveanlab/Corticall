@@ -36,6 +36,7 @@ public class sort extends Module {
 
         log.info("Writing records...");
         recordsProcessed = 0;
+        out.setHeader(CORTEX_GRAPH.getHeader());
         for (CortexRecord cr : records) {
             recordsProcessed++;
 

@@ -17,6 +17,7 @@ public class CortexGraphWriterTest {
 
             CortexGraph cg1 = new CortexGraph("testdata/smallgraph.ctx");
             CortexGraphWriter cgw = new CortexGraphWriter(tempFile);
+            cgw.setHeader(cg1.getHeader());
 
             for (CortexRecord cr : cg1) {
                 cgw.addRecord(cr);

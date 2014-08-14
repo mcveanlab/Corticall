@@ -11,9 +11,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
     private long[] kmer;
     private int[] coverages;
     private byte[] edges;
-    private CortexGraph parentGraph;
 
-    public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits, CortexGraph parentGraph) {
+    public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
         this.kmer = new long[binaryKmer.length];
         this.coverages = new int[coverages.length];
         this.edges = new byte[edges.length];
@@ -24,8 +23,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
         this.kmerSize = kmerSize;
         this.kmerBits = kmerBits;
-
-        this.parentGraph = parentGraph;
     }
 
     private byte binaryNucleotideToChar(long nucleotide) {
@@ -134,8 +131,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
     public int getCoverage(int color) {
         return getCoverages()[color];
     }
-
-    public CortexGraph getParentGraph() { return parentGraph; }
 
     public String toString() {
         String info = getKmerAsString();
