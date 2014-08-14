@@ -5,7 +5,7 @@ public class CortexColor {
     private long totalSequence;
     private String sampleName;
     private double errorRate;
-    private boolean topClippingApplied;
+    private boolean tipClippingApplied;
     private boolean lowCovgSupernodesRemoved;
     private boolean lowCovgKmersRemoved;
     private boolean cleanedAgainstGraph;
@@ -45,13 +45,11 @@ public class CortexColor {
         this.errorRate = errorRate;
     }
 
-    public boolean isTopClippingApplied() {
-        return topClippingApplied;
+    public boolean isTipClippingApplied() {
+        return tipClippingApplied;
     }
 
-    public void setTopClippingApplied(boolean topClippingApplied) {
-        this.topClippingApplied = topClippingApplied;
-    }
+    public void setTipClippingApplied(boolean tipClippingApplied) { this.tipClippingApplied = tipClippingApplied; }
 
     public boolean isLowCovgSupernodesRemoved() {
         return lowCovgSupernodesRemoved;

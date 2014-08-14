@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 
 public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
@@ -111,7 +110,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             }
 
             for (int color = 0; color < numColors; color++) {
-                colors.get(color).setTopClippingApplied(in.readBoolean());
+                colors.get(color).setTipClippingApplied(in.readBoolean());
                 colors.get(color).setLowCovgSupernodesRemoved(in.readBoolean());
                 colors.get(color).setLowCovgKmersRemoved(in.readBoolean());
                 colors.get(color).setCleanedAgainstGraph(in.readBoolean());
@@ -185,7 +184,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                  +  "  mean read length: " + cortexColor.getMeanReadLength() + "\n"
                  +  "  total sequence loaded: " + "(not parsed)" + "\n"
                  +  "  sequence error rate: " + "(not parsed)" + "\n"
-                 +  "  tip clipping: " + (cortexColor.isTopClippingApplied() ? "yes" : "no") + "\n"
+                 +  "  tip clipping: " + (cortexColor.isTipClippingApplied() ? "yes" : "no") + "\n"
                  +  "  remove_low_coverage_supernodes: " + (cortexColor.isLowCovgSupernodesRemoved() ? "yes" : "no") + "\n"
                  +  "  remove_low_coverage_kmers: " + (cortexColor.isLowCovgKmersRemoved() ? "yes" : "no") + "\n"
                  +  "  cleaned against graph: " + (cortexColor.isCleanedAgainstGraph() ? "yes" : "no") + "\n";

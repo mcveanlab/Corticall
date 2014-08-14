@@ -155,6 +155,16 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return Arrays.hashCode(kmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 
+    public boolean equals(Object o) {
+        if (o instanceof CortexRecord) {
+            CortexRecord o1 = ((CortexRecord) o);
+
+            return (Arrays.equals(kmer, o1.kmer) && Arrays.equals(coverages, o1.coverages) && Arrays.equals(edges, o1.edges));
+        }
+
+        return false;
+    }
+
     public int compareTo(CortexRecord cortexRecord) {
         return getKmerAsString().compareTo(cortexRecord.getKmerAsString());
     }
@@ -287,5 +297,6 @@ public class CortexRecord implements Comparable<CortexRecord> {
         }
 
         return rightEdgesAsStrings;
+
     }
 }
