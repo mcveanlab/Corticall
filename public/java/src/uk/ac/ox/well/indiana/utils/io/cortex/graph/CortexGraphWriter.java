@@ -21,54 +21,68 @@ public class CortexGraphWriter {
         this.cortexFile = cortexFile;
     }
 
-    private void initialize(int kmerSize, int kmerBits, int numColors) {
-        this.kmerSize = kmerSize;
-        this.kmerBits = kmerBits;
-        this.numColors = numColors;
+    private void initialize(CortexRecord record) {
+        this.kmerSize = record.getKmerSize();
+        this.kmerBits = record.getKmerBits();
+        this.numColors = record.getNumColors();
 
         try {
             fos = new FileOutputStream(cortexFile);
             channel = fos.getChannel();
 
-            ByteBuffer bb = ByteBuffer.allocateDirect(98);
+            int stringLengths = 0;
+            for (CortexColor c : record.getParentGraph().getColors()) {
+                stringLengths += c.getSampleName().length() + c.getCleanedAgainstGraphName().length();
+            }
+
+            ByteBuffer bb = ByteBuffer.allocateDirect(44 + numColors*32 + stringLengths);
             bb.order(ByteOrder.LITTLE_ENDIAN);
             bb.clear();
 
             bb.put("CORTEX".getBytes());
 
-            bb.putInt(this.version);
-            bb.putInt(this.kmerSize);
-            bb.putInt(this.kmerBits);
-            bb.putInt(this.numColors);
+            bb.putInt(version);
+            bb.putInt(kmerSize);
+            bb.putInt(kmerBits);
+            bb.putInt(numColors);
 
-            for (int color = 0; color < this.numColors; color++) {
-                bb.putInt(7504); // mean read length
+            for (int color = 0; color < numColors; color++) {
+                int meanReadLength = record.getParentGraph().getColor(color).getMeanReadLength();
+                bb.putInt(meanReadLength);
             }
 
-            for (int color = 0; color < this.numColors; color++) {
-                bb.putLong(7504); // total sequence
+            for (int color = 0; color < numColors; color++) {
+                long totalSequence = record.getParentGraph().getColor(color).getTotalSequence();
+
+                bb.order(ByteOrder.BIG_ENDIAN);
+                bb.putLong(totalSequence);
+                bb.order(ByteOrder.LITTLE_ENDIAN);
             }
 
-            for (int color = 0; color < this.numColors; color++) {
-                bb.putInt("PF3D7_0115700".length());
-                bb.put("PF3D7_0115700".getBytes());
+            for (int color = 0; color < numColors; color++) {
+                String sampleName = record.getParentGraph().getColor(color).getSampleName();
+
+                bb.putInt(sampleName.length());
+                bb.put(sampleName.getBytes());
             }
 
-            for (int color = 0; color < this.numColors; color++) {
+            for (int color = 0; color < numColors; color++) {
                 byte[] errorRate = new byte[16];
                 bb.put(errorRate);
             }
 
-            for (int color = 0; color < this.numColors; color++) {
-                bb.put((byte) 0);
-                bb.put((byte) 0);
-                bb.put((byte) 0);
-                bb.put((byte) 0);
-                bb.putInt(0);
-                bb.putInt(0);
+            for (int color = 0; color < numColors; color++) {
+                bb.put((byte) (record.getParentGraph().getColor(color).isTopClippingApplied() ? 1 : 0));
+                bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgSupernodesRemoved() ? 1 : 0));
+                bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgKmersRemoved() ? 1 : 0));
+                bb.put((byte) (record.getParentGraph().getColor(color).isCleanedAgainstGraph() ? 1 : 0));
+                bb.putInt(record.getParentGraph().getColor(color).getLowCovSupernodesThreshold());
+                bb.putInt(record.getParentGraph().getColor(color).getLowCovKmerThreshold());
 
-                bb.putInt("undefined".length());
-                bb.put("undefined".getBytes());
+                String cleanedAgainst = record.getParentGraph().getColor(color).getCleanedAgainstGraphName();
+
+                bb.putInt(cleanedAgainst.length());
+                bb.put(cleanedAgainst.getBytes());
             }
 
             bb.put("CORTEX".getBytes());
@@ -85,7 +99,7 @@ public class CortexGraphWriter {
 
     public void addRecord(CortexRecord record) {
         if (kmerSize == 0) {
-            initialize(record.getKmerSize(), record.getKmerBits(), record.getNumColors());
+            initialize(record);
         }
 
         ByteBuffer bb = ByteBuffer.allocateDirect(8 * this.numColors*4 + this.numColors);
@@ -95,7 +109,6 @@ public class CortexGraphWriter {
 
         long[] binaryKmer = record.getKmer();
         for (int i = 0; i < this.kmerBits; i++) {
-            System.out.println(record);
             bb.putLong(binaryKmer[i]);
         }
 

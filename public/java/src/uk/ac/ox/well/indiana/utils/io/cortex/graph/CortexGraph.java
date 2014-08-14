@@ -26,12 +26,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private long numRecords;
 
     private long dataOffset;
-    private long recordSize;
-    //private long sizeOfBuffer;
     private long recordsSeen = 0;
 
     private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
-    //private HashMap<String, Integer> nameToColor = new HashMap<String, Integer>();
 
     private ByteBufferInputStream mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
@@ -105,7 +102,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 String sampleNameStr = new String(sampleName);
 
                 colors.get(color).setSampleName(sampleNameStr);
-                //nameToColor.put(sampleNameStr, color);
             }
 
             // Todo: fix this at some point - we're not actually getting the error rate properly
@@ -143,13 +139,11 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             dataOffset = in.getFilePointer();
             long dataSize = size - dataOffset;
 
-            recordSize = (8*kmerBits + 4*numColors + 1*numColors);
+            long recordSize = (8*kmerBits + 4*numColors + 1*numColors);
             numRecords = dataSize / recordSize;
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
-            //mappedRecordBuffer.position(dataOffset);
 
-            //nextRecord = getNextRecord();
             moveToBeginningOfRecordsSection();
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
@@ -215,8 +209,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             try {
                 long[] binaryKmer = new long[kmerBits];
                 for (int bits = 0; bits < kmerBits; bits++) {
-                    //binaryKmer[bits] = mappedRecordBuffer.getLong();
-
                     byte[] b = new byte[8];
 
                     mappedRecordBuffer.read(b);
@@ -228,22 +220,17 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 int[] coverages = new int[numColors];
                 for (int color = 0; color < numColors; color++) {
                     byte[] coverage = new byte[4];
-                    //mappedRecordBuffer.get(coverage);
                     mappedRecordBuffer.read(coverage);
 
                     coverages[color] = BinaryUtils.toUnsignedInt(coverage);
                 }
 
                 byte[] edges = new byte[numColors];
-                //for (int color = 0; color < numColors; color++) {
-                    //edges[color] = mappedRecordBuffer.get();
-                    //mappedRecordBuffer.read(edges[color]);
-                //}
                 mappedRecordBuffer.read(edges);
 
                 recordsSeen++;
 
-                return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
+                return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits, this);
             } catch (IOException e) {
                 return null;
             }
