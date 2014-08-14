@@ -1,12 +1,16 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class CortexGraphTest {
@@ -112,9 +116,11 @@ public class CortexGraphTest {
         }
     }
 
-    @Test
-    public void recordsAreCorrect() {
-        ArrayList<SimpleCortexRecord> recs = new ArrayList<SimpleCortexRecord>();
+    private List<SimpleCortexRecord> recs;
+
+    @BeforeClass
+    public void initialize() {
+        recs = new ArrayList<SimpleCortexRecord>();
 
         recs.add(new SimpleCortexRecord("GTATTTGCAGTATTTGGAATAAATTTCCAAC", new int[] {1,0}, new String[] {"..g.A...", "........"}));
         recs.add(new SimpleCortexRecord("GGAAATTTATTCCAAATACTGCAAATACCCC", new int[] {1,0}, new String[] {"...tA...", "........"}));
@@ -201,7 +207,10 @@ public class CortexGraphTest {
         recs.add(new SimpleCortexRecord("GGTATTTGCAGTATTTGGAATAAATTTCCAA", new int[] {1,0}, new String[] {"..g..C..", "........"}));
         recs.add(new SimpleCortexRecord("GTTTTGGGGTATTTGCAGTATTTGTAATAAA", new int[] {0,1}, new String[] {"........", ".c.....T"}));
         recs.add(new SimpleCortexRecord("AACCAAATCATCTGTTGGAAATTTATTCCAA", new int[] {1,0}, new String[] {"a...A...", "........"}));
+    }
 
+    @Test
+    public void recordsAreCorrect() {
         CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
 
         int index = 0;
@@ -212,5 +221,48 @@ public class CortexGraphTest {
 
             index++;
         }
+    }
+
+    @Test
+    public void testGetRecord() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        for (int i = 10; i >= 0; i--) {
+            CortexRecord cr = cg.getRecord(i);
+            SimpleCortexRecord scr = recs.get(i);
+
+            Assert.assertEquals(scr.equals(cr), true, "Cortex record says '" + cr + "' but test record says '" + scr + "'");
+        }
+    }
+
+    @Test(expectedExceptions = IndianaException.class)
+    public void testUnsortedFindRecordThrowsException() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        String targetKmer = "ACCAAATCATCTGTTGGAAATTTATTACAAA";
+
+        cg.findRecord(targetKmer);
+    }
+
+    @Test
+    public void testSortedFindRecord() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.sorted.ctx");
+
+        for (SimpleCortexRecord scr : recs) {
+            CortexRecord cr = cg.findRecord(scr.kmer);
+
+            Assert.assertNotNull(cr);
+            Assert.assertEquals(scr.equals(cr), true);
+        }
+    }
+
+    @Test
+    public void testFindNonExistentRecord() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.sorted.ctx");
+
+        String nonExistentRecord = "NTTTTGGGGTATTTGCAGTATTTGGAATAAA";
+
+        CortexRecord cr = cg.findRecord(nonExistentRecord);
+
+        Assert.assertNull(cr);
     }
 }
