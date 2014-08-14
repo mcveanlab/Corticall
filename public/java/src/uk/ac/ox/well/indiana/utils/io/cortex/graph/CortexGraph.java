@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
 
@@ -20,6 +21,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     private CortexHeader header;
 
+    private long recordSize;
     private long numRecords;
     private long dataOffset;
     private long recordsSeen = 0;
@@ -135,7 +137,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             dataOffset = in.getFilePointer();
             long dataSize = size - dataOffset;
 
-            long recordSize = (8*header.getKmerBits() + 5*header.getNumColors());
+            recordSize = (8*header.getKmerBits() + 5*header.getNumColors());
             numRecords = (dataSize / recordSize);
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
@@ -153,52 +155,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         recordsSeen = 0;
         nextRecord = getNextRecord();
     }
-
-    public File getCortexFile() { return cortexFile; }
-
-    public CortexHeader getHeader() { return header; }
-
-    public int getVersion() { return header.getVersion(); }
-
-    public int getKmerSize() { return header.getKmerSize(); }
-
-    public int getKmerBits() { return header.getKmerBits(); }
-
-    public int getNumColors() { return header.getNumColors(); }
-
-    public List<CortexColor> getColors() { return header.getColors(); }
-
-    public String toString() {
-        String info = "file: " + cortexFile.getAbsolutePath() + "\n"
-                    + "----" + "\n"
-                    + "binary version: " + this.getVersion() + "\n"
-                    + "kmer size: " + this.getKmerSize() + "\n"
-                    + "bitfields: " + this.getKmerBits() + "\n"
-                    + "colors: " + this.getNumColors() + "\n";
-
-        for (int color = 0; color < this.getNumColors(); color++) {
-            CortexColor cortexColor = this.getColors().get(color);
-            info += "-- Color " + color + " --\n"
-                 +  "  sample name: '" + cortexColor.getSampleName() + "'\n"
-                 +  "  mean read length: " + cortexColor.getMeanReadLength() + "\n"
-                 +  "  total sequence loaded: " + "(not parsed)" + "\n"
-                 +  "  sequence error rate: " + "(not parsed)" + "\n"
-                 +  "  tip clipping: " + (cortexColor.isTipClippingApplied() ? "yes" : "no") + "\n"
-                 +  "  remove_low_coverage_supernodes: " + (cortexColor.isLowCovgSupernodesRemoved() ? "yes" : "no") + "\n"
-                 +  "  remove_low_coverage_kmers: " + (cortexColor.isLowCovgKmersRemoved() ? "yes" : "no") + "\n"
-                 +  "  cleaned against graph: " + (cortexColor.isCleanedAgainstGraph() ? "yes" : "no") + "\n";
-        }
-
-        info += "----" + "\n";
-        info += "kmers: " + getNumRecords() + "\n";
-        info += "----" + "\n";
-        info += "size of one Cortex record: " + RamUsageEstimator.humanSizeOf(nextRecord) + "\n";
-        info += "size of full Cortex graph: " + RamUsageEstimator.humanReadableUnits(RamUsageEstimator.sizeOf(nextRecord)*getNumRecords()) + "\n";
-
-        return info;
-    }
-
-    public long getNumRecords() { return numRecords; }
 
     private CortexRecord getNextRecord() {
         if (recordsSeen < getNumRecords()) {
@@ -268,13 +224,61 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         }
     }
 
-    public boolean hasColor(int color) {
-        return header.hasColor(color);
+    public CortexRecord getRecord(long i) {
+        long offset = dataOffset + i*recordSize;
+        mappedRecordBuffer.position(offset);
+        recordsSeen = 0;
+        return getNextRecord();
     }
 
-    public CortexColor getColor(int color) {
-        return header.getColor(color);
+    public CortexRecord findRecord(String kmer) {
+        long startIndex = 0;
+        long stopIndex = numRecords - 1;
+        long midIndex = startIndex + (stopIndex - startIndex) / 2;
+
+        while (startIndex != midIndex && midIndex != stopIndex) {
+            CortexRecord startRecord = getRecord(startIndex);
+            CortexRecord midRecord = getRecord(midIndex);
+            CortexRecord stopRecord = getRecord(stopIndex);
+
+            String startKmer = startRecord.getKmerAsString();
+            String midKmer = midRecord.getKmerAsString();
+            String stopKmer = stopRecord.getKmerAsString();
+
+            if (startKmer.compareTo(stopKmer) > 0) {
+                throw new IndianaException("Records are not sorted ('" + startKmer + "' is found before '" + stopKmer + "' but is lexicographically greater)");
+            }
+
+            if (kmer.compareTo(stopKmer) > 0 || kmer.compareTo(startKmer) < 0) { return null; }
+            else if (startKmer.equals(kmer)) { return startRecord; }
+            else if (midKmer.equals(kmer)) { return midRecord; }
+            else if (stopKmer.equals(kmer)) { return stopRecord; }
+            else if (kmer.compareTo(startKmer) > 0 && kmer.compareTo(midKmer) < 0) {
+                stopIndex = midIndex;
+                midIndex = startIndex + (stopIndex - startIndex) / 2;
+            } else if (kmer.compareTo(midKmer) > 0 && kmer.compareTo(stopKmer) < 0) {
+                startIndex = midIndex;
+                midIndex = startIndex + ((stopIndex - startIndex) / 2);
+            }
+        }
+
+        return null;
     }
+
+    public CortexRecord findRecord(CortexKmer kmer) {
+        return findRecord(kmer.getKmerAsString());
+    }
+
+    public File getCortexFile() { return cortexFile; }
+    public CortexHeader getHeader() { return header; }
+    public int getVersion() { return header.getVersion(); }
+    public int getKmerSize() { return header.getKmerSize(); }
+    public int getKmerBits() { return header.getKmerBits(); }
+    public int getNumColors() { return header.getNumColors(); }
+    public long getNumRecords() { return numRecords; }
+    public List<CortexColor> getColors() { return header.getColors(); }
+    public boolean hasColor(int color) { return header.hasColor(color); }
+    public CortexColor getColor(int color) { return header.getColor(color); }
 
     public int getColorForSampleName(String sampleName) {
         int sampleColor = -1;
@@ -289,4 +293,35 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
         return (sampleCopies == 1) ? sampleColor : -1;
     }
+
+    public String toString() {
+        String info = "file: " + cortexFile.getAbsolutePath() + "\n"
+                + "----" + "\n"
+                + "binary version: " + this.getVersion() + "\n"
+                + "kmer size: " + this.getKmerSize() + "\n"
+                + "bitfields: " + this.getKmerBits() + "\n"
+                + "colors: " + this.getNumColors() + "\n";
+
+        for (int color = 0; color < this.getNumColors(); color++) {
+            CortexColor cortexColor = this.getColors().get(color);
+            info += "-- Color " + color + " --\n"
+                    +  "  sample name: '" + cortexColor.getSampleName() + "'\n"
+                    +  "  mean read length: " + cortexColor.getMeanReadLength() + "\n"
+                    +  "  total sequence loaded: " + "(not parsed)" + "\n"
+                    +  "  sequence error rate: " + "(not parsed)" + "\n"
+                    +  "  tip clipping: " + (cortexColor.isTipClippingApplied() ? "yes" : "no") + "\n"
+                    +  "  remove_low_coverage_supernodes: " + (cortexColor.isLowCovgSupernodesRemoved() ? "yes" : "no") + "\n"
+                    +  "  remove_low_coverage_kmers: " + (cortexColor.isLowCovgKmersRemoved() ? "yes" : "no") + "\n"
+                    +  "  cleaned against graph: " + (cortexColor.isCleanedAgainstGraph() ? "yes" : "no") + "\n";
+        }
+
+        info += "----" + "\n";
+        info += "kmers: " + getNumRecords() + "\n";
+        info += "----" + "\n";
+        info += "size of one Cortex record: " + RamUsageEstimator.humanSizeOf(nextRecord) + "\n";
+        info += "size of full Cortex graph: " + RamUsageEstimator.humanReadableUnits(RamUsageEstimator.sizeOf(nextRecord)*getNumRecords()) + "\n";
+
+        return info;
+    }
+
 }
