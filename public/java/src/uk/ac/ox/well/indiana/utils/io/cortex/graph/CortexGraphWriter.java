@@ -9,13 +9,10 @@ import java.nio.channels.FileChannel;
 
 public class CortexGraphWriter {
     private File cortexFile;
-    private FileOutputStream fos;
+    private FileOutputStream fos = null;
     private FileChannel channel;
 
-    private final int version = 6;
-    private int kmerSize = 0;
-    private int kmerBits = 0;
-    private int numColors = 0;
+    private CortexHeader header;
 
     public CortexGraphWriter(File cortexFile) {
         this.cortexFile = cortexFile;
@@ -25,65 +22,64 @@ public class CortexGraphWriter {
         this.cortexFile = new File(cortexFilePath);
     }
 
-    private void initialize(CortexRecord record) {
-        this.kmerSize = record.getKmerSize();
-        this.kmerBits = record.getKmerBits();
-        this.numColors = record.getNumColors();
+    public void setHeader(CortexHeader header) { this.header = header; }
+    public CortexHeader getHeader() { return this.header; }
 
+    private void initialize() {
         try {
             fos = new FileOutputStream(cortexFile);
             channel = fos.getChannel();
 
             int stringLengths = 0;
-            for (CortexColor c : record.getParentGraph().getColors()) {
+            for (CortexColor c : header.getColors()) {
                 stringLengths += c.getSampleName().length() + c.getCleanedAgainstGraphName().length();
             }
 
-            ByteBuffer bb = ByteBuffer.allocateDirect(2 * (44 + numColors*32 + stringLengths));
+            ByteBuffer bb = ByteBuffer.allocateDirect(2 * (44 + header.getNumColors()*32 + stringLengths));
             bb.order(ByteOrder.LITTLE_ENDIAN);
             bb.clear();
 
             bb.put("CORTEX".getBytes());
 
-            bb.putInt(version);
-            bb.putInt(kmerSize);
-            bb.putInt(kmerBits);
-            bb.putInt(numColors);
+            bb.putInt(header.getVersion());
+            bb.putInt(header.getKmerSize());
+            bb.putInt(header.getKmerBits());
+            bb.putInt(header.getNumColors());
 
-            for (int color = 0; color < numColors; color++) {
-                int meanReadLength = record.getParentGraph().getColor(color).getMeanReadLength();
+            for (int color = 0; color < header.getNumColors(); color++) {
+                int meanReadLength = header.getColor(color).getMeanReadLength();
                 bb.putInt(meanReadLength);
             }
 
-            for (int color = 0; color < numColors; color++) {
-                long totalSequence = record.getParentGraph().getColor(color).getTotalSequence();
+            for (int color = 0; color < header.getNumColors(); color++) {
+                long totalSequence = header.getColor(color).getTotalSequence();
 
                 bb.order(ByteOrder.BIG_ENDIAN);
                 bb.putLong(totalSequence);
                 bb.order(ByteOrder.LITTLE_ENDIAN);
             }
 
-            for (int color = 0; color < numColors; color++) {
-                String sampleName = record.getParentGraph().getColor(color).getSampleName();
+            for (int color = 0; color < header.getNumColors(); color++) {
+                String sampleName = header.getColor(color).getSampleName();
 
                 bb.putInt(sampleName.length());
                 bb.put(sampleName.getBytes());
             }
 
-            for (int color = 0; color < numColors; color++) {
+            for (int color = 0; color < header.getNumColors(); color++) {
                 byte[] errorRate = new byte[16];
                 bb.put(errorRate);
             }
 
-            for (int color = 0; color < numColors; color++) {
-                bb.put((byte) (record.getParentGraph().getColor(color).isTipClippingApplied() ? 1 : 0));
-                bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgSupernodesRemoved() ? 1 : 0));
-                bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgKmersRemoved() ? 1 : 0));
-                bb.put((byte) (record.getParentGraph().getColor(color).isCleanedAgainstGraph() ? 1 : 0));
-                bb.putInt(record.getParentGraph().getColor(color).getLowCovSupernodesThreshold());
-                bb.putInt(record.getParentGraph().getColor(color).getLowCovKmerThreshold());
+            for (int color = 0; color < header.getNumColors(); color++) {
+                bb.put((byte) (header.getColor(color).isTipClippingApplied() ? 1 : 0));
+                bb.put((byte) (header.getColor(color).isLowCovgSupernodesRemoved() ? 1 : 0));
+                bb.put((byte) (header.getColor(color).isLowCovgKmersRemoved() ? 1 : 0));
+                bb.put((byte) (header.getColor(color).isCleanedAgainstGraph() ? 1 : 0));
+                bb.putInt(header.getColor(color).getLowCovSupernodesThreshold());
+                bb.putInt(header.getColor(color).getLowCovKmerThreshold());
 
-                String cleanedAgainst = record.getParentGraph().getColor(color).getCleanedAgainstGraphName();
+                String cleanedAgainst = header.getColor(color).getCleanedAgainstGraphName();
 
                 bb.putInt(cleanedAgainst.length());
                 bb.put(cleanedAgainst.getBytes());
@@ -102,29 +98,27 @@ public class CortexGraphWriter {
     }
 
     public void addRecord(CortexRecord record) {
-        if (kmerSize == 0) {
-            initialize(record);
-        }
+        if (fos == null) { initialize(); }
 
-        ByteBuffer bb = ByteBuffer.allocateDirect(8 * this.numColors*4 + this.numColors);
+        ByteBuffer bb = ByteBuffer.allocateDirect(8*header.getKmerBits() + header.getNumColors()*5);
         bb.clear();
 
         bb.order(ByteOrder.BIG_ENDIAN);
 
         long[] binaryKmer = record.getKmer();
-        for (int i = 0; i < this.kmerBits; i++) {
+        for (int i = 0; i < header.getKmerBits(); i++) {
             bb.putLong(binaryKmer[i]);
         }
 
         bb.order(ByteOrder.LITTLE_ENDIAN);
 
         int[] coverage = record.getCoverages();
-        for (int c = 0; c < this.numColors; c++) {
+        for (int c = 0; c < header.getNumColors(); c++) {
             bb.putInt(coverage[c]);
         }
 
         byte[] edges = record.getEdges();
-        for (int c = 0; c < this.numColors; c++) {
+        for (int c = 0; c < header.getNumColors(); c++) {
             bb.put(edges[c]);
         }
 

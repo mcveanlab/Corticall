@@ -10,24 +10,19 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
     private File cortexFile;
     private BinaryFile in;
 
-    private int version;
-    private int kmerSize;
-    private int kmerBits;
-    private int numColors;
-    private long numRecords;
+    private CortexHeader header;
 
+    private long numRecords;
     private long dataOffset;
     private long recordsSeen = 0;
-
-    private ArrayList<CortexColor> colors = new ArrayList<CortexColor>();
 
     private ByteBufferInputStream mappedRecordBuffer = null;
     private CortexRecord nextRecord = null;
@@ -70,29 +65,31 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 throw new RuntimeException("The file '" + cortexFile.getAbsolutePath() + "' does not appear to be a Cortex graph");
             }
 
-            version = in.readUnsignedInt();
+            header = new CortexHeader();
 
-            if (version != 6) {
+            header.setVersion(in.readUnsignedInt());
+
+            if (header.getVersion() != 6) {
                 throw new RuntimeException("The file '" + cortexFile.getAbsolutePath() + "' is not a version 6 Cortex graph");
             }
 
-            kmerSize = in.readUnsignedInt();
-            kmerBits = in.readUnsignedInt();
-            numColors = in.readUnsignedInt();
+            header.setKmerSize(in.readUnsignedInt());
+            header.setKmerBits(in.readUnsignedInt());
+            header.setNumColors(in.readUnsignedInt());
 
-            for (int color = 0; color < numColors; color++) {
-                colors.add(new CortexColor());
+            for (int color = 0; color < header.getNumColors(); color++) {
+                header.addColor(new CortexColor());
             }
 
-            for (int color = 0; color < numColors; color++) {
-                colors.get(color).setMeanReadLength(in.readUnsignedInt());
+            for (int color = 0; color < header.getNumColors(); color++) {
+                header.getColor(color).setMeanReadLength(in.readUnsignedInt());
             }
 
-            for (int color = 0; color < numColors; color++) {
-                colors.get(color).setTotalSequence(in.readUnsignedLong());
+            for (int color = 0; color < header.getNumColors(); color++) {
+                header.getColor(color).setTotalSequence(in.readUnsignedLong());
             }
 
-            for (int color = 0; color < numColors; color++) {
+            for (int color = 0; color < header.getNumColors(); color++) {
                 int sampleNameLength = in.readUnsignedInt();
                 byte[] sampleName = new byte[sampleNameLength];
                 in.read(sampleName);
@@ -100,22 +97,22 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 sampleName = fixStringsWithEarlyTerminators(sampleName);
                 String sampleNameStr = new String(sampleName);
 
-                colors.get(color).setSampleName(sampleNameStr);
+                header.getColor(color).setSampleName(sampleNameStr);
             }
 
             // Todo: fix this at some point - we're not actually getting the error rate properly
-            for (int color = 0; color < numColors; color++) {
+            for (int color = 0; color < header.getNumColors(); color++) {
                 byte[] errorRate = new byte[16];
                 in.read(errorRate);
             }
 
-            for (int color = 0; color < numColors; color++) {
-                colors.get(color).setTipClippingApplied(in.readBoolean());
-                colors.get(color).setLowCovgSupernodesRemoved(in.readBoolean());
-                colors.get(color).setLowCovgKmersRemoved(in.readBoolean());
-                colors.get(color).setCleanedAgainstGraph(in.readBoolean());
-                colors.get(color).setLowCovSupernodesThreshold(in.readUnsignedInt());
-                colors.get(color).setLowCovKmerThreshold(in.readUnsignedInt());
+            for (int color = 0; color < header.getNumColors(); color++) {
+                header.getColor(color).setTipClippingApplied(in.readBoolean());
+                header.getColor(color).setLowCovgSupernodesRemoved(in.readBoolean());
+                header.getColor(color).setLowCovgKmersRemoved(in.readBoolean());
+                header.getColor(color).setCleanedAgainstGraph(in.readBoolean());
+                header.getColor(color).setLowCovSupernodesThreshold(in.readUnsignedInt());
+                header.getColor(color).setLowCovKmerThreshold(in.readUnsignedInt());
 
                 int graphNameLength = in.readUnsignedInt();
                 byte[] graphName = new byte[graphNameLength];
@@ -123,7 +120,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
                 graphName = fixStringsWithEarlyTerminators(graphName);
 
-                colors.get(color).setCleanedAgainstGraphName(new String(graphName));
+                header.getColor(color).setCleanedAgainstGraphName(new String(graphName));
             }
 
             byte[] headerEnd = new byte[6];
@@ -138,8 +135,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             dataOffset = in.getFilePointer();
             long dataSize = size - dataOffset;
 
-            long recordSize = (8*kmerBits + 4*numColors + 1*numColors);
-            numRecords = dataSize / recordSize;
+            long recordSize = (8*header.getKmerBits() + 5*header.getNumColors());
+            numRecords = (dataSize / recordSize);
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
 
@@ -159,15 +156,17 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     public File getCortexFile() { return cortexFile; }
 
-    public int getVersion() { return version; }
+    public CortexHeader getHeader() { return header; }
 
-    public int getKmerSize() { return kmerSize; }
+    public int getVersion() { return header.getVersion(); }
 
-    public int getKmerBits() { return kmerBits; }
+    public int getKmerSize() { return header.getKmerSize(); }
 
-    public int getNumColors() { return numColors; }
+    public int getKmerBits() { return header.getKmerBits(); }
 
-    public ArrayList<CortexColor> getColors() { return colors; }
+    public int getNumColors() { return header.getNumColors(); }
+
+    public List<CortexColor> getColors() { return header.getColors(); }
 
     public String toString() {
         String info = "file: " + cortexFile.getAbsolutePath() + "\n"
@@ -199,15 +198,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return info;
     }
 
-    public long getNumRecords() {
-        return numRecords;
-    }
+    public long getNumRecords() { return numRecords; }
 
     private CortexRecord getNextRecord() {
-        if (recordsSeen < numRecords) {
+        if (recordsSeen < getNumRecords()) {
             try {
-                long[] binaryKmer = new long[kmerBits];
-                for (int bits = 0; bits < kmerBits; bits++) {
+                long[] binaryKmer = new long[header.getKmerBits()];
+                for (int bits = 0; bits < header.getKmerBits(); bits++) {
                     byte[] b = new byte[8];
 
                     mappedRecordBuffer.read(b);
@@ -216,20 +213,20 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                     binaryKmer[bits] = bb.getLong();
                 }
 
-                int[] coverages = new int[numColors];
-                for (int color = 0; color < numColors; color++) {
+                int[] coverages = new int[header.getNumColors()];
+                for (int color = 0; color < header.getNumColors(); color++) {
                     byte[] coverage = new byte[4];
                     mappedRecordBuffer.read(coverage);
 
                     coverages[color] = BinaryUtils.toUnsignedInt(coverage);
                 }
 
-                byte[] edges = new byte[numColors];
+                byte[] edges = new byte[header.getNumColors()];
                 mappedRecordBuffer.read(edges);
 
                 recordsSeen++;
 
-                return new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits, this);
+                return new CortexRecord(binaryKmer, coverages, edges, header.getKmerSize(), header.getKmerBits());
             } catch (IOException e) {
                 return null;
             }
@@ -272,19 +269,19 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public boolean hasColor(int color) {
-        return (color < colors.size());
+        return header.hasColor(color);
     }
 
     public CortexColor getColor(int color) {
-        return colors.get(color);
+        return header.getColor(color);
     }
 
     public int getColorForSampleName(String sampleName) {
         int sampleColor = -1;
         int sampleCopies = 0;
 
-        for (int color = 0; color < colors.size(); color++) {
-            if (colors.get(color).getSampleName().equalsIgnoreCase(sampleName)) {
+        for (int color = 0; color < header.getNumColors(); color++) {
+            if (header.getColor(color).getSampleName().equalsIgnoreCase(sampleName)) {
                 sampleColor = color;
                 sampleCopies++;
             }
