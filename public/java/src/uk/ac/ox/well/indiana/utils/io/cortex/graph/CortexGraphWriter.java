@@ -21,6 +21,10 @@ public class CortexGraphWriter {
         this.cortexFile = cortexFile;
     }
 
+    public CortexGraphWriter(String cortexFilePath) {
+        this.cortexFile = new File(cortexFilePath);
+    }
+
     private void initialize(CortexRecord record) {
         this.kmerSize = record.getKmerSize();
         this.kmerBits = record.getKmerBits();
@@ -35,7 +39,7 @@ public class CortexGraphWriter {
                 stringLengths += c.getSampleName().length() + c.getCleanedAgainstGraphName().length();
             }
 
-            ByteBuffer bb = ByteBuffer.allocateDirect(44 + numColors*32 + stringLengths);
+            ByteBuffer bb = ByteBuffer.allocateDirect(2 * (44 + numColors*32 + stringLengths));
             bb.order(ByteOrder.LITTLE_ENDIAN);
             bb.clear();
 
@@ -72,7 +76,7 @@ public class CortexGraphWriter {
             }
 
             for (int color = 0; color < numColors; color++) {
-                bb.put((byte) (record.getParentGraph().getColor(color).isTopClippingApplied() ? 1 : 0));
+                bb.put((byte) (record.getParentGraph().getColor(color).isTipClippingApplied() ? 1 : 0));
                 bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgSupernodesRemoved() ? 1 : 0));
                 bb.put((byte) (record.getParentGraph().getColor(color).isLowCovgKmersRemoved() ? 1 : 0));
                 bb.put((byte) (record.getParentGraph().getColor(color).isCleanedAgainstGraph() ? 1 : 0));

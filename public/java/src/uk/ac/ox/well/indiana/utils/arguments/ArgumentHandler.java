@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexPaths;
@@ -287,6 +288,8 @@ public class ArgumentHandler {
                 return new VCFFileReader(new File(value), false);
             } else if (type.equals(Color.class)) {
                 return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
+            } else if (type.equals(CortexGraphWriter.class)) {
+                return new CortexGraphWriter(value);
             } else if (type.equals(Expression.class)) {
                 initializeJexlEngine();
 

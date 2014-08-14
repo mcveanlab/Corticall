@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.io.cortex.paths;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexColor;
 
@@ -83,7 +82,7 @@ public class CortexPaths implements Iterable<CortexPathsRecord>, Iterator<Cortex
                 CortexColor color = new CortexColor();
                 color.setSampleName(jColor.getString("sample"));
                 color.setTotalSequence(jColor.getLong("total_sequence"));
-                color.setTopClippingApplied(true);
+                color.setTipClippingApplied(true);
                 color.setLowCovgSupernodesRemoved(true);
 
                 this.colors.add(color);
@@ -216,7 +215,7 @@ public class CortexPaths implements Iterable<CortexPathsRecord>, Iterator<Cortex
             out.append("-- Color ").append(i).append(" --\n");
             out.append("  sample: '").append(color.getSampleName()).append("'\n");
             out.append("  total_sequence: ").append(color.getTotalSequence()).append("\n");
-            out.append("  cleaned_tips: ").append(color.isTopClippingApplied()).append("\n");
+            out.append("  cleaned_tips: ").append(color.isTipClippingApplied()).append("\n");
             out.append("  cleaned_supernodes: ").append(color.isLowCovgSupernodesRemoved()).append("\n");
         }
         out.append("----\n");
