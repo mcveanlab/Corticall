@@ -33,22 +33,36 @@ public class CortexJunctionsRecord {
         return buffer.toString();
     }
 
-    public boolean isForwardOrientation() { return isFw; }
+    public boolean isForward() { return isFw; }
     public int getNumKmers() { return numKmers; }
     public int getNumJunctions() { return numJunctions; }
     public int[] getCoverages() { return coverages; }
     public int getCoverage(int i) { return coverages[i]; }
     public String getJunctions() { return junctions; }
 
-    public boolean equals(Object obj) {
-        if (obj instanceof CortexJunctionsRecord) {
-            return (isFw == ((CortexJunctionsRecord) obj).isForwardOrientation()) &&
-                   (numKmers == ((CortexJunctionsRecord) obj).numKmers) &&
-                   (numJunctions == ((CortexJunctionsRecord) obj).numJunctions) &&
-                   (junctions.equals(((CortexJunctionsRecord) obj).getJunctions())) &&
-                   (Arrays.equals(coverages, ((CortexJunctionsRecord) obj).getCoverages()));
-        }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        return false;
+        CortexJunctionsRecord that = (CortexJunctionsRecord) o;
+
+        if (isFw != that.isFw) return false;
+        if (numJunctions != that.numJunctions) return false;
+        if (numKmers != that.numKmers) return false;
+        if (!Arrays.equals(coverages, that.coverages)) return false;
+        if (!junctions.equals(that.junctions)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (isFw ? 1 : 0);
+        result = 31 * result + numKmers;
+        result = 31 * result + numJunctions;
+        result = 31 * result + Arrays.hashCode(coverages);
+        result = 31 * result + junctions.hashCode();
+        return result;
     }
 }
