@@ -77,6 +77,31 @@ public class SequenceUtils {
         return rcBase;
     }
 
+    public static char complement(char nucleotide) {
+        char rcBase = 'N';
+
+        switch(nucleotide) {
+            case 'A': rcBase = 'T'; break;
+            case 'a': rcBase = 't'; break;
+
+            case 'C': rcBase = 'G'; break;
+            case 'c': rcBase = 'g'; break;
+
+            case 'G': rcBase = 'C'; break;
+            case 'g': rcBase = 'c'; break;
+
+            case 'T': rcBase = 'A'; break;
+            case 't': rcBase = 'a'; break;
+
+            case 'N': rcBase = 'N'; break;
+            case 'n': rcBase = 'n'; break;
+
+            case '.': rcBase = '.'; break;
+        }
+
+        return rcBase;
+    }
+
     /**
      * Get the reverse complement of the sequence.
      *
