@@ -283,7 +283,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public Collection<String> getOutEdgesComplementAsStrings(int color) {
-        Collection<Byte> rightEdges = getOutEdgesAsBytes(color);
+        Collection<Byte> rightEdges = getOutEdgesComplementAsBytes(color);
         Collection<String> rightEdgesAsStrings = new ArrayList<String>();
 
         for (Byte e : rightEdges) {
@@ -292,6 +292,5 @@ public class CortexRecord implements Comparable<CortexRecord> {
         }
 
         return rightEdgesAsStrings;
-
     }
 }
