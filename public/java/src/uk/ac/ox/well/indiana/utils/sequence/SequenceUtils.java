@@ -46,6 +46,7 @@ public class SequenceUtils {
 
         return base;
     }
+
     /**
      * Get the complement of a single nucleotide
      *
@@ -77,6 +78,12 @@ public class SequenceUtils {
         return rcBase;
     }
 
+    /**
+     * Get the complement of a single nucleotide
+     *
+     * @param nucleotide  the nucleotide that should be complemented
+     * @return  the complement of the specified nucleotide
+     */
     public static char complement(char nucleotide) {
         char rcBase = 'N';
 
@@ -127,6 +134,33 @@ public class SequenceUtils {
     public static String reverseComplement(String sequence) {
         return new String(reverseComplement(sequence.getBytes()));
     }
+
+    /**
+     * Get the complement of the sequence.
+     *
+     * @param sequence  the sequence that should be complemented
+     * @return  the complement of the sequence
+     */
+    public static byte[] complement(byte[] sequence) {
+        byte[] c = new byte[sequence.length];
+
+        for (int i = 0; i < sequence.length; i++) {
+            c[i] = complement(sequence[i]);
+        }
+
+        return c;
+    }
+
+    /**
+     * Get the complement of the sequence.
+     *
+     * @param sequence  the sequence that should be complemented
+     * @return  the complement of the sequence
+     */
+    public static String complement(String sequence) {
+        return new String(complement(sequence.getBytes()));
+    }
+
 
     /**
      * Get the alphanumerically lowest orientation of the specified sequence.
