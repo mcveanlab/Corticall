@@ -4,20 +4,13 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.PrintStream;
 
 public class GetParentKmerCoverage extends Module {
-    @Argument(fullName="parents", shortName="p", doc="Parents (in Cortex format)")
-    public CortexGraph PARENTS;
-
-    @Argument(fullName="sample", shortName="s", doc="Sample (in Cortex format)", required=false)
-    public CortexMap SAMPLE;
-
-    @Argument(fullName="maskedKmers", shortName="m", doc="Masked kmers", required=false)
-    public CortexMap MASKED_KMERS;
+    @Argument(fullName="merged", shortName="m", doc="Merged sample, parents, and mask (in Cortex format)")
+    public CortexGraph MERGED;
 
     @Output(fullName="oref0", shortName="o0", doc="Ref0 coverage")
     public PrintStream oref0;
@@ -34,39 +27,30 @@ public class GetParentKmerCoverage extends Module {
 
         log.info("Computing coverage distribution for diagnostic kmers...");
 
-        if (SAMPLE != null) {
-            oref1.println("ref\tsample");
-            oref0.println("ref\tsample");
-        }
+        oref1.println("ref\tsample");
+        oref0.println("ref\tsample");
 
         int numRecords = 0;
-        for (CortexRecord cr : PARENTS) {
-            if (numRecords % (PARENTS.getNumRecords() / 5) == 0) {
-                log.info("  processed {}/{} (~{}%) records", numRecords, PARENTS.getNumRecords(), String.format("%.2f", 100.0f*((float) numRecords / (float) PARENTS.getNumRecords())));
+        for (CortexRecord cr : MERGED) {
+            if (numRecords % (MERGED.getNumRecords() / 10) == 0) {
+                log.info("  processed {}/{} (~{}%) records", numRecords, MERGED.getNumRecords(), String.format("%.2f", 100.0f*((float) numRecords / (float) MERGED.getNumRecords())));
             }
             numRecords++;
 
-            if (MASKED_KMERS == null || !MASKED_KMERS.containsKey(cr.getCortexKmer())) {
-                if (cr.getCoverage(0) == 0 && cr.getCoverage(1) > 0) {
+            int covSample = cr.getCoverage(0);
+            int covRef0 = cr.getCoverage(1);
+            int covRef1 = cr.getCoverage(2);
+            int covMask = cr.getCoverage(3);
+
+            if (covMask == 0) {
+                if (covRef0 == 0 && covRef1 > 0) {
                     // HB3
                     ref1++;
-
-                    if (SAMPLE != null) {
-                        int cov = SAMPLE.containsKey(cr.getCortexKmer()) ? SAMPLE.get(cr.getCortexKmer()).getCoverage(0) : 0;
-                        oref1.println(cr.getCoverage(1) + "\t" + cov);
-                    } else {
-                        oref1.println(cr.getCoverage(1));
-                    }
-                } else if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
+                    oref1.println(covRef1 + "\t" + covSample);
+                } else if (covRef0 > 0 && covRef1 == 0) {
                     // 3D7
                     ref0++;
-
-                    if (SAMPLE != null) {
-                        int cov = SAMPLE.containsKey(cr.getCortexKmer()) ? SAMPLE.get(cr.getCortexKmer()).getCoverage(0) : 0;
-                        oref0.println(cr.getCoverage(0) + "\t" + cov);
-                    } else {
-                        oref0.println(cr.getCoverage(0));
-                    }
+                    oref0.println(covRef0 + "\t" + covSample);
                 } else {
                     refBoth++;
                 }
