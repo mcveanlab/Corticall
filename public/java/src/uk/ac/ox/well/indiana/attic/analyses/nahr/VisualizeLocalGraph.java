@@ -2,9 +2,7 @@ package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -38,8 +36,8 @@ public class VisualizeLocalGraph extends Module {
     @Argument(fullName="contigName", shortName="cn", doc="Contig name")
     public String CONTIG_NAME;
 
-    //@Argument(fullName="showCandidates", shortName="sc", doc="Show candidates")
-    //public Boolean SHOW_CANDIDATES = false;
+    @Argument(fullName="showVertexLabels", shortName="vl", doc="Show vertex labels")
+    public Boolean SHOW_VERTEX_LABELS = false;
 
     @Output
     public File out;
@@ -110,13 +108,13 @@ public class VisualizeLocalGraph extends Module {
         return record.toString();
     }
 
-    private void writeGraph(DirectedGraph<String, WeightedEdge> g, Map<CortexKmer, CortexPathsRecord> paths, Set<String> contigKmers, PrintStream o) {
+    private void writeGraph(DirectedGraph<String, WeightedEdge> dbg, Set<DirectedGraph<String, WeightedEdge>> pgs, Map<CortexKmer, CortexPathsRecord> paths, Set<String> contigKmers, PrintStream o) {
         String indent = "  ";
 
         o.println("digraph G {");
         o.println(indent + "rankdir=\"LR\";");
 
-        for (String vertex : g.vertexSet()) {
+        for (String vertex : dbg.vertexSet()) {
             Map<String, Object> vertexAttrs = new TreeMap<String, Object>();
 
             CortexKmer ck = new CortexKmer(vertex);
@@ -131,18 +129,26 @@ public class VisualizeLocalGraph extends Module {
 
             vertexAttrs.put("color", "black");
             vertexAttrs.put("height", 0.10);
-            vertexAttrs.put("shape", "rect");
-            vertexAttrs.put("label", label);
             vertexAttrs.put("fontname", "Courier New");
             vertexAttrs.put("fontsize", 8.0);
+            if (SHOW_VERTEX_LABELS) {
+                vertexAttrs.put("shape", "rect");
+                vertexAttrs.put("label", label);
+            } else {
+                vertexAttrs.put("shape", "circle");
+                vertexAttrs.put("label", "");
+            }
 
-            if (g.outDegreeOf(vertex) > 1 || g.inDegreeOf(vertex) > 1 || cr.getInEdgesAsStrings(0).size() > 1 || cr.getOutEdgesAsStrings(0).size() > 1) {
+            if (dbg.outDegreeOf(vertex) > 1 || dbg.inDegreeOf(vertex) > 1 || cr.getInEdgesAsStrings(0).size() > 1 || cr.getOutEdgesAsStrings(0).size() > 1) {
                 vertexAttrs.put("shape", "octagon");
-                vertexAttrs.put("height", 0.50);
+                vertexAttrs.put("label", label);
             }
 
             if (paths.containsKey(ck)) {
                 vertexAttrs.put("color", "red");
+                if (vertexAttrs.get("shape").equals("circle")) {
+                    vertexAttrs.put("shape", "rect");
+                }
                 vertexAttrs.put("label", label + "\n\n" + (ck.isFlipped() ? reverseComplementJunctions(paths.get(ck)) : paths.get(ck)));
             }
 
@@ -155,13 +161,7 @@ public class VisualizeLocalGraph extends Module {
             o.println(indent + vertex + " [ " + attributeStr + " ];");
         }
 
-        /*
-        Map<CortexJunctionsRecord, String> colorMap = new HashMap<CortexJunctionsRecord, String>();
-        Map<CortexJunctionsRecord, String> styleMap = new HashMap<CortexJunctionsRecord, String>();
-        Random rdm = new Random();
-        */
-
-        for (WeightedEdge e : g.edgeSet()) {
+        for (WeightedEdge e : dbg.edgeSet()) {
             String[] labels = e.getLabel().split("\\n");
 
             Map<String, Object> edgeAttrs = new TreeMap<String, Object>();
@@ -174,18 +174,43 @@ public class VisualizeLocalGraph extends Module {
             edgeAttrs.put("dir", "none");
             edgeAttrs.put("color", "black");
 
-            if (!contigKmers.contains(g.getEdgeTarget(e)) || !contigKmers.contains(g.getEdgeSource(e))) {
+            if (!contigKmers.contains(dbg.getEdgeTarget(e)) || !contigKmers.contains(dbg.getEdgeSource(e))) {
                 edgeAttrs.put("style", "dashed");
             }
 
             edgeAttrs.put("label", labels[0]);
             String attributeStr = joinAttributes(edgeAttrs);
-            o.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ " + attributeStr + " ];");
+            o.println(indent + dbg.getEdgeSource(e) + " -> " + dbg.getEdgeTarget(e) + " [ " + attributeStr + " ];");
 
             edgeAttrs.put("color", "white");
             edgeAttrs.put("label", labels[1]);
             attributeStr = joinAttributes(edgeAttrs);
-            o.println(indent + g.getEdgeSource(e) + " -> " + g.getEdgeTarget(e) + " [ " + attributeStr + " ];");
+            o.println(indent + dbg.getEdgeSource(e) + " -> " + dbg.getEdgeTarget(e) + " [ " + attributeStr + " ];");
+        }
+
+        Random rdm = new Random();
+
+        for (DirectedGraph<String, WeightedEdge> pg : pgs) {
+            String style = styles[rdm.nextInt(styles.length)];
+            String color = colors[rdm.nextInt(colors.length)];
+
+            for (WeightedEdge e : pg.edgeSet()) {
+                String label = e.getLabel();
+
+                Map<String, Object> edgeAttrs = new TreeMap<String, Object>();
+                edgeAttrs.put("arrowsize", 0.4);
+                edgeAttrs.put("arrowhead", "normal");
+                edgeAttrs.put("penwidth", e.getWeight());
+                edgeAttrs.put("weight", e.getWeight());
+                edgeAttrs.put("fontname", "Courier New");
+                edgeAttrs.put("fontsize", 8.0);
+                edgeAttrs.put("color", color);
+                edgeAttrs.put("style", style);
+                edgeAttrs.put("label", label);
+
+                String attributeStr = joinAttributes(edgeAttrs);
+                o.println(indent + dbg.getEdgeSource(e) + " -> " + dbg.getEdgeTarget(e) + " [ " + attributeStr + " ];");
+            }
         }
 
         o.println("}");
@@ -397,21 +422,21 @@ public class VisualizeLocalGraph extends Module {
         Set<String> vertices = new HashSet<String>();
         vertices.addAll(dbg.vertexSet());
 
-        DirectedGraph<String, WeightedEdge> pg = new DefaultDirectedGraph<String, WeightedEdge>(WeightedEdge.class);
+        Set<DirectedGraph<String, WeightedEdge>> pgs = new HashSet<DirectedGraph<String, WeightedEdge>>();
 
         log.info("Adding path annotations...");
         for (String vertex : vertices) {
             CortexKmer ck = new CortexKmer(vertex);
 
             if (paths.containsKey(ck)) {
-                if (vertex.equals("GTTCAAAAAAAAAAAAAAAAAAAAAATTAAATTAAAACATATGATAT")) {
-                    log.info("Problematic kmer");
-                }
                 CortexPathsRecord pr = paths.get(ck);
-
-                log.info("  {}", pr);
+                log.info("  paths starting at: {}", vertex);
 
                 for (CortexJunctionsRecord jr : pr.getJunctions()) {
+                    log.info("    {}", jr);
+
+                    DirectedGraph<String, WeightedEdge> pg = new DefaultDirectedGraph<String, WeightedEdge>(WeightedEdge.class);
+
                     boolean goForward = jr.isForward();
                     String junctions = jr.getJunctions();
                     int junctionsUsed = 0;
@@ -421,9 +446,9 @@ public class VisualizeLocalGraph extends Module {
                         junctions = SequenceUtils.complement(junctions);
                     }
 
+                    String curVertex = vertex;
                     if (goForward) {
-                        String curVertex = vertex;
-                        while (dbg.containsVertex(curVertex) && junctionsUsed < junctions.length() && dbg.outDegreeOf(vertex) > 0) {
+                        while (dbg.containsVertex(curVertex) && junctionsUsed < junctions.length() && dbg.outDegreeOf(curVertex) > 0) {
                             Set<WeightedEdge> nextEdges = dbg.outgoingEdgesOf(curVertex);
 
                             if (nextEdges.size() == 1) {
@@ -432,7 +457,7 @@ public class VisualizeLocalGraph extends Module {
 
                                 pg.addVertex(curVertex);
                                 pg.addVertex(nextVertex);
-                                pg.addEdge(curVertex, nextVertex, new WeightedEdge(nextVertex.substring(nextVertex.length() - 1, nextVertex.length()) + "\n" + jr.hashCode(), 1.0));
+                                pg.addEdge(curVertex, nextVertex, new WeightedEdge(junctions.toLowerCase(), 1.0));
 
                                 curVertex = nextVertex;
                             } else {
@@ -453,23 +478,68 @@ public class VisualizeLocalGraph extends Module {
                                 if (nextVertex != null) {
                                     pg.addVertex(curVertex);
                                     pg.addVertex(nextVertex);
-                                    pg.addEdge(curVertex, nextVertex, new WeightedEdge(tBase + "\n" + jr.hashCode(), 1.0));
+                                    pg.addEdge(curVertex, nextVertex, new WeightedEdge(junctions.toLowerCase(), 1.0));
 
                                     curVertex = nextVertex;
+                                } else {
+                                    log.info("      incomplete traversal at {}: specified junctions did not match available junctions", curVertex);
+                                    break;
                                 }
                             }
                         }
+
+                        pgs.add(pg);
+                    } else {
+                        while (dbg.containsVertex(curVertex) && junctionsUsed < junctions.length() && dbg.inDegreeOf(curVertex) > 0) {
+                            Set<WeightedEdge> prevEdges = dbg.incomingEdgesOf(curVertex);
+
+                            if (prevEdges.size() == 1) {
+                                WeightedEdge edge = prevEdges.iterator().next();
+                                String prevVertex = dbg.getEdgeSource(edge);
+
+                                pg.addVertex(curVertex);
+                                pg.addVertex(prevVertex);
+                                pg.addEdge(curVertex, prevVertex, new WeightedEdge(junctions.toLowerCase(), 1.0));
+
+                                curVertex = prevVertex;
+                            } else {
+                                String prevVertex = null;
+                                char tBase = 'N';
+                                for (WeightedEdge tEdge : prevEdges) {
+                                    String tVertex = dbg.getEdgeSource(tEdge);
+
+                                    tBase = tVertex.substring(0, 1).charAt(0);
+
+                                    if (tBase == junctions.charAt(junctionsUsed)) {
+                                        prevVertex = tVertex;
+                                        junctionsUsed++;
+                                        break;
+                                    }
+                                }
+
+                                if (prevVertex != null) {
+                                    pg.addVertex(curVertex);
+                                    pg.addVertex(prevVertex);
+                                    pg.addEdge(curVertex, prevVertex, new WeightedEdge(junctions.toLowerCase(), 1.0));
+
+                                    curVertex = prevVertex;
+                                } else {
+                                    log.info("      incomplete traversal at {}: specified junctions did not match available junctions", curVertex);
+                                    break;
+                                }
+                            }
+                        }
+
+                        pgs.add(pg);
                     }
                 }
             }
         }
 
-        Graphs.addGraph(dbg, pg);
-
         log.info("Writing graph...");
         try {
             PrintStream o = new PrintStream(out);
-            writeGraph(dbg, paths, contigKmers, o);
+            writeGraph(dbg, pgs, paths, contigKmers, o);
         } catch (FileNotFoundException e) {
             throw new IndianaException("Unable to open print stream", e);
         }
