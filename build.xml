@@ -123,6 +123,9 @@
                 <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
             </manifest>
         </jar>
+
+        <!--<taskdef resource="proguard/ant/task.properties" classpath="${lib.dir}/proguard-anttask-5.0.jar" />
+        <proguard configuration="${ivy.settings.dir}/application.pro" warn="false" />-->
     </target>
 
     <!-- Unit tests -->
