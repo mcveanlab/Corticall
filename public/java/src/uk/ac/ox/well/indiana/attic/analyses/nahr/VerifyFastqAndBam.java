@@ -6,7 +6,10 @@ import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+
+import java.io.PrintStream;
 
 public class VerifyFastqAndBam extends Module {
     @Argument(fullName="end1", shortName="e1", doc="Fastq (end1)")
@@ -17,6 +20,9 @@ public class VerifyFastqAndBam extends Module {
 
     @Argument(fullName="bam", shortName="b", doc="BAM file")
     public SAMFileReader BAM;
+
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -29,7 +35,7 @@ public class VerifyFastqAndBam extends Module {
         for (FastqRecord fr : END2) { numFr2++; }
 
         log.info("Reading BAM...");
-        for (SAMRecord   sr : BAM)  {
+        for (SAMRecord sr : BAM)  {
             if (!sr.isSecondaryOrSupplementary()) {
                 numBr++;
             }
@@ -48,5 +54,7 @@ public class VerifyFastqAndBam extends Module {
 
         log.info("");
         log.info("Number of records in Fastq and BAM files match.");
+
+        out.println("valid");
     }
 }
