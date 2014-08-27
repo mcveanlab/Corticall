@@ -6,6 +6,7 @@ import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
 public class VerifyFastqAndBam extends Module {
     @Argument(fullName="end1", shortName="e1", doc="Fastq (end1)")
@@ -34,10 +35,18 @@ public class VerifyFastqAndBam extends Module {
             }
         }
 
+        log.info("");
         log.info("Results:");
         log.info("  numFr1: {}", numFr1);
         log.info("  numFr2: {}", numFr2);
         log.info("   numFr: {}", numFr1 + numFr2);
         log.info("   numBr: {}", numBr);
+
+        if (numFr1 + numFr2 != numBr) {
+            throw new IndianaException("Number of records in fastqs and BAMs do not match (" + numFr1 + " + " + numFr2 + " != " + numBr + ")");
+        }
+
+        log.info("");
+        log.info("Number of records in Fastq and BAM files match.");
     }
 }
