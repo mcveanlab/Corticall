@@ -28,11 +28,16 @@ public class VerifyFastqAndBam extends Module {
         for (FastqRecord fr : END2) { numFr2++; }
 
         log.info("Reading BAM...");
-        for (SAMRecord   sr : BAM)  { numBr++;  }
+        for (SAMRecord   sr : BAM)  {
+            if (!sr.isSecondaryOrSupplementary()) {
+                numBr++;
+            }
+        }
 
         log.info("Results:");
         log.info("  numFr1: {}", numFr1);
         log.info("  numFr2: {}", numFr2);
+        log.info("   numFr: {}", numFr1 + numFr2);
         log.info("   numBr: {}", numBr);
     }
 }
