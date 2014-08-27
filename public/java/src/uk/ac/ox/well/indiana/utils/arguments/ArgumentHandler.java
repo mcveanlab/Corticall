@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.arguments;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.variant.vcf.VCFFileReader;
@@ -284,6 +285,8 @@ public class ArgumentHandler {
                 return new PrintStream(bos, false);
             } else if (type.equals(SAMFileReader.class)) {
                 return new SAMFileReader(new File(value));
+            } else if (type.equals(FastqReader.class)) {
+                return new FastqReader(new File(value));
             } else if (type.equals(VCFFileReader.class)) {
                 return new VCFFileReader(new File(value), false);
             } else if (type.equals(Color.class)) {
