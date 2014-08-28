@@ -64,9 +64,13 @@ public class ArgumentHandler {
                             descElements.add("can be specified more than once");
                         }
 
+                        if (!arg.required()) {
+                            descElements.add("optional");
+                        }
+
                         String description = arg.doc();
                         if (descElements.size() > 0) {
-                            description += " [" + Joiner.on(" ").join(descElements) + "]";
+                            description += " [" + Joiner.on(", ").join(descElements) + "]";
                         }
 
                         Boolean hasArgument = !field.getType().equals(Boolean.class);
@@ -102,7 +106,7 @@ public class ArgumentHandler {
 
                 Description d = instance.getClass().getAnnotation(Description.class);
                 String header = (d == null) ? "no description available" : d.text();
-                String command = "java -jar indiana.jar " + instance.getClass().getSimpleName() + " [options]";
+                String command = "java -jar indiana.jar " + instance.getClass().getSimpleName() + " [arguments]";
                 String footer = "";
 
                 HelpFormatter formatter = new HelpFormatter();
