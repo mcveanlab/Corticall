@@ -633,4 +633,15 @@ public class SequenceUtils {
 
         return (float) gcBases / (float) seq.length();
     }
+
+    public static Set<String> kmerizeSequence(String seq, int kmerSize) {
+        Set<String> kmers = new HashSet<String>();
+        for (int i = 0; i <= seq.length() - kmerSize; i++) {
+            String kmer = seq.substring(i, i + kmerSize);
+
+            kmers.add(kmer);
+        }
+
+        return kmers;
+    }
 }
