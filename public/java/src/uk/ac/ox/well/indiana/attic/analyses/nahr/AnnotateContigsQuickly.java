@@ -56,13 +56,16 @@ public class AnnotateContigsQuickly extends Module {
         for (Map<String, String> te : tr) {
             String sample = te.get("sample");
 
+            int p1 = Integer.valueOf(te.get("p1"));
+            int p2 = Integer.valueOf(te.get("p2"));
+
             if (COVERAGE.getColor(0).getSampleName().contains(sample)) {
-                sampleP0Threshold = Integer.valueOf(te.get("p1"));
-                sampleP1Threshold = Integer.valueOf(te.get("p2"));
-            } else if (PARENTS.getColor(0).getSampleName().contains(sample)) {
-                p1Threshold = Integer.valueOf(te.get("p1"));
-            } else if (PARENTS.getColor(1).getSampleName().contains(sample)) {
-                p2Threshold = Integer.valueOf(te.get("p2"));
+                sampleP0Threshold = p1;
+                sampleP1Threshold = p2;
+            } else if (p1 >  0 && p2 == 0) {
+                p1Threshold = p1;
+            } else if (p1 == 0 && p2 >  0) {
+                p2Threshold = p2;
             }
         }
 
