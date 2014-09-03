@@ -16,7 +16,7 @@ public class SelectKnownRecombContigs extends Module {
     @Argument(fullName="bam", shortName="b", doc="BAM file")
     public SAMFileReader BAM;
 
-    @Argument(fullName="ann", shortName="ann", doc="Contig annotations")
+    @Argument(fullName="ann", shortName="ann", doc="Contig annotations", required=false)
     public File ANN;
 
     @Argument(fullName="recombTable", shortName="rt", doc="Recomb event table")
@@ -56,13 +56,15 @@ public class SelectKnownRecombContigs extends Module {
         }
 
         Map<String, Integer> contigPCount = new HashMap<String, Integer>();
-        TableReader ann = new TableReader(ANN);
-        for (Map<String, String> te : ann) {
-            String contigName = te.get("contigName");
-            Integer ref0 = Integer.valueOf(te.get("ref0"));
-            Integer ref1 = Integer.valueOf(te.get("ref1"));
+        if (ANN.exists()) {
+            TableReader ann = new TableReader(ANN);
+            for (Map<String, String> te : ann) {
+                String contigName = te.get("contigName");
+                Integer ref0 = Integer.valueOf(te.get("ref0"));
+                Integer ref1 = Integer.valueOf(te.get("ref1"));
 
-            contigPCount.put(contigName, ref0 < ref1 ? ref0 : ref1);
+                contigPCount.put(contigName, ref0 < ref1 ? ref0 : ref1);
+            }
         }
 
         Set<SAMRecord> spanningContigs = new HashSet<SAMRecord>();
@@ -82,7 +84,7 @@ public class SelectKnownRecombContigs extends Module {
                 SAMRecord contig = sri.next();
 
                 Interval contigInterval = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
-                Integer refCount = contigPCount.get(contig.getReadName());
+                Integer refCount = contigPCount.containsKey(contig.getReadName()) ? contigPCount.get(contig.getReadName()) : THRESHOLD;
 
                 if (fullInterval.getIntersectionLength(contigInterval) == fullInterval.length() && refCount >= THRESHOLD) {
                     spanningContigs.add(contig);
