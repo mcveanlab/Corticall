@@ -104,15 +104,17 @@ public class ComputeParentalContributionTracks extends Module {
         Map<String, Map<String, String>> annotatedContigs = new HashMap<String, Map<String, String>>();
         int kmerSize = 0;
 
-        TableReader tr = new TableReader(ANN);
-        for (Map<String, String> te : tr) {
-            String contigName = te.get("contigName");
+        if (ANN.length() > 0) {
+            TableReader tr = new TableReader(ANN);
+            for (Map<String, String> te : tr) {
+                String contigName = te.get("contigName");
 
-            if (kmerSize == 0) {
-                kmerSize = te.get("seq").length() - te.get("kmerOrigin").length() + 1;
+                if (kmerSize == 0) {
+                    kmerSize = te.get("seq").length() - te.get("kmerOrigin").length() + 1;
+                }
+
+                annotatedContigs.put(contigName, te);
             }
-
-            annotatedContigs.put(contigName, te);
         }
 
         log.info("    contigs: {}", annotatedContigs.size());
