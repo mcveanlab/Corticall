@@ -79,7 +79,8 @@ public class SelectKnownRecombContigs extends Module {
             Interval fullInterval = new Interval(chrom, start, end);
 
             int contigsFound = 0;
-            int contigsFoundPassingThreshold = 0;
+            int[] contigsFoundPassingThreshold = new int[THRESHOLD + 1];
+
             SAMRecordIterator sri = BAM.queryOverlapping(chrom, start, end);
             while (sri.hasNext()) {
                 SAMRecord contig = sri.next();
@@ -94,8 +95,10 @@ public class SelectKnownRecombContigs extends Module {
 
                     contigsFound++;
 
-                    if (refCount >= THRESHOLD) {
-                        contigsFoundPassingThreshold++;
+                    for (int i = 0; i <= THRESHOLD; i++) {
+                        if (refCount >= i) {
+                            contigsFoundPassingThreshold[i]++;
+                        }
                     }
                 }
 
@@ -108,7 +111,9 @@ public class SelectKnownRecombContigs extends Module {
             entry.put("co_pos_min", te.get("co_pos_min"));
             entry.put("co_pos_max", te.get("co_pos_max"));
             entry.put("contigs_found", String.valueOf(contigsFound));
-            entry.put("found_passing_threshold", String.valueOf(contigsFoundPassingThreshold));
+            for (int i = 0; i <= THRESHOLD; i++) {
+                entry.put("contigs_found_t" + i, String.valueOf(contigsFoundPassingThreshold[i]));
+            }
             tw.addEntry(entry);
         }
 
