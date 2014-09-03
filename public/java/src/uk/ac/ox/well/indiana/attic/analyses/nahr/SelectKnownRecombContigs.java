@@ -10,17 +10,20 @@ import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class SelectKnownRecombContigs extends Module {
     @Argument(fullName="bam", shortName="b", doc="BAM file")
     public SAMFileReader BAM;
 
+    @Argument(fullName="ann", shortName="ann", doc="Contig annotations")
+    public File ANN;
+
     @Argument(fullName="recombTable", shortName="rt", doc="Recomb event table")
     public File RECOMB_TABLE;
+
+    @Argument(fullName="threshold", shortName="t", doc="Parental kmer count threshold")
+    public Integer THRESHOLD = 0;
 
     @Output
     public File out;
@@ -52,6 +55,16 @@ public class SelectKnownRecombContigs extends Module {
             }
         }
 
+        Map<String, Integer> contigPCount = new HashMap<String, Integer>();
+        TableReader ann = new TableReader(ANN);
+        for (Map<String, String> te : ann) {
+            String contigName = te.get("contigName");
+            Integer ref0 = Integer.valueOf(te.get("ref0"));
+            Integer ref1 = Integer.valueOf(te.get("ref1"));
+
+            contigPCount.put(contigName, ref0 < ref1 ? ref0 : ref1);
+        }
+
         Set<SAMRecord> spanningContigs = new HashSet<SAMRecord>();
 
         TableWriter tw = new TableWriter(sout);
@@ -69,8 +82,9 @@ public class SelectKnownRecombContigs extends Module {
                 SAMRecord contig = sri.next();
 
                 Interval contigInterval = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
+                Integer refCount = contigPCount.get(contig.getReadName());
 
-                if (fullInterval.getIntersectionLength(contigInterval) == fullInterval.length()) {
+                if (fullInterval.getIntersectionLength(contigInterval) == fullInterval.length() && refCount >= THRESHOLD) {
                     spanningContigs.add(contig);
 
                     log.info("chrom={} start={} end={} contig={}", chrom, start, end, contig.getSAMString());
@@ -87,7 +101,6 @@ public class SelectKnownRecombContigs extends Module {
             entry.put("co_pos_min", te.get("co_pos_min"));
             entry.put("co_pos_max", te.get("co_pos_max"));
             entry.put("contigs_found", String.valueOf(contigsFound));
-
             tw.addEntry(entry);
         }
 
