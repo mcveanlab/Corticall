@@ -56,7 +56,7 @@ public class SelectKnownRecombContigs extends Module {
         }
 
         Map<String, Integer> contigPCount = new HashMap<String, Integer>();
-        if (ANN.exists()) {
+        if (ANN != null) {
             TableReader ann = new TableReader(ANN);
             for (Map<String, String> te : ann) {
                 String contigName = te.get("contigName");
