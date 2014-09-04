@@ -145,6 +145,8 @@ public class SelectContigsByMetrics extends Module {
                     for (String type : types) {
                         te.put(type, "1");
                     }
+
+                    knownContigs++;
                 }
 
                 tw.addEntry(te);
