@@ -128,8 +128,9 @@ public class SelectContigsByMetrics extends Module {
 
                     te.put("isKnownAHR", "1");
                 }
-                selectedContigs++;
                 */
+
+                selectedContigs++;
 
                 for (String type : CLASSIFICATIONS.keySet()) {
                     te.put(type, "0");
