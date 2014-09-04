@@ -82,9 +82,13 @@ public class SelectContigsByMetrics extends Module {
                     its.put(acc, new IntervalTreeMap<String>());
                 }
 
+                if (acc.equals("all")) {
+                    its.get(ACCESSION).put(it, type);
+                }
+
                 its.get(acc).put(it, type);
 
-                if (ACCESSION.equals(acc)) {
+                if (acc.equals("all") || ACCESSION.equals(acc)) {
                     knownEvents++;
                 }
             }
