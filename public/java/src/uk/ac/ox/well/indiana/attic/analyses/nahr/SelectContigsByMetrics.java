@@ -140,17 +140,25 @@ public class SelectContigsByMetrics extends Module {
                     te.put(type, "0");
                 }
 
+                te.put("isUnclassified", "0");
+
                 Interval it = contigLoci.get(te.get("contigName"));
 
+                boolean isClassified = false;
                 if (its.get(ACCESSION).containsOverlapping(it)) {
                     Set<String> types = new TreeSet<String>();
                     types.addAll(its.get(ACCESSION).getOverlapping(it));
 
                     for (String type : types) {
                         te.put(type, "1");
+                        isClassified = true;
                     }
 
                     knownContigs++;
+                }
+
+                if (!isClassified) {
+                    te.put("isUnclassified", "1");
                 }
 
                 tw.addEntry(te);
