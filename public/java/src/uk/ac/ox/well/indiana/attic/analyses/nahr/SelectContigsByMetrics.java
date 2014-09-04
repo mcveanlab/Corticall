@@ -64,6 +64,7 @@ public class SelectContigsByMetrics extends Module {
         }
 
         Map<String, IntervalTreeMap<String>> its = new HashMap<String, IntervalTreeMap<String>>();
+        its.put(ACCESSION, new IntervalTreeMap<String>());
 
         int knownEvents = 0;
         for (String type : CLASSIFICATIONS.keySet()) {
@@ -83,10 +84,6 @@ public class SelectContigsByMetrics extends Module {
                 }
 
                 if (acc.equals("all")) {
-                    if (!its.containsKey(ACCESSION)) {
-                        its.put(ACCESSION, new IntervalTreeMap<String>());
-                    }
-
                     its.get(ACCESSION).put(it, type);
                 }
 
