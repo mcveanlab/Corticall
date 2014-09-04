@@ -93,7 +93,9 @@ public class SelectKnownRecombContigs extends Module {
 
                     log.info("chrom={} start={} end={} contig={}", chrom, start, end, contig.getSAMString());
 
-                    contigsFound++;
+                    if (refCount >= THRESHOLD) {
+                        contigsFound++;
+                    }
 
                     for (int i = 0; i <= THRESHOLD; i++) {
                         if (refCount >= i) {
