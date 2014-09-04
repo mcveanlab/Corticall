@@ -146,7 +146,7 @@ public class SelectContigsByMetrics extends Module {
                 Interval it = contigLoci.get(te.get("contigName"));
 
                 boolean isClassified = false;
-                if (its.get(ACCESSION).containsOverlapping(it)) {
+                if (it != null && its.get(ACCESSION).containsOverlapping(it)) {
                     Set<String> types = new TreeSet<String>();
                     types.addAll(its.get(ACCESSION).getOverlapping(it));
 
