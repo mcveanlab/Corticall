@@ -102,6 +102,8 @@ public class SelectContigsByMetrics extends Module {
         int selectedContigs = 0;
         int knownContigs = 0;
 
+        Map<String, Integer> typeCounts = new LinkedHashMap<String, Integer>();
+
         for (Map<String, String> te : tr) {
             JexlContext jexlContext = new MapContext();
 
@@ -153,13 +155,26 @@ public class SelectContigsByMetrics extends Module {
                     for (String type : types) {
                         te.put(type, "1");
                         isClassified = true;
+
+                        if (!typeCounts.containsKey(type)) {
+                            typeCounts.put(type, 0);
+                        }
+
+                        typeCounts.put(type, typeCounts.get(type) + 1);
                     }
 
                     knownContigs++;
                 }
 
                 if (!isClassified) {
-                    te.put("isUnclassified", "1");
+                    String type = "isUnclassified";
+                    if (!typeCounts.containsKey(type)) {
+                        typeCounts.put(type, 0);
+                    }
+
+                    typeCounts.put(type, typeCounts.get(type) + 1);
+
+                    te.put(type, "1");
                 }
 
                 tw.addEntry(te);
@@ -172,6 +187,20 @@ public class SelectContigsByMetrics extends Module {
 
         log.info("Found {}/{} (~{}%) contigs that met criteria, {} training contigs recovered.", selectedContigs, numContigs, String.format("%.2f", 100.0f * (float) selectedContigs / (float) numContigs), knownContigs);
 
-        sout.println(Joiner.on("\t").join(SAMPLE_NAME, numContigs, selectedContigs, knownEvents, knownContigs));
+        Map<String, Object> pieces = new LinkedHashMap<String, Object>();
+        pieces.put("sampleName", SAMPLE_NAME);
+        pieces.put("accession", ACCESSION);
+        pieces.put("numContigs", numContigs);
+        pieces.put("selectedContigs", selectedContigs);
+        pieces.put("knownEvents", knownEvents);
+        pieces.put("knownContigs", knownContigs);
+
+        for (String type : typeCounts.keySet()) {
+            pieces.put(type, typeCounts.get(type));
+        }
+
+        //sout.println(Joiner.on("\t").join(SAMPLE_NAME, numContigs, selectedContigs, knownEvents, knownContigs));
+        sout.println(Joiner.on("\t").join(pieces.keySet()));
+        sout.println(Joiner.on("\t").join(pieces.values()));
     }
 }
