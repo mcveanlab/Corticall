@@ -30,7 +30,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="bams0", shortName="b0", doc="BAMs (for parent 0)")
     public ArrayList<SAMFileReader> BAMS0;
 
-    @Argument(fullName="bams1", shortName="b0", doc="BAMs (for parent 1)")
+    @Argument(fullName="bams1", shortName="b1", doc="BAMs (for parent 1)")
     public ArrayList<SAMFileReader> BAMS1;
 
     @Argument(fullName="deltas", shortName="d", doc="Delta")
@@ -38,9 +38,6 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
     @Argument(fullName="gff", shortName="g", doc="GFF file")
     public GFF3 GFF;
-
-    //@Argument(fullName="recombs", shortName="rc", doc="Recombs info")
-    //public File RECOMBS;
 
     @Output
     public PrintStream out;
