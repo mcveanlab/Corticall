@@ -33,8 +33,11 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="bams1", shortName="b1", doc="BAMs (for parent 1)")
     public ArrayList<SAMFileReader> BAMS1;
 
-    @Argument(fullName="deltas", shortName="d", doc="Delta")
-    public ArrayList<File> DELTAS;
+    @Argument(fullName="delta0", shortName="d0", doc="Delta")
+    public File DELTA0;
+
+    @Argument(fullName="delta1", shortName="d1", doc="Delta")
+    public File DELTA1;
 
     @Argument(fullName="gff", shortName="g", doc="GFF file")
     public GFF3 GFF;
@@ -108,43 +111,41 @@ public class ComputeAnnotatedContigMetrics extends Module {
         return numSwitches;
     }
 
-    private IntervalTreeMap<Interval> loadDeltas(boolean reverse) {
+    private IntervalTreeMap<Interval> loadDeltas(boolean reverse, File delta) {
         IntervalTreeMap<Interval> imap = new IntervalTreeMap<Interval>();
 
-        for (File delta : DELTAS) {
-            LineReader lr = new LineReader(delta);
+        LineReader lr = new LineReader(delta);
 
-            String currentHeader = null;
-            String refContig = null;
-            String altContig = null;
+        String currentHeader = null;
+        String refContig = null;
+        String altContig = null;
 
-            String line;
-            while ((line = lr.getNextRecord()) != null) {
-                if (line.startsWith(">")) {
-                    currentHeader = line;
+        String line;
+        while ((line = lr.getNextRecord()) != null) {
+            if (line.startsWith(">")) {
+                currentHeader = line;
 
-                    line = line.replace(">", "");
+                line = line.replace(">", "");
+                String[] fields = line.split("\\s+");
+                refContig = fields[0];
+                altContig = fields[1];
+            }
+            else {
+                if (currentHeader != null) {
                     String[] fields = line.split("\\s+");
-                    refContig = fields[0];
-                    altContig = fields[1];
-                }
-                else {
-                    if (currentHeader != null) {
-                        String[] fields = line.split("\\s+");
-                        if (fields.length == 7) {
-                            int refStart = Integer.valueOf(fields[0]);
-                            int refEnd = Integer.valueOf(fields[1]);
-                            int altStart = Integer.valueOf(fields[2]);
-                            int altEnd = Integer.valueOf(fields[3]);
+                    if (fields.length == 7) {
+                        int refStart = Integer.valueOf(fields[0]);
+                        int refEnd = Integer.valueOf(fields[1]);
+                        int altStart = Integer.valueOf(fields[2]);
+                        int altEnd = Integer.valueOf(fields[3]);
 
-                            Interval refInterval = refStart < refEnd ? new Interval(refContig, refStart, refEnd) : new Interval(refContig, refEnd, refStart);
-                            Interval altInterval = altStart < altEnd ? new Interval(altContig, altStart, altEnd) : new Interval(altContig, altEnd, altStart);
+                        Interval refInterval = refStart < refEnd ? new Interval(refContig, refStart, refEnd) : new Interval(refContig, refEnd, refStart);
+                        Interval altInterval = altStart < altEnd ? new Interval(altContig, altStart, altEnd) : new Interval(altContig, altEnd, altStart);
 
-                            if (reverse) {
-                                imap.put(refInterval, altInterval);
-                            } else {
-                                imap.put(altInterval, refInterval);
-                            }
+                        if (reverse) {
+                            imap.put(refInterval, altInterval);
+                        } else {
+                            imap.put(altInterval, refInterval);
                         }
                     }
                 }
@@ -157,7 +158,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Override
     public void execute() {
         log.info("Load alt vs. ref deltas...");
-        IntervalTreeMap<Interval> imap = loadDeltas(true);
+        IntervalTreeMap<Interval> d0 = loadDeltas(true, DELTA0);
+        IntervalTreeMap<Interval> d1 = loadDeltas(true, DELTA1);
 
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
         String sampleName = null, accession = null;
@@ -197,21 +199,18 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ContigInfo ci = cis.containsKey(accession + "." + read.getReadName()) ? cis.get(accession + "." + read.getReadName()) : new ContigInfo();
 
                 ci.ref0Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
-                ci.ref0ToCanonicalBlock = ci.ref0Locus;
-                ci.ref0ToCanonicalExact = ci.ref0Locus;
+                ci.ref0ToCanonicalBlock = null;
+                ci.ref0ToCanonicalExact = null;
 
-                if (imap.getOverlapping(ci.ref0Locus).size() == 1) {
-                    ci.ref0ToCanonicalBlock = imap.getOverlapping(ci.ref0Locus).iterator().next();
+                if (d0.getOverlapping(ci.ref0Locus).size() == 1) {
+                    ci.ref0ToCanonicalBlock = d0.getOverlapping(ci.ref0Locus).iterator().next();
 
-                    if (ci.ref0ToCanonicalBlock != null && imap.containsKey(ci.ref0ToCanonicalBlock)) {
-                        Interval revLocus = imap.get(ci.ref0ToCanonicalBlock);
+                    if (ci.ref0ToCanonicalBlock != null && d0.containsKey(ci.ref0ToCanonicalBlock)) {
+                        Interval revLocus = d0.get(ci.ref0ToCanonicalBlock);
                         ci.ref0ToCanonicalExact = new Interval(ci.ref0ToCanonicalBlock.getSequence(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getStart() - revLocus.getStart(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getEnd() - revLocus.getStart());
                     }
-                } else if (imap.getOverlapping(ci.ref0Locus).size() > 1) {
-                    ci.ref0ToCanonicalBlock = null;
-                    ci.ref0ToCanonicalExact = null;
                 }
 
                 ci.numAlignmentsInRef0++;
@@ -239,19 +238,18 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ContigInfo ci = cis.containsKey(accession + "." + read.getReadName()) ? cis.get(accession + "." + read.getReadName()) : new ContigInfo();
 
                 ci.ref1Locus = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
-                ci.ref1ToCanonicalBlock = ci.ref1Locus;
+                ci.ref1ToCanonicalBlock = null;
+                ci.ref1ToCanonicalExact = null;
 
-                if (imap.getOverlapping(ci.ref1Locus).size() == 1) {
-                    ci.ref1ToCanonicalBlock = imap.getOverlapping(ci.ref1Locus).iterator().next();
-                } else if (imap.getOverlapping(ci.ref1Locus).size() > 1) {
-                    ci.ref1ToCanonicalBlock = null;
-                }
+                if (d1.getOverlapping(ci.ref1Locus).size() == 1) {
+                    ci.ref1ToCanonicalBlock = d1.getOverlapping(ci.ref1Locus).iterator().next();
 
-                if (ci.ref1ToCanonicalBlock != null && imap.containsKey(ci.ref1ToCanonicalBlock)) {
-                    Interval revLocus = imap.get(ci.ref1ToCanonicalBlock);
-                    ci.ref1ToCanonicalExact = new Interval(ci.ref1ToCanonicalBlock.getSequence(),
-                                                           ci.ref1ToCanonicalBlock.getStart() + ci.ref1Locus.getStart() - revLocus.getStart(),
-                                                           ci.ref1ToCanonicalBlock.getStart() + ci.ref1Locus.getEnd() - revLocus.getStart());
+                    if (ci.ref1ToCanonicalBlock != null && d1.containsKey(ci.ref1ToCanonicalBlock)) {
+                        Interval revLocus = d1.get(ci.ref1ToCanonicalBlock);
+                        ci.ref1ToCanonicalExact = new Interval(ci.ref1ToCanonicalBlock.getSequence(),
+                                                               ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getStart() - revLocus.getStart(),
+                                                               ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getEnd() - revLocus.getStart());
+                    }
                 }
 
                 ci.sameChromosome = (ci.ref0ToCanonicalBlock != null && ci.ref1ToCanonicalBlock != null && ci.ref0ToCanonicalBlock.getSequence().equals(ci.ref1ToCanonicalBlock.getSequence()));
