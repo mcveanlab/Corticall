@@ -157,7 +157,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Override
     public void execute() {
         log.info("Load alt vs. ref deltas...");
-        IntervalTreeMap<Interval> imap = loadDeltas(false);
+        IntervalTreeMap<Interval> imap = loadDeltas(true);
 
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
         String sampleName = null, accession = null;
