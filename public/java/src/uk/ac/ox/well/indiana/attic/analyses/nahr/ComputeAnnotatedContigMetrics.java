@@ -33,10 +33,10 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Argument(fullName="bams1", shortName="b1", doc="BAMs (for parent 1)")
     public ArrayList<SAMFileReader> BAMS1;
 
-    @Argument(fullName="delta0", shortName="d0", doc="Delta")
+    @Argument(fullName="delta0", shortName="d0", doc="Delta", required=false)
     public File DELTA0;
 
-    @Argument(fullName="delta1", shortName="d1", doc="Delta")
+    @Argument(fullName="delta1", shortName="d1", doc="Delta", required=false)
     public File DELTA1;
 
     @Argument(fullName="gff", shortName="g", doc="GFF file")
@@ -158,8 +158,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Override
     public void execute() {
         log.info("Load alt vs. ref deltas...");
-        IntervalTreeMap<Interval> d0 = loadDeltas(false, DELTA0);
-        IntervalTreeMap<Interval> d1 = loadDeltas(false, DELTA1);
+
+        IntervalTreeMap<Interval> d0 = DELTA0 == null ? null : loadDeltas(false, DELTA0);
+        IntervalTreeMap<Interval> d1 = DELTA1 == null ? null : loadDeltas(false, DELTA1);
+
+        IntervalTreeMap<Interval> d0r = DELTA0 == null ? null : loadDeltas(true, DELTA0);
+        IntervalTreeMap<Interval> d1r = DELTA1 == null ? null : loadDeltas(true, DELTA1);
 
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
         String sampleName = null, accession = null;
@@ -202,11 +206,14 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ci.ref0ToCanonicalBlock = null;
                 ci.ref0ToCanonicalExact = null;
 
-                if (d0.getOverlapping(ci.ref0Locus).size() == 1) {
+                if (d0 == null) {
+                    ci.ref0ToCanonicalBlock = ci.ref0Locus;
+                    ci.ref0ToCanonicalExact = ci.ref0Locus;
+                } else if (d0.getOverlapping(ci.ref0Locus).size() == 1) {
                     ci.ref0ToCanonicalBlock = d0.getOverlapping(ci.ref0Locus).iterator().next();
 
-                    if (ci.ref0ToCanonicalBlock != null && d0.containsKey(ci.ref0ToCanonicalBlock)) {
-                        Interval revLocus = d0.get(ci.ref0ToCanonicalBlock);
+                    if (ci.ref0ToCanonicalBlock != null && d0r.containsKey(ci.ref0ToCanonicalBlock)) {
+                        Interval revLocus = d0r.get(ci.ref0ToCanonicalBlock);
                         ci.ref0ToCanonicalExact = new Interval(ci.ref0ToCanonicalBlock.getSequence(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getStart() - revLocus.getStart(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getEnd() - revLocus.getStart());
@@ -241,11 +248,14 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ci.ref1ToCanonicalBlock = null;
                 ci.ref1ToCanonicalExact = null;
 
-                if (d1.getOverlapping(ci.ref1Locus).size() == 1) {
+                if (d1 == null) {
+                    ci.ref1ToCanonicalBlock = ci.ref1Locus;
+                    ci.ref1ToCanonicalExact = ci.ref1Locus;
+                } else if (d1.getOverlapping(ci.ref1Locus).size() == 1) {
                     ci.ref1ToCanonicalBlock = d1.getOverlapping(ci.ref1Locus).iterator().next();
 
-                    if (ci.ref1ToCanonicalBlock != null && d1.containsKey(ci.ref1ToCanonicalBlock)) {
-                        Interval revLocus = d1.get(ci.ref1ToCanonicalBlock);
+                    if (ci.ref1ToCanonicalBlock != null && d1r.containsKey(ci.ref1ToCanonicalBlock)) {
+                        Interval revLocus = d1r.get(ci.ref1ToCanonicalBlock);
                         ci.ref1ToCanonicalExact = new Interval(ci.ref1ToCanonicalBlock.getSequence(),
                                                                ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getStart() - revLocus.getStart(),
                                                                ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getEnd() - revLocus.getStart());
