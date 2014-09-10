@@ -122,7 +122,7 @@ public class ComputeParentalContributionTracks extends Module {
                 String[] ref1ToCanonicalExact = (te.get("ref1ToCanonicalExact").equals("NA") ? "NA:0-0" : te.get("ref1ToCanonicalExact")).split("[:-]");
 
                 cout.println(contigName + " " + ref0ToCanonicalExact[0] + " " + ref0ToCanonicalExact[1] + " " + ref0ToCanonicalExact[2] + " radius1=0.8r");
-                cout.println(contigName + " " + ref1ToCanonicalExact[0] + " " + ref1ToCanonicalExact[1] + " " + ref1ToCanonicalExact[2] + " radius1=0.6r");
+                cout.println(contigName + " " + ref1ToCanonicalExact[0] + " " + ref1ToCanonicalExact[1] + " " + ref1ToCanonicalExact[2] + " radius2=0.6r");
             }
         }
 
