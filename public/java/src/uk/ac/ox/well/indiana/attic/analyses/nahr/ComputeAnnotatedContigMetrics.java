@@ -158,8 +158,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
     @Override
     public void execute() {
         log.info("Load alt vs. ref deltas...");
-        IntervalTreeMap<Interval> d0 = loadDeltas(true, DELTA0);
-        IntervalTreeMap<Interval> d1 = loadDeltas(true, DELTA1);
+        IntervalTreeMap<Interval> d0 = loadDeltas(false, DELTA0);
+        IntervalTreeMap<Interval> d1 = loadDeltas(false, DELTA1);
 
         Map<String, ContigInfo> cis = new HashMap<String, ContigInfo>();
         String sampleName = null, accession = null;
@@ -167,7 +167,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
         for (SAMFileReader bamc : BAMSC) {
             if (sampleName == null || accession == null) {
                 sampleName = bamc.getFileHeader().getReadGroups().iterator().next().getSample();
-                accession = bamc.getFileHeader().getReadGroups().iterator().next().getReadGroupId();
+                accession = bamc.getFileHeader().getReadGroups().iterator().next().getReadGroupId().replaceAll(".sga", "");
             }
 
             for (SAMRecord read : bamc) {
