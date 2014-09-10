@@ -37,6 +37,9 @@ public class ComputeParentalContributionTracks extends Module {
     @Output(fullName="sout", shortName="so", doc="Stats out")
     public PrintStream sout;
 
+    @Output(fullName="cout", shortName="co", doc="Circos links out")
+    public PrintStream cout;
+
     private class IGVEntry implements Comparable<IGVEntry> {
         public String chromosome;
         public int start;
@@ -114,6 +117,12 @@ public class ComputeParentalContributionTracks extends Module {
                 }
 
                 annotatedContigs.put(contigName, te);
+
+                String[] ref0ToCanonicalExact = (te.get("ref0ToCanonicalExact").equals("NA") ? "NA:0-0" : te.get("ref0ToCanonicalExact")).split("[:-]");
+                String[] ref1ToCanonicalExact = (te.get("ref1ToCanonicalExact").equals("NA") ? "NA:0-0" : te.get("ref1ToCanonicalExact")).split("[:-]");
+
+                cout.println(contigName + " " + ref0ToCanonicalExact[0] + " " + ref0ToCanonicalExact[1] + " " + ref0ToCanonicalExact[2] + " radius1=0.8r");
+                cout.println(contigName + " " + ref1ToCanonicalExact[0] + " " + ref1ToCanonicalExact[1] + " " + ref1ToCanonicalExact[2] + " radius1=0.6r");
             }
         }
 
