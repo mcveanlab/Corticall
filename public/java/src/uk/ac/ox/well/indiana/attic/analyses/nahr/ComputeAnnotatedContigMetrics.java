@@ -428,8 +428,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("perfectAlignmentInRef1", "NA");
                 }
 
-                //entry.put("seq", te.get("seq"));
-                //entry.put("kmerOrigin", te.get("kmerOrigin"));
+                entry.put("seq", te.get("seq"));
+                entry.put("kmerOrigin", te.get("kmerOrigin"));
                 //entry.put("kmerContiguity", te.get("kmerContiguity"));
                 //entry.put("kmerCoverage", te.get("kmerCoverage"));
 
