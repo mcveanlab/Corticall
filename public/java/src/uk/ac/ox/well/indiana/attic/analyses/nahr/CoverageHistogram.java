@@ -42,18 +42,22 @@ public class CoverageHistogram extends Module {
 
         for (SAMRecord read : BAM) {
             Interval readInterval = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentStart());
-            Interval binInterval = new Interval(readInterval.getSequence(), MoreMathUtils.roundDown(readInterval.getStart(), BIN_SIZE) + 1, MoreMathUtils.roundUp(readInterval.getEnd(), BIN_SIZE));
 
-            if (hist.containsKey(binInterval)) {
-                hist.put(binInterval, hist.get(binInterval) + 1);
-            } else {
-                unaligned++;
+            for (int i = read.getAlignmentStart(); i < read.getAlignmentEnd(); i++) {
+                Interval binInterval = new Interval(readInterval.getSequence(), MoreMathUtils.roundDown(i, BIN_SIZE) + 1, MoreMathUtils.roundUp(i, BIN_SIZE));
+
+                if (hist.containsKey(binInterval)) {
+                    hist.put(binInterval, hist.get(binInterval) + 1);
+                } else {
+                    unaligned++;
+                }
             }
+
         }
 
         for (Interval binInterval : hist.keySet()) {
-            out.println(binInterval.getSequence() + " " + binInterval.getStart() + " " + binInterval.getEnd() + " " + hist.get(binInterval));
+            out.printf("%s %d %d %.2f\n", binInterval.getSequence(), binInterval.getStart(), binInterval.getEnd(), (double) hist.get(binInterval) / (double) BIN_SIZE);
         }
-        out.println("NA 0 0 " + unaligned);
+        out.printf("NA 0 0 %.2f\n", (double) unaligned / (double) BIN_SIZE);
     }
 }
