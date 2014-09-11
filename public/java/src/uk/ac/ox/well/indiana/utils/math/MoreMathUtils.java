@@ -13,4 +13,12 @@ public class MoreMathUtils {
         return max;
     }
 
+    public static int roundUp(int n, int nearest) {
+        return (n + nearest - 1) / nearest * nearest;
+    }
+
+    public static int roundDown(int n, int nearest) {
+        return (int) Math.floor(n/nearest)*nearest;
+    }
+
 }
