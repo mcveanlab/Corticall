@@ -135,8 +135,8 @@ public class SelectContigsByMetrics extends Module {
                     te.put(type, "0");
                 }
 
-                te.put("isUnclassified", "0");
                 te.put("isUnaligned", "0");
+                te.put("isUnclassified", "0");
 
                 Interval it = contigLoci.get(te.get("contigName"));
 
