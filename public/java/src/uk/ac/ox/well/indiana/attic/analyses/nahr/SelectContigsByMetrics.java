@@ -58,9 +58,11 @@ public class SelectContigsByMetrics extends Module {
 
         Map<String, Interval> contigLoci = new HashMap<String, Interval>();
         for (SAMRecord contig : CONTIGS) {
-            Interval it = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
+            if (contig.getAlignmentStart() > 0) {
+                Interval it = new Interval(contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
 
-            contigLoci.put(contig.getReadName(), it);
+                contigLoci.put(contig.getReadName(), it);
+            }
         }
 
         Map<String, IntervalTreeMap<String>> its = new HashMap<String, IntervalTreeMap<String>>();
@@ -127,16 +129,6 @@ public class SelectContigsByMetrics extends Module {
             }
 
             if (allSatisfied) {
-                /*
-                te.put("isKnownAHR", "0");
-
-                if (knownEvents.contains(te.get("contigName"))) {
-                    knownContigs++;
-
-                    te.put("isKnownAHR", "1");
-                }
-                */
-
                 selectedContigs++;
 
                 for (String type : CLASSIFICATIONS.keySet()) {
@@ -144,11 +136,15 @@ public class SelectContigsByMetrics extends Module {
                 }
 
                 te.put("isUnclassified", "0");
+                te.put("isUnaligned", "0");
 
                 Interval it = contigLoci.get(te.get("contigName"));
 
                 boolean isClassified = false;
-                if (it != null && its.get(ACCESSION).containsOverlapping(it)) {
+                if (it == null) {
+                    isClassified = true;
+                    te.put("isUnaligned", "1");
+                } else if (its.get(ACCESSION).containsOverlapping(it)) {
                     Set<String> types = new TreeSet<String>();
                     types.addAll(its.get(ACCESSION).getOverlapping(it));
 
