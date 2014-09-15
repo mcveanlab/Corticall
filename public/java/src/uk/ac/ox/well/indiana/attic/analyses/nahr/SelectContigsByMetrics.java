@@ -147,6 +147,10 @@ public class SelectContigsByMetrics extends Module {
                     String type = "isUnaligned";
                     te.put(type, "1");
 
+                    if (!typeCounts.containsKey(type)) {
+                        typeCounts.put(type, 0);
+                    }
+
                     typeCounts.put(type, typeCounts.get(type) + 1);
                 } else if (its.get(ACCESSION).containsOverlapping(it)) {
                     Set<String> types = new TreeSet<String>();
