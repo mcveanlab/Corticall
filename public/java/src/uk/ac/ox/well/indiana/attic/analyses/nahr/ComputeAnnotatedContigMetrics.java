@@ -217,6 +217,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         ci.ref0ToCanonicalExact = new Interval(ci.ref0ToCanonicalBlock.getSequence(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getStart() - revLocus.getStart(),
                                                                ci.ref0ToCanonicalBlock.getStart() + ci.ref0ToCanonicalBlock.getEnd() - revLocus.getStart());
+
+                        if (ci.ref0ToCanonicalExact.getStart() <= 0) {
+                            ci.ref0ToCanonicalExact = new Interval(ci.ref0ToCanonicalBlock.getSequence(),
+                                                                   1,
+                                                                   1 + ci.ref0Locus.length());
+                        }
                     }
                 }
 
@@ -259,6 +265,11 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         ci.ref1ToCanonicalExact = new Interval(ci.ref1ToCanonicalBlock.getSequence(),
                                                                ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getStart() - revLocus.getStart(),
                                                                ci.ref1ToCanonicalBlock.getStart() + ci.ref1ToCanonicalBlock.getEnd() - revLocus.getStart());
+                        if (ci.ref1ToCanonicalExact.getStart() <= 0) {
+                            ci.ref1ToCanonicalExact = new Interval(ci.ref1ToCanonicalBlock.getSequence(),
+                                                                   1,
+                                                                   1 + ci.ref1Locus.length());
+                        }
                     }
                 }
 
