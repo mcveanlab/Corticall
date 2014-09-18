@@ -116,11 +116,15 @@ public class SelectContigsByMetrics extends Module {
             boolean allSatisfied = true;
             for (Expression e : CONSTRAINTS) {
                 try {
-                    Boolean satisfied = (Boolean) e.evaluate(jexlContext);
+                    if (!e.getExpression().isEmpty()) {
+                        Boolean satisfied = (Boolean) e.evaluate(jexlContext);
 
-                    if (!satisfied) {
+                        if (!satisfied) {
+                            allSatisfied = false;
+                            break;
+                        }
+                    } else {
                         allSatisfied = false;
-                        break;
                     }
                 } catch (ClassCastException ex) {
                     log.error("{}", te);
