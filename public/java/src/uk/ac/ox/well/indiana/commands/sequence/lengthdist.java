@@ -37,7 +37,7 @@ public class lengthdist extends Module {
             if (file.getName().endsWith(".bam")) {
                 sfr = new SAMFileReader(file);
                 sfr.setValidationStringency(ValidationStringency.SILENT);
-            } else if (file.getName().endsWith(".fastq")) {
+            } else if (file.getName().endsWith(".fastq") || file.getName().endsWith(".fq") || file.getName().endsWith(".fastq.gz") || file.getName().endsWith(".fq.gz")) {
                 fqr = new FastqReader(file, true);
             } else {
                 throw new IndianaException("Cannot parse '" + file.getAbsolutePath() + "' with generalized reader");
