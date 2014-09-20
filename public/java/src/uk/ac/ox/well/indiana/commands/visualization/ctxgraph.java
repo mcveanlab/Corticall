@@ -539,7 +539,7 @@ public class ctxgraph extends Module {
         DirectedGraph<String, WeightedEdge> g = loadLocalGraph(contigKmers);
 
         log.info("Extending graph with nearby kmers...");
-        extendLocalGraph(g, 2);
+        extendLocalGraph(g, 1);
 
         log.info("Adding path annotations...");
         Set<DirectedGraph<String, WeightedEdge>> pgs = addPathAnnotations(g, paths);
