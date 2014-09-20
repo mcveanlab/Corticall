@@ -76,7 +76,7 @@ public class lengthdist extends Module {
     public void execute() {
         Map<String, Map<Integer, Integer>> lengthDists = new HashMap<String, Map<Integer, Integer>>();
 
-        TableWriter tw = new TableWriter(sout);
+        TableWriter statsw = new TableWriter(sout);
 
         int overallMinLength = 0;
         int overallMaxLength = 0;
@@ -126,7 +126,21 @@ public class lengthdist extends Module {
             te.put("n50Length", String.valueOf(n50Length));
             te.put("n50Value", String.valueOf(n50Value));
 
-            tw.addEntry(te);
+            statsw.addEntry(te);
+        }
+
+        TableWriter histw = new TableWriter(out);
+
+        for (int i = overallMinLength; i <= overallMaxLength; i++) {
+            Map<String, String> te = new LinkedHashMap<String, String>();
+
+            te.put("length", String.valueOf(i));
+
+            for (String key : lengthDists.keySet()) {
+                te.put(key, lengthDists.get(key).containsKey(i) ? String.valueOf(lengthDists.get(key).get(i)) : "0");
+            }
+
+            histw.addEntry(te);
         }
     }
 }
