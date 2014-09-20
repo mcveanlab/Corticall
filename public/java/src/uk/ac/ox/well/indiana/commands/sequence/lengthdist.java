@@ -5,7 +5,6 @@ import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
-import htsjdk.samtools.reference.FastaSequenceFile;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -24,7 +23,7 @@ public class lengthdist extends Module {
     @Output
     public PrintStream out;
 
-    @Output
+    @Output(fullName="sout", shortName="so", doc="Stats out")
     public PrintStream sout;
 
     private class GeneralizedSequenceReader implements Iterator<String>, Iterable<String> {
