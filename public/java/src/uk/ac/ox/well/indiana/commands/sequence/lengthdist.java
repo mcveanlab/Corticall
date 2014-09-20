@@ -10,6 +10,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
+import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -19,6 +20,9 @@ import java.util.*;
 public class lengthdist extends Module {
     @Argument(fullName="file", shortName="f", doc="File (Fastq, or BAM)")
     public HashMap<String, File> FILES;
+
+    @Argument(fullName="binSize", shortName="b", doc="Bin size")
+    public Integer BIN_SIZE = 1;
 
     @Output
     public PrintStream out;
@@ -82,6 +86,8 @@ public class lengthdist extends Module {
 
         log.info("Processing files...");
         for (String key : FILES.keySet()) {
+            log.info("  {}", key);
+
             lengthDists.put(key, new TreeMap<Integer, Integer>());
 
             GeneralizedSequenceReader gsr = new GeneralizedSequenceReader(FILES.get(key));
@@ -93,7 +99,7 @@ public class lengthdist extends Module {
             Collection<String> reads = new ArrayList<String>();
 
             for (String read : gsr) {
-                int length = read.length();
+                int length = MoreMathUtils.roundDown(read.length(), 100);
 
                 if (!lengthDists.get(key).containsKey(length)) {
                     lengthDists.get(key).put(length, 1);
