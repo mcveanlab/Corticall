@@ -363,15 +363,15 @@ public class SequenceUtils {
      * @return  the mean sequence length observed
      */
     public static float meanLength(Collection<? extends CharSequence> sequences) {
-        int length = 0;
-        int numSequences = 0;
+        float length = 0;
+        float numSequences = 0;
 
         for (CharSequence seq : sequences) {
             length += seq.length();
             numSequences++;
         }
 
-        return (float) length / (float) numSequences;
+        return length / numSequences;
     }
 
     private static final byte[] nucleotides = {'A', 'C', 'G', 'T'};
