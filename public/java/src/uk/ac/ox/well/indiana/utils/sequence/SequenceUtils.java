@@ -271,7 +271,7 @@ public class SequenceUtils {
      * @return  the N50 length or value
      */
     private static int computeN50Metric(Collection<? extends CharSequence> sequences, boolean lengthOrValue) {
-        int totalLength = 0;
+        float totalLength = 0;
 
         List<Integer> lengths = new ArrayList<Integer>();
         for (CharSequence seq : sequences) {
@@ -287,8 +287,8 @@ public class SequenceUtils {
             }
         });
 
-        int n50Length = 0;
-        int n50Value = 0;
+        float n50Length = 0;
+        float n50Value = 0;
 
         for (Integer length : lengths) {
             n50Length += length;
@@ -299,7 +299,7 @@ public class SequenceUtils {
             }
         }
 
-        return lengthOrValue ? n50Length : n50Value;
+        return lengthOrValue ? (int) n50Length : (int) n50Value;
     }
 
     /**
