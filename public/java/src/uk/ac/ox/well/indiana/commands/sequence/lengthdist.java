@@ -136,7 +136,7 @@ public class lengthdist extends Module {
 
         TableWriter histw = new TableWriter(out);
 
-        for (int i = overallMinLength; i <= overallMaxLength; i++) {
+        for (int i = overallMinLength; i <= overallMaxLength; i += BIN_SIZE) {
             Map<String, String> te = new LinkedHashMap<String, String>();
 
             te.put("length", String.valueOf(i));
