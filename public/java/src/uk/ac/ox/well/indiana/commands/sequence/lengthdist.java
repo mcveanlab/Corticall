@@ -107,8 +107,8 @@ public class lengthdist extends Module {
                     lengthDists.get(key).put(length, lengthDists.get(key).get(length) + 1);
                 }
 
-                if (length < minLength) { minLength = length; }
-                if (length > maxLength) { maxLength = length; }
+                if (read.length() < minLength) { minLength = read.length(); }
+                if (read.length() > maxLength) { maxLength = read.length(); }
 
                 if (length < overallMinLength) { overallMinLength = length; }
                 if (length > overallMaxLength) { overallMaxLength = length; }
