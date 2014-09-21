@@ -1,9 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.*;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -27,19 +24,41 @@ public class CoverageHistogram extends Module {
     public void execute() {
         SAMSequenceDictionary dict = BAM.getFileHeader().getSequenceDictionary();
 
-        IntervalTreeMap<Integer> hist = new IntervalTreeMap<Integer>();
+        IntervalTreeMap<Float> hist = new IntervalTreeMap<Float>();
         int unaligned = 0;
 
-        for (SAMSequenceRecord sr : dict.getSequences()) {
-            for (int binStart = 0; binStart < sr.getSequenceLength(); binStart += BIN_SIZE) {
-                int binEnd = (binStart + BIN_SIZE) > sr.getSequenceLength() ? sr.getSequenceLength() : binStart + BIN_SIZE;
+        for (SAMSequenceRecord ssr : dict.getSequences()) {
+            for (int binStart = 0; binStart < ssr.getSequenceLength(); binStart += BIN_SIZE) {
+                int binEnd = (binStart + BIN_SIZE) > ssr.getSequenceLength() ? ssr.getSequenceLength() : binStart + BIN_SIZE;
 
-                Interval binInterval = new Interval(sr.getSequenceName(), binStart + 1, binEnd);
+                Interval binInterval = new Interval(ssr.getSequenceName(), binStart + 1, binEnd);
 
-                hist.put(binInterval, 0);
+                hist.put(binInterval, 0.0f);
+
+                SAMRecordIterator sri = BAM.queryOverlapping(ssr.getSequenceName(), binStart + 1, binEnd);
+                int covSum = 0;
+                //int[] covs = new int[binEnd - (binStart + 1)];
+
+                SAMRecord sr;
+                while ((sr = sri.next()) != null) {
+                    for (int i = sr.getAlignmentStart(); i < sr.getAlignmentEnd(); i++) {
+                        int binPos = binStart + 1 - i;
+
+                        if (binPos >= binStart + 1 && binPos < binEnd) {
+                            //covs[binPos]++;
+
+                            covSum++;
+                        }
+                    }
+                }
+
+                hist.put(binInterval, (float) covSum / (float) BIN_SIZE);
+
+                sri.close();
             }
         }
 
+        /*
         for (SAMRecord read : BAM) {
             Interval readInterval = new Interval(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentStart());
 
@@ -52,10 +71,10 @@ public class CoverageHistogram extends Module {
                 unaligned++;
             }
         }
+        */
 
         for (Interval binInterval : hist.keySet()) {
-            //out.printf("%s %d %d %.2f\n", binInterval.getSequence(), binInterval.getStart(), binInterval.getEnd(), (double) hist.get(binInterval) / (double) BIN_SIZE);
-            out.printf("%s %d %d %d\n", binInterval.getSequence(), binInterval.getStart(), binInterval.getEnd(), hist.get(binInterval));
+            out.printf("%s %d %d %.2f\n", binInterval.getSequence(), binInterval.getStart(), binInterval.getEnd(), hist.get(binInterval));
         }
         out.printf("NA 0 0 %d\n", unaligned);
     }
