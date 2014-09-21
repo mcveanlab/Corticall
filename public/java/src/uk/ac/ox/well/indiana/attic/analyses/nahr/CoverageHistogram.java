@@ -39,8 +39,9 @@ public class CoverageHistogram extends Module {
                 int covSum = 0;
                 //int[] covs = new int[binEnd - (binStart + 1)];
 
-                SAMRecord sr;
-                while ((sr = sri.next()) != null) {
+                while (sri.hasNext()) {
+                    SAMRecord sr = sri.next();
+
                     for (int i = sr.getAlignmentStart(); i < sr.getAlignmentEnd(); i++) {
                         int binPos = binStart + 1 - i;
 
