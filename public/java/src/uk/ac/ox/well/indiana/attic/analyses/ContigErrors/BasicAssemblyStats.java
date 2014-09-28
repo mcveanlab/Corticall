@@ -32,11 +32,14 @@ public class BasicAssemblyStats extends Module {
 
             FastaSequenceFile contigs = CONTIGS.get(id);
             ReferenceSequence rseq;
+            long totalSequence = 0;
             while ((rseq = contigs.nextSequence()) != null) {
                 String seq = new String(rseq.getBases());
 
                 if (seq.length() >= LENGTH_MIN) {
                     seqs.add(seq);
+
+                    totalSequence += seq.length();
                 }
             }
 
@@ -52,6 +55,7 @@ public class BasicAssemblyStats extends Module {
             entry.put("maxLength", String.valueOf(maxLength));
             entry.put("meanLength", String.format("%.2f", meanLength));
             entry.put("n50", String.valueOf(n50));
+            entry.put("totalSequence", String.valueOf(totalSequence));
 
             tw.addEntry(entry);
         }
