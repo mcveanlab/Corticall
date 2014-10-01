@@ -1,14 +1,14 @@
 INDIANA
 =======
 
-Author: Kiran Garimella <kiran.garimella@gmail.com>
+Author: Kiran Garimella <kiran@well.ox.ac.uk>
 
 Tools to manipulate and analyze genome assemblies.
 
 Dependencies
 ------------
 
-You must have Apache Ant (http://ant.apache.org) installed to build INDIANA. Other dependencies are fetched via Maven at compile time.
+You must have Apache Ant (http://ant.apache.org) installed to build INDIANA. Other dependencies are fetched via Ivy at compile time.
 
 Installation
 ------------
