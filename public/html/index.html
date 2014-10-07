@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Test</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+</head>
+
+<body>
+Loaded $NUM_CONTIGS contigs.
+
+<div id="viz"></div>
+
+<script type="text/javascript">
+var sampleSVG = d3.select("#viz")
+                  .append("svg:svg")
+                  .attr("width", 100)
+                  .attr("height", 100);
+
+sampleSVG.append("svg:circle")
+         .style("stroke", "black")
+         .style("fill", "white")
+         .attr("r", 40)
+         .attr("cx", 50)
+         .attr("cy", 50);
+</script>
+
+</body>
+
+</html>
