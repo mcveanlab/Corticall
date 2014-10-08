@@ -6,12 +6,19 @@
 </head>
 
 <body>
+<h1>Contig context viewer</h1>
+
 <div id="contigSelection"></div>
 <div id="contigDisplay"></div>
 
 <script type="text/javascript">
     var keys;
     var seq;
+    var edges;
+
+    var margin = {top: 40, right: 40, bottom: 40, left: 40},
+            width = window.innerWidth - margin.left - margin.right,
+            height = window.innerHeight - margin.top - margin.bottom;
 
     d3.csv("contigs.csv", function(csv) {
         keys=csv;
@@ -25,10 +32,6 @@
             seq=json;
 
             d3.select("#contigDisplay").select("svg").remove();
-
-            var margin = {top: 40, right: 40, bottom: 40, left: 40},
-                 width = window.innerWidth - margin.left - margin.right,
-                height = window.innerHeight - margin.top - margin.bottom;
 
             var x = d3.scale.linear()
                       .domain([-json.seq.length / 2, json.seq.length / 2])
@@ -85,10 +88,58 @@
                    .text(base);
             });
 
+            d3.json("edges?contigName=" + d.contigName, function(json) {
+                edges = json;
+
+                for (e in edges) {
+                    outKeys = d3.keys(edges[e].out);
+
+                    for (outKey in outKeys) {
+                        svg.append("text")
+                                .attr("class", "out edge")
+                                .attr("text-anchor", "end")
+                                .attr("x", e)
+                                .attr("y", (height/2) - 3*(parseInt(outKey) + 1))
+                                .attr("font-family", "monospace")
+                                .attr("font-size", "1.5px")
+                                .attr("fill", "black")
+                                .text(edges[e].out[outKey]);
+
+                        svg.append("line")
+                                .attr("x1", e - 1 - 0.5)
+                                .attr("y1", (height/2) - 1)
+                                .attr("x2", e - 0.5)
+                                .attr("y2", (height/2) - 3*(parseInt(outKey) + 1))
+                                .attr("stroke-width", 0.1)
+                                .attr("stroke", "black");
+                    }
+
+                    inKeys = d3.keys(edges[e].in);
+
+                    for (inKey in inKeys) {
+                        svg.append("text")
+                                .attr("class", "in edge")
+                                .attr("text-anchor", "end")
+                                .attr("x", e - 1)
+                                .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
+                                .attr("font-family", "monospace")
+                                .attr("font-size", "1.5px")
+                                .attr("fill", "black")
+                                .text(edges[e].in[inKey]);
+
+                        svg.append("line")
+                                .attr("x1", e - 0.5)
+                                .attr("y1", (height/2))
+                                .attr("x2", e - 1 - 0.5)
+                                .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
+                                .attr("stroke-width", 0.1)
+                                .attr("stroke", "black");
+                    }
+                }
+            });
+
             function zoom() {
-                console.log(d3.event.translate[0]);
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-                //svg.attr("transform", "translate(" + d3.event.translate[0] + "," + height/2)scale(" + d3.event.scale + ")");
             }
         });
     }
