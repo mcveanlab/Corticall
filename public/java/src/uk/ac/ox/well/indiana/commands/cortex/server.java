@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.cortex;
 
+import com.google.common.base.Joiner;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -10,6 +11,10 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -28,16 +33,24 @@ public class server extends Module {
 
     private Map<String, String> contigs;
 
-    private class StaticPageHandler implements HttpHandler {
+    private class PageHandler implements HttpHandler {
         private String page;
 
-        public StaticPageHandler(String page) {
+        public PageHandler(String page) {
             this.page = page;
         }
 
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
-            InputStream is = this.getClass().getResourceAsStream(page);
+            InputStream is;
+
+            if (log.isDebugEnabled()) {
+                is = new FileInputStream(new File("./public" + page));
+
+                log.debug("Reading '{}' from disk", page);
+            } else {
+                is = this.getClass().getResourceAsStream(page);
+            }
 
             BufferedReader in = new BufferedReader(new InputStreamReader(is));
             StringBuilder responseData = new StringBuilder();
@@ -65,7 +78,7 @@ public class server extends Module {
         }
     }
 
-    private class ContigsRequestHandler implements HttpHandler {
+    private class ContigsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             StringBuilder rb = new StringBuilder();
@@ -98,7 +111,7 @@ public class server extends Module {
         return result;
     }
 
-    private class ContigRequestHandler implements HttpHandler {
+    private class ContigHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
@@ -114,6 +127,106 @@ public class server extends Module {
             os.close();
 
             log.info("GET contig seq    : {}, response length: {}", query.get("contigName"), response.length());
+        }
+    }
+
+    private class EdgeHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+
+            Map<Integer, Set<String>> inEdges = new HashMap<Integer, Set<String>>();
+            Map<Integer, Set<String>> outEdges = new HashMap<Integer, Set<String>>();
+
+            for (String graphLabel : GRAPHS.keySet()) {
+                CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                int kmerSize = cg.getKmerSize();
+
+                for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                    int iePos = i - 1;
+                    int oePos = i + kmerSize;
+
+                    String kmer = seq.substring(i, i + kmerSize);
+                    CortexKmer ck = new CortexKmer(kmer);
+                    CortexRecord cr = cg.findRecord(ck);
+
+                    if (cr != null) {
+                        Set<String> ie = CortexUtils.getPrevKmers(cg, kmer);
+                        Set<String> oe = CortexUtils.getNextKmers(cg, kmer);
+
+                        if (i > 0) {
+                            String prevKmer = seq.substring(iePos, oePos - 1);
+                            ie.remove(prevKmer);
+                        }
+
+                        if (i < seq.length() - kmerSize) {
+                            String nextKmer = seq.substring(i + 1, i + 1 + kmerSize);
+                            oe.remove(nextKmer);
+                        }
+
+                        if (!inEdges.containsKey(iePos)) { inEdges.put(iePos, new TreeSet<String>()); }
+                        if (!outEdges.containsKey(oePos)) { outEdges.put(oePos, new TreeSet<String>()); }
+
+                        for (String inKmer : ie) {
+                            inEdges.get(iePos).add(inKmer.substring(0, 1));
+                        }
+
+                        for (String outKmer : oe) {
+                            outEdges.get(oePos).add(outKmer.substring(outKmer.length() - 1, outKmer.length()));
+                        }
+                    }
+                }
+            }
+
+            StringBuilder rb = new StringBuilder();
+
+            boolean pastFirstRecord = false;
+
+            rb.append("{");
+            for (int i = 0; i < seq.length(); i++) {
+                if ((inEdges.containsKey(i) && inEdges.get(i).size() > 0) || (outEdges.containsKey(i) && outEdges.get(i).size() > 0)) {
+                    if (pastFirstRecord) {
+                        rb.append(",\n\t\"").append(i).append("\": { ");
+                    } else {
+                        rb.append("\n\t\"").append(i).append("\": { ");
+                        pastFirstRecord = true;
+                    }
+
+                    List<String> edgeArrays = new ArrayList<String>();
+
+                    if (inEdges.containsKey(i) && inEdges.get(i).size() > 0) {
+                        List<String> bases = new ArrayList<String>();
+                        for (String inEdge : inEdges.get(i)) {
+                            bases.add("\"" + inEdge + "\"");
+                        }
+
+                        edgeArrays.add("\"in\": [ " + Joiner.on(", ").join(bases) + " ]");
+                    }
+
+                    if (outEdges.containsKey(i) && outEdges.get(i).size() > 0) {
+                        List<String> bases = new ArrayList<String>();
+                        for (String outEdge : outEdges.get(i)) {
+                            bases.add("\"" + outEdge + "\"");
+                        }
+
+                        edgeArrays.add("\"out\": [ " + Joiner.on(", ").join(bases) + " ]");
+                    }
+
+                    rb.append(Joiner.on(", ").join(edgeArrays)).append(" }");
+                }
+            }
+            rb.append("\n}\n");
+
+            String response = rb.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET in/out edges  : {}, response length: {}", query.get("contigName"), response.length());
         }
     }
 
@@ -140,11 +253,12 @@ public class server extends Module {
 
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-            server.createContext("/", new StaticPageHandler("/html/index.html"));
-            server.createContext("/d3.v3.min.js", new StaticPageHandler("/html/d3.v3.min.js"));
-            server.createContext("/autocomplete.js", new StaticPageHandler("/html/autocomplete.js"));
-            server.createContext("/contigs.csv", new ContigsRequestHandler());
-            server.createContext("/contig", new ContigRequestHandler());
+            server.createContext("/",                new PageHandler("/html/index.html"));
+            server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
+            server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
+            server.createContext("/contigs.csv",     new ContigsHandler());
+            server.createContext("/contig",          new ContigHandler());
+            server.createContext("/edges",           new EdgeHandler());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
