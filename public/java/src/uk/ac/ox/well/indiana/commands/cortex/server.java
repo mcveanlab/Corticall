@@ -7,6 +7,8 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -23,10 +25,10 @@ import java.util.*;
 @Description(text="Starts the server for visualizing assembly data")
 public class server extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (FASTA)")
-    public FastaSequenceFile CONTIGS;
+    public File CONTIGS;
 
     @Argument(fullName="graph", shortName="g", doc="Cortex graph file")
-    public HashMap<String, File> GRAPHS;
+    public TreeMap<String, File> GRAPHS;
 
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
@@ -117,7 +119,9 @@ public class server extends Module {
             Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
 
             StringBuilder rb = new StringBuilder();
-            rb.append("{\"seq\": \"").append(contigs.get(query.get("contigName"))).append("\"}\n");
+            rb.append("{");
+            rb.append("\"seq\": \"").append(contigs.get(query.get("contigName"))).append("\"");
+            rb.append("}\n");
 
             String response = rb.toString();
 
@@ -136,45 +140,52 @@ public class server extends Module {
             Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
 
             String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
 
             Map<Integer, Set<String>> inEdges = new HashMap<Integer, Set<String>>();
             Map<Integer, Set<String>> outEdges = new HashMap<Integer, Set<String>>();
 
             for (String graphLabel : GRAPHS.keySet()) {
-                CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
-                int kmerSize = cg.getKmerSize();
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
 
-                for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                    int iePos = i - 1;
-                    int oePos = i + kmerSize;
+                    for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                        int iePos = i - 1;
+                        int oePos = i + kmerSize;
 
-                    String kmer = seq.substring(i, i + kmerSize);
-                    CortexKmer ck = new CortexKmer(kmer);
-                    CortexRecord cr = cg.findRecord(ck);
+                        String kmer = seq.substring(i, i + kmerSize);
+                        CortexKmer ck = new CortexKmer(kmer);
+                        CortexRecord cr = cg.findRecord(ck);
 
-                    if (cr != null) {
-                        Set<String> ie = CortexUtils.getPrevKmers(cg, kmer);
-                        Set<String> oe = CortexUtils.getNextKmers(cg, kmer);
+                        if (cr != null) {
+                            Set<String> ie = CortexUtils.getPrevKmers(cg, kmer);
+                            Set<String> oe = CortexUtils.getNextKmers(cg, kmer);
 
-                        if (i > 0) {
-                            String prevKmer = seq.substring(iePos, oePos - 1);
-                            ie.remove(prevKmer);
-                        }
+                            if (i > 0) {
+                                String prevKmer = seq.substring(iePos, oePos - 1);
+                                ie.remove(prevKmer);
+                            }
 
-                        if (i < seq.length() - kmerSize) {
-                            String nextKmer = seq.substring(i + 1, i + 1 + kmerSize);
-                            oe.remove(nextKmer);
-                        }
+                            if (i < seq.length() - kmerSize) {
+                                String nextKmer = seq.substring(i + 1, i + 1 + kmerSize);
+                                oe.remove(nextKmer);
+                            }
 
-                        if (!inEdges.containsKey(iePos)) { inEdges.put(iePos, new TreeSet<String>()); }
-                        if (!outEdges.containsKey(oePos)) { outEdges.put(oePos, new TreeSet<String>()); }
+                            if (!inEdges.containsKey(iePos)) {
+                                inEdges.put(iePos, new TreeSet<String>());
+                            }
+                            if (!outEdges.containsKey(oePos)) {
+                                outEdges.put(oePos, new TreeSet<String>());
+                            }
 
-                        for (String inKmer : ie) {
-                            inEdges.get(iePos).add(inKmer.substring(0, 1));
-                        }
+                            for (String inKmer : ie) {
+                                inEdges.get(iePos).add(inKmer.substring(0, 1));
+                            }
 
-                        for (String outKmer : oe) {
-                            outEdges.get(oePos).add(outKmer.substring(outKmer.length() - 1, outKmer.length()));
+                            for (String outKmer : oe) {
+                                outEdges.get(oePos).add(outKmer.substring(outKmer.length() - 1, outKmer.length()));
+                            }
                         }
                     }
                 }
@@ -231,16 +242,51 @@ public class server extends Module {
     }
 
     private Map<String, String> loadContigs() {
+        FastaSequenceFile contigReader = new FastaSequenceFile(CONTIGS, true);
+
         Map<String, String> contigs = new LinkedHashMap<String, String>();
 
         ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
+        while ((rseq = contigReader.nextSequence()) != null) {
             String name = rseq.getName();
 
             contigs.put(name, new String(rseq.getBases()));
         }
 
         return contigs;
+    }
+
+    private class DataSetHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("contigsFile", CONTIGS.getAbsolutePath());
+
+            JSONArray graphInfos = new JSONArray();
+            for (String graphName : GRAPHS.keySet()) {
+                Map<String, Object> graphInfo = new HashMap<String, Object>();
+                CortexGraph cg = new CortexGraph(GRAPHS.get(graphName));
+
+                graphInfo.put("graphName", graphName);
+                graphInfo.put("graphFile", GRAPHS.get(graphName).getAbsolutePath());
+                graphInfo.put("kmerSize", cg.getKmerSize());
+                graphInfo.put("numRecords", cg.getNumRecords());
+                graphInfo.put("sampleName", cg.getColor(0).getSampleName());
+
+                graphInfos.put(graphInfo);
+            }
+
+            jsonResponse.put("graphs", graphInfos);
+
+            String response = jsonResponse.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET dataset info  : current, response length: {}", response.length());
+        }
     }
 
     @Override
@@ -259,6 +305,7 @@ public class server extends Module {
             server.createContext("/contigs.csv",     new ContigsHandler());
             server.createContext("/contig",          new ContigHandler());
             server.createContext("/edges",           new EdgeHandler());
+            server.createContext("/dataset",         new DataSetHandler());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
