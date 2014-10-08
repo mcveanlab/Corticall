@@ -1,26 +1,109 @@
 <html>
 <head>
     <title>Test</title>
-    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="d3.v3.min.js" charset="utf-8"></script>
+    <script src="autocomplete.js" charset="utf-8"></script>
 </head>
 
 <body>
-Loaded $NUM_CONTIGS contigs.
-
-<div id="viz"></div>
+<div id="contigSelection"></div>
+<div id="contigDisplay"></div>
 
 <script type="text/javascript">
-var sampleSVG = d3.select("#viz")
-                  .append("svg:svg")
-                  .attr("width", 100)
-                  .attr("height", 100);
+    var keys;
+    var seq;
 
-sampleSVG.append("svg:circle")
-         .style("stroke", "black")
-         .style("fill", "white")
-         .attr("r", 40)
-         .attr("cx", 50)
-         .attr("cy", 50);
+    d3.csv("contigs.csv", function(csv) {
+        keys=csv;
+        start();
+    });
+
+    //Call back for when user selects an option
+    function onSelect(d) {
+        d3.json("contig?contigName=" + d.contigName, function(json) {
+            console.log(json);
+            seq=json;
+
+            d3.select("#contigDisplay").select("svg").remove();
+
+            var margin = {top: 40, right: 40, bottom: 40, left: 40},
+                 width = window.innerWidth - margin.left - margin.right,
+                height = window.innerHeight - margin.top - margin.bottom;
+
+            var x = d3.scale.linear()
+                      .domain([-json.seq.length / 2, json.seq.length / 2])
+                      .range([0, width]);
+
+            var y = d3.scale.linear()
+                      .domain([-height / 2, height / 2])
+                      .range([height, 0]);
+
+            var svg = d3.select("#contigDisplay").append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + (width - json.seq.length)/2 + "," + 0 + ")")
+                        .call(d3.behavior.zoom().scaleExtent([1, 30]).on("zoom", zoom))
+                        .append("g");
+
+            svg.append("rect")
+               .attr("width", width)
+               .attr("height", height/2)
+               .attr("fill", "white")
+
+            var xPos = d3.range(0, json.seq.length, 1).map(function(n) {
+                var base = json.seq.charAt(n);
+                var color = "#cccccc";
+
+                switch (base) {
+                    case 'A':
+                    case 'a':
+                        color = "#00ff00";
+                        break;
+                    case 'C':
+                    case 'c':
+                        color = "#0000ff";
+                        break;
+                    case 'G':
+                    case 'g':
+                        color = "#ff8000";
+                        break;
+                    case 'T':
+                    case 't':
+                        color = "#ff0000";
+                        break;
+                }
+
+                svg.append("text")
+                   .attr("class", "x label")
+                   .attr("text-anchor", "end")
+                   .attr("x", n)
+                   .attr("y", height/2)
+                   .attr("font-family", "monospace")
+                   .attr("font-size", "1.5px")
+                   .attr("fill", color)
+                   .text(base);
+            });
+
+            function zoom() {
+                console.log(d3.event.translate[0]);
+                svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+                //svg.attr("transform", "translate(" + d3.event.translate[0] + "," + height/2)scale(" + d3.event.scale + ")");
+            }
+        });
+    }
+
+    //Setup and render the autocomplete
+    function start() {
+        var mc = autocomplete(document.getElementById('contigSelection'))
+                .keys(keys)
+                .dataField("contigName")
+                .placeHolder("Contig name")
+                .width(960)
+                .height(500)
+                .onSelected(onSelect)
+                .render();
+    }
 </script>
 
 </body>
