@@ -1,6 +1,7 @@
 <html>
 <head>
     <title>Test</title>
+    <link rel="stylesheet" href="indiana.css" />
     <script src="d3.v3.min.js" charset="utf-8"></script>
     <script src="autocomplete.js" charset="utf-8"></script>
 </head>
@@ -17,18 +18,29 @@
 <script type="text/javascript">
     d3.json("dataset", function(json) {
         d3.select("#dataset").append("p").text("contigsFile: " + json.contigsFile);
-        d3.select("#dataset").append("p").text("graphName: all").on("click", function() {
+        d3.select("#dataset").append("p").attr("class", "all").attr("id", "selected").text("graphName: all").on("click", function() {
             k = 0;
+
+            d3.selectAll("#dataset").selectAll("p").attr("id", "");
+            d3.select(".all").attr("id", "selected");
+
             drawEdges(ci, "all");
+            drawMasked(ci, "all");
         });
 
         json.graphs.map(function(o) {
             d3.select("#dataset")
                     .append("p")
+                    .attr("class", o.graphName)
                     .text("graphName: " + o.graphName + " (" + o.graphFile + ", " + o.kmerSize + ", " + o.numRecords + ", " + o.sampleName + ")")
                     .on("click", function() {
                         k = o.kmerSize;
+
+                        d3.selectAll("#dataset").selectAll("p").attr("id", "");
+                        d3.select("." + o.graphName).attr("id", "selected");
+
                         drawEdges(ci, o.graphName);
+                        drawMasked(ci, o.graphName);
                     });
         });
     });
@@ -38,6 +50,7 @@
     var keys;
     var seq;
     var edges;
+    var masked;
     var ci;
     var lastTranslate;
     var lastScale;
@@ -92,7 +105,7 @@
                     svg.append("text")
                             .attr("class", "inedge")
                             .attr("text-anchor", "end")
-                            .attr("x", e - 1)
+                            .attr("x", e)
                             .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
                             .attr("font-family", "monospace")
                             .attr("font-size", "1.5px")
@@ -101,14 +114,33 @@
 
                     svg.append("line")
                             .attr("class", "inedgeline")
-                            .attr("x1", e - 0.5)
+                            .attr("x1", parseInt(e) + 1 - 0.5)
                             .attr("y1", (height/2))
-                            .attr("x2", e - 1 - 0.5)
+                            .attr("x2", parseInt(e) - 0.5)
                             .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
                             .attr("stroke-width", 0.1)
                             .attr("stroke", "black");
                 }
             }
+        });
+    }
+
+    function drawMasked(d, currentGraph) {
+        d3.json("masked?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            masked = json;
+
+            d3.selectAll(".masked").remove();
+
+            json.masked.map(function(o) {
+                svg.append("line")
+                        .attr("class", "masked")
+                        .attr("x1", o-1)
+                        .attr("y1", (height/2) - 0.5)
+                        .attr("x2", o)
+                        .attr("y2", (height/2) - 0.5)
+                        .attr("stroke-width", 0.3)
+                        .attr("stroke", "gray");
+            });
         });
     }
 
@@ -168,7 +200,7 @@
                 }
 
                 svg.append("text")
-                   .attr("class", "x label")
+                   .attr("class", "xlabel")
                    .attr("text-anchor", "end")
                    .attr("x", n)
                    .attr("y", height/2)
@@ -177,28 +209,14 @@
                    .attr("fill", color)
                    .text(base)
                    .on("mouseover", function(a) {
-                            var ks = [k];
-                            var th = [0.2];
-                            var co = ["gray"];
-
-                            if (k <= 1) {
-                                ks = [31,  37,   41,   47,   51,   57];
-                                th = [0.3, 0.25, 0.20, 0.15, 0.10, 0.05];
-                                co = ["#16193B", "#35478C", "#4E7AC7", "#7FB2F0", "#ADD5F7", "#CBE3F7"];
-                            }
-
-                            for (i = ks.length; i >= 0; i--) {
-                                ksa = ks[i];
-                                tha = th[i];
-                                coa = co[i];
-
+                            if (k != 0) {
                                 svg.append("rect")
                                         .attr("class", "focus")
-                                        .attr("width", ksa)
-                                        .attr("height", 0.2)
+                                        .attr("width", n - 1 + k < json.seq.length ? k : json.seq.length - n)
+                                        .attr("height", 0.15)
                                         .attr("x", n - 1)
                                         .attr("y", (height / 2) + 0.5)
-                                        .attr("fill", coa);
+                                        .attr("fill", "gray");
                             }
                         })
                    .on("mouseout", function(a) {
@@ -214,6 +232,7 @@
             });
 
             drawEdges(d, "all");
+            drawMasked(d, "all");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
