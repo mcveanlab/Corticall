@@ -15,18 +15,11 @@
 <div id="contigDisplay"></div>
 
 <script type="text/javascript">
-    var dataset;
-    var currentGraph = "all";
-
     d3.json("dataset", function(json) {
-        dataset = json;
-
         d3.select("#dataset").append("p").text("contigsFile: " + json.contigsFile);
         d3.select("#dataset").append("p").text("graphName: all").on("click", function() {
-            currentGraph = "all";
-            drawEdges(ci);
-            //onSelect(ci);
-            //svg.attr("transform", "translate(" + lastTranslate + ")scale(" + lastScale + ")");
+            k = 0;
+            drawEdges(ci, "all");
         });
 
         json.graphs.map(function(o) {
@@ -34,10 +27,8 @@
                     .append("p")
                     .text("graphName: " + o.graphName + " (" + o.graphFile + ", " + o.kmerSize + ", " + o.numRecords + ", " + o.sampleName + ")")
                     .on("click", function() {
-                        currentGraph = o.graphName;
-                        drawEdges(ci);
-                        //onSelect(ci);
-                        //svg.attr("transform", "translate(" + lastTranslate + ")scale(" + lastScale + ")");
+                        k = o.kmerSize;
+                        drawEdges(ci, o.graphName);
                     });
         });
     });
@@ -51,6 +42,7 @@
     var lastTranslate;
     var lastScale;
     var svg;
+    var k = 0;
 
     var margin = {top: 40, right: 40, bottom: 40, left: 40},
             width = window.innerWidth - margin.left - margin.right,
@@ -61,7 +53,7 @@
         start();
     });
 
-    function drawEdges(d) {
+    function drawEdges(d, currentGraph) {
         d3.json("edges?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
             edges = json;
 
@@ -123,6 +115,7 @@
     //Call back for when user selects an option
     function onSelect(d) {
         ci = d;
+        k = 0;
 
         d3.json("contig?contigName=" + d.contigName, function(json) {
             console.log(json);
@@ -182,62 +175,45 @@
                    .attr("font-family", "monospace")
                    .attr("font-size", "1.5px")
                    .attr("fill", color)
-                   .text(base);
+                   .text(base)
+                   .on("mouseover", function(a) {
+                            var ks = [k];
+                            var th = [0.2];
+                            var co = ["gray"];
+
+                            if (k <= 1) {
+                                ks = [31,  37,   41,   47,   51,   57];
+                                th = [0.3, 0.25, 0.20, 0.15, 0.10, 0.05];
+                                co = ["#16193B", "#35478C", "#4E7AC7", "#7FB2F0", "#ADD5F7", "#CBE3F7"];
+                            }
+
+                            for (i = ks.length; i >= 0; i--) {
+                                ksa = ks[i];
+                                tha = th[i];
+                                coa = co[i];
+
+                                svg.append("rect")
+                                        .attr("class", "focus")
+                                        .attr("width", ksa)
+                                        .attr("height", 0.2)
+                                        .attr("x", n - 1)
+                                        .attr("y", (height / 2) + 0.5)
+                                        .attr("fill", coa);
+                            }
+                        })
+                   .on("mouseout", function(a) {
+                            d3.selectAll(".focus").remove();
+                        })
+                   .on("click", function(a) {
+                            if (k == 0) {
+                                window.prompt("Contig: ", json.seq);
+                            } else {
+                                window.prompt("Kmer: ", json.seq.substring(n, n + k));
+                            }
+                        });
             });
 
-            /*
-            d3.json("edges?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
-                edges = json;
-
-                for (e in edges) {
-                    outKeys = d3.keys(edges[e].out);
-
-                    for (outKey in outKeys) {
-                        svg.append("text")
-                                .attr("class", "out edge")
-                                .attr("text-anchor", "end")
-                                .attr("x", e)
-                                .attr("y", (height/2) - 3*(parseInt(outKey) + 1))
-                                .attr("font-family", "monospace")
-                                .attr("font-size", "1.5px")
-                                .attr("fill", "black")
-                                .text(edges[e].out[outKey]);
-
-                        svg.append("line")
-                                .attr("x1", e - 1 - 0.5)
-                                .attr("y1", (height/2) - 1)
-                                .attr("x2", e - 0.5)
-                                .attr("y2", (height/2) - 3*(parseInt(outKey) + 1))
-                                .attr("stroke-width", 0.1)
-                                .attr("stroke", "black");
-                    }
-
-                    inKeys = d3.keys(edges[e].in);
-
-                    for (inKey in inKeys) {
-                        svg.append("text")
-                                .attr("class", "in edge")
-                                .attr("text-anchor", "end")
-                                .attr("x", e - 1)
-                                .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
-                                .attr("font-family", "monospace")
-                                .attr("font-size", "1.5px")
-                                .attr("fill", "black")
-                                .text(edges[e].in[inKey]);
-
-                        svg.append("line")
-                                .attr("x1", e - 0.5)
-                                .attr("y1", (height/2))
-                                .attr("x2", e - 1 - 0.5)
-                                .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
-                                .attr("stroke-width", 0.1)
-                                .attr("stroke", "black");
-                    }
-                }
-            });
-            */
-
-            drawEdges(d);
+            drawEdges(d, "all");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
