@@ -30,6 +30,9 @@ public class server extends Module {
     @Argument(fullName="graph", shortName="g", doc="Cortex graph file")
     public TreeMap<String, File> GRAPHS;
 
+//    @Argument(fullName="link", shortName="l", doc="Link information")
+//    public TreeMap<String, File> LINKS;
+
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
@@ -256,6 +259,64 @@ public class server extends Module {
         return contigs;
     }
 
+    private class MaskHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+
+            Set<Integer> maskedPositions = new TreeSet<Integer>();
+
+            for (String graphLabel : GRAPHS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                        String thisKmer = seq.substring(i, i + kmerSize);
+                        CortexKmer thisCk = new CortexKmer(thisKmer);
+                        CortexRecord thisCr = cg.findRecord(thisCk);
+
+                        if (thisCr == null) {
+//                            for (int j = i; j < i + kmerSize; j++) {
+//                                maskedPositions.add(j);
+//                            }
+                            maskedPositions.add(i);
+                        }
+                    }
+                }
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("masked", new JSONArray(maskedPositions));
+
+            String response = jsonResponse.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET masked bases  : current, response length: {}", response.length());
+        }
+    }
+
+    private class LinkHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            String response = "test";
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET link info     : current, response length: {}", response.length());
+        }
+    }
+
     private class DataSetHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -302,9 +363,12 @@ public class server extends Module {
             server.createContext("/",                new PageHandler("/html/index.html"));
             server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
             server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
+            server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
             server.createContext("/contigs.csv",     new ContigsHandler());
             server.createContext("/contig",          new ContigHandler());
+            server.createContext("/masked",          new MaskHandler());
             server.createContext("/edges",           new EdgeHandler());
+            server.createContext("/links",           new LinkHandler());
             server.createContext("/dataset",         new DataSetHandler());
             server.setExecutor(null);
             server.start();
