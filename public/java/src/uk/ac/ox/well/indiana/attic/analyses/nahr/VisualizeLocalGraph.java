@@ -12,9 +12,9 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexPaths;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexPathsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -28,7 +28,7 @@ public class VisualizeLocalGraph extends Module {
     public CortexGraph CORTEX_GRAPH;
 
     @Argument(fullName="cortexPaths", shortName="cp", doc="Cortex paths")
-    public CortexPaths CORTEX_PATHS;
+    public CortexLinks CORTEX_PATHS;
 
     @Argument(fullName="contigs", shortName="c", doc="Contigs FASTA")
     public IndexedFastaSequenceFile CONTIGS;
@@ -91,7 +91,7 @@ public class VisualizeLocalGraph extends Module {
         return buffer.toString();
     }
 
-    private String reverseComplementJunctions(CortexPathsRecord pr) {
+    private String reverseComplementJunctions(CortexLinksRecord pr) {
         StringBuilder record = new StringBuilder();
 
         record.append(SequenceUtils.reverseComplement(pr.getKmerAsString())).append(" ").append(pr.getJunctions().size()).append("\n");
@@ -108,7 +108,7 @@ public class VisualizeLocalGraph extends Module {
         return record.toString();
     }
 
-    private void writeGraph(DirectedGraph<String, WeightedEdge> dbg, Set<DirectedGraph<String, WeightedEdge>> pgs, Map<CortexKmer, CortexPathsRecord> paths, Set<String> contigKmers, PrintStream o) {
+    private void writeGraph(DirectedGraph<String, WeightedEdge> dbg, Set<DirectedGraph<String, WeightedEdge>> pgs, Map<CortexKmer, CortexLinksRecord> paths, Set<String> contigKmers, PrintStream o) {
         String indent = "  ";
 
         o.println("digraph G {");
@@ -216,9 +216,9 @@ public class VisualizeLocalGraph extends Module {
         o.println("}");
     }
 
-    private Map<CortexKmer, CortexPathsRecord> loadPaths() {
-        Map<CortexKmer, CortexPathsRecord> paths = new HashMap<CortexKmer, CortexPathsRecord>();
-        for (CortexPathsRecord cpr : CORTEX_PATHS) {
+    private Map<CortexKmer, CortexLinksRecord> loadPaths() {
+        Map<CortexKmer, CortexLinksRecord> paths = new HashMap<CortexKmer, CortexLinksRecord>();
+        for (CortexLinksRecord cpr : CORTEX_PATHS) {
             paths.put(cpr.getKmer(), cpr);
         }
 
@@ -312,7 +312,7 @@ public class VisualizeLocalGraph extends Module {
     public void execute() {
         int kmerSize = CORTEX_GRAPH.getKmerSize();
 
-        Map<CortexKmer, CortexPathsRecord> paths = loadPaths();
+        Map<CortexKmer, CortexLinksRecord> paths = loadPaths();
 
         /*
         if (SHOW_CANDIDATES) {
@@ -429,7 +429,7 @@ public class VisualizeLocalGraph extends Module {
             CortexKmer ck = new CortexKmer(vertex);
 
             if (paths.containsKey(ck)) {
-                CortexPathsRecord pr = paths.get(ck);
+                CortexLinksRecord pr = paths.get(ck);
                 log.info("  paths starting at: {}", vertex);
 
                 for (CortexJunctionsRecord jr : pr.getJunctions()) {
