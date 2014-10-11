@@ -16,6 +16,9 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
@@ -30,13 +33,14 @@ public class server extends Module {
     @Argument(fullName="graph", shortName="g", doc="Cortex graph file")
     public TreeMap<String, File> GRAPHS;
 
-//    @Argument(fullName="link", shortName="l", doc="Link information")
-//    public TreeMap<String, File> LINKS;
+    @Argument(fullName="link", shortName="l", doc="Link information")
+    public TreeMap<String, File> LINKS;
 
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
     private Map<String, String> contigs;
+    private Map<String, Map<CortexKmer, CortexLinksRecord>> links;
 
     private class PageHandler implements HttpHandler {
         private String page;
@@ -60,7 +64,7 @@ public class server extends Module {
             BufferedReader in = new BufferedReader(new InputStreamReader(is));
             StringBuilder responseData = new StringBuilder();
 
-            String line = null;
+            String line;
             while((line = in.readLine()) != null) {
                 responseData.append(line).append("\n");
             }
@@ -244,21 +248,6 @@ public class server extends Module {
         }
     }
 
-    private Map<String, String> loadContigs() {
-        FastaSequenceFile contigReader = new FastaSequenceFile(CONTIGS, true);
-
-        Map<String, String> contigs = new LinkedHashMap<String, String>();
-
-        ReferenceSequence rseq;
-        while ((rseq = contigReader.nextSequence()) != null) {
-            String name = rseq.getName();
-
-            contigs.put(name, new String(rseq.getBases()));
-        }
-
-        return contigs;
-    }
-
     private class MaskHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -280,9 +269,6 @@ public class server extends Module {
                         CortexRecord thisCr = cg.findRecord(thisCk);
 
                         if (thisCr == null) {
-//                            for (int j = i; j < i + kmerSize; j++) {
-//                                maskedPositions.add(j);
-//                            }
                             maskedPositions.add(i);
                         }
                     }
@@ -303,10 +289,134 @@ public class server extends Module {
         }
     }
 
+    private class LinksHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+
+            List<Integer> linkStarts = new ArrayList<Integer>();
+
+            for (String graphLabel : LINKS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    Map<CortexKmer, CortexLinksRecord> cprs = links.get(graphLabel);
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                        String thisKmer = seq.substring(i, i + kmerSize);
+                        CortexKmer thisCk = new CortexKmer(thisKmer);
+
+                        if (cprs.containsKey(thisCk)) {
+                            if (thisCk.getKmerAsString().equals(thisKmer) && cprs.get(thisCk).getJunctions().iterator().next().isForward()) {
+                                linkStarts.add(i);
+
+                                log.info("path: {} {} {}", i, thisKmer, cprs.get(thisCk));
+                            }
+                        }
+                    }
+                }
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("linkStarts", new JSONArray(linkStarts));
+
+            String response = jsonResponse.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET links info    : current, response length: {}", response.length());
+        }
+    }
+
     private class LinkHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
-            String response = "test";
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+            int pos = Integer.valueOf(query.get("pos"));
+
+            Set<List<String>> linkEntries = new LinkedHashSet<List<String>>();
+
+            for (String graphLabel : LINKS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    Map<CortexKmer, CortexLinksRecord> clrs = links.get(graphLabel);
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    String sk = seq.substring(pos, pos + kmerSize);
+                    CortexKmer ck = new CortexKmer(sk);
+
+                    for (CortexJunctionsRecord cjr : clrs.get(ck).getJunctions()) {
+                        if (ck.getKmerAsString().equals(sk) && cjr.isForward()) {
+                            log.info("junctions: {}", cjr);
+
+                            String junctions = cjr.getJunctions();
+                            int currentJunction = 0;
+
+                            int startPos = pos;
+                            String startBase = sk.substring(0, 1);
+
+//                            int startPos = pos + kmerSize - 1;
+//                            String startBase = sk.substring(sk.length() - 1);
+
+//                            List<String> le = new ArrayList<String>();
+//                            le.add(String.format("%s_%d", sk.substring(0, 1), pos));
+//                            le.add(String.format("%s_%d", startBase, startPos));
+//                            linkEntries.add(le);
+
+                            for (int i = pos; i <= seq.length() - kmerSize && currentJunction < junctions.length(); i++) {
+                                String thisKmer = seq.substring(i, i + kmerSize);
+                                Set<String> nextKmers = CortexUtils.getNextKmers(cg, thisKmer);
+                                if (nextKmers.size() > 1) {
+                                    String expectedNextKmer = seq.substring(i + 1, i + kmerSize) + junctions.charAt(currentJunction);
+
+                                    if (nextKmers.contains(expectedNextKmer)) {
+                                        int endPos = i + kmerSize;
+                                        String endBase = junctions.substring(currentJunction, currentJunction + 1);
+
+                                        List<String> linkEntry1 = new ArrayList<String>();
+                                        linkEntry1.add(String.format("%s_%d", startBase, startPos));
+                                        linkEntry1.add(String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1));
+                                        linkEntries.add(linkEntry1);
+
+                                        List<String> linkEntry2 = new ArrayList<String>();
+                                        linkEntry2.add(String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1));
+                                        linkEntry2.add(String.format("%s_%d", endBase, endPos));
+                                        linkEntries.add(linkEntry2);
+
+                                        startPos = endPos;
+                                        startBase = endBase;
+
+                                        currentJunction++;
+
+                                        if (i < seq.length() - kmerSize) {
+                                            String nextKmerInContig = seq.substring(i + 1, i + 1 + kmerSize);
+
+                                            if (!expectedNextKmer.equals(nextKmerInContig)) {
+                                                break;
+                                            }
+                                        }
+                                    } else {
+                                        log.info("Did not find expected next kmer: {} {}", i, expectedNextKmer);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("linkEntries", new JSONArray(linkEntries));
+            String response = jsonResponse.toString();
 
             httpExchange.sendResponseHeaders(200, response.length());
             OutputStream os = httpExchange.getResponseBody();
@@ -350,11 +460,49 @@ public class server extends Module {
         }
     }
 
+    private Map<String, String> loadContigs() {
+        FastaSequenceFile contigReader = new FastaSequenceFile(CONTIGS, true);
+
+        Map<String, String> contigs = new LinkedHashMap<String, String>();
+
+        ReferenceSequence rseq;
+        while ((rseq = contigReader.nextSequence()) != null) {
+            String name = rseq.getName();
+
+            contigs.put(name, new String(rseq.getBases()));
+        }
+
+        return contigs;
+    }
+
+    private Map<String, Map<CortexKmer, CortexLinksRecord>> loadLinks() {
+        Map<String, Map<CortexKmer, CortexLinksRecord>> links = new HashMap<String, Map<CortexKmer, CortexLinksRecord>>();
+
+        for (String graphName : LINKS.keySet()) {
+            CortexLinks cp = new CortexLinks(LINKS.get(graphName));
+
+            links.put(graphName, new HashMap<CortexKmer, CortexLinksRecord>());
+
+            for (CortexLinksRecord cpr : cp) {
+                links.get(graphName).put(cpr.getKmer(), cpr);
+            }
+        }
+
+        return links;
+    }
+
+
     @Override
     public void execute() {
-        log.info("Loading contigs...");
+        log.info("Loading...");
+
         contigs = loadContigs();
+        links = loadLinks();
+
         log.info("  loaded {} contigs", contigs.size());
+        for (String graphLabel : links.keySet()) {
+            log.info("  loaded {} kmers with links from {}", links.get(graphLabel).size(), graphLabel);
+        }
 
         log.info("Starting server...");
 
@@ -368,7 +516,8 @@ public class server extends Module {
             server.createContext("/contig",          new ContigHandler());
             server.createContext("/masked",          new MaskHandler());
             server.createContext("/edges",           new EdgeHandler());
-            server.createContext("/links",           new LinkHandler());
+            server.createContext("/links",           new LinksHandler());
+            server.createContext("/link",            new LinkHandler());
             server.createContext("/dataset",         new DataSetHandler());
             server.setExecutor(null);
             server.start();

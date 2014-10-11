@@ -26,6 +26,7 @@
 
             drawEdges(ci, "all");
             drawMasked(ci, "all");
+            drawLinks(d, "all");
         });
 
         json.graphs.map(function(o) {
@@ -36,11 +37,14 @@
                     .on("click", function() {
                         k = o.kmerSize;
 
+                        d3.selectAll(".linkline").remove();
+
                         d3.selectAll("#dataset").selectAll("p").attr("id", "");
                         d3.select("." + o.graphName).attr("id", "selected");
 
                         drawEdges(ci, o.graphName);
                         drawMasked(ci, o.graphName);
+                        drawLinks(ci, o.graphName);
                     });
         });
     });
@@ -81,9 +85,10 @@
                 for (outKey in outKeys) {
                     svg.append("text")
                             .attr("class", "outedge")
+                            .attr("id", edges[e].out[outKey] + "_" + e)
                             .attr("text-anchor", "end")
                             .attr("x", e)
-                            .attr("y", (height/2) - 3*(parseInt(outKey) + 1))
+                            .attr("y", (height/2) - 5*(parseInt(outKey) + 1))
                             .attr("font-family", "monospace")
                             .attr("font-size", "1.5px")
                             .attr("fill", "black")
@@ -94,7 +99,7 @@
                             .attr("x1", e - 1 - 0.5)
                             .attr("y1", (height/2) - 1)
                             .attr("x2", e - 0.5)
-                            .attr("y2", (height/2) - 3*(parseInt(outKey) + 1))
+                            .attr("y2", (height/2) - 5*(parseInt(outKey) + 1))
                             .attr("stroke-width", 0.1)
                             .attr("stroke", "black");
                 }
@@ -104,9 +109,10 @@
                 for (inKey in inKeys) {
                     svg.append("text")
                             .attr("class", "inedge")
+                            .attr("id", edges[e].in[inKey] + "_" + e)
                             .attr("text-anchor", "end")
                             .attr("x", e)
-                            .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
+                            .attr("y", (height/2) + 5*(parseInt(inKey) + 1))
                             .attr("font-family", "monospace")
                             .attr("font-size", "1.5px")
                             .attr("fill", "black")
@@ -117,7 +123,7 @@
                             .attr("x1", parseInt(e) + 1 - 0.5)
                             .attr("y1", (height/2))
                             .attr("x2", parseInt(e) - 0.5)
-                            .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
+                            .attr("y2", (height/2) + 5*(parseInt(inKey) + 1) - 1)
                             .attr("stroke-width", 0.1)
                             .attr("stroke", "black");
                 }
@@ -142,6 +148,85 @@
                         .attr("stroke", "gray");
             });
         });
+    }
+
+    function drawLinks(d, currentGraph) {
+        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            d3.selectAll(".ctxlink").remove();
+
+            json.linkStarts.map(function(o) {
+                svg.append("circle")
+                        .attr("class", "ctxlink")
+                        .attr("cx", o-0.5)
+                        .attr("cy", (height/2) - 1.20)
+                        .attr("r", 0.17)
+                        .attr("stroke-width", 0.1)
+                        .attr("stroke", "gray")
+                        .attr("fill", "white")
+                        .on("click", function(a) {
+                            d3.json("link?contigName=" + d.contigName + "&graphName=" + currentGraph + "&pos=" + o, function(jsonLink) {
+                                d3.selectAll(".linkline").remove();
+
+                                jsonLink.linkEntries.map(function(q) {
+                                    var idStart = "#" + q[0];
+                                    var idEnd = "#" + q[1];
+
+                                    var elemStart = d3.select(idStart);
+                                    var elemEnd = d3.select(idEnd);
+
+                                    svg.append("circle")
+                                            .attr("class", "linkline")
+                                            .attr("cx", elemEnd.attr("x") - 0.5)
+                                            .attr("cy", elemEnd.attr("y") - 1)
+                                            .attr("r", 0.17)
+                                            .attr("stroke-width", 0.1)
+                                            .attr("stroke", "red")
+                                            .attr("fill", "red")
+
+                                    svg.append("svg:path")
+                                            .attr("class", "linkline")
+                                            .attr("fill", "none")
+                                            .attr("stroke-width", 0.1)
+                                            .attr("stroke", "blue")
+                                            .attr("d", function(d) {
+                                                return draw_curve(elemStart.attr("x") - 0.5, elemStart.attr("y") - 1, elemEnd.attr("x") - 0.5, elemEnd.attr("y") - 1, 1);
+                                            });
+                                });
+                            });
+                        });
+            });
+        });
+    }
+
+    function draw_curve(Ax, Ay, Bx, By, M) {
+        // side is either 1 or -1 depending on which side you want the curve to be on.
+        // Find midpoint J
+        var Jx = Ax + (Bx - Ax) / 2
+        var Jy = Ay + (By - Ay) / 2
+
+        // We need a and b to find theta, and we need to know the sign of each to make sure that the orientation is correct.
+        var a = Bx - Ax
+        //var asign = (a < 0 ? -1 : 1)
+        var asign = (a < 0 ? 1 : -1)
+        var b = By - Ay
+        var bsign = (b < 0 ? -1 : 1)
+        var theta = Math.atan(b / a)
+
+        // Find the point that's perpendicular to J on side
+        var costheta = asign * Math.cos(theta)
+        var sintheta = asign * Math.sin(theta)
+
+        // Find c and d
+        var c = M * sintheta
+        var d = M * costheta
+
+        // Use c and d to find Kx and Ky
+        var Kx = Jx - c
+        var Ky = Jy + d
+
+        return "M" + Ax + "," + Ay +
+                "Q" + Kx + "," + Ky +
+                " " + Bx + "," + By;
     }
 
     //Call back for when user selects an option
@@ -201,6 +286,7 @@
 
                 svg.append("text")
                    .attr("class", "xlabel")
+                   .attr("id", base + "_" + n)
                    .attr("text-anchor", "end")
                    .attr("x", n)
                    .attr("y", height/2)
@@ -233,6 +319,7 @@
 
             drawEdges(d, "all");
             drawMasked(d, "all");
+            drawLinks(d, "all");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
