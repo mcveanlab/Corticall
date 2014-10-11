@@ -13,9 +13,9 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexPaths;
-import uk.ac.ox.well.indiana.utils.io.cortex.paths.CortexPathsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -31,7 +31,7 @@ public class ctxgraph extends Module {
     public CortexGraph UNCLEANED_GRAPH;
 
     @Argument(fullName="paths", shortName="p", doc="McCortex path information", required=false)
-    public CortexPaths CORTEX_PATHS;
+    public CortexLinks CORTEX_PATHS;
 
     @Argument(fullName="contigs", shortName="c", doc="Contigs (in FASTA format)")
     public IndexedFastaSequenceFile CONTIGS;
@@ -176,11 +176,11 @@ public class ctxgraph extends Module {
         }
     }
 
-    private Map<CortexKmer, CortexPathsRecord> loadPaths() {
-        Map<CortexKmer, CortexPathsRecord> paths = new HashMap<CortexKmer, CortexPathsRecord>();
+    private Map<CortexKmer, CortexLinksRecord> loadPaths() {
+        Map<CortexKmer, CortexLinksRecord> paths = new HashMap<CortexKmer, CortexLinksRecord>();
 
         if (CORTEX_PATHS != null) {
-            for (CortexPathsRecord cpr : CORTEX_PATHS) {
+            for (CortexLinksRecord cpr : CORTEX_PATHS) {
                 paths.put(cpr.getKmer(), cpr);
             }
         }
@@ -188,7 +188,7 @@ public class ctxgraph extends Module {
         return paths;
     }
 
-    private Set<DirectedGraph<String, WeightedEdge>> addPathAnnotations(DirectedGraph<String, WeightedEdge> g, Map<CortexKmer, CortexPathsRecord> paths) {
+    private Set<DirectedGraph<String, WeightedEdge>> addPathAnnotations(DirectedGraph<String, WeightedEdge> g, Map<CortexKmer, CortexLinksRecord> paths) {
         Set<String> vertices = new HashSet<String>();
         vertices.addAll(g.vertexSet());
 
@@ -198,7 +198,7 @@ public class ctxgraph extends Module {
             CortexKmer ck = new CortexKmer(vertex);
 
             if (paths.containsKey(ck)) {
-                CortexPathsRecord pr = paths.get(ck);
+                CortexLinksRecord pr = paths.get(ck);
                 log.info("  paths starting at: {}", vertex);
 
                 for (CortexJunctionsRecord jr : pr.getJunctions()) {
@@ -402,7 +402,7 @@ public class ctxgraph extends Module {
         return buffer.toString();
     }
 
-    private String reverseComplementJunctions(CortexPathsRecord pr) {
+    private String reverseComplementJunctions(CortexLinksRecord pr) {
         StringBuilder record = new StringBuilder();
 
         record.append(SequenceUtils.reverseComplement(pr.getKmerAsString())).append(" ").append(pr.getJunctions().size()).append("\n");
@@ -419,7 +419,7 @@ public class ctxgraph extends Module {
         return record.toString();
     }
 
-    private void writeGraph(DirectedGraph<String, WeightedEdge> g, Set<DirectedGraph<String, WeightedEdge>> pgs, Map<CortexKmer, CortexPathsRecord> paths, Set<String> contigKmers) {
+    private void writeGraph(DirectedGraph<String, WeightedEdge> g, Set<DirectedGraph<String, WeightedEdge>> pgs, Map<CortexKmer, CortexLinksRecord> paths, Set<String> contigKmers) {
         Map<String, Object> globalVertexAttrs = new HashMap<String, Object>();
         globalVertexAttrs.put("color", "black");
         globalVertexAttrs.put("fontname", "Courier New");
@@ -533,7 +533,7 @@ public class ctxgraph extends Module {
         Set<String> contigKmers = SequenceUtils.kmerizeSequence(contig, kmerSize);
 
         log.info("Loading paths...");
-        Map<CortexKmer, CortexPathsRecord> paths = loadPaths();
+        Map<CortexKmer, CortexLinksRecord> paths = loadPaths();
 
         log.info("Constructing initial graph...");
         DirectedGraph<String, WeightedEdge> g = loadLocalGraph(contigKmers);
