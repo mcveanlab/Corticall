@@ -1,14 +1,14 @@
-package uk.ac.ox.well.indiana.utils.io.cortex.paths;
+package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 
 import java.util.List;
 
-public class CortexPathsRecord {
+public class CortexLinksRecord {
     private String kmer;
     private List<CortexJunctionsRecord> cjs;
 
-    public CortexPathsRecord(String skmer, List<CortexJunctionsRecord> cjs) {
+    public CortexLinksRecord(String skmer, List<CortexJunctionsRecord> cjs) {
         this.kmer = skmer;
         this.cjs = cjs;
     }
@@ -35,7 +35,7 @@ public class CortexPathsRecord {
     public List<CortexJunctionsRecord> getJunctions() { return cjs; }
 
     public boolean equals(Object obj) {
-        if (obj instanceof CortexPathsRecord) {
+        if (obj instanceof CortexLinksRecord) {
             List<CortexJunctionsRecord> js = getJunctions();
 
             boolean junctionsAreEqual = true;
@@ -49,7 +49,7 @@ public class CortexPathsRecord {
                 }
             }
 
-            return (junctionsAreEqual && kmer.equals(((CortexPathsRecord) obj).getKmerAsString()));
+            return (junctionsAreEqual && kmer.equals(((CortexLinksRecord) obj).getKmerAsString()));
         }
 
         return false;
