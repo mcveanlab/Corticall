@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.io.cortex.paths;
+package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
 import java.util.Arrays;
 
