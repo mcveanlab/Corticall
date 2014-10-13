@@ -13,6 +13,7 @@
 </div>
 
 <div id="contigSelection"></div>
+<div id="kmerSelection"></div>
 <div id="contigDisplay"></div>
 
 <script type="text/javascript">
@@ -26,8 +27,7 @@
 
             drawEdges(ci, "all");
             drawMasked(ci, "all");
-            drawLinks(d, "all", "forward");
-            //drawLinks(d, "all", "reverse");
+            drawLinks(d, "all");
         });
 
         json.graphs.map(function(o) {
@@ -45,8 +45,7 @@
 
                         drawEdges(ci, o.graphName);
                         drawMasked(ci, o.graphName);
-                        drawLinks(ci, o.graphName, "forward");
-                        //drawLinks(ci, o.graphName, "reverse");
+                        drawLinks(ci, o.graphName);
                     });
         });
     });
@@ -172,8 +171,9 @@
                                 d3.selectAll(".linkline").remove();
 
                                 jsonLink.linkEntries.map(function(q) {
-                                    var idStart = "#" + q[0];
-                                    var idEnd = "#" + q[1];
+                                    var idStart = "#" + q.linkStartId;
+                                    var idEnd = "#" + q.linkEndId;
+                                    var cov = parseInt(q.linkCoverage);
 
                                     var elemStart = d3.select(idStart);
                                     var elemEnd = d3.select(idEnd);
@@ -181,13 +181,18 @@
                                     svg.append("svg:path")
                                             .attr("class", "linkline")
                                             .attr("fill", "none")
-                                            .attr("stroke-width", 0.1)
+                                            .attr("stroke-width", cov/100)
                                             .attr("stroke", "blue")
+                                            .attr("stroke-opacity", 0.5)
                                             .attr("d", function(d) {
                                                 if (elemStart.attr("x") != elemEnd.attr("x")) {
                                                     return draw_curve(elemStart.attr("x") - 0.5, elemStart.attr("y") - 1, elemEnd.attr("x") - 0.5, elemEnd.attr("y") - 1, 1);
                                                 }
-                                            });
+                                            })
+                                            .on("mouseover", function() { d3.select(this).attr("stroke-opacity", 0.9); })
+                                            .on("mouseout", function() { d3.select(this).attr("stroke-opacity", 0.5); })
+                                            .append("svg:title")
+                                            .text(cov)
                                 });
                             });
                         });
@@ -209,8 +214,9 @@
                                 d3.selectAll(".linkline").remove();
 
                                 jsonLink.linkEntries.map(function(q) {
-                                    var idStart = "#" + q[0];
-                                    var idEnd = "#" + q[1];
+                                    var idStart = "#" + q.linkStartId;
+                                    var idEnd = "#" + q.linkEndId;
+                                    var cov = parseInt(q.linkCoverage);
 
                                     var elemStart = d3.select(idStart);
                                     var elemEnd = d3.select(idEnd);
@@ -218,13 +224,18 @@
                                     svg.append("svg:path")
                                             .attr("class", "linkline")
                                             .attr("fill", "none")
-                                            .attr("stroke-width", 0.1)
+                                            .attr("stroke-width", cov/100)
                                             .attr("stroke", "blue")
+                                            .attr("stroke-opacity", 0.5)
                                             .attr("d", function(d) {
                                                 if (elemStart.attr("x") != elemEnd.attr("x")) {
                                                     return draw_curve(elemStart.attr("x") - 0.5, parseInt(elemStart.attr("y")) + 0.2, elemEnd.attr("x") - 0.5, parseInt(elemEnd.attr("y")) + 0.2, 1);
                                                 }
-                                            });
+                                            })
+                                            .on("mouseover", function() { d3.select(this).attr("stroke-opacity", 0.9); })
+                                            .on("mouseout", function() { d3.select(this).attr("stroke-opacity", 0.5); })
+                                            .append("svg:title")
+                                            .text(cov);
                                 });
                             });
                         });
