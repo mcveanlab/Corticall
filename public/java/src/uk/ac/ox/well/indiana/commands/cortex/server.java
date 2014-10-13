@@ -346,6 +346,45 @@ public class server extends Module {
         }
     }
 
+    private class LinkEntry {
+        public String linkStartId;
+        public String linkEndId;
+
+        public LinkEntry(String linkStartId, String linkEndId) {
+            this.linkStartId = linkStartId;
+            this.linkEndId = linkEndId;
+        }
+
+        public Map<String, String> getJSONMap() {
+            Map<String, String> jsonMap = new LinkedHashMap<String, String>();
+            jsonMap.put("linkStartId", linkStartId);
+            jsonMap.put("linkEndId", linkEndId);
+
+            return jsonMap;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            LinkEntry linkEntry = (LinkEntry) o;
+
+            if (linkEndId != null ? !linkEndId.equals(linkEntry.linkEndId) : linkEntry.linkEndId != null) return false;
+            if (linkStartId != null ? !linkStartId.equals(linkEntry.linkStartId) : linkEntry.linkStartId != null)
+                return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = linkStartId != null ? linkStartId.hashCode() : 0;
+            result = 31 * result + (linkEndId != null ? linkEndId.hashCode() : 0);
+            return result;
+        }
+    }
+
     private class LinkHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -355,7 +394,8 @@ public class server extends Module {
             String selectedGraph = query.get("graphName");
             int pos = Integer.valueOf(query.get("pos"));
 
-            Set<List<String>> linkEntries = new LinkedHashSet<List<String>>();
+            //Set<LinkEntry> linkEntries = new HashSet<LinkEntry>();
+            Map<LinkEntry, Integer> linkEntries = new LinkedHashMap<LinkEntry, Integer>();
 
             for (String graphLabel : LINKS.keySet()) {
                 if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
@@ -395,15 +435,25 @@ public class server extends Module {
                                         int endPos = i + kmerSize;
                                         String endBase = junctions.substring(currentJunction, currentJunction + 1);
 
-                                        List<String> linkEntry1 = new ArrayList<String>();
-                                        linkEntry1.add(String.format("%s_%d", startBase, startPos));
-                                        linkEntry1.add(String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1));
-                                        linkEntries.add(linkEntry1);
+                                        LinkEntry le1 = new LinkEntry(
+                                            String.format("%s_%d", startBase, startPos),
+                                            String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1));
 
-                                        List<String> linkEntry2 = new ArrayList<String>();
-                                        linkEntry2.add(String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1));
-                                        linkEntry2.add(String.format("%s_%d", endBase, endPos));
-                                        linkEntries.add(linkEntry2);
+                                        LinkEntry le2 = new LinkEntry(
+                                            String.format("%s_%d", expectedNextKmer.substring(expectedNextKmer.length() - 2, expectedNextKmer.length() - 1), i + kmerSize - 1),
+                                            String.format("%s_%d", endBase, endPos));
+
+                                        if (linkEntries.containsKey(le1)) {
+                                            linkEntries.put(le1, linkEntries.get(le1) + cjr.getCoverage(0));
+                                        } else {
+                                            linkEntries.put(le1, cjr.getCoverage(0));
+                                        }
+
+                                        if (linkEntries.containsKey(le2)) {
+                                            linkEntries.put(le2, linkEntries.get(le2) + cjr.getCoverage(0));
+                                        } else {
+                                            linkEntries.put(le2, cjr.getCoverage(0));
+                                        }
 
                                         startPos = endPos;
                                         startBase = endBase;
@@ -439,15 +489,25 @@ public class server extends Module {
                                         int endPos = i - kmerSize;
                                         String endBase = junctions.substring(currentJunction, currentJunction + 1);
 
-                                        List<String> linkEntry1 = new ArrayList<String>();
-                                        linkEntry1.add(String.format("%s_%d", startBase, startPos));
-                                        linkEntry1.add(String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1));
-                                        linkEntries.add(linkEntry1);
+                                        LinkEntry le1 = new LinkEntry(
+                                                String.format("%s_%d", startBase, startPos),
+                                                String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1));
 
-                                        List<String> linkEntry2 = new ArrayList<String>();
-                                        linkEntry2.add(String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1));
-                                        linkEntry2.add(String.format("%s_%d", endBase, endPos));
-                                        linkEntries.add(linkEntry2);
+                                        LinkEntry le2 = new LinkEntry(
+                                                String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1),
+                                                String.format("%s_%d", endBase, endPos));
+
+                                        if (linkEntries.containsKey(le1)) {
+                                            linkEntries.put(le1, linkEntries.get(le1) + cjr.getCoverage(0));
+                                        } else {
+                                            linkEntries.put(le1, cjr.getCoverage(0));
+                                        }
+
+                                        if (linkEntries.containsKey(le2)) {
+                                            linkEntries.put(le2, linkEntries.get(le2) + cjr.getCoverage(0));
+                                        } else {
+                                            linkEntries.put(le2, cjr.getCoverage(0));
+                                        }
 
                                         startPos = endPos;
                                         startBase = endBase;
@@ -472,7 +532,14 @@ public class server extends Module {
             }
 
             JSONObject jsonResponse = new JSONObject();
-            jsonResponse.put("linkEntries", new JSONArray(linkEntries));
+
+            for (LinkEntry le : linkEntries.keySet()) {
+                Map<String, String> jsonMap = le.getJSONMap();
+                jsonMap.put("linkCoverage", String.valueOf(linkEntries.get(le)));
+
+                jsonResponse.append("linkEntries", jsonMap);
+            }
+
             String response = jsonResponse.toString();
 
             httpExchange.sendResponseHeaders(200, response.length());
