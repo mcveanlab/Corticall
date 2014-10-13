@@ -20,6 +20,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -296,8 +297,9 @@ public class server extends Module {
 
             String seq = contigs.get(query.get("contigName"));
             String selectedGraph = query.get("graphName");
+            boolean goForward = query.get("orientation").equals("forward");
 
-            List<Integer> linkStarts = new ArrayList<Integer>();
+            Set<Integer> linkStarts = new TreeSet<Integer>();
 
             for (String graphLabel : LINKS.keySet()) {
                 if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
@@ -310,10 +312,20 @@ public class server extends Module {
                         CortexKmer thisCk = new CortexKmer(thisKmer);
 
                         if (cprs.containsKey(thisCk)) {
-                            if (thisCk.getKmerAsString().equals(thisKmer) && cprs.get(thisCk).getJunctions().iterator().next().isForward()) {
-                                linkStarts.add(i);
+                            CortexLinksRecord clr = cprs.get(thisCk);
 
-                                log.info("path: {} {} {}", i, thisKmer, cprs.get(thisCk));
+                            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                                if (thisCk.isFlipped()) {
+                                    cjr = CortexUtils.flipJunctionsRecord(cjr);
+                                }
+
+                                if (goForward == cjr.isForward()) {
+                                    if (goForward) {
+                                        linkStarts.add(i);
+                                    } else {
+                                        linkStarts.add(i + kmerSize - 1);
+                                    }
+                                }
                             }
                         }
                     }
@@ -354,23 +366,24 @@ public class server extends Module {
                     String sk = seq.substring(pos, pos + kmerSize);
                     CortexKmer ck = new CortexKmer(sk);
 
+                    if (!clrs.containsKey(ck)) {
+                        sk = seq.substring(pos - kmerSize + 1, pos + 1);
+                        ck = new CortexKmer(sk);
+                    }
+
                     for (CortexJunctionsRecord cjr : clrs.get(ck).getJunctions()) {
-                        if (ck.getKmerAsString().equals(sk) && cjr.isForward()) {
+                        if (ck.isFlipped()) {
+                            cjr = CortexUtils.flipJunctionsRecord(cjr);
+                        }
+
+                        String junctions = cjr.getJunctions();
+
+                        if (cjr.isForward()) {
                             log.info("junctions: {}", cjr);
 
-                            String junctions = cjr.getJunctions();
                             int currentJunction = 0;
-
                             int startPos = pos;
                             String startBase = sk.substring(0, 1);
-
-//                            int startPos = pos + kmerSize - 1;
-//                            String startBase = sk.substring(sk.length() - 1);
-
-//                            List<String> le = new ArrayList<String>();
-//                            le.add(String.format("%s_%d", sk.substring(0, 1), pos));
-//                            le.add(String.format("%s_%d", startBase, startPos));
-//                            linkEntries.add(le);
 
                             for (int i = pos; i <= seq.length() - kmerSize && currentJunction < junctions.length(); i++) {
                                 String thisKmer = seq.substring(i, i + kmerSize);
@@ -406,6 +419,50 @@ public class server extends Module {
                                         }
                                     } else {
                                         log.info("Did not find expected next kmer: {} {}", i, expectedNextKmer);
+                                    }
+                                }
+                            }
+                        } else {
+                            log.info("junctions: {}", cjr);
+
+                            int currentJunction = 0;
+                            int startPos = pos;
+                            String startBase = sk.substring(sk.length() - 1);
+
+                            for (int i = pos; i >= kmerSize && currentJunction < junctions.length(); i--) {
+                                String thisKmer = seq.substring(i - kmerSize + 1, i + 1);
+                                Set<String> prevKmers = CortexUtils.getPrevKmers(cg, thisKmer);
+                                if (prevKmers.size() > 1) {
+                                    String expectedPrevKmer = junctions.charAt(currentJunction) + seq.substring(i - kmerSize + 1, i);
+
+                                    if (prevKmers.contains(expectedPrevKmer)) {
+                                        int endPos = i - kmerSize;
+                                        String endBase = junctions.substring(currentJunction, currentJunction + 1);
+
+                                        List<String> linkEntry1 = new ArrayList<String>();
+                                        linkEntry1.add(String.format("%s_%d", startBase, startPos));
+                                        linkEntry1.add(String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1));
+                                        linkEntries.add(linkEntry1);
+
+                                        List<String> linkEntry2 = new ArrayList<String>();
+                                        linkEntry2.add(String.format("%s_%d", expectedPrevKmer.substring(1, 2), i - kmerSize + 1));
+                                        linkEntry2.add(String.format("%s_%d", endBase, endPos));
+                                        linkEntries.add(linkEntry2);
+
+                                        startPos = endPos;
+                                        startBase = endBase;
+
+                                        currentJunction++;
+
+                                        if (i > kmerSize) {
+                                            String prevKmerInContig = seq.substring(i - kmerSize, i);
+
+                                            if (!expectedPrevKmer.equals(prevKmerInContig)) {
+                                                break;
+                                            }
+                                        }
+                                    } else {
+                                        log.info("Did not find expected prev kmer: {} {}", i, expectedPrevKmer);
                                     }
                                 }
                             }

@@ -26,7 +26,8 @@
 
             drawEdges(ci, "all");
             drawMasked(ci, "all");
-            drawLinks(d, "all");
+            drawLinks(d, "all", "forward");
+            //drawLinks(d, "all", "reverse");
         });
 
         json.graphs.map(function(o) {
@@ -44,7 +45,8 @@
 
                         drawEdges(ci, o.graphName);
                         drawMasked(ci, o.graphName);
-                        drawLinks(ci, o.graphName);
+                        drawLinks(ci, o.graphName, "forward");
+                        //drawLinks(ci, o.graphName, "reverse");
                     });
         });
     });
@@ -88,7 +90,7 @@
                             .attr("id", edges[e].out[outKey] + "_" + e)
                             .attr("text-anchor", "end")
                             .attr("x", e)
-                            .attr("y", (height/2) - 5*(parseInt(outKey) + 1))
+                            .attr("y", (height/2) - 3*(parseInt(outKey) + 1))
                             .attr("font-family", "monospace")
                             .attr("font-size", "1.5px")
                             .attr("fill", "black")
@@ -96,12 +98,13 @@
 
                     svg.append("line")
                             .attr("class", "outedgeline")
-                            .attr("x1", e - 1 - 0.5)
-                            .attr("y1", (height/2) - 1)
+                            .attr("x1", e - 1 - 0.2)
+                            .attr("y1", (height/2) - 0.5)
                             .attr("x2", e - 0.5)
-                            .attr("y2", (height/2) - 5*(parseInt(outKey) + 1))
+                            .attr("y2", (height/2) - 3*(parseInt(outKey) + 1))
                             .attr("stroke-width", 0.1)
-                            .attr("stroke", "black");
+                            .attr("stroke", "black")
+                            .attr("opacity", 0.5)
                 }
 
                 inKeys = d3.keys(edges[e].in);
@@ -112,7 +115,7 @@
                             .attr("id", edges[e].in[inKey] + "_" + e)
                             .attr("text-anchor", "end")
                             .attr("x", e)
-                            .attr("y", (height/2) + 5*(parseInt(inKey) + 1))
+                            .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
                             .attr("font-family", "monospace")
                             .attr("font-size", "1.5px")
                             .attr("fill", "black")
@@ -120,12 +123,13 @@
 
                     svg.append("line")
                             .attr("class", "inedgeline")
-                            .attr("x1", parseInt(e) + 1 - 0.5)
-                            .attr("y1", (height/2))
+                            .attr("x1", parseInt(e) + 0.2)
+                            .attr("y1", (height/2) - 0.5)
                             .attr("x2", parseInt(e) - 0.5)
-                            .attr("y2", (height/2) + 5*(parseInt(inKey) + 1) - 1)
+                            .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
                             .attr("stroke-width", 0.1)
-                            .attr("stroke", "black");
+                            .attr("stroke", "black")
+                            .attr("opacity", 0.5)
                 }
             }
         });
@@ -151,14 +155,14 @@
     }
 
     function drawLinks(d, currentGraph) {
-        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
-            d3.selectAll(".ctxlink").remove();
+        d3.selectAll(".ctxlink").remove();
 
+        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph + "&orientation=forward", function(json) {
             json.linkStarts.map(function(o) {
                 svg.append("circle")
                         .attr("class", "ctxlink")
                         .attr("cx", o-0.5)
-                        .attr("cy", (height/2) - 1.20)
+                        .attr("cy", parseInt(height)/2 - 1.2)
                         .attr("r", 0.17)
                         .attr("stroke-width", 0.1)
                         .attr("stroke", "gray")
@@ -174,14 +178,42 @@
                                     var elemStart = d3.select(idStart);
                                     var elemEnd = d3.select(idEnd);
 
-                                    svg.append("circle")
+                                    svg.append("svg:path")
                                             .attr("class", "linkline")
-                                            .attr("cx", elemEnd.attr("x") - 0.5)
-                                            .attr("cy", elemEnd.attr("y") - 1)
-                                            .attr("r", 0.17)
+                                            .attr("fill", "none")
                                             .attr("stroke-width", 0.1)
-                                            .attr("stroke", "red")
-                                            .attr("fill", "red")
+                                            .attr("stroke", "blue")
+                                            .attr("d", function(d) {
+                                                if (elemStart.attr("x") != elemEnd.attr("x")) {
+                                                    return draw_curve(elemStart.attr("x") - 0.5, elemStart.attr("y") - 1, elemEnd.attr("x") - 0.5, elemEnd.attr("y") - 1, 1);
+                                                }
+                                            });
+                                });
+                            });
+                        });
+            });
+        });
+
+        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph + "&orientation=reverse", function(json) {
+            json.linkStarts.map(function(o) {
+                svg.append("circle")
+                        .attr("class", "ctxlink")
+                        .attr("cx", o-0.5)
+                        .attr("cy", parseInt(height)/2 + 0.4)
+                        .attr("r", 0.17)
+                        .attr("stroke-width", 0.1)
+                        .attr("stroke", "gray")
+                        .attr("fill", "white")
+                        .on("click", function(a) {
+                            d3.json("link?contigName=" + d.contigName + "&graphName=" + currentGraph + "&pos=" + o, function(jsonLink) {
+                                d3.selectAll(".linkline").remove();
+
+                                jsonLink.linkEntries.map(function(q) {
+                                    var idStart = "#" + q[0];
+                                    var idEnd = "#" + q[1];
+
+                                    var elemStart = d3.select(idStart);
+                                    var elemEnd = d3.select(idEnd);
 
                                     svg.append("svg:path")
                                             .attr("class", "linkline")
@@ -189,7 +221,9 @@
                                             .attr("stroke-width", 0.1)
                                             .attr("stroke", "blue")
                                             .attr("d", function(d) {
-                                                return draw_curve(elemStart.attr("x") - 0.5, elemStart.attr("y") - 1, elemEnd.attr("x") - 0.5, elemEnd.attr("y") - 1, 1);
+                                                if (elemStart.attr("x") != elemEnd.attr("x")) {
+                                                    return draw_curve(elemStart.attr("x") - 0.5, parseInt(elemStart.attr("y")) + 0.2, elemEnd.attr("x") - 0.5, parseInt(elemEnd.attr("y")) + 0.2, 1);
+                                                }
                                             });
                                 });
                             });
@@ -223,6 +257,10 @@
         // Use c and d to find Kx and Ky
         var Kx = Jx - c
         var Ky = Jy + d
+
+        if (isNaN(Ky)) {
+            console.log(Ax + " " + Ay + " " + Bx + " " + By + " " + M);
+        }
 
         return "M" + Ax + "," + Ay +
                 "Q" + Kx + "," + Ky +
@@ -319,7 +357,8 @@
 
             drawEdges(d, "all");
             drawMasked(d, "all");
-            drawLinks(d, "all");
+            drawLinks(d, "all", "forward");
+            //drawLinks(d, "all", "reverse");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
