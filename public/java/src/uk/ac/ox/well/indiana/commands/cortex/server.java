@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.json.JSONArray;
+import org.json.JSONML;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -142,6 +143,214 @@ public class server extends Module {
         }
     }
 
+    private class ContigContextHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+
+            Map<Integer, Set<String>> contigContext = new TreeMap<Integer, Set<String>>();
+
+            int earliestPosition = 0;
+            int latestPosition = 0;
+
+            for (String graphLabel : GRAPHS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    String currentKmer = seq.substring(0, kmerSize);
+                    int currentPos = 0;
+
+                    while (currentKmer != null) {
+                        Set<String> prevKmers = CortexUtils.getPrevKmers(cg, currentKmer);
+
+                        if (prevKmers.size() == 1) {
+                            String prevKmer = prevKmers.iterator().next();
+
+                            if (!contigContext.containsKey(currentPos - 1)) {
+                                contigContext.put(currentPos - 1, new TreeSet<String>());
+                            }
+
+                            contigContext.get(currentPos - 1).add(String.valueOf(prevKmer.charAt(0)));
+
+                            if (currentPos - 1 < earliestPosition) { earliestPosition = currentPos - 1; }
+
+                            currentKmer = prevKmer;
+                            currentPos--;
+                        } else {
+                            currentKmer = null;
+                        }
+                    }
+
+                    currentKmer = seq.substring(seq.length() - kmerSize, seq.length());
+                    currentPos = seq.length() - 1;
+
+                    while (currentKmer != null) {
+                        Set<String> nextKmers = CortexUtils.getNextKmers(cg, currentKmer);
+
+                        if (nextKmers.size() == 1) {
+                            String nextKmer = nextKmers.iterator().next();
+
+                            if (!contigContext.containsKey(currentPos + 1)) {
+                                contigContext.put(currentPos + 1, new TreeSet<String>());
+                            }
+
+                            contigContext.get(currentPos + 1).add(String.valueOf(nextKmer.charAt(nextKmer.length() - 1)));
+
+                            if (currentPos + 1 > latestPosition) { latestPosition = currentPos + 1; }
+
+                            currentKmer = nextKmer;
+                            currentPos++;
+                        } else {
+                            currentKmer = null;
+                        }
+                    }
+                }
+            }
+
+            for (int i = -1; i >= earliestPosition; i--) {
+                if (contigContext.containsKey(i) && contigContext.get(i).size() > 1) {
+                    earliestPosition = i + 1;
+                    break;
+                }
+            }
+
+            for (int i = seq.length(); i <= latestPosition; i++) {
+                if (contigContext.containsKey(i) && contigContext.get(i).size() > 1) {
+                    latestPosition = i - 1;
+                    break;
+                }
+            }
+
+            Map<Integer, String> contextMap = new TreeMap<Integer, String>();
+
+            for (Integer pos : contigContext.keySet()) {
+                if (pos >= earliestPosition && pos <= latestPosition) {
+                    contextMap.put(pos, contigContext.get(pos).iterator().next());
+                }
+            }
+
+            JSONObject jo = new JSONObject(contextMap);
+
+            String response = jo.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
+    private class JSONTree {
+        private String root;
+        private Set<JSONTree> children;
+
+        public JSONTree(char root) {
+            this.root = String.valueOf(root);
+        }
+
+        public JSONTree(String root) {
+            this.root = root;
+        }
+
+        public JSONTree add(char child) {
+            return add(String.valueOf(child));
+        }
+
+        public JSONTree add(String child) {
+            if (children == null) {
+                children = new HashSet<JSONTree>();
+            }
+
+            JSONTree childTree = new JSONTree(child);
+
+            children.add(childTree);
+
+            return childTree;
+        }
+
+        public String getRoot() { return root; }
+
+        private StringBuilder traverse() {
+            Collection<StringBuilder> co = new ArrayList<StringBuilder>();
+            StringBuilder jo = new StringBuilder();
+            //jo.put("base", root);
+            jo.append("{\"base\": \"").append(root).append("\"");
+
+            if (children != null) {
+                List<StringBuilder> pieces = new ArrayList<StringBuilder>();
+                for (JSONTree childTree : children) {
+                    pieces.add(childTree.traverse());
+                }
+
+                jo.append(", \"children\": [").append(Joiner.on(",").join(pieces)).append("]");
+
+                //jo.put("children", new JSONArray(co));
+                jo.append("},");
+            } else {
+                jo.append("}");
+            }
+
+            return jo;
+        }
+
+        public String toString() {
+            StringBuilder jo = traverse();
+
+            return jo.toString();
+        }
+    }
+
+    private class SimpleGraphHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            //String seq = contigs.get(query.get("contigName"));
+            String seq = "TACG";
+            String selectedGraph = query.get("graphName");
+
+            JSONTree jtree = null;
+
+            for (String graphLabel : GRAPHS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    //CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    //int kmerSize = cg.getKmerSize();
+                    int kmerSize = 2;
+
+                    JSONTree jroot = null;
+
+                    for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                        String kmer = seq.substring(i, i + kmerSize);
+
+                        for (int j = 0; j < kmer.length(); j++) {
+                            if (jtree == null) {
+                                jtree = new JSONTree(kmer.charAt(0));
+                                jroot = jtree;
+                            } else {
+                                if (jroot != null) {
+                                    jroot = jroot.add(kmer.charAt(j));
+                                }
+                            }
+                        }
+                    }
+
+                    log.info("jtree: {}", jtree);
+                }
+            }
+
+            String response = jtree == null ? "empty" : jtree.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
     private class EdgeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -150,15 +359,73 @@ public class server extends Module {
             String seq = contigs.get(query.get("contigName"));
             String selectedGraph = query.get("graphName");
 
-            Map<Integer, Set<String>> inEdges = new HashMap<Integer, Set<String>>();
-            Map<Integer, Set<String>> outEdges = new HashMap<Integer, Set<String>>();
+            Map<Integer, Map<String, Set<String>>> allEdges = new HashMap<Integer, Map<String, Set<String>>>();
 
             for (String graphLabel : GRAPHS.keySet()) {
                 if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
                     CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
                     int kmerSize = cg.getKmerSize();
 
-                    for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                    String currentKmer = seq.substring(0, kmerSize);
+                    int currentPos = 0;
+
+                    while (currentKmer != null) {
+                        Set<String> prevKmers = CortexUtils.getPrevKmers(cg, currentKmer);
+
+                        if (prevKmers.size() == 1) {
+                            currentKmer = prevKmers.iterator().next();
+                            currentPos--;
+                        } else {
+                            int iePos = currentPos - 1;
+
+                            if (prevKmers.size() > 1) {
+                                if (!allEdges.containsKey(iePos)) {
+                                    allEdges.put(iePos, new HashMap<String, Set<String>>());
+                                }
+
+                                if (!allEdges.get(iePos).containsKey("in")) {
+                                    allEdges.get(iePos).put("in", new TreeSet<String>());
+                                }
+
+                                for (String prevKmer : prevKmers) {
+                                    allEdges.get(iePos).get("in").add(prevKmer.substring(0, 1));
+                                }
+                            }
+
+                            currentKmer = null;
+                        }
+                    }
+
+                    currentKmer = seq.substring(seq.length() - kmerSize, seq.length());
+                    currentPos = seq.length() - 1;
+
+                    while (currentKmer != null) {
+                        Set<String> nextKmers = CortexUtils.getNextKmers(cg, currentKmer);
+
+                        if (nextKmers.size() == 1) {
+                            currentKmer = nextKmers.iterator().next();
+                            currentPos++;
+                        } else {
+                            int oePos = currentPos - 1;
+
+                            if (nextKmers.size() > 1) {
+                                if (!allEdges.containsKey(oePos)) {
+                                    allEdges.put(oePos, new HashMap<String, Set<String>>());
+                                }
+
+                                if (!allEdges.get(oePos).containsKey("out")) {
+                                    allEdges.get(oePos).put("out", new TreeSet<String>());
+                                }
+
+                                for (String nextKmer : nextKmers) {
+                                    allEdges.get(oePos).get("out").add(nextKmer.substring(nextKmer.length() - 1, nextKmer.length()));
+                                }
+                            }
+                            currentKmer = null;
+                        }
+                    }
+
+                    for (int i = 1; i <= seq.length() - kmerSize - 1; i++) {
                         int iePos = i - 1;
                         int oePos = i + kmerSize;
 
@@ -180,65 +447,39 @@ public class server extends Module {
                                 oe.remove(nextKmer);
                             }
 
-                            if (!inEdges.containsKey(iePos)) {
-                                inEdges.put(iePos, new TreeSet<String>());
-                            }
-                            if (!outEdges.containsKey(oePos)) {
-                                outEdges.put(oePos, new TreeSet<String>());
+                            if (ie.size() > 0) {
+                                if (!allEdges.containsKey(iePos)) {
+                                    allEdges.put(iePos, new HashMap<String, Set<String>>());
+                                }
+
+                                if (!allEdges.get(iePos).containsKey("in")) {
+                                    allEdges.get(iePos).put("in", new TreeSet<String>());
+                                }
+
+                                for (String inKmer : ie) {
+                                    allEdges.get(iePos).get("in").add(inKmer.substring(0, 1));
+                                }
                             }
 
-                            for (String inKmer : ie) {
-                                inEdges.get(iePos).add(inKmer.substring(0, 1));
-                            }
+                            if (oe.size() > 0) {
+                                if (!allEdges.containsKey(oePos)) {
+                                    allEdges.put(oePos, new HashMap<String, Set<String>>());
+                                }
 
-                            for (String outKmer : oe) {
-                                outEdges.get(oePos).add(outKmer.substring(outKmer.length() - 1, outKmer.length()));
+                                if (!allEdges.get(oePos).containsKey("out")) {
+                                    allEdges.get(oePos).put("out", new TreeSet<String>());
+                                }
+
+                                for (String outKmer : oe) {
+                                    allEdges.get(oePos).get("out").add(outKmer.substring(outKmer.length() - 1, outKmer.length()));
+                                }
                             }
                         }
                     }
                 }
             }
 
-            StringBuilder rb = new StringBuilder();
-
-            boolean pastFirstRecord = false;
-
-            rb.append("{");
-            for (int i = 0; i < seq.length(); i++) {
-                if ((inEdges.containsKey(i) && inEdges.get(i).size() > 0) || (outEdges.containsKey(i) && outEdges.get(i).size() > 0)) {
-                    if (pastFirstRecord) {
-                        rb.append(",\n\t\"").append(i).append("\": { ");
-                    } else {
-                        rb.append("\n\t\"").append(i).append("\": { ");
-                        pastFirstRecord = true;
-                    }
-
-                    List<String> edgeArrays = new ArrayList<String>();
-
-                    if (inEdges.containsKey(i) && inEdges.get(i).size() > 0) {
-                        List<String> bases = new ArrayList<String>();
-                        for (String inEdge : inEdges.get(i)) {
-                            bases.add("\"" + inEdge + "\"");
-                        }
-
-                        edgeArrays.add("\"in\": [ " + Joiner.on(", ").join(bases) + " ]");
-                    }
-
-                    if (outEdges.containsKey(i) && outEdges.get(i).size() > 0) {
-                        List<String> bases = new ArrayList<String>();
-                        for (String outEdge : outEdges.get(i)) {
-                            bases.add("\"" + outEdge + "\"");
-                        }
-
-                        edgeArrays.add("\"out\": [ " + Joiner.on(", ").join(bases) + " ]");
-                    }
-
-                    rb.append(Joiner.on(", ").join(edgeArrays)).append(" }");
-                }
-            }
-            rb.append("\n}\n");
-
-            String response = rb.toString();
+            String response = (new JSONObject(allEdges)).toString();
 
             httpExchange.sendResponseHeaders(200, response.length());
             OutputStream os = httpExchange.getResponseBody();
@@ -615,7 +856,6 @@ public class server extends Module {
         return links;
     }
 
-
     @Override
     public void execute() {
         log.info("Loading...");
@@ -633,16 +873,20 @@ public class server extends Module {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
             server.createContext("/",                new PageHandler("/html/index.html"));
+            server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
             server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
             server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
             server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
+            server.createContext("/graph.json",      new PageHandler("/html/graph.json"));
             server.createContext("/contigs.csv",     new ContigsHandler());
             server.createContext("/contig",          new ContigHandler());
+            server.createContext("/context",         new ContigContextHandler());
             server.createContext("/masked",          new MaskHandler());
             server.createContext("/edges",           new EdgeHandler());
             server.createContext("/links",           new LinksHandler());
             server.createContext("/link",            new LinkHandler());
             server.createContext("/dataset",         new DataSetHandler());
+            server.createContext("/simplegraph",     new SimpleGraphHandler());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {

@@ -27,7 +27,8 @@
 
             drawEdges(ci, "all");
             drawMasked(ci, "all");
-            drawLinks(d, "all");
+            drawLinks(ci, "all");
+            drawContext(ci, "all");
         });
 
         json.graphs.map(function(o) {
@@ -46,6 +47,7 @@
                         drawEdges(ci, o.graphName);
                         drawMasked(ci, o.graphName);
                         drawLinks(ci, o.graphName);
+                        drawContext(ci, o.graphName);
                     });
         });
     });
@@ -278,6 +280,27 @@
                 " " + Bx + "," + By;
     }
 
+    function drawContext(d, currentGraph) {
+        d3.json("context?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            d3.selectAll(".context").remove();
+
+            for (key in json) {
+                id = json[key] + "_" + key;
+
+                svg.append("svg:text")
+                        .attr("class", "context")
+                        .attr("id", id)
+                        .attr("x", key - 1)
+                        .attr("y", height/2)
+                        .attr("font-family", "monospace")
+                        .attr("font-size", "1.5px")
+                        .attr("fill", "gray")
+                        .text(json[key]);
+            }
+        });
+
+    }
+
     //Call back for when user selects an option
     function onSelect(d) {
         ci = d;
@@ -368,8 +391,8 @@
 
             drawEdges(d, "all");
             drawMasked(d, "all");
-            drawLinks(d, "all", "forward");
-            //drawLinks(d, "all", "reverse");
+            drawLinks(d, "all");
+            drawContext(d, "all");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
