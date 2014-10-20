@@ -8,7 +8,6 @@ import com.sun.net.httpserver.HttpServer;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.json.JSONArray;
-import org.json.JSONML;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -21,7 +20,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -241,6 +239,8 @@ public class server extends Module {
             OutputStream os = httpExchange.getResponseBody();
             os.write(response.getBytes());
             os.close();
+
+            log.info("GET context       : {}, response length: {}", query.get("contigName"), response.length());
         }
     }
 
@@ -348,6 +348,8 @@ public class server extends Module {
             OutputStream os = httpExchange.getResponseBody();
             os.write(response.getBytes());
             os.close();
+
+            //log.info("GET context       : {}, response length: {}", query.get("contigName"), response.length());
         }
     }
 
@@ -626,6 +628,130 @@ public class server extends Module {
         }
     }
 
+    private class LinksPlotHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+
+            Map<Integer, Integer> linkCoverage = new TreeMap<Integer, Integer>();
+
+            for (String graphLabel : LINKS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    Map<CortexKmer, CortexLinksRecord> clrs = links.get(graphLabel);
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    for (int pos = 0; pos <= seq.length(); pos++) {
+                        linkCoverage.put(pos, 0);
+                    }
+
+                    for (int pos = 0; pos <= seq.length() - kmerSize; pos++) {
+                        String sk = seq.substring(pos, pos + kmerSize);
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        if (!clrs.containsKey(ck) && pos - kmerSize + 1 >= 0) {
+                            sk = seq.substring(pos - kmerSize + 1, pos + 1);
+                            ck = new CortexKmer(sk);
+                        }
+
+                        if (clrs.containsKey(ck)) {
+                            for (CortexJunctionsRecord cjr : clrs.get(ck).getJunctions()) {
+                                if (ck.isFlipped()) {
+                                    cjr = CortexUtils.flipJunctionsRecord(cjr);
+                                }
+
+                                String junctions = cjr.getJunctions();
+
+                                if (cjr.isForward()) {
+                                    int currentJunction = 0;
+                                    int startPos = pos;
+
+                                    for (int i = pos; i <= seq.length() - kmerSize && currentJunction < junctions.length(); i++) {
+                                        String thisKmer = seq.substring(i, i + kmerSize);
+                                        Set<String> nextKmers = CortexUtils.getNextKmers(cg, thisKmer);
+                                        if (nextKmers.size() > 1) {
+                                            String expectedNextKmer = seq.substring(i + 1, i + kmerSize) + junctions.charAt(currentJunction);
+
+                                            if (nextKmers.contains(expectedNextKmer)) {
+                                                int endPos = i + kmerSize;
+
+                                                for (int j = startPos; j <= endPos; j++) {
+                                                    linkCoverage.put(j, linkCoverage.get(j) + 1);
+                                                }
+
+                                                startPos = endPos;
+
+                                                currentJunction++;
+
+                                                if (i < seq.length() - kmerSize) {
+                                                    String nextKmerInContig = seq.substring(i + 1, i + 1 + kmerSize);
+
+                                                    if (!expectedNextKmer.equals(nextKmerInContig)) {
+                                                        break;
+                                                    }
+                                                }
+                                            } else {
+                                                //log.info("Did not find expected next kmer: {} {}", i, expectedNextKmer);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    int currentJunction = 0;
+                                    int startPos = pos;
+
+                                    for (int i = pos; i >= kmerSize && currentJunction < junctions.length(); i--) {
+                                        String thisKmer = seq.substring(i - kmerSize + 1, i + 1);
+                                        Set<String> prevKmers = CortexUtils.getPrevKmers(cg, thisKmer);
+                                        if (prevKmers.size() > 1) {
+                                            String expectedPrevKmer = junctions.charAt(currentJunction) + seq.substring(i - kmerSize + 1, i);
+
+                                            if (prevKmers.contains(expectedPrevKmer)) {
+                                                int endPos = i - kmerSize;
+
+                                                for (int j = startPos; j <= endPos; j++) {
+                                                    linkCoverage.put(j, linkCoverage.get(j) + 1);
+                                                }
+
+                                                startPos = endPos;
+
+                                                currentJunction++;
+
+                                                if (i > kmerSize) {
+                                                    String prevKmerInContig = seq.substring(i - kmerSize, i);
+
+                                                    if (!expectedPrevKmer.equals(prevKmerInContig)) {
+                                                        break;
+                                                    }
+                                                }
+                                            } else {
+                                                //log.info("Did not find expected prev kmer: {} {}", i, expectedPrevKmer);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("cov", linkCoverage.values());
+
+            String response = jsonResponse.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET link plot info: current, response length: {}", response.length());
+        }
+    }
+
     private class LinkHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -635,7 +761,6 @@ public class server extends Module {
             String selectedGraph = query.get("graphName");
             int pos = Integer.valueOf(query.get("pos"));
 
-            //Set<LinkEntry> linkEntries = new HashSet<LinkEntry>();
             Map<LinkEntry, Integer> linkEntries = new LinkedHashMap<LinkEntry, Integer>();
 
             for (String graphLabel : LINKS.keySet()) {
@@ -885,6 +1010,7 @@ public class server extends Module {
             server.createContext("/edges",           new EdgeHandler());
             server.createContext("/links",           new LinksHandler());
             server.createContext("/link",            new LinkHandler());
+            server.createContext("/linksplot",       new LinksPlotHandler());
             server.createContext("/dataset",         new DataSetHandler());
             server.createContext("/simplegraph",     new SimpleGraphHandler());
             server.setExecutor(null);

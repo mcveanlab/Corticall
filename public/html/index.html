@@ -29,6 +29,7 @@
             drawMasked(ci, "all");
             drawLinks(ci, "all");
             drawContext(ci, "all");
+            drawLinkCoverage(ci, "all");
         });
 
         json.graphs.map(function(o) {
@@ -48,6 +49,7 @@
                         drawMasked(ci, o.graphName);
                         drawLinks(ci, o.graphName);
                         drawContext(ci, o.graphName);
+                        drawLinkCoverage(ci, o.graphName);
                     });
         });
     });
@@ -298,7 +300,43 @@
                         .text(json[key]);
             }
         });
+    }
 
+    function drawLinkCoverage(d, currentGraph) {
+        d3.selectAll(".linksplot").remove();
+
+        d3.json("linksplot?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            var line = d3.svg.line()
+                    .x(function(d, i) { return i - 1; })
+                    .y(function(d, i) {
+                        v = (-20*d / d3.max(json.cov)) + ((height/2) - 10)
+                        return v;
+                    })
+                    .interpolate("basis");
+
+            svg.append("svg:path")
+                    .attr("class", "linksplot")
+                    .attr("stroke-width", 0.2)
+                    .attr("stroke", "gray")
+                    .attr("fill", "none")
+                    .attr("d", line(json.cov));
+
+            for (i = 0; i < json.cov.length; i++) {
+                d = json.cov[i];
+                v = (-20*d / d3.max(json.cov)) + ((height/2) - 10)
+
+                svg.append("circle")
+                        .attr("class", "linksplot")
+                        .attr("r", 0.1)
+                        .attr("cx", i - 1)
+                        .attr("cy", v)
+                        .attr("stroke-width", 0.1)
+                        .attr("stroke", "gray")
+                        .attr("fill", "white")
+                        .append("svg:title")
+                        .text(d)
+            }
+        });
     }
 
     //Call back for when user selects an option
@@ -393,6 +431,7 @@
             drawMasked(d, "all");
             drawLinks(d, "all");
             drawContext(d, "all");
+            drawLinkCoverage(d, "all");
 
             function zoom() {
                 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
