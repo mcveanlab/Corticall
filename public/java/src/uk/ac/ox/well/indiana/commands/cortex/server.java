@@ -628,6 +628,51 @@ public class server extends Module {
         }
     }
 
+    private class CoveragePlotHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = queryToMap(httpExchange.getRequestURI().getQuery());
+
+            String seq = contigs.get(query.get("contigName"));
+            String selectedGraph = query.get("graphName");
+
+            Map<Integer, Integer> kmerCoverage = new TreeMap<Integer, Integer>();
+
+            for (int pos = 0; pos <= seq.length(); pos++) {
+                kmerCoverage.put(pos, 0);
+            }
+
+            for (String graphLabel : GRAPHS.keySet()) {
+                if (selectedGraph.equals("all") || graphLabel.equals(selectedGraph)) {
+                    CortexGraph cg = new CortexGraph(GRAPHS.get(graphLabel));
+                    int kmerSize = cg.getKmerSize();
+
+                    for (int pos = 0; pos <= seq.length() - kmerSize; pos++) {
+                        String sk = seq.substring(pos, pos + kmerSize);
+                        CortexKmer ck = new CortexKmer(sk);
+                        CortexRecord cr = cg.findRecord(ck);
+
+                        if (cr != null) {
+                            kmerCoverage.put(pos, kmerCoverage.get(pos) + cr.getCoverage(0));
+                        }
+                    }
+                }
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("cov", kmerCoverage.values());
+
+            String response = jsonResponse.toString();
+
+            httpExchange.sendResponseHeaders(200, response.length());
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+
+            log.info("GET kmer cov info : {}, response length: {}", query.get("contigName"), response.length());
+        }
+    }
+
     private class LinksPlotHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -696,6 +741,8 @@ public class server extends Module {
                                             } else {
                                                 //log.info("Did not find expected next kmer: {} {}", i, expectedNextKmer);
                                             }
+                                        } else if (nextKmers.size() == 0) {
+                                            break;
                                         }
                                     }
                                 } else {
@@ -729,6 +776,8 @@ public class server extends Module {
                                             } else {
                                                 //log.info("Did not find expected prev kmer: {} {}", i, expectedPrevKmer);
                                             }
+                                        } else if (prevKmers.size() == 0) {
+                                            break;
                                         }
                                     }
                                 }
@@ -836,6 +885,9 @@ public class server extends Module {
                                     } else {
                                         log.info("Did not find expected next kmer: {} {}", i, expectedNextKmer);
                                     }
+                                } else if (nextKmers.size() == 0) {
+                                    log.info("Could not navigate forward from kmer: {} {}", i, thisKmer);
+                                    break;
                                 }
                             }
                         } else {
@@ -890,6 +942,9 @@ public class server extends Module {
                                     } else {
                                         log.info("Did not find expected prev kmer: {} {}", i, expectedPrevKmer);
                                     }
+                                } else if (prevKmers.size() == 0) {
+                                    log.info("Could not navigate backward from kmer: {} {}", i, thisKmer);
+                                    break;
                                 }
                             }
                         }
@@ -1011,6 +1066,7 @@ public class server extends Module {
             server.createContext("/links",           new LinksHandler());
             server.createContext("/link",            new LinkHandler());
             server.createContext("/linksplot",       new LinksPlotHandler());
+            server.createContext("/covplot",         new CoveragePlotHandler());
             server.createContext("/dataset",         new DataSetHandler());
             server.createContext("/simplegraph",     new SimpleGraphHandler());
             server.setExecutor(null);
