@@ -5,10 +5,14 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.yaml.snakeyaml.Yaml;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -19,6 +23,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
@@ -27,18 +32,321 @@ import java.util.*;
 
 @Description(text="Starts the server for visualizing assembly data")
 public class server extends Module {
-    @Argument(fullName="contigs", shortName="c", doc="Contigs (FASTA)")
-    public File CONTIGS;
-
-    @Argument(fullName="graph", shortName="g", doc="Cortex graph file")
-    public TreeMap<String, File> GRAPHS;
-
-    @Argument(fullName="link", shortName="l", doc="Link information")
-    public TreeMap<String, File> LINKS;
+    @Argument(fullName="manifest", shortName="m", doc="Manifest file (YAML)")
+    public File MANIFEST;
 
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
+    private class Manifest {
+        private Map<String, Object> manifestMap;
+
+        public Manifest(File manifestFile) {
+            Yaml yaml = new Yaml();
+            try {
+                manifestMap = (Map<String, Object>) yaml.load(new FileInputStream(manifestFile));
+            } catch (FileNotFoundException e) {
+                throw new IndianaException("Could not parse server configuration file, '" + manifestFile.getAbsolutePath() + "'", e);
+            }
+        }
+
+        public Set<String> getCrosses() { return manifestMap.keySet(); }
+
+        public Set<String> getSamples(String cross) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            return new TreeSet<String>(sampleMap.keySet());
+        }
+
+        public Set<String> getAccessions(String cross, String sample) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            Map accMap = (Map) sampleMap.get(sample);
+            return new TreeSet<String>(accMap.keySet());
+        }
+
+        private Map getItems(String cross, String sample, String accession) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            Map accMap = (Map) sampleMap.get(sample);
+            return (Map) accMap.get(accession);
+        }
+
+        public Map<String, SAMFileReader> getBams(String cross, String sample, String accession) {
+            Map bamMap = (Map) getItems(cross, sample, accession).get("bams");
+
+            Map<String, SAMFileReader> bamFileMap = new HashMap<String, SAMFileReader>();
+            for (Object key : bamMap.keySet()) {
+                File file = new File((String) bamMap.get(key));
+                SAMFileReader sfr = new SAMFileReader(file);
+                bamFileMap.put((String) key, sfr);
+            }
+
+            return bamFileMap;
+        }
+
+        public Map<String, GFF3> getGffs(String cross, String sample, String accession) {
+            Map gffMap = (Map) getItems(cross, sample, accession).get("gffs");
+
+            Map<String, GFF3> gffFileMap = new HashMap<String, GFF3>();
+            for (Object key : gffMap.keySet()) {
+                File file = new File((String) gffMap.get(key));
+                gffFileMap.put((String) key, new GFF3(file));
+            }
+
+            return gffFileMap;
+        }
+
+        public Map<String, IndexedFastaSequenceFile> getRefs(String cross, String sample, String accession) {
+            Map refMap = (Map) getItems(cross, sample, accession).get("refs");
+            Map<String, IndexedFastaSequenceFile> refFileMap = new HashMap<String, IndexedFastaSequenceFile>();
+
+            try {
+                for (Object key : refMap.keySet()) {
+                    File file = new File((String) refMap.get(key));
+                    refFileMap.put((String) key, new IndexedFastaSequenceFile(file));
+                }
+            } catch (IOException e) {
+                throw new IndianaException("Unable to load fasta", e);
+            }
+
+            return refFileMap;
+        }
+
+        public Set<String> getGraphKmerSizes(String cross, String sample, String accession) {
+            Map graphsMap = (Map) getItems(cross, sample, accession).get("graphs");
+
+            return new TreeSet<String>(graphsMap.keySet());
+        }
+
+        public Set<String> getGraphLabels(String cross, String sample, String accession, String kmerSize) {
+            Map graphsMap = (Map) getItems(cross, sample, accession).get("graphs");
+            Map graphMap = (Map) graphsMap.get(kmerSize);
+
+            Set<String> graphLabelMap = new TreeSet<String>(graphMap.keySet());
+
+            return graphLabelMap;
+        }
+
+        public Map<String, File> getGraphs(String cross, String sample, String accession, String kmerSize, String label) {
+            Map graphsMap = (Map) ((Map) ((Map) getItems(cross, sample, accession).get("graphs")).get(kmerSize)).get(label);
+
+            Map<String, File> graphs = new HashMap<String, File>();
+            for (Object key : graphsMap.keySet()) {
+                String skey = (String) key;
+
+                if (skey.equals("graph")) {
+                    File graph = new File((String) graphsMap.get(skey));
+
+                    graphs.put(skey, graph);
+                }
+            }
+
+            return graphs;
+        }
+
+        public Map<String, File> getLinks(String cross, String sample, String accession, String kmerSize, String label) {
+            Map graphsMap = (Map) ((Map) ((Map) getItems(cross, sample, accession).get("graphs")).get(kmerSize)).get(label);
+
+            Map<String, File> links = new HashMap<String, File>();
+            for (Object key : graphsMap.keySet()) {
+                String skey = (String) key;
+
+                if (skey.startsWith("links_")) {
+                    File link = new File((String) graphsMap.get(skey));
+
+                    links.put(skey, link);
+                }
+            }
+
+            return links;
+        }
+
+        public int numSamples(String cross) {
+            return getSamples(cross).size();
+        }
+
+        public int numAccessions(String cross) {
+            Set<String> accessions = new HashSet<String>();
+
+            for (String sample : getSamples(cross)) {
+                accessions.addAll(getAccessions(cross, sample));
+            }
+
+            return accessions.size();
+        }
+
+        public int numKmerSizes(String cross) {
+            Set<String> kmerSizes = new HashSet<String>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        kmerSizes.add(kmerSize);
+                    }
+                }
+            }
+
+            return kmerSizes.size();
+        }
+
+        public int numGraphs(String cross) {
+            Set<File> graphs = new HashSet<File>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label : getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> graphFiles = getGraphs(cross, sample, accession, kmerSize, label);
+
+                            graphs.addAll(graphFiles.values());
+                        }
+                    }
+                }
+            }
+
+            return graphs.size();
+        }
+
+        public int numLinks(String cross) {
+            Set<File> links = new HashSet<File>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label : getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> linkFiles = getLinks(cross, sample, accession, kmerSize, label);
+
+                            links.addAll(linkFiles.values());
+                        }
+                    }
+                }
+            }
+
+            return links.size();
+        }
+    }
+
+    private class BaseHandler {
+        public void write(HttpExchange httpExchange, int code, String response) throws IOException {
+            httpExchange.sendResponseHeaders(code, response.length());
+
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
+    private class PageHandler extends BaseHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            String page = "/html/" + httpExchange.getRequestURI();
+            File f = new File("./public" + page);
+
+            int code = 200;
+            String response;
+
+            if (f.exists()) {
+                InputStream is;
+
+                if (log.isDebugEnabled()) {
+                    is = new FileInputStream(f);
+                } else {
+                    is = this.getClass().getResourceAsStream(page);
+                }
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(is));
+                StringBuilder responseData = new StringBuilder();
+
+                String line;
+                while ((line = in.readLine()) != null) {
+                    responseData.append(line).append("\n");
+                }
+
+                Headers h = httpExchange.getResponseHeaders();
+                if      (page.endsWith(".js"))   { h.add("Content-Type", "text/javascript"); }
+                else if (page.endsWith(".css"))  { h.add("Content-Type", "text/css");        }
+                else if (page.endsWith(".html")) { h.add("Content-Type", "text/html");       }
+
+                response = responseData.toString();
+            } else {
+                code = 404;
+                response = "Page not found.";
+            }
+
+            write(httpExchange, code, response);
+        }
+    }
+
+    @Override
+    public void execute() {
+        log.info("Loading...");
+
+        Manifest m = new Manifest(MANIFEST);
+
+        for (String cross : m.getCrosses()) {
+            log.info("  {}: {} samples, {} accessions, {} kmer sizes, {} graphs, {} links",
+                    cross,
+                    m.numSamples(cross),
+                    m.numAccessions(cross),
+                    m.numKmerSizes(cross),
+                    m.numGraphs(cross),
+                    m.numLinks(cross)
+            );
+        }
+
+        log.info("Starting server...");
+
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server.createContext("/", new PageHandler());
+            server.setExecutor(null);
+            server.start();
+        } catch (IOException e) {
+            throw new IndianaException("Unable to start server", e);
+        }
+
+        log.info("  listening on port {}", PORT);
+
+        /*
+        contigs = loadContigs();
+        links = loadLinks();
+
+        log.info("  loaded {} contigs", contigs.size());
+        for (String graphLabel : links.keySet()) {
+            log.info("  loaded {} kmers with links from {}", links.get(graphLabel).size(), graphLabel);
+        }
+
+        log.info("Starting server...");
+
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server.createContext("/",                new PageHandler("/html/index.html"));
+            server.createContext("/test",            new PageHandler("/html/newindex.html"));
+            server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
+            server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
+            server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
+            server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
+            server.createContext("/graph.json",      new PageHandler("/html/graph.json"));
+            server.createContext("/contigs.csv",     new ContigsHandler());
+            server.createContext("/contig",          new ContigHandler());
+            server.createContext("/context",         new ContigContextHandler());
+            server.createContext("/masked",          new MaskHandler());
+            server.createContext("/edges",           new EdgeHandler());
+            server.createContext("/links",           new LinksHandler());
+            server.createContext("/link",            new LinkHandler());
+            server.createContext("/linksplot",       new LinksPlotHandler());
+            server.createContext("/covplot",         new CoveragePlotHandler());
+            server.createContext("/dataset",         new DataSetHandler());
+            server.createContext("/simplegraph",     new SimpleGraphHandler());
+            server.setExecutor(null);
+            server.start();
+        } catch (IOException e) {
+            throw new IndianaException("Unable to start server", e);
+        }
+
+        log.info("  listening on port {}", PORT);
+        */
+    }
+
+    /*
     private Map<String, String> contigs;
     private Map<String, Map<CortexKmer, CortexLinksRecord>> links;
 
@@ -1035,47 +1343,6 @@ public class server extends Module {
 
         return links;
     }
+    */
 
-    @Override
-    public void execute() {
-        log.info("Loading...");
-
-        contigs = loadContigs();
-        links = loadLinks();
-
-        log.info("  loaded {} contigs", contigs.size());
-        for (String graphLabel : links.keySet()) {
-            log.info("  loaded {} kmers with links from {}", links.get(graphLabel).size(), graphLabel);
-        }
-
-        log.info("Starting server...");
-
-        try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-            server.createContext("/",                new PageHandler("/html/index.html"));
-            server.createContext("/test",            new PageHandler("/html/newindex.html"));
-            server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
-            server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
-            server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
-            server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
-            server.createContext("/graph.json",      new PageHandler("/html/graph.json"));
-            server.createContext("/contigs.csv",     new ContigsHandler());
-            server.createContext("/contig",          new ContigHandler());
-            server.createContext("/context",         new ContigContextHandler());
-            server.createContext("/masked",          new MaskHandler());
-            server.createContext("/edges",           new EdgeHandler());
-            server.createContext("/links",           new LinksHandler());
-            server.createContext("/link",            new LinkHandler());
-            server.createContext("/linksplot",       new LinksPlotHandler());
-            server.createContext("/covplot",         new CoveragePlotHandler());
-            server.createContext("/dataset",         new DataSetHandler());
-            server.createContext("/simplegraph",     new SimpleGraphHandler());
-            server.setExecutor(null);
-            server.start();
-        } catch (IOException e) {
-            throw new IndianaException("Unable to start server", e);
-        }
-
-        log.info("  listening on port {}", PORT);
-    }
 }
