@@ -1,0 +1,40 @@
+{
+    "name": "Root node",
+    "children": [
+        {
+            "name": "Child node 1",
+            "children": [
+                {
+                    "name": "Child node 1a"
+                },
+                {
+                    "name": "Child node 1b"
+                },
+                {
+                    "name": "Child node 1c"
+                }
+            ]
+        },
+        {
+            "name": "Child node 2",
+            "children": [
+                {
+                    "name": "Child node 2a"
+                },
+                {
+                    "name": "Child node 2b",
+                    "children":  [
+                        {
+                            "name": "Child node 2ba",
+                            "children": [
+                                {
+                                    "name": "Child node 2baa"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
