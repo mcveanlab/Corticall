@@ -1053,6 +1053,7 @@ public class server extends Module {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
             server.createContext("/",                new PageHandler("/html/index.html"));
+            server.createContext("/test",            new PageHandler("/html/newindex.html"));
             server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
             server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
             server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));

@@ -18,6 +18,7 @@
         <dependency org="org.testng" name="testng" rev="6.8" />
         <dependency org="colt" name="colt" rev="1.2.0" />
         <dependency org="com.typesafe.akka" name="akka" rev="2.1.4" />
+        <dependency org="org.yaml" name="snakeyaml" rev="1.14" />
         <!--<dependency org="net.sf.proguard" name="proguard-anttask" rev="5.0" />-->
 
         <!-- Dependencies that can be satisifed with local repository -->
