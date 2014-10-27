@@ -21,3 +21,6 @@ body {
     color: red;
 }
 
+#searchContigs {
+    width: 700px;
+}

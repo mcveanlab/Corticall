@@ -1,15 +1,11 @@
 package uk.ac.ox.well.indiana.commands.cortex;
 
-import com.google.common.base.Joiner;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.yaml.snakeyaml.Yaml;
@@ -17,14 +13,8 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -159,6 +149,35 @@ public class server extends Module {
             return links;
         }
 
+        public File getContigs(String cross, String sample, String accession) {
+            Map contigsMap = (Map) getItems(cross, sample, accession).get("contigs");
+
+            File contigs = null;
+
+            for (Object key : contigsMap.keySet()) {
+                String skey = (String) key;
+                contigs = new File((String) contigsMap.get(skey));
+            }
+
+            return contigs;
+        }
+
+        public File getMetrics(String cross, String sample, String accession) {
+            Map metricsMap = (Map) getItems(cross, sample, accession).get("metrics");
+
+            File metrics = null;
+
+            for (Object key : metricsMap.keySet()) {
+                String skey = (String) key;
+                //metrics = new File((String) metricsMap.get(skey));
+
+                Map metricMap = (Map) metricsMap.get(skey);
+                metrics = new File((String) metricMap.get("metrics"));
+            }
+
+            return metrics;
+        }
+
         public int numSamples(String cross) {
             return getSamples(cross).size();
         }
@@ -224,7 +243,28 @@ public class server extends Module {
         }
     }
 
-    private class BaseHandler {
+    private Manifest m;
+
+    private abstract class BaseHandler implements HttpHandler {
+        public Map<String, String> query(String query) {
+            Map<String, String> result = new HashMap<String, String>();
+
+            for (String param : query.split("&")) {
+                String pair[] = param.split("=");
+                if (pair.length > 1) {
+                    result.put(pair[0], pair[1]);
+                } else {
+                    result.put(pair[0], "");
+                }
+            }
+
+            return result;
+        }
+
+        public void write(HttpExchange httpExchange, String response) throws IOException {
+            write(httpExchange, 200, response);
+        }
+
         public void write(HttpExchange httpExchange, int code, String response) throws IOException {
             httpExchange.sendResponseHeaders(code, response.length());
 
@@ -234,7 +274,7 @@ public class server extends Module {
         }
     }
 
-    private class PageHandler extends BaseHandler implements HttpHandler {
+    private class PageHandler extends BaseHandler {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             String page = "/html/" + httpExchange.getRequestURI();
@@ -275,11 +315,87 @@ public class server extends Module {
         }
     }
 
+    private class CrossesList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Set<String> crosses = m.getCrosses();
+
+            JSONObject jo = new JSONObject();
+            jo.put("crosses", crosses);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class SamplesList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+
+            Set<String> samples = m.getSamples(cross);
+
+            JSONObject jo = new JSONObject();
+            jo.put("samples", samples);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class AccessionsList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+
+            Set<String> accessions = m.getAccessions(cross, sample);
+
+            JSONObject jo = new JSONObject();
+            jo.put("accessions", accessions);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class NumContigs extends BaseHandler {
+        private Map<File, Integer> numContigsCache = new HashMap<File, Integer>();
+
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            File metricsFile = m.getMetrics(cross, sample, accession);
+
+            if (!numContigsCache.containsKey(metricsFile)) {
+                TableReader tr = new TableReader(metricsFile);
+
+                int numContigs = 0;
+                for (Map<String, String> te : tr) {
+                    numContigs++;
+                }
+
+                numContigsCache.put(metricsFile, numContigs);
+            }
+
+            JSONObject jo = new JSONObject();
+            jo.put("numContigs", numContigsCache.get(metricsFile));
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
     @Override
     public void execute() {
         log.info("Loading...");
 
-        Manifest m = new Manifest(MANIFEST);
+        m = new Manifest(MANIFEST);
 
         for (String cross : m.getCrosses()) {
             log.info("  {}: {} samples, {} accessions, {} kmer sizes, {} graphs, {} links",
@@ -297,6 +413,10 @@ public class server extends Module {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
             server.createContext("/", new PageHandler());
+            server.createContext("/crosses", new CrossesList());
+            server.createContext("/samples", new SamplesList());
+            server.createContext("/accessions", new AccessionsList());
+            server.createContext("/numcontigs", new NumContigs());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {

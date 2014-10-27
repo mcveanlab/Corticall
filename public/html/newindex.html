@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Contig viewer</title>
     <link rel="stylesheet" href="indiana.css" />
+    <script src="d3.v3.min.js" charset="utf-8"></script>
 </head>
 
 <body>
@@ -11,12 +12,82 @@
 <article>
 
 <section id="datasets">
-    <header>
-        <h1>Loaded datasets</h1>
-    </header>
-
-    <p>This is where we'll list the available datasets</p>
+    <select id="selectCross"></select>
+    <select id="selectSample"></select>
+    <select id="selectAccession"></select>
+    <input type="search" id="searchContigs">
 </section>
+
+<script type="text/javascript">
+    function changeAccession() {
+        var crossIndex = d3.select("#selectCross").property("selectedIndex");
+        var crossValue = d3.select("#selectCross").selectAll("option")[0][crossIndex].__data__;
+
+        var sampleIndex = d3.select("#selectSample").property("selectedIndex");
+        var sampleValue = d3.select("#selectSample").selectAll("option")[0][sampleIndex].__data__;
+
+        var accessionIndex = d3.select("#selectAccession").property("selectedIndex");
+        var accessionValue = d3.select("#selectAccession").selectAll("option")[0][accessionIndex].__data__;
+
+        d3.json("numcontigs?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue, function(data) {
+            d3.select("#searchContigs")
+                    .attr("placeholder", data.numContigs + " contigs loaded.  Select with JEXL expressions.");
+        });
+    }
+
+    function changeSample() {
+        var crossIndex = d3.select("#selectCross").property("selectedIndex");
+        var crossValue = d3.select("#selectCross").selectAll("option")[0][crossIndex].__data__;
+
+        var sampleIndex = d3.select("#selectSample").property("selectedIndex");
+        var sampleValue = d3.select("#selectSample").selectAll("option")[0][sampleIndex].__data__;
+
+        d3.json("accessions?cross=" + crossValue + "&sample=" + sampleValue, function(data) {
+            d3.select("#selectAccession").selectAll("option").remove();
+
+            d3.select("#selectAccession")
+                    .on("change", changeAccession)
+                    .selectAll("option")
+                    .data(data.accessions)
+                    .enter()
+                    .append("option")
+                    .text(function(d) { return d; });
+
+            changeAccession();
+        });
+    }
+
+    function changeCross() {
+        var crossIndex = d3.select("#selectCross").property("selectedIndex");
+        var crossValue = d3.select("#selectCross").selectAll("option")[0][crossIndex].__data__;
+
+        d3.json("samples?cross=" + crossValue, function(data) {
+            d3.select("#selectSample").selectAll("option").remove();
+
+            d3.select("#selectSample")
+                    .on("change", changeSample)
+                    .selectAll("option")
+                    .data(data.samples)
+                    .enter()
+                    .append("option")
+                    .text(function(d) { return d; });
+
+            changeSample();
+        });
+    }
+
+    d3.json("crosses", function(data) {
+        d3.select("#selectCross")
+                .on("change", changeCross)
+                .selectAll("option")
+                .data(data.crosses)
+                .enter()
+                .append("option")
+                .text(function(d) { return d; })
+
+        changeCross();
+    });
+</script>
 
 <section id="results">
     <header>
