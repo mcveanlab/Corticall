@@ -5,7 +5,13 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.yaml.snakeyaml.Yaml;
@@ -13,12 +19,18 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Description(text="Starts the server for visualizing assembly data")
 public class server extends Module {
@@ -178,6 +190,22 @@ public class server extends Module {
             return metrics;
         }
 
+        public File getCircos(String cross, String sample, String accession) {
+            Map circosMap = (Map) getItems(cross, sample, accession).get("circos");
+
+            File circos = null;
+
+            for (Object key : circosMap.keySet()) {
+                String skey = (String) key;
+                //circos = new File((String) circosMap.get(skey));
+
+                Map metricMap = (Map) circosMap.get(skey);
+                circos = new File((String) metricMap.get("circos"));
+            }
+
+            return circos;
+        }
+
         public int numSamples(String cross) {
             return getSamples(cross).size();
         }
@@ -245,14 +273,27 @@ public class server extends Module {
 
     private Manifest m;
 
+    private JexlEngine initializeJexlEngine() {
+        JexlEngine je = new JexlEngine();
+        je.setCache(512);
+        je.setLenient(false);
+        je.setSilent(false);
+
+        return je;
+    }
+
+    private JexlEngine je;
+
     private abstract class BaseHandler implements HttpHandler {
         public Map<String, String> query(String query) {
             Map<String, String> result = new HashMap<String, String>();
 
+            query = query.replaceAll("&&", "<and>");
+
             for (String param : query.split("&")) {
-                String pair[] = param.split("=");
+                String pair[] = param.split("=", 2);
                 if (pair.length > 1) {
-                    result.put(pair[0], pair[1]);
+                    result.put(pair[0], pair[1].replaceAll("<and>", "&&"));
                 } else {
                     result.put(pair[0], "");
                 }
@@ -391,11 +432,216 @@ public class server extends Module {
         }
     }
 
+    private class Circos extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            File circosFile = m.getCircos(cross, sample, accession);
+
+            LineReader lr = new LineReader(circosFile);
+            StringBuilder circosXml = new StringBuilder();
+            String line;
+            while ((line = lr.getNextRecord()) != null) {
+                if (!line.contains("id=\"contig")) {
+                    circosXml.append(line).append("\n");
+                }
+            }
+
+            write(httpExchange, circosXml.toString());
+        }
+    }
+
+    private class Search extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String jexl = query.get("jexl");
+
+            Expression e = je.createExpression(jexl);
+
+            Set<String> contigNames = new HashSet<String>();
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (Map<String, String> te : tr) {
+                JexlContext jexlContext = new MapContext();
+
+                for (String key : te.keySet()) {
+                    jexlContext.set(key, te.get(key));
+                }
+
+                try {
+                    if (!e.getExpression().isEmpty() && (Boolean) e.evaluate(jexlContext)) {
+                        String contigName = te.get("contigName");
+                        contigNames.add(contigName);
+                    }
+                } catch (ClassCastException ex) {
+                    throw new IndianaException("Problem evaluating JEXL expression for expression " + e + ": ", ex);
+                }
+            }
+
+            StringBuilder xml = new StringBuilder();
+
+            Pattern p = Pattern.compile("id=\"(.+)\"");
+
+            File circosFile = m.getCircos(cross, sample, accession);
+            LineReader lr = new LineReader(circosFile);
+            String line;
+            while ((line = lr.getNextRecord()) != null) {
+                if (line.contains("id=\"contig")) {
+                    Matcher m = p.matcher(line);
+
+                    if (m.find()) {
+                        String contigName = m.group(1);
+
+                        if (contigNames.contains(contigName)) {
+                            xml.append(line);
+                        }
+                    }
+                } else {
+                    xml.append(line);
+                }
+            }
+
+            write(httpExchange, xml.toString());
+        }
+    }
+
+    private class Info extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (LinkedHashMap<String, String> te : tr) {
+                if (contigName.equals(te.get("contigName"))) {
+                    te.remove("kmerOrigin");
+                    te.remove("seq");
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("info", te);
+
+                    write(httpExchange, jo.toString());
+                    break;
+                }
+            }
+
+            write(httpExchange, 404, "not found");
+        }
+    }
+
+    private class Contig extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (Map<String, String> te : tr) {
+                if (contigName.equals(te.get("contigName"))) {
+                    String seq = te.get("seq");
+
+                    Set<Map<String, String>> entries = new HashSet<Map<String, String>>();
+
+                    for (int i = 0; i < seq.length(); i++) {
+                        Map<String, String> entry = new HashMap<String, String>();
+                        String base = String.valueOf(seq.charAt(i));
+                        String id = String.format("%s_%d", base, i);
+                        entry.put("base", base);
+                        entry.put("name", id);
+                        entry.put("class", base);
+
+                        if (i > 0) {
+                            String prevBase = String.valueOf(seq.charAt(i - 1));
+                            String prevId = String.format("%s_%d", prevBase, i - 1);
+                            entry.put("parent", prevId);
+                        }
+
+                        entries.add(entry);
+                    }
+
+                    for (String kmerSize : m.getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label: m.getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> graphMap = m.getGraphs(cross, sample, accession, kmerSize, label);
+
+                            for (String name : graphMap.keySet()) {
+                                CortexGraph cg = new CortexGraph(graphMap.get(name));
+                                int ks = cg.getKmerSize();
+
+                                for (int i = 0; i <= seq.length() - ks; i++) {
+                                    String kmer = seq.substring(i, i + ks);
+
+                                    Set<String> outKmers = CortexUtils.getNextKmers(cg, kmer);
+
+                                    if (i <= seq.length() - ks - 1) {
+                                        String nextKmer = seq.substring(i + 1, i + 1 + ks);
+
+                                        outKmers.remove(nextKmer);
+
+                                        for (String outKmer : outKmers) {
+                                            Map<String, String> entry = new HashMap<String, String>();
+
+                                            String outEdge = String.valueOf(outKmer.charAt(outKmer.length() - 1));
+                                            String id = String.format("%s_%d", outEdge, i + ks);
+
+                                            entry.put("base", outEdge);
+                                            entry.put("name", id);
+
+                                            String prevBase = String.valueOf(kmer.charAt(kmer.length() - 1));
+                                            String prevId = String.format("%s_%d", prevBase, i + ks - 1);
+                                            entry.put("parent", prevId);
+
+                                            entries.add(entry);
+
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("seq", new JSONArray(entries));
+
+                    write(httpExchange, jo.toString());
+                    break;
+                }
+            }
+
+            write(httpExchange, 404, "not found");
+        }
+    }
+
     @Override
     public void execute() {
         log.info("Loading...");
 
         m = new Manifest(MANIFEST);
+        je = initializeJexlEngine();
 
         for (String cross : m.getCrosses()) {
             log.info("  {}: {} samples, {} accessions, {} kmer sizes, {} graphs, {} links",
@@ -417,6 +663,10 @@ public class server extends Module {
             server.createContext("/samples", new SamplesList());
             server.createContext("/accessions", new AccessionsList());
             server.createContext("/numcontigs", new NumContigs());
+            server.createContext("/circos", new Circos());
+            server.createContext("/search", new Search());
+            server.createContext("/info", new Info());
+            server.createContext("/contig", new Contig());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
