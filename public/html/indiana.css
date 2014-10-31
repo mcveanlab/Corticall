@@ -5,22 +5,51 @@ body {
     background-color: #FFFFFF;
 }
 
-#datasets {
-    background-color: #FFFFFF;
-}
-
-#results {
-    background-color: #E7E8E7;
-}
-
-#viewer {
-    background-color: #FFFFFF;
-}
-
-#selected {
-    color: red;
+p {
+    margin-top: 0em;
+    margin-bottom: 0em;
 }
 
 #searchContigs {
     width: 700px;
+}
+
+.contigLineUnselected {
+    stroke-opacity: 0.5;
+    stroke-width: 4.0;
+}
+
+.contigLineSelected {
+    stroke-opacity: 1.0;
+    stroke-width: 7.0;
+}
+
+#columns {
+    float: left;
+}
+
+#circos {
+    width: 70%;
+    float: left;
+}
+
+#annotations {
+    width: 30%;
+    float: left;
+}
+
+.node circle {
+    fill: #fff;
+    stroke: white;
+    stroke-width: 0px;
+}
+
+.node text {
+    font: 12px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
 }

@@ -18,7 +18,31 @@
     <input type="search" id="searchContigs">
 </section>
 
+<section id="columns">
+    <section id="circos"></section>
+    <section id="annotations"></section>
+</section>
+
+<section id="viewer"></section>
+
 <script type="text/javascript">
+    function loadCircosPlot(xml) {
+        var circosSvg = xml.getElementsByTagName("svg")[0];
+        var size = window.innerWidth < window.innerHeight ? 0.7*window.innerWidth : 0.7*window.innerHeight;
+
+        d3.select("#circos").selectAll("svg").remove();
+
+        d3.select("#circos").node().appendChild(circosSvg);
+
+        d3.select("#circos").select("svg")
+                .attr("width", size)
+                .attr("height", size)
+                .attr("viewBox", "0 0 3000 3000")
+
+        d3.select("#recomb").selectAll("path")
+                .attr("class", "contigLineUnselected")
+    }
+
     function changeAccession() {
         var crossIndex = d3.select("#selectCross").property("selectedIndex");
         var crossValue = d3.select("#selectCross").selectAll("option")[0][crossIndex].__data__;
@@ -29,9 +53,148 @@
         var accessionIndex = d3.select("#selectAccession").property("selectedIndex");
         var accessionValue = d3.select("#selectAccession").selectAll("option")[0][accessionIndex].__data__;
 
+        d3.xml("circos?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue, function(xml) {
+            loadCircosPlot(xml);
+        });
+
         d3.json("numcontigs?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue, function(data) {
             d3.select("#searchContigs")
-                    .attr("placeholder", data.numContigs + " contigs loaded.  Select with JEXL expressions.");
+                    .attr("placeholder", data.numContigs + " contigs loaded.  Select with JEXL expressions.")
+                    .on("keyup", function() {
+                        if (d3.event.keyCode == 13) {
+                            var jexl = encodeURIComponent(d3.select("#searchContigs").property("value"));
+
+                            d3.xml("search?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&jexl=" + jexl, function(xml) {
+                                loadCircosPlot(xml);
+
+                                var contigLines = d3.select("#circos").select("svg").select("#recomb").selectAll("path");
+                                var numResults = contigLines.size();
+
+                                contigLines
+                                        .on("mouseover", function(d) {
+                                            var id = d3.select(this).attr("id");
+                                            var color = d3.select(this).style("stroke");
+
+                                            d3.select(this).attr("class", "contigLineSelected")
+
+                                            d3.select("#circos").select("svg")
+                                                    .append("text")
+                                                    .attr("x", d3.mouse(this)[0] + 10)
+                                                    .attr("y", d3.mouse(this)[1] - 10)
+                                                    .attr("id", "tooltip")
+                                                    .text(id)
+                                                    .attr("font-family", "sans-serif")
+                                                    .attr("font-size", "40px")
+                                                    .attr("fill", color);
+                                        })
+                                        .on("mouseout", function(d) {
+                                            d3.select(this).attr("class", "contigLineUnselected")
+
+                                            d3.selectAll("#tooltip").remove();
+                                        })
+                                        .on("click", function(d) {
+                                            var id = d3.select(this).attr("id");
+
+                                            d3.json("info?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + id, function(json) {
+                                                d3.select("#annotations").selectAll("p").remove();
+
+                                                d3.select("#annotations").selectAll("p")
+                                                        .data(d3.entries(json.info))
+                                                        .enter()
+                                                        .append("p")
+                                                        .text(function(d) { return d.key + " : " + d.value; })
+                                            })
+
+                                            d3.json("contig?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + id, function(json) {
+                                                d3.select("#viewer").selectAll("svg").remove();
+
+                                                var data = json.seq;
+
+                                                var dataMap = data.reduce(function(map, node) {
+                                                    map[node.name] = node;
+                                                    return map;
+                                                }, {});
+
+                                                var treeData = [];
+                                                data.forEach(function(node) {
+                                                    var parent = dataMap[node.parent];
+                                                    if (parent) {
+                                                        (parent.children || (parent.children = []))
+                                                                .push(node);
+                                                    } else {
+                                                        treeData.push(node);
+                                                    }
+                                                });
+
+                                                var width  = window.innerWidth,
+                                                    height = 500;
+
+                                                var tree = d3.layout.tree().size([height, width]);
+
+                                                var diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
+
+                                                var svg = d3.select("#viewer").append("svg")
+                                                        .attr("width", width)
+                                                        .attr("height", height)
+                                                        .append("g")
+                                                        .call(d3.behavior.zoom().on("zoom", zoom))
+                                                        .append("g")
+
+                                                svg.append("svg:rect")
+                                                        .attr("width", width)
+                                                        .attr("height", height)
+                                                        .attr("fill", "white");
+
+                                                root = treeData[0];
+
+                                                var i = 0;
+                                                update(root);
+
+                                                function update(source) {
+                                                    var nodes = tree.nodes(root).reverse(),
+                                                        links = tree.links(nodes);
+
+                                                    nodes.forEach(function(d) {d.y = d.depth * 10; });
+
+                                                    var node = svg.selectAll("g.node")
+                                                            .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+                                                    var nodeEnter = node.enter().append("g")
+                                                            .attr("class", "node")
+                                                            .attr("transform", function(d) {
+                                                                return "translate(" + d.y + "," + d.x + ")";
+                                                            });
+
+                                                    nodeEnter.append("text")
+                                                            .attr("x", function(d) {
+                                                                return d.children || d._children ? -4 : 4;
+                                                            })
+                                                            .attr("dy", ".35em")
+                                                            .attr("text-anchor", function(d) {
+                                                                return d.children || d._children ? -4 : 4;
+                                                            })
+                                                            .text(function(d) { return d.base; })
+                                                            .attr("title", function(d) { return d.name; })
+                                                            .style("fill-opacity", 1);
+
+                                                    var link = svg.selectAll("path.link")
+                                                            .data(links, function(d) { return d.target.id; });
+
+                                                    link.enter().insert("path", "g")
+                                                            .attr("class", "link")
+                                                            .attr("d", diagonal);
+                                                }
+
+                                                function zoom() {
+                                                    svg.attr("transform",
+                                                                    "translate(" + d3.event.translate + ")" +
+                                                                        "scale(" + d3.event.scale + ")");
+                                                }
+                                            })
+                                        })
+                            });
+                        }
+                    })
         });
     }
 
@@ -88,22 +251,6 @@
         changeCross();
     });
 </script>
-
-<section id="results">
-    <header>
-        <h1>High-level results</h1>
-    </header>
-
-    <p>For selected datasets, we'll put high-level information on the results here</p>
-</section>
-
-<section id="viewer">
-    <header>
-        <h1>Contig viewer</h1>
-    </header>
-
-    <p>For selected contigs, we'll show the actual contig here</p>
-</section>
 
 </article>
 
