@@ -5,9 +5,11 @@ body {
     background-color: #FFFFFF;
 }
 
-p {
-    margin-top: 0em;
-    margin-bottom: 0em;
+table {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 8pt;
+    border-collapse: separate;
+    border-spacing: 0px 0px;
 }
 
 #searchContigs {
@@ -24,10 +26,6 @@ p {
     stroke-width: 7.0;
 }
 
-#columns {
-    float: left;
-}
-
 #circos {
     width: 70%;
     float: left;
@@ -38,18 +36,20 @@ p {
     float: left;
 }
 
-.node circle {
-    fill: #fff;
-    stroke: white;
-    stroke-width: 0px;
+#viewer text {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 1.5px;
 }
 
-.node text {
-    font: 12px sans-serif;
-}
+text.A { fill: #00ff00; }
+text.C { fill: #0000ff; }
+text.G { fill: #ff8000; }
+text.T { fill: #ff0000; }
+text.none { fill: #cccccc; }
 
 .link {
     fill: none;
     stroke: #ccc;
-    stroke-width: 2px;
+    stroke-width: 0.2px;
+    stroke-opacity: 0.5;
 }
