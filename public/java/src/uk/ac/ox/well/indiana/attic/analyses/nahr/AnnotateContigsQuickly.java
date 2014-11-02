@@ -31,6 +31,9 @@ public class AnnotateContigsQuickly extends Module {
     @Argument(fullName="covThresholds", shortName="ct", doc="Coverage thresholds table")
     public File COV_THRESHOLDS;
 
+    @Argument(fullName="otherKs", shortName="ok", doc="Graphs at other kmer sizes")
+    public HashSet<CortexGraph> OTHER_KS;
+
     @Output
     public PrintStream out;
 
@@ -155,7 +158,7 @@ public class AnnotateContigsQuickly extends Module {
         // Section: write annotation information for each contig
         log.info("Writing contig annotations...");
 
-        out.println("contigName\tseq\tkmerOrigin\tkmerContiguity\tkmerCoverage");
+        out.println("contigName\tseq\tkmerOrigin\tkmerCoverage");
 
         int contigsSeen = 0;
         for (ReferenceSequence rseq : contigs) {
@@ -177,50 +180,42 @@ public class AnnotateContigsQuickly extends Module {
                     int cov = contigKmers.get(kmer).coverageInSample;
                     int cov0 = contigKmers.get(kmer).coverageInParent0;
                     int cov1 = contigKmers.get(kmer).coverageInParent1;
+                    boolean missingAtHigherK = false;
 
                     coverages.add(String.valueOf(cov));
 
+                    for (CortexGraph og : OTHER_KS) {
+                        if (og.getKmerSize() > kmerSize && i <= seq.length() - og.getKmerSize()) {
+                            String sk = seq.substring(i, i + og.getKmerSize());
+                            CortexKmer ck = new CortexKmer(sk);
+                            CortexRecord ogr = og.findRecord(ck);
+
+                            if (ogr == null) {
+                                missingAtHigherK = true;
+                                break;
+                            }
+                        }
+                    }
+
                     if (isMasked) {
-                        annotation.append("A");
+                        annotation.append("R");     // masked
                     } else if (cov < sampleThreshold) {
-                        annotation.append("C");
+                        annotation.append("C");     // insufficient coverage in sample
+                    } else if (missingAtHigherK) {
+                        annotation.append("M");     // kmer starting here is missing at higher K
                     } else if (cov0 > 0 || cov1 > 0) {
                         if (cov0 == 0 && cov1 >= p2Threshold) {
-                            annotation.append("1");
+                            annotation.append("1"); // confidently parent 1
                         } else if (cov0 >= p1Threshold && cov1 == 0) {
-                            annotation.append("0");
+                            annotation.append("0"); // confidently parent 0
                         } else if (cov0 >= p1Threshold && cov1 >= p2Threshold) {
-                            annotation.append("B");
+                            annotation.append("B"); // confidently shared
                         } else {
-                            annotation.append("_");
+                            annotation.append("_"); // probably parental but could not be confidently determined
                         }
                     } else {
-                        annotation.append(".");
+                        annotation.append(".");     // novel
                     }
-                }
-
-                StringBuilder contiguity = new StringBuilder();
-                contiguity.append("0");
-                for (int i = 1; i <= seq.length() - kmerSize; i++) {
-                    /*
-                    String prevStr = seq.substring(i - 1, i - 1 + kmerSize);
-                    String curStr  = seq.substring(i, i + kmerSize);
-
-                    char colorChar = annotation.charAt(i);
-
-                    boolean isContiguous = true;
-
-                    switch (colorChar) {
-                        case '0': isContiguous = isContiguous(prevStr, curStr, 0); break;
-                        case '1': isContiguous = isContiguous(prevStr, curStr, 1); break;
-                        case 'B': isContiguous = isContiguous(prevStr, curStr, 0) || isContiguous(prevStr, curStr, 1); break;
-                        default:  isContiguous = false; break;
-                    }
-
-                    contiguity.append(isContiguous ? "1" : "0");
-                    */
-
-                    contiguity.append("1");
                 }
 
                 String coverage = Joiner.on(",").join(coverages);
@@ -228,9 +223,7 @@ public class AnnotateContigsQuickly extends Module {
                 if (annotation.length() == 0) { annotation.append("."); }
                 if (coverage.length() == 0) { coverage = "0"; }
 
-                //if (seq.length() >= kmerSize) {
-                out.println(rseq.getName().split("\\s+")[0] + "\t" + seq + "\t" + annotation.toString() + "\t" + contiguity.toString() + "\t" + coverage);
-                //}
+                out.println(rseq.getName().split("\\s+")[0] + "\t" + seq + "\t" + annotation.toString() + "\t" + coverage);
             }
         }
     }
