@@ -17,6 +17,7 @@
     <select id="selectAccession"></select>
     <select id="selectGraph"></select>
     <input type="search" id="searchContigs">
+    <span id="status"></span>
 </section>
 
 <section id="columns">
@@ -58,7 +59,11 @@
         var graphIndex = d3.select("#selectGraph").property("selectedIndex");
         var graphValue = d3.select("#selectGraph").selectAll("option")[0][graphIndex].__data__;
 
+        k = (graphValue.kmerSize == "all") ? 0 : parseInt(graphValue.kmerSize.replace("k", ""));
+
         d3.json("linearcontig?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + contigName + "&kmerSize=" + graphValue.kmerSize + "&graphLabel=" + graphValue.label, function(json) {
+            d3.select("#status").text("Displaying contig...");
+
             var width  = window.innerWidth,
                 height = 500;
 
@@ -83,6 +88,23 @@
                     if (e.type == "inedge")  { yPos = (height/2) + 3*(inCount  + 1); inCount++;  }
                     if (e.type == "outedge") { yPos = (height/2) - 3*(outCount + 1); outCount++; }
 
+                    var bgcolor = "#ffffff";
+                    if (e.annotation == "0") { bgcolor = "#e94b35"; }
+                    else if (e.annotation == "1") { bgcolor = "#9cf1ff"; }
+                    else if (e.annotation == "_") { bgcolor = "#63a69f"; }
+                    else if (e.annotation == "B") { bgcolor = "#f2e1ac"; }
+                    else if (e.annotation == ".") { bgcolor = "#f2836b"; }
+                    else if (e.annotation == "R") { bgcolor = "#f2594b"; }
+                    else if (e.annotation == "M") { bgcolor = "#cd2c24"; }
+
+                    svg.append("svg:rect")
+                            .attr("x", e.pos - 1)
+                            .attr("y", yPos - 1)
+                            .attr("width", 1)
+                            .attr("height", 1)
+                            .attr("fill", bgcolor)
+                            .attr("fill-opacity", 0.3)
+
                     svg.append("text")
                             .attr("class", e.class)
                             .attr("id", e.id)
@@ -90,6 +112,19 @@
                             .attr("x", e.pos)
                             .attr("y", yPos)
                             .text(e.base)
+                            .on("mouseover", function(a) {
+                                if (k != 0) {
+                                    svg.append("rect")
+                                            .attr("class", "kmercursor")
+                                            .attr("width", k)
+                                            .attr("height", 0.10)
+                                            .attr("x", parseInt(d3.select(this).attr("x")) - 1)
+                                            .attr("y", (height / 2) + 0.5)
+                                }
+                            })
+                            .on("mouseout", function(a) {
+                                d3.selectAll(".kmercursor").remove();
+                            })
 
                     if (e.type == "outedge") {
                         svg.append("line")
@@ -106,6 +141,8 @@
                                 .attr("x2", e.pos - 0.5)
                                 .attr("y2", yPos)
                     }
+
+
                 }
             }
 
@@ -116,6 +153,8 @@
             }
 
             displayedContig = contigName;
+
+            d3.select("#status").text("Ready.");
         });
     }
 
@@ -143,158 +182,101 @@
                     .on("change", showContig);
         });
 
-        d3.xml("circos?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue, function(xml) {
-            loadCircosPlot(xml);
-        });
+        d3.xml("circos?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue)
+                .on("progress", function() {
+                    d3.select("#status").text("Loading Circos plot...");
+                })
+                .on("load", function(xml) {
+                    loadCircosPlot(xml);
+
+                    d3.select("#status").text("Ready.");
+                })
+                .get();
 
         d3.json("numcontigs?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue, function(data) {
+            d3.select("#status").text("Loading contigs...");
+
             d3.select("#searchContigs")
                     .attr("placeholder", data.numContigs + " contigs loaded.  Select with JEXL expressions.")
                     .on("keyup", function() {
                         if (d3.event.keyCode == 13) {
                             var jexl = encodeURIComponent(d3.select("#searchContigs").property("value"));
 
-                            d3.xml("search?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&jexl=" + jexl, function(xml) {
-                                loadCircosPlot(xml);
+                            d3.xml("search?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&jexl=" + jexl)
+                                    .on("progress", function() {
+                                        d3.select("#status").text("Searching...");
+                                    })
+                                    .on("load", function(xml) {
+                                        loadCircosPlot(xml);
 
-                                var contigLines = d3.select("#circos").select("svg").select("#recomb").selectAll("path");
-                                var numResults = contigLines.size();
+                                        var contigLines = d3.select("#circos").select("svg").select("#recomb").selectAll("path");
+                                        var numResults = contigLines.size();
 
-                                contigLines
-                                        .on("mouseover", function(d) {
-                                            var id = d3.select(this).attr("id");
-                                            var color = d3.select(this).style("stroke");
+                                        contigLines
+                                                .on("mouseover", function(d) {
+                                                    var id = d3.select(this).attr("id");
+                                                    var color = d3.select(this).style("stroke");
 
-                                            d3.select(this).attr("class", "contigLineSelected")
+                                                    d3.select(this).attr("class", "contigLineSelected")
 
-                                            d3.select("#circos").select("svg")
-                                                    .append("text")
-                                                    .attr("x", d3.mouse(this)[0] + 10)
-                                                    .attr("y", d3.mouse(this)[1] - 10)
-                                                    .attr("id", "tooltip")
-                                                    .text(id)
-                                                    .attr("font-family", "sans-serif")
-                                                    .attr("font-size", "40px")
-                                                    .attr("fill", color);
-                                        })
-                                        .on("mouseout", function(d) {
-                                            d3.select(this).attr("class", "contigLineUnselected")
+                                                    d3.select("#circos").select("svg")
+                                                            .append("text")
+                                                            .attr("x", d3.mouse(this)[0] + 10)
+                                                            .attr("y", d3.mouse(this)[1] - 10)
+                                                            .attr("id", "tooltip")
+                                                            .text(id)
+                                                            .attr("font-family", "sans-serif")
+                                                            .attr("font-size", "40px")
+                                                            .attr("fill", color);
+                                                })
+                                                .on("mouseout", function(d) {
+                                                    d3.select(this).attr("class", "contigLineUnselected")
 
-                                            d3.selectAll("#tooltip").remove();
-                                        })
-                                        .on("click", function(d) {
-                                            contigName = d3.select(this).attr("id");
+                                                    d3.selectAll("#tooltip").remove();
+                                                })
+                                                .on("click", function(d) {
+                                                    contigName = d3.select(this).attr("id");
 
-                                            d3.json("info?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + contigName, function(json) {
-                                                var keys = [ 'contigName', 'baseLength', 'kmerLength', 'ref0', 'ref1', 'refBoth', 'refNone', 'refAmb', 'lrun0', 'lrun1', 'lrunBoth', 'lrunNone', 'lrunAmb', 'numSwitches', 'hasDiscontiguities', 'numDiscontiguities', 'canonicalLocus', 'ref0Locus', 'ref1Locus', 'ref0ToCanonicalBlock', 'ref1ToCanonicalBlock', 'ref0ToCanonicalExact', 'ref1ToCanonicalExact', 'sameChromosome', 'sameEffectiveLocus', 'genesRef0', 'genesRef1', 'alignedToCanonical', 'clippedInCanonical', 'numAlignmentsInCanonical', 'perfectAlignmentInCanonical', 'alignedToRef0', 'clippedInRef0', 'numAlignmentsInRef0', 'perfectAlignmentInRef0', 'alignedToRef1', 'clippedInRef1', 'numAlignmentsInRef1', 'perfectAlignmentInRef1' ];
-
-                                                d3.select("#annotations").selectAll("table").remove();
-                                                var table = d3.select("#annotations").append("table");
-
-                                                keys.map(function(key) {
-                                                    var row = table.append("tr");
-
-                                                    row.append("td").html(key);
-                                                    row.append("td").html(json.info[key]);
-                                                });
-                                            })
-
-                                            showContig();
-
-                                            /*
-                                            d3.json("contig?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + id, function(json) {
-                                                d3.select("#viewer").selectAll("svg").remove();
-
-                                                var data = json.seq;
-
-                                                var dataMap = data.reduce(function(map, node) {
-                                                    map[node.name] = node;
-                                                    return map;
-                                                }, {});
-
-                                                var treeData = [];
-                                                data.forEach(function(node) {
-                                                    var parent = dataMap[node.parent];
-                                                    if (parent) {
-                                                        (parent.children || (parent.children = []))
-                                                                .push(node);
-                                                    } else {
-                                                        treeData.push(node);
-                                                    }
-                                                });
-
-                                                var width  = window.innerWidth,
-                                                    height = 500;
-
-                                                var tree = d3.layout.tree().size([height, width]);
-
-                                                var diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
-
-                                                var svg = d3.select("#viewer").append("svg")
-                                                        .attr("width", width)
-                                                        .attr("height", height)
-                                                        .append("g")
-                                                        .call(d3.behavior.zoom().on("zoom", zoom))
-                                                        .append("g")
-
-                                                svg.append("svg:rect")
-                                                        .attr("width", width)
-                                                        .attr("height", height)
-                                                        .attr("fill", "white");
-
-                                                root = treeData[0];
-
-                                                var i = 0;
-                                                update(root);
-
-                                                function update(source) {
-                                                    var nodes = tree.nodes(root).reverse(),
-                                                        links = tree.links(nodes);
-
-                                                    nodes.forEach(function(d) {d.y = d.depth * 10; });
-
-                                                    var node = svg.selectAll("g.node")
-                                                            .data(nodes, function(d) { return d.id || (d.id = ++i); });
-
-                                                    var nodeEnter = node.enter().append("g")
-                                                            .attr("class", "node")
-                                                            .attr("transform", function(d) {
-                                                                return "translate(" + d.y + "," + d.x + ")";
-                                                            });
-
-                                                    nodeEnter.append("text")
-                                                            .attr("x", function(d) {
-                                                                return d.children || d._children ? -4 : 4;
+                                                    d3.json("info?cross=" + crossValue + "&sample=" + sampleValue + "&accession=" + accessionValue + "&contigName=" + contigName)
+                                                            .on("progress", function() {
+                                                                d3.select("#status").text("Drawing contig...");
                                                             })
-                                                            .attr("dy", ".35em")
-                                                            .attr("class", function(d) {
-                                                                return d.class;
+                                                            .on("load", function(json) {
+                                                                var keys = [ 'contigName', 'baseLength', 'kmerLength', 'ref0', 'ref1', 'refAmb', 'refBoth', 'refNovel', 'refRep', 'refMissing', 'lrun0', 'lrun1', 'lrunAmb', 'lrunBoth', 'lrunNovel', 'lrunRep', 'lrunMissing', 'numSwitches', 'isReaped', 'canonicalLocus', 'ref0Locus', 'ref1Locus', 'ref0ToCanonicalBlock', 'ref1ToCanonicalBlock', 'ref0ToCanonicalExact', 'ref1ToCanonicalExact', 'sameChromosome', 'sameEffectiveLocus', 'genesRef0', 'genesRef1', 'alignedToCanonical', 'clippedInCanonical', 'numAlignmentsInCanonical', 'perfectAlignmentInCanonical', 'alignedToRef0', 'clippedInRef0', 'numAlignmentsInRef0', 'perfectAlignmentInRef0', 'alignedToRef1', 'clippedInRef1', 'numAlignmentsInRef1', 'perfectAlignmentInRef1' ];
+
+                                                                d3.select("#annotations").selectAll("table").remove();
+                                                                var table = d3.select("#annotations").append("table");
+
+                                                                keys.map(function(key) {
+                                                                    var row = table.append("tr");
+
+                                                                    var bgcolor = "#ffffff";
+                                                                    if (key == "ref0") { bgcolor = "#e94b35"; }
+                                                                    else if (key == "ref1") { bgcolor = "#9cf1ff"; }
+                                                                    else if (key == "refAmb") { bgcolor = "#63a69f"; }
+                                                                    else if (key == "refBoth") { bgcolor = "#f2e1ac"; }
+                                                                    else if (key == "refNovel") { bgcolor = "#f2836b"; }
+                                                                    else if (key == "refRep") { bgcolor = "#f2594b"; }
+                                                                    else if (key == "refMissing") { bgcolor = "#cd2c24"; }
+
+                                                                    row.append("td").style("background-color", bgcolor).html(key);
+                                                                    row.append("td").html(json.info[key]);
+                                                                });
+
+                                                                d3.select("#status").text("Ready.");
                                                             })
-                                                            .attr("text-anchor", function(d) {
-                                                                return d.children || d._children ? -4 : 4;
-                                                            })
-                                                            .text(function(d) { return d.base; })
-                                                            .style("fill-opacity", 1)
+                                                            .get();
 
-                                                    var link = svg.selectAll("path.link")
-                                                            .data(links, function(d) { return d.target.id; });
+                                                    showContig();
+                                                })
 
-                                                    link.enter().insert("path", "g")
-                                                            .attr("class", "link")
-                                                            .attr("d", diagonal);
-                                                }
-
-                                                function zoom() {
-                                                    svg.attr("transform",
-                                                                    "translate(" + d3.event.translate + ")" +
-                                                                        "scale(" + d3.event.scale + ")");
-                                                }
-                                            })
-                                            */
-                                        })
-                            });
+                                        d3.select("#status").text("Found " + numResults + " contigs.");
+                                    })
+                                    .get();
                         }
                     })
+
+            d3.select("#status").text("Ready.");
         });
     }
 
@@ -306,6 +288,8 @@
         var sampleValue = d3.select("#selectSample").selectAll("option")[0][sampleIndex].__data__;
 
         d3.json("accessions?cross=" + crossValue + "&sample=" + sampleValue, function(data) {
+            d3.select("#status").text("Loading accessions...");
+
             d3.select("#selectAccession").selectAll("option").remove();
 
             d3.select("#selectAccession")
@@ -317,6 +301,8 @@
                     .text(function(d) { return d; });
 
             changeAccession();
+
+            d3.select("#status").text("Ready.");
         });
     }
 
@@ -325,6 +311,8 @@
         var crossValue = d3.select("#selectCross").selectAll("option")[0][crossIndex].__data__;
 
         d3.json("samples?cross=" + crossValue, function(data) {
+            d3.select("#status").text("Loading samples...");
+
             d3.select("#selectSample").selectAll("option").remove();
 
             d3.select("#selectSample")
@@ -336,10 +324,14 @@
                     .text(function(d) { return d; });
 
             changeSample();
+
+            d3.select("#status").text("Ready.");
         });
     }
 
     d3.json("crosses", function(data) {
+        d3.select("#status").text("Loading crosses...");
+
         d3.select("#selectCross")
                 .on("change", changeCross)
                 .selectAll("option")
@@ -349,6 +341,8 @@
                 .text(function(d) { return d; })
 
         changeCross();
+
+        d3.select("#status").text("Ready.");
     });
 </script>
 
