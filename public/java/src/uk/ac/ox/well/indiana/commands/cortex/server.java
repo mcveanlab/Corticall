@@ -21,6 +21,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
@@ -530,7 +531,7 @@ public class server extends Module {
             File metrics = m.getMetrics(cross, sample, accession);
             TableReader tr = new TableReader(metrics);
 
-            for (LinkedHashMap<String, String> te : tr) {
+            for (Map<String, String> te : tr) {
                 if (contigName.equals(te.get("contigName"))) {
                     te.remove("kmerOrigin");
                     te.remove("seq");
@@ -544,6 +545,39 @@ public class server extends Module {
             }
 
             write(httpExchange, 404, "not found");
+        }
+    }
+
+    private class Graphs extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            Set<Map<String, String>> entries = new HashSet<Map<String, String>>();
+
+            Map<String, String> allEntry = new HashMap<String, String>();
+            allEntry.put("kmerSize", "all");
+            allEntry.put("label", "all");
+            entries.add(allEntry);
+
+            for (String kmerSize : m.getGraphKmerSizes(cross, sample, accession)) {
+                for (String graphLabel : m.getGraphLabels(cross, sample, accession, kmerSize)) {
+                    Map<String, String> entry = new HashMap<String, String>();
+
+                    entry.put("kmerSize", kmerSize);
+                    entry.put("label", graphLabel);
+                    entries.add(entry);
+                }
+            }
+
+            JSONObject jo = new JSONObject();
+            jo.put("entries", entries);
+
+            write(httpExchange, jo.toString());
         }
     }
 
@@ -609,14 +643,12 @@ public class server extends Module {
 
                                             entry.put("base", outEdge);
                                             entry.put("name", id);
+                                            entry.put("class", "noncontig");
+                                            entries.add(entry);
 
                                             String prevBase = String.valueOf(kmer.charAt(kmer.length() - 1));
                                             String prevId = String.format("%s_%d", prevBase, i + ks - 1);
                                             entry.put("parent", prevId);
-
-                                            entries.add(entry);
-
-
                                         }
                                     }
                                 }
@@ -633,6 +665,127 @@ public class server extends Module {
             }
 
             write(httpExchange, 404, "not found");
+        }
+    }
+
+    private class LinearContig extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+            String kmerSize = query.get("kmerSize");
+            String graphLabel = query.get("graphLabel");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+            for (Map<String, String> te : tr) {
+                if (te.get("contigName").equals(contigName)) {
+                    String contig = te.get("seq");
+                    String kmerOrigin = te.get("kmerOrigin");
+
+                    Map<Integer, Set<Map<String, String>>> bases = new HashMap<Integer, Set<Map<String, String>>>();
+
+                    for (int i = 0; i < contig.length(); i++) {
+                        Map<String, String> baseMap = new HashMap<String, String>();
+                        String base = String.valueOf(contig.charAt(i));
+                        String id = String.format("%s_%d", base, i);
+
+                        baseMap.put("base", base);
+                        baseMap.put("id", id);
+                        baseMap.put("class", base);
+                        baseMap.put("pos", String.valueOf(i));
+                        baseMap.put("type", "contig");
+                        if (i < kmerOrigin.length()) {
+                            baseMap.put("annotation", String.valueOf(kmerOrigin.charAt(i)));
+                        }
+
+                        bases.put(i, new HashSet<Map<String, String>>());
+                        bases.get(i).add(baseMap);
+                    }
+
+                    for (String ks : m.getGraphKmerSizes(cross, sample, accession)) {
+                        if (ks.equals(kmerSize) || kmerSize.equals("all")) {
+                            for (String gl : m.getGraphLabels(cross, sample, accession, ks)) {
+                                if (gl.equals(graphLabel) || graphLabel.equals("all")) {
+                                    Map<String, File> graphMap = m.getGraphs(cross, sample, accession, ks, gl);
+
+                                    for (String label : graphMap.keySet()) {
+                                        CortexGraph cg = new CortexGraph(graphMap.get(label));
+
+                                        for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
+                                            String sk = contig.substring(i, i + cg.getKmerSize());
+                                            CortexKmer ck = new CortexKmer(sk);
+                                            CortexRecord cr = cg.findRecord(ck);
+
+                                            if (cr == null) {
+                                                for (Map<String, String> baseMap : bases.get(i)) {
+                                                    baseMap.put("missing", "1");
+                                                }
+                                            } else {
+                                                if (i > 0) {
+                                                    String psk = contig.substring(i - 1, i - 1 + cg.getKmerSize());
+
+                                                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
+                                                    prevKmers.remove(psk);
+
+                                                    if (prevKmers.size() > 0) {
+                                                        for (String prevKmer : prevKmers) {
+                                                            Map<String, String> prevBaseMap = new HashMap<String, String>();
+                                                            String prevBase = String.valueOf(prevKmer.charAt(0));
+                                                            String prevId = String.format("%s_%d", prevBase, i - 1);
+
+                                                            prevBaseMap.put("base", prevBase);
+                                                            prevBaseMap.put("id", prevId);
+                                                            prevBaseMap.put("class", "none");
+                                                            prevBaseMap.put("pos", String.valueOf(i - 1));
+                                                            prevBaseMap.put("type", "inedge");
+
+                                                            bases.get(i - 1).add(prevBaseMap);
+                                                        }
+                                                    }
+                                                }
+
+                                                if (i < contig.length() - cg.getKmerSize() - 1) {
+                                                    String nsk = contig.substring(i + 1, i + 1 + cg.getKmerSize());
+
+                                                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
+                                                    nextKmers.remove(nsk);
+
+                                                    if (nextKmers.size() > 0) {
+                                                        for (String nextKmer : nextKmers) {
+                                                            Map<String, String> nextBaseMap = new HashMap<String, String>();
+                                                            String nextBase = String.valueOf(nextKmer.charAt(nextKmer.length() - 1));
+                                                            String nextId = String.format("%s_%d", nextBase, i + 1 + cg.getKmerSize());
+
+                                                            nextBaseMap.put("base", nextBase);
+                                                            nextBaseMap.put("id", nextId);
+                                                            nextBaseMap.put("class", "none");
+                                                            nextBaseMap.put("pos", String.valueOf(i + 1 + cg.getKmerSize()));
+                                                            nextBaseMap.put("type", "outedge");
+
+                                                            bases.get(i + 1 + cg.getKmerSize()).add(nextBaseMap);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("bases", bases);
+                    write(httpExchange, jo.toString());
+                }
+            }
+
+            write(httpExchange, 404, "not implemented");
         }
     }
 
@@ -666,7 +819,9 @@ public class server extends Module {
             server.createContext("/circos", new Circos());
             server.createContext("/search", new Search());
             server.createContext("/info", new Info());
+            server.createContext("/graphs", new Graphs());
             server.createContext("/contig", new Contig());
+            server.createContext("/linearcontig", new LinearContig());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
