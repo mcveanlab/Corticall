@@ -14,7 +14,7 @@ import java.util.*;
  * Streams very large text-based tables by first making a pass through the file to find all the line breaks
  * and once again to determine the positions of those breaks (and thus the record lengths).
  */
-public class TableReader implements Iterable<LinkedHashMap<String, String>>, Iterator<LinkedHashMap<String, String>> {
+public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<String, String>> {
     private ByteBufferInputStream mappedRecordBuffer;
 
     private List<Long> lineBreakPositions;
@@ -108,7 +108,7 @@ public class TableReader implements Iterable<LinkedHashMap<String, String>>, Ite
     }
 
     @Override
-    public Iterator<LinkedHashMap<String, String>> iterator() {
+    public Iterator<Map<String, String>> iterator() {
         moveToBeginningOfRecords();
 
         return this;
@@ -120,7 +120,7 @@ public class TableReader implements Iterable<LinkedHashMap<String, String>>, Ite
     }
 
     @Override
-    public LinkedHashMap<String, String> next() {
+    public Map<String, String> next() {
         long start = lineBreakPositions.get(nextRecordIndex - 1) + 1;
         long end = lineBreakPositions.get(nextRecordIndex);
         int length = (int) (end - start);
@@ -134,7 +134,7 @@ public class TableReader implements Iterable<LinkedHashMap<String, String>>, Ite
 
             String[] fields = (new String(record)).split("\t");
             //Map<String, String> entry = new HashMap<String, String>();
-            LinkedHashMap<String, String> entry = new LinkedHashMap<String, String>();
+            Map<String, String> entry = new LinkedHashMap<String, String>();
 
             for (int i = 0; i < header.length; i++) {
                 entry.put(header[i], fields[i]);
