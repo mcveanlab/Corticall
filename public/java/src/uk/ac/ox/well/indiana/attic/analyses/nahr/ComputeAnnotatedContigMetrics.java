@@ -314,18 +314,20 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 int refBoth = 0;
                 int refNovel = 0;
                 int refRep = 0;
-                int refMissing = 0;
+                int refMissingH = 0;
+                int refMissingL = 0;
 
                 for (int i = 0; i < kmerLength; i++) {
                     switch (te.get("kmerOrigin").charAt(i)) {
-                        case '0': ref0++;       break;
-                        case '1': ref1++;       break;
-                        case '_': refAmb++;     break;
-                        case 'B': refBoth++;    break;
-                        case '.': refNovel++;   break;
-                        case 'R': refRep++;     break;
-                        case 'M': refMissing++; break;
-                        default :               break;
+                        case '0': ref0++;        break;
+                        case '1': ref1++;        break;
+                        case '_': refAmb++;      break;
+                        case 'B': refBoth++;     break;
+                        case '.': refNovel++;    break;
+                        case 'R': refRep++;      break;
+                        case 'M': refMissingH++; break;
+                        case 'm': refMissingL++; break;
+                        default :                break;
                     }
                 }
 
@@ -335,7 +337,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 int lrunBoth = longestRun(te.get("kmerOrigin"), 'B');
                 int lrunNovel = longestRun(te.get("kmerOrigin"), '.');
                 int lrunRep = longestRun(te.get("kmerOrigin"), 'R');
-                int lrunMissing = longestRun(te.get("kmerOrigin"), 'M');
+                int lrunMissingH = longestRun(te.get("kmerOrigin"), 'M');
+                int lrunMissingL = longestRun(te.get("kmerOrigin"), 'm');
                 int numSwitches = numSwitches(te.get("kmerOrigin"));
 
                 Map<String, String> entry = new LinkedHashMap<String, String>();
@@ -350,14 +353,16 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("refBoth", String.valueOf(refBoth));
                 entry.put("refNovel", String.valueOf(refNovel));
                 entry.put("refRep", String.valueOf(refRep));
-                entry.put("refMissing", String.valueOf(refMissing));
+                entry.put("refMissingH", String.valueOf(refMissingH));
+                entry.put("refMissingL", String.valueOf(refMissingL));
                 entry.put("lrun0", String.valueOf(lrun0));
                 entry.put("lrun1", String.valueOf(lrun1));
                 entry.put("lrunAmb", String.valueOf(lrunAmb));
                 entry.put("lrunBoth", String.valueOf(lrunBoth));
                 entry.put("lrunNovel", String.valueOf(lrunNovel));
                 entry.put("lrunRep", String.valueOf(lrunRep));
-                entry.put("lrunMissing", String.valueOf(lrunMissing));
+                entry.put("lrunMissingH", String.valueOf(lrunMissingH));
+                entry.put("lrunMissingL", String.valueOf(lrunMissingL));
                 entry.put("numSwitches", String.valueOf(numSwitches));
                 entry.put("isReaped", te.get("contigName").matches(".+\\.\\d+$") ? "1" : "0");
 
