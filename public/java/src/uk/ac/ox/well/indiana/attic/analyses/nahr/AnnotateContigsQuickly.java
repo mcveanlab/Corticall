@@ -181,17 +181,23 @@ public class AnnotateContigsQuickly extends Module {
                     int cov0 = contigKmers.get(kmer).coverageInParent0;
                     int cov1 = contigKmers.get(kmer).coverageInParent1;
                     boolean missingAtHigherK = false;
+                    boolean missingAtLowerK = false;
 
                     coverages.add(String.valueOf(cov));
 
                     for (CortexGraph og : OTHER_KS) {
-                        if (og.getKmerSize() > kmerSize && i <= seq.length() - og.getKmerSize()) {
+                        if (og.getKmerSize() != kmerSize && i <= seq.length() - og.getKmerSize()) {
                             String sk = seq.substring(i, i + og.getKmerSize());
                             CortexKmer ck = new CortexKmer(sk);
                             CortexRecord ogr = og.findRecord(ck);
 
                             if (ogr == null) {
-                                missingAtHigherK = true;
+                                if (og.getKmerSize() > kmerSize) {
+                                    missingAtHigherK = true;
+                                } else if (og.getKmerSize() < kmerSize) {
+                                    missingAtLowerK = true;
+                                }
+
                                 break;
                             }
                         }
@@ -203,6 +209,8 @@ public class AnnotateContigsQuickly extends Module {
                         annotation.append("C");     // insufficient coverage in sample
                     } else if (missingAtHigherK) {
                         annotation.append("M");     // kmer starting here is missing at higher K
+                    } else if (missingAtLowerK) {
+                        annotation.append("m");     // kmer starting here is missing at lower K
                     } else if (cov0 > 0 || cov1 > 0) {
                         if (cov0 == 0 && cov1 >= p2Threshold) {
                             annotation.append("1"); // confidently parent 1
