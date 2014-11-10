@@ -68,56 +68,47 @@ public class MarkovianGraph extends Module {
                 DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
 
                 for (CortexGraph cg : GRAPHS) {
-                    if (cg.getCortexFile().getName().contains("PG0063-C.ERR019060.infer.sorted.k41.ctx")) {
-                        for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
-                            String sk = contig.substring(i, i + cg.getKmerSize());
+                    for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
+                        String sk = contig.substring(i, i + cg.getKmerSize());
 
-                            if (i == 0) {
-                                for (int j = 0; j < cg.getKmerSize() - 1; j++) {
-                                    String curId = sk.charAt(j) + "_" + j;
-                                    String nextId = sk.charAt(j + 1) + "_" + (j+1);
-
-                                    g.addVertex(curId);
-                                    g.addVertex(nextId);
-                                    g.addEdge(curId, nextId);
-                                }
-                            }
-
-                            Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
-                            for (String prevKmer : prevKmers) {
-                                String prevId = prevKmer.charAt(0) + "_" + (i - 1);
-                                String curId = sk.charAt(i) + "_" + i;
-
-                                g.addVertex(prevId);
-                                g.addVertex(curId);
-                                g.addEdge(prevId, curId);
-                            }
-
-                            Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
-                            for (String nextKmer : nextKmers) {
-                                String curId = sk.charAt(sk.length() - 1) + "_" + (i + cg.getKmerSize());
-                                String nextId = nextKmer.charAt(nextKmer.length() - 1) + "_" + (i + cg.getKmerSize() + 1);
+                        if (i == 0) {
+                            for (int j = 0; j < cg.getKmerSize() - 1; j++) {
+                                String curId = sk.charAt(j) + "_" + j;
+                                String nextId = sk.charAt(j + 1) + "_" + (j+1);
 
                                 g.addVertex(curId);
                                 g.addVertex(nextId);
                                 g.addEdge(curId, nextId);
                             }
                         }
+
+                        Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
+                        for (String prevKmer : prevKmers) {
+                            String prevId = prevKmer.charAt(0) + "_" + (i - 1);
+                            String curId = sk.charAt(0) + "_" + i;
+
+                            g.addVertex(prevId);
+                            g.addVertex(curId);
+                            g.addEdge(prevId, curId);
+                        }
+
+                        Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
+                        for (String nextKmer : nextKmers) {
+                            String curId = sk.charAt(sk.length() - 1) + "_" + (i + cg.getKmerSize() - 1);
+                            String nextId = nextKmer.charAt(nextKmer.length() - 1) + "_" + (i + cg.getKmerSize());
+
+                            g.addVertex(curId);
+                            g.addVertex(nextId);
+                            g.addEdge(curId, nextId);
+                        }
                     }
                 }
 
+                Set<String> contigNodes = new HashSet<String>();
+                for (int i = 0; i < contig.length(); i++) {
+                    String curId = contig.charAt(i) + "_" + String.valueOf(i);
 
-                List<Map<String, String>> nodes = new ArrayList<Map<String, String>>();
-                Map<String, Integer> nodePos = new HashMap<String, Integer>();
-                int pos = 0;
-                for (String node : g.vertexSet()) {
-                    Map<String, String> entry = new HashMap<String, String>();
-                    entry.put("name", node);
-                    entry.put("group", "1");
-
-                    nodes.add(entry);
-                    nodePos.put(node, pos);
-                    pos++;
+                    contigNodes.add(curId);
                 }
 
                 List<Map<String, String>> links = new ArrayList<Map<String, String>>();
@@ -125,21 +116,16 @@ public class MarkovianGraph extends Module {
                     String kmerSource = g.getEdgeSource(e);
                     String kmerTarget = g.getEdgeTarget(e);
 
-                    int posSource = nodePos.get(kmerSource);
-                    int posTarget = nodePos.get(kmerTarget);
-
                     Map<String, String> entry = new HashMap<String, String>();
-                    //entry.put("source", String.valueOf(posSource));
-                    //entry.put("target", String.valueOf(posTarget));
                     entry.put("source", kmerSource);
                     entry.put("target", kmerTarget);
+                    entry.put("fixed", contigNodes.contains(kmerSource) && contigNodes.contains(kmerTarget) ? "true" : "false");
                     entry.put("value", "1");
                     links.add(entry);
                 }
 
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
-                //jo.put("nodes", nodes);
                 jo.put("links", links);
 
                 return jo.toString();
