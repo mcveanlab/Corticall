@@ -13,6 +13,9 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.http.BasicHandler;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
@@ -24,7 +27,10 @@ public class MarkovianGraph extends Module {
     public FastaSequenceFile CONTIGS;
 
     @Argument(fullName="graph", shortName="g", doc="Graph (.ctx)")
-    public HashSet<CortexGraph> GRAPHS;
+    public LinkedHashSet<CortexGraph> GRAPHS;
+
+    @Argument(fullName="links", shortName="l", doc="Links (.ctp)")
+    public HashSet<CortexLinks> LINKS;
 
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9001;
@@ -59,26 +65,63 @@ public class MarkovianGraph extends Module {
         }
     }
 
+    private class MultiEdge extends DefaultEdge {
+        private Set<String> graphNames = new HashSet<String>();
+
+        public void addGraphName(String graphName) {
+            graphNames.add(graphName);
+        }
+
+        public Set<String> getGraphNames() {
+            return graphNames;
+        }
+    }
+
     private class SearchHandler extends BasicHandler {
         @Override
         public String process(File page, Map<String, String> query) {
             if (query.containsKey("contigName") && contigs.containsKey(query.get("contigName"))) {
                 String contig = contigs.get(query.get("contigName"));
 
-                DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+                DirectedGraph<String, MultiEdge> g = new DefaultDirectedGraph<String, MultiEdge>(MultiEdge.class);
+                Set<String> nodesWithLinks = new HashSet<String>();
 
                 for (CortexGraph cg : GRAPHS) {
+                    String sampleName = cg.getColor(0).getSampleName();
+                    Set<CortexLinks> links = new HashSet<CortexLinks>();
+                    Set<String> linkNames = new HashSet<String>();
+                    for (CortexLinks link : LINKS) {
+                        if (sampleName.equals(link.getColor(0).getSampleName())) {
+                            links.add(link);
+                            linkNames.add(link.getCortexLinksFile().getName());
+                        }
+                    }
+
                     for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
                         String sk = contig.substring(i, i + cg.getKmerSize());
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        for (CortexLinks link : links) {
+                            if (linkRecords.get(link).containsKey(ck)) {
+                                String linkId = sk.charAt(sk.length() - 1) + "_" + (i + cg.getKmerSize() - 1);
+                                nodesWithLinks.add(linkId);
+
+                                log.info("link: {} {} {}", cg.getKmerSize(), i, linkId);
+                            }
+                        }
 
                         if (i == 0) {
                             for (int j = 0; j < cg.getKmerSize() - 1; j++) {
                                 String curId = sk.charAt(j) + "_" + j;
-                                String nextId = sk.charAt(j + 1) + "_" + (j+1);
+                                String nextId = sk.charAt(j + 1) + "_" + (j + 1);
 
                                 g.addVertex(curId);
                                 g.addVertex(nextId);
-                                g.addEdge(curId, nextId);
+
+                                MultiEdge me = g.containsEdge(curId, nextId) ? g.getEdge(curId, nextId) : new MultiEdge();
+                                me.addGraphName(cg.getCortexFile().getName());
+
+                                g.addEdge(curId, nextId, me);
                             }
                         }
 
@@ -89,7 +132,11 @@ public class MarkovianGraph extends Module {
 
                             g.addVertex(prevId);
                             g.addVertex(curId);
-                            g.addEdge(prevId, curId);
+
+                            MultiEdge me = g.containsEdge(prevId, curId) ? g.getEdge(prevId, curId) : new MultiEdge();
+                            me.addGraphName(cg.getCortexFile().getName());
+
+                            g.addEdge(prevId, curId, me);
                         }
 
                         Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
@@ -99,7 +146,11 @@ public class MarkovianGraph extends Module {
 
                             g.addVertex(curId);
                             g.addVertex(nextId);
-                            g.addEdge(curId, nextId);
+
+                            MultiEdge me = g.containsEdge(curId, nextId) ? g.getEdge(curId, nextId) : new MultiEdge();
+                            me.addGraphName(cg.getCortexFile().getName());
+
+                            g.addEdge(curId, nextId, me);
                         }
                     }
                 }
@@ -111,22 +162,24 @@ public class MarkovianGraph extends Module {
                     contigNodes.add(curId);
                 }
 
-                List<Map<String, String>> links = new ArrayList<Map<String, String>>();
-                for (DefaultEdge e : g.edgeSet()) {
+                List<Map<String, Object>> links = new ArrayList<Map<String, Object>>();
+                for (MultiEdge e : g.edgeSet()) {
                     String kmerSource = g.getEdgeSource(e);
                     String kmerTarget = g.getEdgeTarget(e);
 
-                    Map<String, String> entry = new HashMap<String, String>();
+                    Map<String, Object> entry = new HashMap<String, Object>();
                     entry.put("source", kmerSource);
                     entry.put("target", kmerTarget);
+                    entry.put("graphs", e.getGraphNames());
                     entry.put("fixed", contigNodes.contains(kmerSource) && contigNodes.contains(kmerTarget) ? "true" : "false");
-                    entry.put("value", "1");
+                    entry.put("value", e.getGraphNames().size());
                     links.add(entry);
                 }
 
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
                 jo.put("links", links);
+                jo.put("nodesWithLinks", nodesWithLinks);
 
                 return jo.toString();
             }
@@ -142,14 +195,50 @@ public class MarkovianGraph extends Module {
         }
     }
 
+    private Map<CortexLinks, Map<CortexKmer, CortexLinksRecord>> linkRecords = new HashMap<CortexLinks, Map<CortexKmer, CortexLinksRecord>>();
+
+    private void loadLinkRecords(CortexLinks cl) {
+        if (!linkRecords.containsKey(cl)) {
+            linkRecords.put(cl, new HashMap<CortexKmer, CortexLinksRecord>());
+
+            for (CortexLinksRecord clr : cl) {
+                linkRecords.get(cl).put(clr.getKmer(), clr);
+            }
+        }
+    }
+
     @Override
     public void execute() {
         loadContigs();
-
         log.info("Loaded {} contigs", contigs.size());
+
+        Map<String, Set<CortexLinks>> links = new HashMap<String, Set<CortexLinks>>();
+        for (CortexLinks cl : LINKS) {
+            String name = cl.getColor(0).getSampleName();
+
+            if (!links.containsKey(name)) {
+                links.put(name, new HashSet<CortexLinks>());
+            }
+
+            links.get(name).add(cl);
+
+            loadLinkRecords(cl);
+        }
+
+        log.info("Loaded {} links", linkRecords.size());
+
         log.info("Loaded {} graphs", GRAPHS.size());
         for (CortexGraph cg : GRAPHS) {
-            log.info("  {}: {}", cg.getCortexFile().getName(), cg.getKmerSize());
+            String name = cg.getColor(0).getSampleName();
+
+            Set<String> linkFiles = new HashSet<String>();
+            if (links.containsKey(name)) {
+                for (CortexLinks cl : links.get(name)) {
+                    linkFiles.add(cl.getCortexLinksFile().getName());
+                }
+            }
+
+            log.info("  {}: {} {}", cg.getCortexFile().getName(), cg.getKmerSize(), linkFiles);
         }
 
         try {

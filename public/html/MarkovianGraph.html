@@ -12,22 +12,6 @@
             stroke-width: 1.5px;
         }
 
-        path.link.twofive {
-            opacity: 0.25;
-        }
-
-        path.link.fivezero {
-            opacity: 0.50;
-        }
-
-        path.link.sevenfive {
-            opacity: 0.75;
-        }
-
-        path.link.onezerozero {
-            opacity: 1.0;
-        }
-
         circle {
             fill: #ccc;
             stroke: #fff;
@@ -45,7 +29,7 @@
 <body>
 
 <article>
-<h1>Markovian Graph</h1>
+<h1>Graph</h1>
 
 <section>
     <input type="search" id="search" placeholder="Enter name of contig" style="width: 500px">
@@ -63,9 +47,8 @@ d3.select("#search")
             if (d3.event.keyCode == 13) {
                 var contigName = encodeURIComponent(d3.select("#search").property("value"));
 
-                var width = innerWidth,
-                        height = innerHeight,
-                        color = d3.scale.category20c();
+                var width  = innerWidth,
+                    height = innerHeight;
 
                 d3.select("body").selectAll("svg").remove();
 
@@ -73,22 +56,16 @@ d3.select("#search")
                     contig = graph.contig;
                     links = graph.links;
 
+                    nodesWithLinks = {};
+                    graph.nodesWithLinks.forEach(function(a) { nodesWithLinks[a] = 1; });
+
                     nodes = {};
 
                     links.forEach(function(link) {
-                        link.source = nodes[link.source] ||
-                                (nodes[link.source] = { name: link.source, fixed: false, base: link.source.split("_")[0] });
-                        link.target = nodes[link.target] ||
-                                (nodes[link.target] = { name: link.target, fixed: false, base: link.target.split("_")[0] });
+                        link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, base: link.source.split("_")[0] });
+                        link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, base: link.target.split("_")[0] });
                         link.value = +link.value;
                     });
-
-                    d3.values(nodes).forEach(function(node) {
-                        if (node.fixable == true) {
-                            node.x = node.pos;
-                            node.fixed = true;
-                        }
-                    })
 
                     var force = d3.layout.force()
                             .nodes(d3.values(nodes))
@@ -97,81 +74,74 @@ d3.select("#search")
                             .linkDistance(1)
                             .charge(-100)
                             .on("tick", tick)
-                            .start();
+
+                    setTimeout(function() {
+                        force.start();
+                        for (i = 0; i < contig.length*1000; i++) { force.tick(); }
+                        force.stop();
+                    }, 10);
 
                     var v = d3.scale.linear().range([0, 100]);
 
                     v.domain([0, d3.max(links, function(d) { return d.value; })]);
 
-                    links.forEach(function(link) {
-                        if (v(link.value) <= 25) {
-                            link.type = "twofive";
-                        } else if (v(link.value) <= 50 && v(link.value) > 25) {
-                            link.type = "fivezero";
-                        } else if (v(link.value) <= 75 && v(link.value) > 50) {
-                            link.type = "sevenfive";
-                        } else if (v(link.value) <= 100 && v(link.value) > 75) {
-                            link.type = "onezerozero";
-                        }
-                    });
-
                     var svg = d3.select("body").append("svg")
                             .attr("width", width)
                             .attr("height", height);
-
-                    svg.append("svg:defs").selectAll("marker")
-                            .data(["end"])
-                            .enter().append("svg:marker")
-                            .attr("id", String)
-                            .attr("viewBox", "0 -5 10 10")
-                            .attr("refX", 15)
-                            .attr("refY", -1.5)
-                            .attr("markerWidth", 5)
-                            .attr("markerHeight", 5)
-                            .attr("orient", "auto")
-                            .append("svg:path")
-                            .attr("d", "M0,-5L10,0L0,5");
 
                     var path = svg.append("svg:g").selectAll("path")
                             .data(force.links())
                             .enter().append("svg:path")
                             .attr("class", function(d) { return "link " + d.type; })
-                            .attr("marker-end", "url(#end)");
+                            .style("stroke-width", function(d) { return Math.log(d.value) + 1.0; })
 
                     var node = svg.selectAll(".node")
                             .data(force.nodes())
                             .enter().append("g")
+                            .attr("id", function(d) { return d.name; })
                             .attr("class", "node")
                             .on("click", click)
                             .on("dblclick", dblclick)
                             .call(force.drag);
 
+                    function baseColor(base) {
+                        var color = "#cccccc";
+
+                        switch (base) {
+                            case 'A':
+                            case 'a':
+                                color = "#abd25e";
+                                break;
+                            case 'C':
+                            case 'c':
+                                color = "#249aa7";
+                                break;
+                            case 'G':
+                            case 'g':
+                                color = "#f8c830";
+                                break;
+                            case 'T':
+                            case 't':
+                                color = "#f1594a";
+                                break;
+                        }
+
+                        return color;
+                    }
+
                     node.append("circle")
                             .attr("r", 5)
+                            .style("stroke", function(d) {
+                                return (nodesWithLinks[d.name] == 1) ? baseColor(d.base) : "white";
+                            })
+                            .style("stroke-opacity", function(d) {
+                                return (nodesWithLinks[d.name] == 1) ? 0.4 : 0.0;
+                            })
+                            .style("stroke-width", function(d) {
+                                return (nodesWithLinks[d.name] == 1) ? "9.0px" : "1.5px";
+                            })
                             .style("fill", function(d) {
-                                var base = d.base;
-                                var color = "#cccccc";
-
-                                switch (base) {
-                                    case 'A':
-                                    case 'a':
-                                        color = "#abd25e";
-                                        break;
-                                    case 'C':
-                                    case 'c':
-                                        color = "#249aa7";
-                                        break;
-                                    case 'G':
-                                    case 'g':
-                                        color = "#f8c830";
-                                        break;
-                                    case 'T':
-                                    case 't':
-                                        color = "#f1594a";
-                                        break;
-                                }
-
-                                return color;
+                                return baseColor(d.base);
                             })
 
                     node.append("text")
@@ -193,30 +163,32 @@ d3.select("#search")
                         });
                     }
 
-                    function click() {
-                        d3.select(this).select("circle").transition()
-                                .duration(500)
-                                .attr("r", 16);
-
-                        d3.select(this).select("text").transition()
-                                .duration(500)
-                                .attr("x", 22)
-                                .style("stroke", "lightsteelblue")
-                                .style("stroke-width", ".5px")
-                                .style("font", "20px sans-serif");
-                    }
+                    function click() {}
 
                     function dblclick() {
-                        d3.select(this).select("circle").transition()
-                                .duration(500)
-                                .attr("r", 5)
+                        var isSmall = d3.select(this).select("circle").attr("r") == 5;
 
-                        d3.select(this).select("text").transition()
-                                .duration(500)
-                                .attr("x", 12)
-                                .style("stroke", "none")
-                                .style("stroke-width", ".5px")
-                                .style("font", "10px sans-serif");
+                        if (isSmall) {
+                            d3.select(this).select("circle").transition()
+                                    .duration(500)
+                                    .attr("r", 16);
+
+                            d3.select(this).select("text").transition()
+                                    .duration(500)
+                                    .attr("x", 22)
+                                    .style("stroke-width", ".5px")
+                                    .style("font", "20px sans-serif");
+                        } else {
+                            d3.select(this).select("circle").transition()
+                                    .duration(500)
+                                    .attr("r", 5)
+
+                            d3.select(this).select("text").transition()
+                                    .duration(500)
+                                    .attr("x", 12)
+                                    .style("stroke-width", ".5px")
+                                    .style("font", "10px sans-serif");
+                        }
                     }
                 });
             }
