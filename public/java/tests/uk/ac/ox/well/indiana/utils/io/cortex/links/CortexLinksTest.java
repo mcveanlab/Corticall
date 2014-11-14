@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 public class CortexLinksTest {
     @Test
-    public void testLoadCortexLinks() {
+    public void testLoadFormatVersion2() {
         CortexLinks ctp = new CortexLinks("testdata/PG0085-C.infer.se.ctp");
 
         Assert.assertEquals(2, ctp.getVersion());
@@ -15,6 +15,29 @@ public class CortexLinksTest {
         Assert.assertEquals(362383, ctp.getNumKmersWithLinks());
         Assert.assertEquals(2753315, ctp.getNumLinks());
         Assert.assertEquals(7378352, ctp.getLinkBytes());
+
+        int numKmersWithLinks = 0;
+        int numLinks = 0;
+        for (CortexLinksRecord cpr : ctp) {
+            numKmersWithLinks++;
+            numLinks += cpr.getJunctions().size();
+        }
+
+        Assert.assertEquals(ctp.getNumKmersWithLinks(), numKmersWithLinks);
+        Assert.assertEquals(ctp.getNumLinks(), numLinks);
+    }
+
+    @Test
+    public void testLoadFormatVersion3() {
+        CortexLinks ctp = new CortexLinks("testdata/PG0063-C.ERR019060.infer.pe.k51.v3.ctp");
+
+        Assert.assertEquals(3, ctp.getVersion());
+        Assert.assertEquals(1, ctp.getNumColors());
+        Assert.assertEquals(51, ctp.getKmerSize());
+        Assert.assertEquals(21826964, ctp.getNumKmersInGraph());
+        Assert.assertEquals(71313, ctp.getNumKmersWithLinks());
+        Assert.assertEquals(1061391, ctp.getNumLinks());
+        Assert.assertEquals(2511987, ctp.getLinkBytes());
 
         int numKmersWithLinks = 0;
         int numLinks = 0;
