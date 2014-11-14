@@ -32,6 +32,7 @@
 <h1>Graph</h1>
 
 <section>
+    <select id="selectGraph"></select>
     <input type="search" id="search" placeholder="Enter name of contig" style="width: 500px">
 </section>
 
@@ -42,157 +43,215 @@
 </body>
 
 <script type="text/javascript">
+function baseColor(base) {
+    var color = "#cccccc";
+
+    switch (base) {
+        case 'A':
+        case 'a':
+            color = "#abd25e";
+            break;
+        case 'C':
+        case 'c':
+            color = "#249aa7";
+            break;
+        case 'G':
+        case 'g':
+            color = "#f8c830";
+            break;
+        case 'T':
+        case 't':
+            color = "#f1594a";
+            break;
+    }
+
+    return color;
+}
+
+d3.json("graphlist", function(json) {
+    d3.select("#selectGraph").selectAll("option").remove();
+
+    d3.select("#selectGraph")
+            .selectAll("option")
+            .data(json.graphList)
+            .enter()
+            .append("option")
+            .text(function (d) {
+                return d;
+            });
+
+    d3.select("#selectGraph")
+            .on("change", showContig);
+});
+
 d3.select("#search")
     .on("keyup", function() {
-            if (d3.event.keyCode == 13) {
-                var contigName = encodeURIComponent(d3.select("#search").property("value"));
+            if (d3.event.keyCode == 13) { showContig(); }
+        });
 
-                var width  = innerWidth,
-                    height = innerHeight;
+function showContig() {
+    var graphIndex = d3.select("#selectGraph").property("selectedIndex");
+    var graphName  = d3.select("#selectGraph").selectAll("option")[0][graphIndex].__data__;
+    var contigName = encodeURIComponent(d3.select("#search").property("value"));
 
-                d3.select("body").selectAll("svg").remove();
+    if (graphName != "" && contigName != "") {
+        var width  = innerWidth,
+            height = innerHeight;
 
-                d3.json("/search?contigName=" + contigName, function(graph) {
-                    contig = graph.contig;
-                    links = graph.links;
+        d3.json("/search?contigName=" + contigName + "&graphName=" + graphName, function (graph) {
+            contig = graph.contig;
+            links = graph.links;
 
-                    nodesWithLinks = {};
-                    graph.nodesWithLinks.forEach(function(a) { nodesWithLinks[a] = 1; });
+            nodesWithLinks = {};
+            graph.nodesWithLinks.forEach(function (a) {
+                nodesWithLinks[a] = 1;
+            });
 
-                    nodes = {};
+            nodes = {};
 
-                    links.forEach(function(link) {
-                        link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, base: link.source.split("_")[0] });
-                        link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, base: link.target.split("_")[0] });
-                        link.value = +link.value;
+            links.forEach(function (link) {
+                link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, base: link.source.charAt(0) });
+                link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, base: link.target.charAt(0) });
+                link.value = +link.value;
+            });
+
+            var force = d3.layout.force()
+                    .nodes(d3.values(nodes))
+                    .links(links)
+                    .size([width, height])
+                    .linkDistance(1)
+                    .charge(-100)
+                    .on("tick", tick)
+
+            setTimeout(function () {
+                force.start();
+                for (i = 0; i < contig.length * 1000; i++) {
+                    force.tick();
+                }
+                force.stop();
+            }, 10);
+
+            var v = d3.scale.linear().range([0, 100]);
+
+            v.domain([0, d3.max(links, function (d) {
+                return d.value;
+            })]);
+
+            d3.select("body").selectAll("svg").remove();
+
+            var svg = d3.select("body").append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+
+            var path = svg.append("svg:g").selectAll("path")
+                    .data(force.links())
+                    .enter().append("svg:path")
+                    .attr("class", "link")
+                    .attr("id", function (d) {
+                        return "link_" + d.source.name + "_" + d.target.name;
+                    })
+                    .style("stroke-width", function (d) {
+                        return Math.log(d.value) + 1.0;
+                    })
+
+            var node = svg.selectAll(".node")
+                    .data(force.nodes())
+                    .enter().append("g")
+                    .attr("id", function (d) {
+                        return d.name;
+                    })
+                    .attr("class", "node")
+                    .on("dblclick", dblclick)
+                    .call(force.drag);
+
+            node.append("circle")
+                    .attr("r", 5)
+                    .style("stroke", function (d) {
+                        return (nodesWithLinks[d.name] == 1) ? baseColor(d.base) : "white";
+                    })
+                    .style("stroke-opacity", function (d) {
+                        return (nodesWithLinks[d.name] == 1) ? 0.4 : 0.0;
+                    })
+                    .style("stroke-width", function (d) {
+                        return (nodesWithLinks[d.name] == 1) ? "9.0px" : "1.5px";
+                    })
+                    .style("fill", function (d) {
+                        return baseColor(d.base);
+                    })
+
+            node.append("text")
+                    .attr("x", 12)
+                    .attr("dy", ".35em")
+                    .style("stroke", "none")
+                    .style("stroke-width", ".5px")
+                    .style("font", "10px sans-serif")
+                    .text(function (d) {
+                        return d.base;
                     });
 
-                    var force = d3.layout.force()
-                            .nodes(d3.values(nodes))
-                            .links(links)
-                            .size([width, height])
-                            .linkDistance(1)
-                            .charge(-100)
-                            .on("tick", tick)
+            graph.kmersInLinks.forEach(function (a) {
+                for (j = 0; j < a.length - 1; j++) {
+                    var source = a[j];
+                    var target = a[j + 1];
+                    var idFw = "#link_" + source + "_" + target;
+                    var idRc = "#link_" + target + "_" + source;
 
-                    setTimeout(function() {
-                        force.start();
-                        for (i = 0; i < contig.length*1000; i++) { force.tick(); }
-                        force.stop();
-                    }, 10);
+                    d3.select(idFw)
+                            .style("stroke-width", "3px")
+                            .style("stroke", "blue")
 
-                    var v = d3.scale.linear().range([0, 100]);
+                    d3.select(idRc)
+                            .style("stroke-width", "3px")
+                            .style("stroke", "blue")
+                }
+            })
 
-                    v.domain([0, d3.max(links, function(d) { return d.value; })]);
+            function tick() {
+                path.attr("d", function (d) {
+                    return "M " + d.source.x + " " + d.source.y +
+                            "L " + d.target.x + " " + d.target.y;
+                });
 
-                    var svg = d3.select("body").append("svg")
-                            .attr("width", width)
-                            .attr("height", height);
-
-                    var path = svg.append("svg:g").selectAll("path")
-                            .data(force.links())
-                            .enter().append("svg:path")
-                            .attr("class", function(d) { return "link " + d.type; })
-                            .style("stroke-width", function(d) { return Math.log(d.value) + 1.0; })
-
-                    var node = svg.selectAll(".node")
-                            .data(force.nodes())
-                            .enter().append("g")
-                            .attr("id", function(d) { return d.name; })
-                            .attr("class", "node")
-                            .on("click", click)
-                            .on("dblclick", dblclick)
-                            .call(force.drag);
-
-                    function baseColor(base) {
-                        var color = "#cccccc";
-
-                        switch (base) {
-                            case 'A':
-                            case 'a':
-                                color = "#abd25e";
-                                break;
-                            case 'C':
-                            case 'c':
-                                color = "#249aa7";
-                                break;
-                            case 'G':
-                            case 'g':
-                                color = "#f8c830";
-                                break;
-                            case 'T':
-                            case 't':
-                                color = "#f1594a";
-                                break;
-                        }
-
-                        return color;
-                    }
-
-                    node.append("circle")
-                            .attr("r", 5)
-                            .style("stroke", function(d) {
-                                return (nodesWithLinks[d.name] == 1) ? baseColor(d.base) : "white";
-                            })
-                            .style("stroke-opacity", function(d) {
-                                return (nodesWithLinks[d.name] == 1) ? 0.4 : 0.0;
-                            })
-                            .style("stroke-width", function(d) {
-                                return (nodesWithLinks[d.name] == 1) ? "9.0px" : "1.5px";
-                            })
-                            .style("fill", function(d) {
-                                return baseColor(d.base);
-                            })
-
-                    node.append("text")
-                            .attr("x", 12)
-                            .attr("dy", ".35em")
-                            .style("stroke", "none")
-                            .style("stroke-width", ".5px")
-                            .style("font", "10px sans-serif")
-                            .text(function(d) { return d.name; });
-
-                    function tick() {
-                        path.attr("d", function(d) {
-                            return "M " + d.source.x + " " + d.source.y +
-                                   "L " + d.target.x + " " + d.target.y;
-                        });
-
-                        node.attr("transform", function(d) {
-                            return "translate(" + d.x + "," + d.y + ")";
-                        });
-                    }
-
-                    function click() {}
-
-                    function dblclick() {
-                        var isSmall = d3.select(this).select("circle").attr("r") == 5;
-
-                        if (isSmall) {
-                            d3.select(this).select("circle").transition()
-                                    .duration(500)
-                                    .attr("r", 16);
-
-                            d3.select(this).select("text").transition()
-                                    .duration(500)
-                                    .attr("x", 22)
-                                    .style("stroke-width", ".5px")
-                                    .style("font", "20px sans-serif");
-                        } else {
-                            d3.select(this).select("circle").transition()
-                                    .duration(500)
-                                    .attr("r", 5)
-
-                            d3.select(this).select("text").transition()
-                                    .duration(500)
-                                    .attr("x", 12)
-                                    .style("stroke-width", ".5px")
-                                    .style("font", "10px sans-serif");
-                        }
-                    }
+                node.attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
                 });
             }
+
+            function dblclick() {
+                var isSmall = d3.select(this).select("circle").attr("r") == 5;
+
+                if (isSmall) {
+                    d3.select(this).select("circle").transition()
+                            .duration(500)
+                            .attr("r", 16);
+
+                    d3.select(this).select("text").transition()
+                            .duration(500)
+                            .attr("x", 22)
+                            .style("stroke-width", ".5px")
+                            .style("font", "20px sans-serif")
+                            .text(function (d) {
+                                return d.name;
+                            })
+                } else {
+                    d3.select(this).select("circle").transition()
+                            .duration(500)
+                            .attr("r", 5)
+
+                    d3.select(this).select("text").transition()
+                            .duration(500)
+                            .attr("x", 12)
+                            .style("stroke-width", ".5px")
+                            .style("font", "10px sans-serif")
+                            .text(function (d) {
+                                return d.base;
+                            })
+                }
+            }
         });
+    }
+}
+
 </script>
 
 </html>
