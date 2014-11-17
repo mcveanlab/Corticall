@@ -199,7 +199,8 @@ public class CortexUtils {
                     curKmer = prevKmers.iterator().next();
                     prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
 
-                    kmersInLink.add(curKmer);
+                    //kmersInLink.add(curKmer);
+                    kmersInLink.add(0, curKmer);
                 } else {
                     char pbase = junctions.charAt(junctionsUsed);
 
@@ -209,7 +210,8 @@ public class CortexUtils {
                         curKmer = expectedPrevKmer;
                         prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
 
-                        kmersInLink.add(expectedPrevKmer);
+                        //kmersInLink.add(expectedPrevKmer);
+                        kmersInLink.add(0, expectedPrevKmer);
                     } else {
                         throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase);
                     }
