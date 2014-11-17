@@ -5,47 +5,22 @@ body {
     background-color: #FFFFFF;
 }
 
-table {
-    font-family: Lucidatypewriter, monospace;
-    font-size: 8pt;
-    border-collapse: separate;
-    border-spacing: 0px 0px;
-}
-
-#searchContigs {
-    width: 700px;
-}
-
-.contigLineUnselected {
-    stroke-opacity: 0.5;
-    stroke-width: 4.0;
-}
-
-.contigLineSelected {
-    stroke-opacity: 1.0;
-    stroke-width: 7.0;
-}
-
-#circos {
-    width: 70%;
-    float: left;
-}
-
-#annotations {
-    width: 30%;
-    float: left;
-}
-
 #viewer text {
     font-family: Lucidatypewriter, monospace;
-    font-size: 1.5px;
+    font-size: 24.0px;
+    pointer-events: all;
 }
 
-text.A { fill: #00ff00; }
-text.C { fill: #0000ff; }
-text.G { fill: #ff8000; }
-text.T { fill: #ff0000; }
-text.none { fill: #cccccc; }
+.baseA { fill: #abd25e; }
+.baseC { fill: #249aa7; }
+.baseG { fill: #f8c830; }
+.baseT { fill: #f1594a; }
+.baseN { fill: #cccccc; }
+
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
 
 .link {
     fill: none;
@@ -54,9 +29,7 @@ text.none { fill: #cccccc; }
     stroke-opacity: 0.5;
 }
 
-.kmercursor {
-    fill: none;
-    stroke: #ccc;
-    stroke-width: 0.2px;
-    stroke-opacity: 0.5;
+#kmercursor {
+    fill: #ccc;
+    stroke: none;
 }

@@ -6,6 +6,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -14,12 +15,10 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.http.BasicHandler;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -84,6 +83,47 @@ public class MarkovianGraph extends Module {
         }
     }
 
+    public enum VertexType { CONTIG, OUT, IN }
+
+    private class CtxVertex {
+        private String kmer;
+        private int pos;
+        private VertexType vertexType;
+
+        public CtxVertex(String kmer, int pos, VertexType vt) {
+            this.kmer = kmer;
+            this.pos = pos + kmer.length() - 1;
+            this.vertexType = vt;
+        }
+
+        public String getKmer() { return this.kmer; }
+        public int getPos() { return this.pos; }
+        public VertexType getVertexType() { return this.vertexType; }
+        public String getBase() { return this.kmer.substring(kmer.length() - 1); }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            CtxVertex ctxVertex = (CtxVertex) o;
+
+            if (pos != ctxVertex.pos) return false;
+            if (kmer != null ? !kmer.equals(ctxVertex.kmer) : ctxVertex.kmer != null) return false;
+            if (vertexType != ctxVertex.vertexType) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = kmer != null ? kmer.hashCode() : 0;
+            result = 31 * result + pos;
+            result = 31 * result + (vertexType != null ? vertexType.hashCode() : 0);
+            return result;
+        }
+    }
+
     private class MultiEdge extends DefaultEdge {
         private Set<String> graphNames = new HashSet<String>();
 
@@ -111,42 +151,50 @@ public class MarkovianGraph extends Module {
                     }
                 }
 
-                DirectedGraph<String, MultiEdge> g = new DefaultDirectedGraph<String, MultiEdge>(MultiEdge.class);
-                Set<String> nodesWithLinks = new HashSet<String>();
+                DirectedGraph<CtxVertex, MultiEdge> g = new DefaultDirectedGraph<CtxVertex, MultiEdge>(MultiEdge.class);
+                Set<String> verticesWithLinks = new HashSet<String>();
 
                 Set<List<String>> kmersInLinks = new HashSet<List<String>>();
 
                 for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
                     String curKmer = contig.substring(i, i + cg.getKmerSize());
                     CortexKmer ck = new CortexKmer(curKmer);
+                    CtxVertex curVer = new CtxVertex(curKmer, i, VertexType.CONTIG);
+
+                    g.addVertex(curVer);
+
+                    String expectedPrevKmer = (i > 0) ? contig.substring(i - 1, i - 1 + cg.getKmerSize()) : "";
+                    String expectedNextKmer = (i < contig.length() - cg.getKmerSize()) ? contig.substring(i + 1, i + 1 + cg.getKmerSize()) : "";
 
                     Set<String> prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
                     for (String prevKmer : prevKmers) {
-                        g.addVertex(prevKmer);
-                        g.addVertex(curKmer);
+                        if (i != 0 && !expectedPrevKmer.equals(prevKmer)) {
+                            CtxVertex prevVer = new CtxVertex(prevKmer, i - 1, VertexType.IN);
 
-                        MultiEdge me = g.containsEdge(prevKmer, curKmer) ? g.getEdge(prevKmer, curKmer) : new MultiEdge();
-                        me.addGraphName(cg.getCortexFile().getName());
+                            MultiEdge me = g.containsEdge(prevVer, curVer) ? g.getEdge(prevVer, curVer) : new MultiEdge();
+                            me.addGraphName(cg.getCortexFile().getName());
 
-                        g.addEdge(prevKmer, curKmer, me);
+                            g.addVertex(prevVer);
+                            g.addEdge(prevVer, curVer, me);
+                        }
                     }
 
                     Set<String> nextKmers = CortexUtils.getNextKmers(cg, curKmer);
                     for (String nextKmer : nextKmers) {
-                        g.addVertex(curKmer);
-                        g.addVertex(nextKmer);
+                        if (i != contig.length() - cg.getKmerSize() && !expectedNextKmer.equals(nextKmer)) {
+                            CtxVertex nextVer = new CtxVertex(nextKmer, i + 1, VertexType.OUT);
 
-                        MultiEdge me = g.containsEdge(curKmer, nextKmer) ? g.getEdge(curKmer, nextKmer) : new MultiEdge();
-                        me.addGraphName(cg.getCortexFile().getName());
+                            MultiEdge me = g.containsEdge(curVer, nextVer) ? g.getEdge(curVer, nextVer) : new MultiEdge();
+                            me.addGraphName(cg.getCortexFile().getName());
 
-                        g.addEdge(curKmer, nextKmer, me);
+                            g.addVertex(nextVer);
+                            g.addEdge(curVer, nextVer, me);
+                        }
                     }
 
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
-                            nodesWithLinks.add(curKmer);
-
-                            log.info("link: {} {} {}", cg.getKmerSize(), i, curKmer);
+                            verticesWithLinks.add(curKmer);
 
                             for (CortexJunctionsRecord cjr : link.get(ck).getJunctions()) {
                                 kmersInLinks.add(CortexUtils.getKmersInLink(cg, curKmer, cjr));
@@ -155,29 +203,50 @@ public class MarkovianGraph extends Module {
                     }
                 }
 
-                List<Map<String, Object>> gl = new ArrayList<Map<String, Object>>();
-                for (MultiEdge e : g.edgeSet()) {
-                    String kmerSource = g.getEdgeSource(e);
-                    String kmerTarget = g.getEdgeTarget(e);
-
-                    Map<String, Object> entry = new HashMap<String, Object>();
-                    entry.put("source", kmerSource);
-                    entry.put("target", kmerTarget);
-                    entry.put("graphs", e.getGraphNames());
-                    entry.put("value", e.getGraphNames().size());
-                    gl.add(entry);
-                }
-
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
-                jo.put("links", gl);
-                jo.put("nodesWithLinks", nodesWithLinks);
+                jo.put("kmerSize", cg.getKmerSize());
+
+                List<Map<String, Object>> va = new ArrayList<Map<String, Object>>();
+                for (CtxVertex v : g.vertexSet()) {
+                    Map<String, Object> vm = new HashMap<String, Object>();
+                    vm.put("base", v.getBase());
+                    vm.put("kmer", v.getKmer());
+                    vm.put("pos", v.getPos());
+                    vm.put("type", v.getVertexType().name());
+
+                    va.add(vm);
+                }
+
+                jo.put("vertices", va);
+                //jo.put("edges", g.edgeSet());
+                jo.put("verticesWithLinks", verticesWithLinks);
                 jo.put("kmersInLinks", kmersInLinks);
 
                 return jo.toString();
             }
 
             return null;
+        }
+    }
+
+    private class CtxRecordHandler extends BasicHandler {
+        @Override
+        public String process(File page, Map<String, String> query) {
+            JSONObject jo = new JSONObject();
+            jo.put("cr", "not found");
+
+            if (graphs.containsKey(query.get("graphName")) && query.containsKey("sk")) {
+                CortexGraph cg = graphs.get(query.get("graphName"));
+                CortexKmer ck = new CortexKmer(query.get("sk"));
+
+                CortexRecord cr = cg.findRecord(ck);
+                if (cr != null) {
+                    jo.put("cr", cr.toString());
+                }
+            }
+
+            return jo.toString();
         }
     }
 
@@ -223,6 +292,7 @@ public class MarkovianGraph extends Module {
             server.createContext("/", new PageHandler());
             server.createContext("/graphlist", new GraphList());
             server.createContext("/search", new SearchHandler());
+            server.createContext("/cr", new CtxRecordHandler());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
