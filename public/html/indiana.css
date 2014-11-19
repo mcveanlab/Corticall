@@ -5,6 +5,11 @@ body {
     background-color: #FFFFFF;
 }
 
+#status {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 16.0px;
+}
+
 #viewer text {
     font-family: Lucidatypewriter, monospace;
     font-size: 24.0px;

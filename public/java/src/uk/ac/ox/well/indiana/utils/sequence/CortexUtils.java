@@ -131,6 +131,22 @@ public class CortexUtils {
     }
 
     /**
+     * Flip the information in a links record to the opposite orientation
+     *
+     * @param clr  the Cortex links record
+     * @return     the flipped Cortex links record
+     */
+    public static CortexLinksRecord flipLinksRecord(CortexLinksRecord clr) {
+        String rsk = SequenceUtils.reverseComplement(clr.getKmerAsString());
+        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            cjrs.add(flipJunctionsRecord(cjr));
+        }
+
+        return new CortexLinksRecord(rsk, cjrs);
+    }
+
+    /**
      * Flip the information in a junctions record to the opposite orientation
      *
      * @param cjr  the Cortex link junctions record
@@ -185,7 +201,8 @@ public class CortexUtils {
 
                         kmersInLink.add(expectedNextKmer);
                     } else {
-                        throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase);
+                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
+                        break;
                     }
 
                     junctionsUsed++;
@@ -199,7 +216,6 @@ public class CortexUtils {
                     curKmer = prevKmers.iterator().next();
                     prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
 
-                    //kmersInLink.add(curKmer);
                     kmersInLink.add(0, curKmer);
                 } else {
                     char pbase = junctions.charAt(junctionsUsed);
@@ -210,10 +226,10 @@ public class CortexUtils {
                         curKmer = expectedPrevKmer;
                         prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
 
-                        //kmersInLink.add(expectedPrevKmer);
                         kmersInLink.add(0, expectedPrevKmer);
                     } else {
-                        throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase);
+                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
+                        break;
                     }
 
                     junctionsUsed++;
