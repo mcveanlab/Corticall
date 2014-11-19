@@ -18,13 +18,14 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.*;
 
-public class MarkovianGraph extends Module {
+public class GraphContext extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (.fasta)")
     public FastaSequenceFile CONTIGS;
 
@@ -83,7 +84,7 @@ public class MarkovianGraph extends Module {
         }
     }
 
-    public enum VertexType { CONTIG, OUT, IN }
+    public enum VertexType { CONTIG, OUT, IN, CLIPPED }
 
     private class CtxVertex {
         private String kmer;
@@ -151,15 +152,39 @@ public class MarkovianGraph extends Module {
                     }
                 }
 
-                DirectedGraph<CtxVertex, MultiEdge> g = new DefaultDirectedGraph<CtxVertex, MultiEdge>(MultiEdge.class);
-                Set<String> verticesWithLinks = new HashSet<String>();
-
-                Set<List<String>> kmersInLinks = new HashSet<List<String>>();
-
+                Set<String> contigKmers = new HashSet<String>();
                 for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
                     String curKmer = contig.substring(i, i + cg.getKmerSize());
-                    CortexKmer ck = new CortexKmer(curKmer);
-                    CtxVertex curVer = new CtxVertex(curKmer, i, VertexType.CONTIG);
+
+                    contigKmers.add(curKmer);
+                }
+
+                StringBuilder firstFlank = new StringBuilder();
+                String firstKmer = contig.substring(0, cg.getKmerSize());
+                Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer);
+                while (pks.size() == 1) {
+                    String kmer = pks.iterator().next();
+                    firstFlank.insert(0, kmer.charAt(0));
+
+                    pks = CortexUtils.getPrevKmers(cg, kmer);
+                }
+
+                StringBuilder lastFlank = new StringBuilder();
+                String lastKmer = contig.substring(contig.length() - cg.getKmerSize(), contig.length());
+                Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer);
+                while (nks.size() == 1) {
+                    String kmer = nks.iterator().next();
+                    lastFlank.append(kmer.charAt(kmer.length() - 1));
+
+                    nks = CortexUtils.getNextKmers(cg, kmer);
+                }
+
+                contig = firstFlank.toString() + contig + lastFlank.toString();
+
+                DirectedGraph<CtxVertex, MultiEdge> g = new DefaultDirectedGraph<CtxVertex, MultiEdge>(MultiEdge.class);
+                for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
+                    String curKmer = contig.substring(i, i + cg.getKmerSize());
+                    CtxVertex curVer = new CtxVertex(curKmer, i, contigKmers.contains(curKmer) ? VertexType.CONTIG : VertexType.CLIPPED);
 
                     g.addVertex(curVer);
 
@@ -168,7 +193,7 @@ public class MarkovianGraph extends Module {
 
                     Set<String> prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
                     for (String prevKmer : prevKmers) {
-                        if (i != 0 && !expectedPrevKmer.equals(prevKmer)) {
+                        if (!expectedPrevKmer.equals(prevKmer)) {
                             CtxVertex prevVer = new CtxVertex(prevKmer, i - 1, VertexType.IN);
 
                             MultiEdge me = g.containsEdge(prevVer, curVer) ? g.getEdge(prevVer, curVer) : new MultiEdge();
@@ -181,7 +206,7 @@ public class MarkovianGraph extends Module {
 
                     Set<String> nextKmers = CortexUtils.getNextKmers(cg, curKmer);
                     for (String nextKmer : nextKmers) {
-                        if (i != contig.length() - cg.getKmerSize() && !expectedNextKmer.equals(nextKmer)) {
+                        if (!expectedNextKmer.equals(nextKmer)) {
                             CtxVertex nextVer = new CtxVertex(nextKmer, i + 1, VertexType.OUT);
 
                             MultiEdge me = g.containsEdge(curVer, nextVer) ? g.getEdge(curVer, nextVer) : new MultiEdge();
@@ -191,13 +216,31 @@ public class MarkovianGraph extends Module {
                             g.addEdge(curVer, nextVer, me);
                         }
                     }
+                }
 
+                Set<Map<String, Object>> verticesWithLinks = new HashSet<Map<String, Object>>();
+                Set<Map<String, Object>> kmersInLinks = new HashSet<Map<String, Object>>();
+
+                for (CtxVertex cv : g.vertexSet()) {
+                    String sk = cv.getKmer();
+                    CortexKmer ck = new CortexKmer(sk);
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
-                            verticesWithLinks.add(curKmer);
+                            Map<String, Object> entry = new HashMap<String, Object>();
+                            entry.put("kmer", sk);
+                            entry.put("flipped", ck.isFlipped());
+                            verticesWithLinks.add(entry);
 
-                            for (CortexJunctionsRecord cjr : link.get(ck).getJunctions()) {
-                                kmersInLinks.add(CortexUtils.getKmersInLink(cg, curKmer, cjr));
+                            CortexLinksRecord clr = link.get(ck);
+                            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                                int cov = cjr.getCoverage(0);
+                                List<String> kmersInLink = CortexUtils.getKmersInLink(cg, sk, cjr);
+
+                                Map<String, Object> kl = new HashMap<String, Object>();
+                                kl.put("kmers", kmersInLink);
+                                kl.put("cov", cov);
+
+                                kmersInLinks.add(kl);
                             }
                         }
                     }
@@ -206,6 +249,8 @@ public class MarkovianGraph extends Module {
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
                 jo.put("kmerSize", cg.getKmerSize());
+                jo.put("clipStart", firstFlank.length());
+                jo.put("clipEnd", contig.length() - lastFlank.length());
 
                 List<Map<String, Object>> va = new ArrayList<Map<String, Object>>();
                 for (CtxVertex v : g.vertexSet()) {
@@ -219,7 +264,6 @@ public class MarkovianGraph extends Module {
                 }
 
                 jo.put("vertices", va);
-                //jo.put("edges", g.edgeSet());
                 jo.put("verticesWithLinks", verticesWithLinks);
                 jo.put("kmersInLinks", kmersInLinks);
 
@@ -238,12 +282,68 @@ public class MarkovianGraph extends Module {
 
             if (graphs.containsKey(query.get("graphName")) && query.containsKey("sk")) {
                 CortexGraph cg = graphs.get(query.get("graphName"));
+
                 CortexKmer ck = new CortexKmer(query.get("sk"));
 
                 CortexRecord cr = cg.findRecord(ck);
                 if (cr != null) {
-                    jo.put("cr", cr.toString());
+                    String text = cr.toString();
+
+                    String sampleName = cg.getColor(0).getSampleName();
+                    for (CortexLinksMap link : LINKS) {
+                        if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
+                            if (link.containsKey(ck)) {
+                                CortexLinksRecord clr = link.get(ck);
+                                int cov = 0;
+                                for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                                    cov += cjr.getCoverage(0);
+                                }
+
+                                text += " (" + cov + " links)";
+                            }
+                        }
+                    }
+
+                    jo.put("cr", text);
                 }
+
+            }
+
+            return jo.toString();
+        }
+    }
+
+    private class LinksHandler extends BasicHandler {
+        @Override
+        public String process(File page, Map<String, String> query) {
+            JSONObject jo = new JSONObject();
+            jo.put("tip", "");
+
+            if (graphs.containsKey(query.get("graphName")) && query.containsKey("sk")) {
+                CortexGraph cg = graphs.get(query.get("graphName"));
+
+                CortexKmer ck = new CortexKmer(query.get("sk"));
+
+                CortexRecord cr = cg.findRecord(ck);
+                if (cr != null) {
+                    String sampleName = cg.getColor(0).getSampleName();
+                    for (CortexLinksMap link : LINKS) {
+                        if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
+                            if (link.containsKey(ck)) {
+                                CortexLinksRecord clr = link.get(ck);
+
+                                if (ck.isFlipped()) {
+                                    clr = CortexUtils.flipLinksRecord(clr);
+                                }
+
+                                jo.put("tip", clr.toString().replaceAll("\n", ", "));
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
             }
 
             return jo.toString();
@@ -293,6 +393,7 @@ public class MarkovianGraph extends Module {
             server.createContext("/graphlist", new GraphList());
             server.createContext("/search", new SearchHandler());
             server.createContext("/cr", new CtxRecordHandler());
+            server.createContext("/links", new LinksHandler());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {

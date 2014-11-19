@@ -100,9 +100,7 @@ function showContig() {
     var graphName = d3.select("#selectGraph").selectAll("option")[0][graphIndex].__data__;
     var contigName = encodeURIComponent(d3.select("#search").property("value"));
 
-    d3.select("#status").text("Working...");
-
-    if (graphName != null && contigName != null) {
+    if (graphName != null && contigName != null && graphName != "" && contigName != "") {
         switch (displayType) {
             case "linear":
                 showContigAsLinear(contigName, graphName);
@@ -136,18 +134,25 @@ function showContigAsLinear(contigName, graphName) {
                 svg.append("rect")
                         .attr("class", "overlay")
                         .attr("width", width * 10)
-                        .attr("height", height);
+                        .attr("height", height * 10);
 
                 var edgeBases = graph.vertices.filter(function (d) {
-                    return d.type != "CONTIG";
+                    return d.type != "CONTIG" && d.type != "CLIPPED";
                 });
 
+                var usedBases = {};
                 edgeBases.forEach(function (d) {
+                    if (!(d.pos in usedBases)) {
+                        usedBases[d.pos] = 1;
+                    } else {
+                        usedBases[d.pos]++;
+                    }
+
                     var xpos1 = (d.type == "OUT") ? 20.0 * d.pos : 20.0 * (d.pos - graph.kmerSize + 1);
                     var ypos1 = (height / 2) - 7;
 
                     var xpos2 = (d.type == "OUT") ? 20.0 * d.pos : 20.0 * (d.pos - graph.kmerSize + 1);
-                    var ypos2 = (d.type == "OUT") ? (height / 2) - 60 : (height / 2) + 60;
+                    var ypos2 = (d.type == "OUT") ? (height / 2) - usedBases[d.pos]*60 : (height / 2) + usedBases[d.pos]*60;
 
                     var base = (d.type == "OUT") ? d.kmer.charAt(d.kmer.length - 1) : d.kmer.charAt(0);
 
@@ -161,16 +166,65 @@ function showContigAsLinear(contigName, graphName) {
                             .style("stroke-opacity", 0.9)
 
                     svg.append("text")
-                            .attr("id", "edgebase")
+                            .attr("id", d.kmer)
                             .attr("class", "base" + base)
                             .attr("text-anchor", "middle")
                             .attr("x", xpos2)
                             .attr("y", ypos2)
-                            .text(base);
+                            //.text(d.pos < graph.kmerSize - 1 || d.pos >= graph.contig.length + graph.kmerSize - 1 ? base.toLowerCase() : base)
+                            .text(base)
+                            .on("click", function(a) {
+                                var sk = d3.select(this).attr("id");
+
+                                d3.json("/cr?graphName=" + graphName + "&sk=" + sk)
+                                        .on("progress", function () {
+                                            d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
+                                        })
+                                        .on("load", function (json) {
+                                            d3.select("#status").text(sk + ": " + json.cr);
+                                        })
+                                        .get();
+                            })
                 })
 
                 var contigKmers = graph.vertices.filter(function(d) {
-                    return d.type == "CONTIG";
+                    return d.type == "CONTIG" || d.type == "CLIPPED";
+                })
+
+                contigKmers.forEach(function(d) {
+                    svg.append("text")
+                            .attr("id", d.kmer)
+                            .attr("class", "base" + d.kmer.charAt(0))
+                            .attr("text-anchor", "middle")
+                            .attr("x", 20*(d.pos - graph.kmerSize + 1))
+                            .attr("y", height / 2)
+                            //.text(d.pos < graph.kmerSize - 1 || d.pos >= graph.contig.length + graph.kmerSize - 1 ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
+                            .text(d.kmer.charAt(0))
+                            .on("mouseover", function(a) {
+                                svg.append("rect")
+                                        .attr("id", "kmercursor")
+                                        .attr("width", 20.0 * graph.kmerSize)
+                                        .attr("height", 3.0)
+                                        .attr("x", parseInt(d3.select(this).attr("x")) - 10)
+                                        .attr("y", (height / 2) + 2)
+                            })
+                            .on("mouseout", function(a) {
+                                svg.selectAll("#kmercursor")
+                                        .remove();
+
+                            })
+                            .on("click", function(a) {
+                                var sk = d3.select(this).attr("id");
+
+                                d3.json("/cr?graphName=" + graphName + "&sk=" + sk)
+                                        .on("progress", function() {
+                                            d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
+                                        })
+                                        .on("load", function(json) {
+                                            d3.select("#status").text(sk + ": " + json.cr);
+                                        })
+                                        .get();
+                            })
                 })
 
                 var lastContigKmer = contigKmers[0];
@@ -180,42 +234,6 @@ function showContigAsLinear(contigName, graphName) {
                     }
                 });
 
-                svg.selectAll("text")
-                        .data(contigKmers)
-                        .enter()
-                        .append("text")
-                        .attr("id", function(d) { return d.kmer; })
-                        .attr("class", function(d) { return "base" + d.kmer.charAt(0); })
-                        .attr("text-anchor", "middle")
-                        .attr("x", function(d) { return 20*(d.pos - graph.kmerSize + 1); })
-                        .attr("y", height / 2)
-                        .text(function(d) { return d.kmer.charAt(0); })
-                        .on("mouseover", function(a) {
-                            svg.append("rect")
-                                    .attr("id", "kmercursor")
-                                    .attr("width", 20.0 * graph.kmerSize)
-                                    .attr("height", 3.0)
-                                    .attr("x", parseInt(d3.select(this).attr("x")) - 10)
-                                    .attr("y", (height / 2) + 2)
-                        })
-                        .on("mouseout", function(a) {
-                            svg.selectAll("#kmercursor")
-                                    .remove();
-
-                        })
-                        .on("click", function(a) {
-                            var sk = d3.select(this).attr("id");
-
-                            d3.json("/cr?graphName=" + graphName + "&sk=" + sk)
-                                    .on("progress", function() {
-                                        d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
-                                    })
-                                    .on("load", function(json) {
-                                        d3.select("#status").text(sk + ": " + json.cr);
-                                    })
-                                    .get();
-                        })
-
                 for (var i = 1; i < lastContigKmer.kmer.length; i++) {
                     svg.append("text")
                             .attr("id", "lastKmer")
@@ -223,8 +241,79 @@ function showContigAsLinear(contigName, graphName) {
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(lastContigKmer.pos - graph.kmerSize + 1 + i))
                             .attr("y", height / 2)
+                            //.text(lastContigKmer.kmer.charAt(i).toLowerCase())
                             .text(lastContigKmer.kmer.charAt(i))
                 }
+
+                graph.verticesWithLinks.forEach(function(d) {
+                    var id = "#" + d.kmer;
+                    var x = parseInt(d3.select(id).attr("x"));
+                    var y = parseInt(d3.select(id).attr("y"));
+                    if (d.flipped && y > (height/2) - 30 && y < (height/2) + 30) {
+                        x += 20.0 * (d.kmer.length - 1);
+                    }
+
+                    svg.append("circle")
+                            .attr("cx", x)
+                            .attr("cy", y - 25)
+                            .attr("r", 4)
+                            .style("stroke", d.flipped && y > (height/2) - 30 && y < (height/2) + 30 ? "#0000ff" : "#ff0000")
+                            .style("stroke-width", 3.0)
+                            .style("fill", "white")
+                            .on("click", function() {
+                                d3.json("/links?graphName=" + graphName + "&sk=" + d.kmer)
+                                        .on("progress", function() {
+                                            d3.select("#status").text("Fetching link information...");
+                                        })
+                                        .on("load", function(json) {
+                                            d3.select("#status").text(json.tip);
+                                        })
+                                        .get();
+                            })
+                })
+
+                graph.kmersInLinks.forEach(function(d) {
+                    for (i = 0; i < d.kmers.length - 1; i++) {
+                        var k1 = d.kmers[i];
+                        var k2 = d.kmers[i + 1];
+
+                        if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty()) {
+                            var x1 = d3.select("#" + k1).attr("x");
+                            var y1 = parseInt(d3.select("#" + k1).attr("y")) + (i+1)*20;
+                            var x2 = d3.select("#" + k2).attr("x");
+                            var y2 = parseInt(d3.select("#" + k2).attr("y")) + (i+1)*20;
+
+                            if (x2 - x1 > 20) {
+                                svg.append("line")
+                                        .attr("x1", x1)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2 - 20)
+                                        .attr("y2", y1)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(d.cov))
+                                        .style("stroke-opacity", 0.5)
+
+                                svg.append("line")
+                                        .attr("x1", x2 - 20)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2)
+                                        .attr("y2", y2)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(d.cov))
+                                        .style("stroke-opacity", 0.5)
+                            } else {
+                                svg.append("line")
+                                        .attr("x1", x1)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2)
+                                        .attr("y2", y2)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(d.cov))
+                                        .style("stroke-opacity", 0.5)
+                            }
+                        }
+                    }
+                })
 
                 d3.select("#status").text("Ready.");
 
