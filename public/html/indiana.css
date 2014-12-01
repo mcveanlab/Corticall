@@ -38,3 +38,7 @@ body {
     fill: #ccc;
     stroke: none;
 }
+
+#cov {
+    fill: #ccc;
+}

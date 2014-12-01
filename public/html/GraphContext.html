@@ -96,6 +96,8 @@ d3.select("#search").on("keyup", function () {
 });
 
 function showContig() {
+    d3.select("#status").text("Requesting data...");
+
     var graphIndex = d3.select("#selectGraph").property("selectedIndex");
     var graphName = d3.select("#selectGraph").selectAll("option")[0][graphIndex].__data__;
     var contigName = encodeURIComponent(d3.select("#search").property("value"));
@@ -113,8 +115,9 @@ function showContig() {
 }
 
 function showContigAsLinear(contigName, graphName) {
-    var width = innerWidth,
-            height = innerHeight;
+    var width  = innerWidth,
+        height = innerHeight;
+    var covOffset = 220;
 
     d3.json("/search?contigName=" + contigName + "&graphName=" + graphName)
             .on("progress", function () {
@@ -142,17 +145,18 @@ function showContigAsLinear(contigName, graphName) {
 
                 var usedBases = {};
                 edgeBases.forEach(function (d) {
-                    if (!(d.pos in usedBases)) {
-                        usedBases[d.pos] = 1;
+                    var id = d.pos + "_" + d.type;
+                    if (!(id in usedBases)) {
+                        usedBases[id] = 1;
                     } else {
-                        usedBases[d.pos]++;
+                        usedBases[id]++;
                     }
 
                     var xpos1 = (d.type == "OUT") ? 20.0 * d.pos : 20.0 * (d.pos - graph.kmerSize + 1);
                     var ypos1 = (height / 2) - 7;
 
                     var xpos2 = (d.type == "OUT") ? 20.0 * d.pos : 20.0 * (d.pos - graph.kmerSize + 1);
-                    var ypos2 = (d.type == "OUT") ? (height / 2) - usedBases[d.pos]*60 : (height / 2) + usedBases[d.pos]*60;
+                    var ypos2 = (d.type == "OUT") ? (height / 2) - usedBases[id]*60 : (height / 2) + usedBases[id]*60;
 
                     var base = (d.type == "OUT") ? d.kmer.charAt(d.kmer.length - 1) : d.kmer.charAt(0);
 
@@ -162,17 +166,16 @@ function showContigAsLinear(contigName, graphName) {
                             .attr("x2", xpos2)
                             .attr("y2", (d.type == "OUT") ? ypos2 : ypos2 - 14)
                             .style("stroke", "#ccc")
-                            .style("stroke-width", "3.0px")
-                            .style("stroke-opacity", 0.9)
+                            .style("stroke-width", "2.0px")
+                            .style("stroke-opacity", 0.6)
 
                     svg.append("text")
                             .attr("id", d.kmer)
-                            .attr("class", "base" + base)
+                            .attr("class", d.type == "CLIPPED" ? "base" + base + "noncontig" : "base" + base)
                             .attr("text-anchor", "middle")
                             .attr("x", xpos2)
                             .attr("y", ypos2)
-                            //.text(d.pos < graph.kmerSize - 1 || d.pos >= graph.contig.length + graph.kmerSize - 1 ? base.toLowerCase() : base)
-                            .text(base)
+                            .text(d.type != "CONTIG" ? base.toLowerCase() : base)
                             .on("click", function(a) {
                                 var sk = d3.select(this).attr("id");
 
@@ -181,7 +184,7 @@ function showContigAsLinear(contigName, graphName) {
                                             d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
                                         })
                                         .on("load", function (json) {
-                                            d3.select("#status").text(sk + ": " + json.cr);
+                                            d3.select("#status").text(json.cr);
                                         })
                                         .get();
                             })
@@ -191,15 +194,19 @@ function showContigAsLinear(contigName, graphName) {
                     return d.type == "CONTIG" || d.type == "CLIPPED";
                 })
 
+                var highestCoverage = 0;
+
                 contigKmers.forEach(function(d) {
                     svg.append("text")
                             .attr("id", d.kmer)
-                            .attr("class", "base" + d.kmer.charAt(0))
+                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
+                            //.attr("class", "base" + d.kmer.charAt(0))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(d.pos - graph.kmerSize + 1))
                             .attr("y", height / 2)
-                            //.text(d.pos < graph.kmerSize - 1 || d.pos >= graph.contig.length + graph.kmerSize - 1 ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
-                            .text(d.kmer.charAt(0))
+                            .style("text-decoration", d.missing ? "line-through" : "none")
+                            .text(d.type != "CONTIG" ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
+                            //.text(d.kmer.charAt(0))
                             .on("mouseover", function(a) {
                                 svg.append("rect")
                                         .attr("id", "kmercursor")
@@ -209,9 +216,7 @@ function showContigAsLinear(contigName, graphName) {
                                         .attr("y", (height / 2) + 2)
                             })
                             .on("mouseout", function(a) {
-                                svg.selectAll("#kmercursor")
-                                        .remove();
-
+                                svg.selectAll("#kmercursor") .remove();
                             })
                             .on("click", function(a) {
                                 var sk = d3.select(this).attr("id");
@@ -221,11 +226,64 @@ function showContigAsLinear(contigName, graphName) {
                                             d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
                                         })
                                         .on("load", function(json) {
-                                            d3.select("#status").text(sk + ": " + json.cr);
+                                            d3.select("#status").text(json.cr);
                                         })
                                         .get();
                             })
+
+                    svg.append("rect")
+                            .attr("id", "cov")
+                            .attr("class", "cov")
+                            .attr("x", 20*(d.pos - graph.kmerSize + 1))
+                            .attr("y", (height/2) - covOffset - d.cov - 5)
+                            .attr("width", 20)
+                            .attr("height", d.cov + 5)
+                            .on("mouseover", function() {
+                                d3.select(this).style("fill", "#ddd");
+
+                                svg.append("text")
+                                        .attr("id", "covtip")
+                                        .attr("x", 20*(d.pos - graph.kmerSize + 1))
+                                        .attr("y", (height/2) - covOffset - d.cov - 20)
+                                        .text(d.cov);
+
+                                svg.append("rect")
+                                        .attr("id", "kmercursor")
+                                        .attr("width", 20.0 * graph.kmerSize)
+                                        .attr("height", 3.0)
+                                        .attr("x", parseInt(d3.select(this).attr("x")) - 10)
+                                        .attr("y", (height / 2) + 2)
+                            })
+                            .on("mouseout", function() {
+                                d3.select(this).style("fill", "#ccc");
+
+                                svg.selectAll("#covtip").remove();
+                                svg.selectAll("#kmercursor") .remove();
+                            })
+
+                    if (d.cov > highestCoverage) {
+                        highestCoverage = d.cov;
+                    }
                 })
+
+                var gridlines = [];
+                for (i = 50; i < highestCoverage; i += 50) {
+                    gridlines.push(i);
+                }
+
+                svg.selectAll("#gridline")
+                        .data(gridlines)
+                        .enter()
+                        .append("line")
+                        .attr("id", "gridline")
+                        .attr("class", function(d) { return "gridline_" + d })
+                        .attr("x1", 0)
+                        .attr("y1", function(d) { return (height/2) - covOffset - 5 - d })
+                        .attr("x2", 10*width)
+                        .attr("y2", function(d) { return (height/2) - covOffset - 5 - d })
+                        .style("stroke-width", 1)
+                        .style("stroke-opacity", 0.5)
+                        .style("stroke", "white");
 
                 var lastContigKmer = contigKmers[0];
                 contigKmers.forEach(function(contigKmer) {
@@ -235,14 +293,16 @@ function showContigAsLinear(contigName, graphName) {
                 });
 
                 for (var i = 1; i < lastContigKmer.kmer.length; i++) {
+                    var d = lastContigKmer;
                     svg.append("text")
                             .attr("id", "lastKmer")
-                            .attr("class", "base" + lastContigKmer.kmer.charAt(i))
+                            //.attr("class", "base" + lastContigKmer.kmer.charAt(i))
+                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(i) + "noncontig" : "base" + d.kmer.charAt(i))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(lastContigKmer.pos - graph.kmerSize + 1 + i))
                             .attr("y", height / 2)
-                            //.text(lastContigKmer.kmer.charAt(i).toLowerCase())
-                            .text(lastContigKmer.kmer.charAt(i))
+                            //.text(lastContigKmer.kmer.charAt(i))
+                            .text(d.type != "CONTIG" ? d.kmer.charAt(i).toLowerCase() : d.kmer.charAt(i))
                 }
 
                 graph.verticesWithLinks.forEach(function(d) {
@@ -253,12 +313,77 @@ function showContigAsLinear(contigName, graphName) {
                         x += 20.0 * (d.kmer.length - 1);
                     }
 
+                    if (!d3.select(id).empty()) {
+                        var kx = parseInt(d3.select(id).attr("x"));
+                        var ky = parseInt(d3.select(id).attr("y")) - 8;
+
+                        svg.append("line")
+                                .attr("id", "link_" + d.kmer)
+                                .attr("x1", kx)
+                                .attr("y1", ky)
+                                .attr("x2", kx + (ky > (height/2) - 30 && ky < (height/2) + 30 ? 20*(d.kmer.length - 1) : 0))
+                                .attr("y2", ky)
+                                .style("stroke", "#ccc")
+                                .style("stroke-width", 1)
+                                .style("stroke-opacity", 0.0)
+                    }
+
+                    for (var i = 0; i < d.kl.length - 1; i++) {
+                        var lr = d.kl[i];
+
+                        for (var j = 0; j < lr.kmers.length - 1; j++) {
+                            var k1 = lr.kmers[j];
+                            var k2 = lr.kmers[j + 1];
+
+                            if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty()) {
+                                var x1 = d3.select("#" + k1).attr("x");
+                                var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8;
+                                var x2 = d3.select("#" + k2).attr("x");
+                                var y2 = parseInt(d3.select("#" + k2).attr("y")) - 8;
+
+                                if (x2 - x1 > 20) {
+                                    svg.append("line")
+                                            .attr("id", "link_" + d.kmer)
+                                            .attr("x1", x1)
+                                            .attr("y1", y1)
+                                            .attr("x2", x2 - 20)
+                                            .attr("y2", y1)
+                                            .style("stroke", "#ccc")
+                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-opacity", 0.0)
+
+                                    svg.append("line")
+                                            .attr("id", "link_" + d.kmer)
+                                            .attr("x1", x2 - 20)
+                                            .attr("y1", y1)
+                                            .attr("x2", x2)
+                                            .attr("y2", y2)
+                                            .style("stroke", "#ccc")
+                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-opacity", 0.0)
+                                } else {
+                                    svg.append("line")
+                                            .attr("id", "link_" + d.kmer)
+                                            .attr("x1", x1)
+                                            .attr("y1", y1)
+                                            .attr("x2", x2)
+                                            .attr("y2", y2)
+                                            .style("stroke", "#ccc")
+                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-opacity", 0.0)
+                                }
+                            }
+                        }
+                    }
+
                     svg.append("circle")
+                            .attr("id", "haslinks_" + d.kmer)
                             .attr("cx", x)
                             .attr("cy", y - 25)
                             .attr("r", 4)
                             .style("stroke", d.flipped && y > (height/2) - 30 && y < (height/2) + 30 ? "#0000ff" : "#ff0000")
                             .style("stroke-width", 3.0)
+                            //.style("stroke", "#ccc")
                             .style("fill", "white")
                             .on("click", function() {
                                 d3.json("/links?graphName=" + graphName + "&sk=" + d.kmer)
@@ -270,49 +395,28 @@ function showContigAsLinear(contigName, graphName) {
                                         })
                                         .get();
                             })
-                })
+                            .on("mouseover", function() {
+                                d3.select(this)
+                                        .style("stroke", "#dc3522")
+                                        .style("fill", "#dc3522")
 
-                graph.kmersInLinks.forEach(function(d) {
-                    for (i = 0; i < d.kmers.length - 1; i++) {
-                        var k1 = d.kmers[i];
-                        var k2 = d.kmers[i + 1];
-
-                        if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty()) {
-                            var x1 = d3.select("#" + k1).attr("x");
-                            var y1 = parseInt(d3.select("#" + k1).attr("y")) + (i+1)*20;
-                            var x2 = d3.select("#" + k2).attr("x");
-                            var y2 = parseInt(d3.select("#" + k2).attr("y")) + (i+1)*20;
-
-                            if (x2 - x1 > 20) {
-                                svg.append("line")
-                                        .attr("x1", x1)
-                                        .attr("y1", y1)
-                                        .attr("x2", x2 - 20)
-                                        .attr("y2", y1)
+                                d3.selectAll("#link_" + d.kmer)
+                                        .style("stroke", "#dc3522")
+                                        .style("stroke-opacity", 0.9)
+                            })
+                            .on("mouseout", function() {
+                                d3.select(this)
+                                        .transition()
+                                        .duration(1000)
                                         .style("stroke", "#ccc")
-                                        .style("stroke-width", Math.log(d.cov))
-                                        .style("stroke-opacity", 0.5)
+                                        .style("fill", "white")
 
-                                svg.append("line")
-                                        .attr("x1", x2 - 20)
-                                        .attr("y1", y1)
-                                        .attr("x2", x2)
-                                        .attr("y2", y2)
+                                d3.selectAll("#link_" + d.kmer)
+                                        .transition()
+                                        .duration(1000)
                                         .style("stroke", "#ccc")
-                                        .style("stroke-width", Math.log(d.cov))
-                                        .style("stroke-opacity", 0.5)
-                            } else {
-                                svg.append("line")
-                                        .attr("x1", x1)
-                                        .attr("y1", y1)
-                                        .attr("x2", x2)
-                                        .attr("y2", y2)
-                                        .style("stroke", "#ccc")
-                                        .style("stroke-width", Math.log(d.cov))
-                                        .style("stroke-opacity", 0.5)
-                            }
-                        }
-                    }
+                                        .style("stroke-opacity", 0.0)
+                            });
                 })
 
                 d3.select("#status").text("Ready.");
