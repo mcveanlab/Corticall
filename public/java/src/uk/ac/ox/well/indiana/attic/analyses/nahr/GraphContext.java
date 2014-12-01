@@ -17,9 +17,11 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -27,7 +29,7 @@ import java.util.*;
 
 public class GraphContext extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (.fasta)")
-    public FastaSequenceFile CONTIGS;
+    public File CONTIGS;
 
     @Argument(fullName="graph", shortName="g", doc="Graph (.ctx)")
     public LinkedHashSet<CortexGraph> GRAPHS;
@@ -90,17 +92,23 @@ public class GraphContext extends Module {
         private String kmer;
         private int pos;
         private VertexType vertexType;
+        private boolean missingFromGraph;
+        private int cov;
 
-        public CtxVertex(String kmer, int pos, VertexType vt) {
+        public CtxVertex(String kmer, int pos, VertexType vt, CortexRecord cr) {
             this.kmer = kmer;
             this.pos = pos + kmer.length() - 1;
             this.vertexType = vt;
+            this.missingFromGraph = (cr == null);
+            this.cov = (cr == null) ? 0 : cr.getCoverage(0);
         }
 
         public String getKmer() { return this.kmer; }
         public int getPos() { return this.pos; }
         public VertexType getVertexType() { return this.vertexType; }
         public String getBase() { return this.kmer.substring(kmer.length() - 1); }
+        public boolean isMissingFromGraph() { return this.missingFromGraph; }
+        public int getCoverage() { return this.cov; }
 
         @Override
         public boolean equals(Object o) {
@@ -109,6 +117,8 @@ public class GraphContext extends Module {
 
             CtxVertex ctxVertex = (CtxVertex) o;
 
+            if (cov != ctxVertex.cov) return false;
+            if (missingFromGraph != ctxVertex.missingFromGraph) return false;
             if (pos != ctxVertex.pos) return false;
             if (kmer != null ? !kmer.equals(ctxVertex.kmer) : ctxVertex.kmer != null) return false;
             if (vertexType != ctxVertex.vertexType) return false;
@@ -121,6 +131,8 @@ public class GraphContext extends Module {
             int result = kmer != null ? kmer.hashCode() : 0;
             result = 31 * result + pos;
             result = 31 * result + (vertexType != null ? vertexType.hashCode() : 0);
+            result = 31 * result + (missingFromGraph ? 1 : 0);
+            result = 31 * result + cov;
             return result;
         }
     }
@@ -140,6 +152,13 @@ public class GraphContext extends Module {
     private class SearchHandler extends BasicHandler {
         @Override
         public String process(File page, Map<String, String> query) {
+            loadContigs();
+
+            if (query.get("contigName").matches("^[ACGT]+$")) {
+                contigs.put("manual", query.get("contigName"));
+                query.put("contigName", "manual");
+            }
+
             if (query.containsKey("contigName") && contigs.containsKey(query.get("contigName")) && graphs.containsKey(query.get("graphName"))) {
                 String contig = contigs.get(query.get("contigName"));
                 CortexGraph cg = graphs.get(query.get("graphName"));
@@ -162,9 +181,16 @@ public class GraphContext extends Module {
                 StringBuilder firstFlank = new StringBuilder();
                 String firstKmer = contig.substring(0, cg.getKmerSize());
                 Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer);
-                while (pks.size() == 1) {
+                Set<String> usedPrevKmers = new HashSet<String>();
+                usedPrevKmers.add(firstKmer);
+                while (pks.size() == 1 && usedPrevKmers.size() <= 500) {
                     String kmer = pks.iterator().next();
                     firstFlank.insert(0, kmer.charAt(0));
+
+                    if (usedPrevKmers.contains(kmer)) {
+                        break;
+                    }
+                    usedPrevKmers.add(kmer);
 
                     pks = CortexUtils.getPrevKmers(cg, kmer);
                 }
@@ -172,9 +198,16 @@ public class GraphContext extends Module {
                 StringBuilder lastFlank = new StringBuilder();
                 String lastKmer = contig.substring(contig.length() - cg.getKmerSize(), contig.length());
                 Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer);
-                while (nks.size() == 1) {
+                Set<String> usedNextKmers = new HashSet<String>();
+                usedNextKmers.add(lastKmer);
+                while (nks.size() == 1 && usedNextKmers.size() <= 500) {
                     String kmer = nks.iterator().next();
                     lastFlank.append(kmer.charAt(kmer.length() - 1));
+
+                    if (usedNextKmers.contains(kmer)) {
+                        break;
+                    }
+                    usedNextKmers.add(kmer);
 
                     nks = CortexUtils.getNextKmers(cg, kmer);
                 }
@@ -184,7 +217,8 @@ public class GraphContext extends Module {
                 DirectedGraph<CtxVertex, MultiEdge> g = new DefaultDirectedGraph<CtxVertex, MultiEdge>(MultiEdge.class);
                 for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
                     String curKmer = contig.substring(i, i + cg.getKmerSize());
-                    CtxVertex curVer = new CtxVertex(curKmer, i, contigKmers.contains(curKmer) ? VertexType.CONTIG : VertexType.CLIPPED);
+                    CortexKmer ck = new CortexKmer(curKmer);
+                    CtxVertex curVer = new CtxVertex(curKmer, i, contigKmers.contains(curKmer) ? VertexType.CONTIG : VertexType.CLIPPED, cg.findRecord(ck));
 
                     g.addVertex(curVer);
 
@@ -194,7 +228,8 @@ public class GraphContext extends Module {
                     Set<String> prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
                     for (String prevKmer : prevKmers) {
                         if (!expectedPrevKmer.equals(prevKmer)) {
-                            CtxVertex prevVer = new CtxVertex(prevKmer, i - 1, VertexType.IN);
+                            CortexKmer pk = new CortexKmer(prevKmer);
+                            CtxVertex prevVer = new CtxVertex(prevKmer, i - 1, VertexType.IN, cg.findRecord(pk));
 
                             MultiEdge me = g.containsEdge(prevVer, curVer) ? g.getEdge(prevVer, curVer) : new MultiEdge();
                             me.addGraphName(cg.getCortexFile().getName());
@@ -207,7 +242,8 @@ public class GraphContext extends Module {
                     Set<String> nextKmers = CortexUtils.getNextKmers(cg, curKmer);
                     for (String nextKmer : nextKmers) {
                         if (!expectedNextKmer.equals(nextKmer)) {
-                            CtxVertex nextVer = new CtxVertex(nextKmer, i + 1, VertexType.OUT);
+                            CortexKmer nk = new CortexKmer(nextKmer);
+                            CtxVertex nextVer = new CtxVertex(nextKmer, i + 1, VertexType.OUT, cg.findRecord(nk));
 
                             MultiEdge me = g.containsEdge(curVer, nextVer) ? g.getEdge(curVer, nextVer) : new MultiEdge();
                             me.addGraphName(cg.getCortexFile().getName());
@@ -219,17 +255,13 @@ public class GraphContext extends Module {
                 }
 
                 Set<Map<String, Object>> verticesWithLinks = new HashSet<Map<String, Object>>();
-                Set<Map<String, Object>> kmersInLinks = new HashSet<Map<String, Object>>();
 
                 for (CtxVertex cv : g.vertexSet()) {
                     String sk = cv.getKmer();
                     CortexKmer ck = new CortexKmer(sk);
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
-                            Map<String, Object> entry = new HashMap<String, Object>();
-                            entry.put("kmer", sk);
-                            entry.put("flipped", ck.isFlipped());
-                            verticesWithLinks.add(entry);
+                            Set<Map<String, Object>> kls = new HashSet<Map<String, Object>>();
 
                             CortexLinksRecord clr = link.get(ck);
                             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
@@ -240,8 +272,15 @@ public class GraphContext extends Module {
                                 kl.put("kmers", kmersInLink);
                                 kl.put("cov", cov);
 
-                                kmersInLinks.add(kl);
+                                kls.add(kl);
                             }
+
+                            Map<String, Object> entry = new HashMap<String, Object>();
+                            entry.put("kmer", sk);
+                            entry.put("flipped", ck.isFlipped());
+                            entry.put("kl", kls);
+
+                            verticesWithLinks.add(entry);
                         }
                     }
                 }
@@ -259,13 +298,14 @@ public class GraphContext extends Module {
                     vm.put("kmer", v.getKmer());
                     vm.put("pos", v.getPos());
                     vm.put("type", v.getVertexType().name());
+                    vm.put("missing", v.isMissingFromGraph());
+                    vm.put("cov", v.getCoverage());
 
                     va.add(vm);
                 }
 
                 jo.put("vertices", va);
                 jo.put("verticesWithLinks", verticesWithLinks);
-                jo.put("kmersInLinks", kmersInLinks);
 
                 return jo.toString();
             }
@@ -281,6 +321,8 @@ public class GraphContext extends Module {
             jo.put("cr", "not found");
 
             if (graphs.containsKey(query.get("graphName")) && query.containsKey("sk")) {
+                jo.put("cr", query.get("sk") + " not found");
+
                 CortexGraph cg = graphs.get(query.get("graphName"));
 
                 CortexKmer ck = new CortexKmer(query.get("sk"));
@@ -288,6 +330,19 @@ public class GraphContext extends Module {
                 CortexRecord cr = cg.findRecord(ck);
                 if (cr != null) {
                     String text = cr.toString();
+                    if (ck.isFlipped()) {
+                        String info = query.get("sk");
+
+                        for (int coverage : cr.getCoverages()) {
+                            info += " " + coverage;
+                        }
+
+                        for (String edge : cr.getEdgeAsStrings()) {
+                            info += " " + SequenceUtils.reverseComplement(edge);
+                        }
+
+                        text = info;
+                    }
 
                     String sampleName = cg.getColor(0).getSampleName();
                     for (CortexLinksMap link : LINKS) {
@@ -351,9 +406,13 @@ public class GraphContext extends Module {
     }
 
     private void loadContigs() {
+        contigs = new HashMap<String, String>();
+
+        FastaSequenceFile fasta = new FastaSequenceFile(CONTIGS, false);
         ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
-            contigs.put(rseq.getName(), new String(rseq.getBases()));
+        while ((rseq = fasta.nextSequence()) != null) {
+            String[] name = rseq.getName().split("\\s+");
+            contigs.put(name[0], new String(rseq.getBases()));
         }
     }
 
@@ -375,6 +434,9 @@ public class GraphContext extends Module {
             linkFilenames.get(name).add(cl.getCortexLinks().getCortexLinksFile().getName());
         }
         log.info("Loaded {} links", LINKS.size());
+        for (CortexLinksMap clm : LINKS) {
+            log.info("  {}: {}", clm.getCortexLinks().getCortexLinksFile().getName(), clm.getCortexLinks().getNumLinks());
+        }
 
         log.info("Loaded {} graphs", GRAPHS.size());
         for (CortexGraph cg : GRAPHS) {
@@ -386,6 +448,8 @@ public class GraphContext extends Module {
 
         loadContigs();
         log.info("Loaded {} contigs", contigs.size());
+
+        log.info("Listening on port {}", PORT);
 
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
