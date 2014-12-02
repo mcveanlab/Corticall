@@ -259,6 +259,11 @@ public class GraphContext extends Module {
                 for (CtxVertex cv : g.vertexSet()) {
                     String sk = cv.getKmer();
                     CortexKmer ck = new CortexKmer(sk);
+
+                    if (sk.equals("CATTACTATCACTTATAACTAATATTTCTTT")) {
+                        log.info("Found weird kmer");
+                    }
+
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
                             Set<Map<String, Object>> kls = new HashSet<Map<String, Object>>();
@@ -387,9 +392,11 @@ public class GraphContext extends Module {
                             if (link.containsKey(ck)) {
                                 CortexLinksRecord clr = link.get(ck);
 
-                                if (ck.isFlipped()) {
-                                    clr = CortexUtils.flipLinksRecord(clr);
-                                }
+                                clr = CortexUtils.orientLinksRecord(query.get("sk"), clr);
+
+//                                if (ck.isFlipped()) {
+//                                    clr = CortexUtils.flipLinksRecord(clr);
+//                                }
 
                                 jo.put("tip", clr.toString().replaceAll("\n", ", "));
 

@@ -27,11 +27,17 @@ body {
     pointer-events: all;
 }
 
+/*
 .link {
     fill: none;
     stroke: #ccc;
     stroke-width: 0.2px;
     stroke-opacity: 0.5;
+}
+*/
+
+.link {
+    pointer-events: none;
 }
 
 #kmercursor {

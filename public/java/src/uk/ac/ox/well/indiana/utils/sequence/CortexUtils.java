@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
+import htsjdk.samtools.util.SequenceUtil;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -161,6 +162,48 @@ public class CortexUtils {
     }
 
     /**
+     * Adjust the information in a links record to the opposite orientation
+     *
+     * @param sk   the kmer in desired orientation
+     * @param clr  the Cortex link junctions record
+     * @return     the reoriented Cortex links record
+     */
+    public static CortexLinksRecord orientLinksRecord(String sk, CortexLinksRecord clr) {
+        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            cjrs.add(orientJunctionsRecord(sk, cjr));
+        }
+
+        return new CortexLinksRecord(sk, cjrs);
+    }
+
+    /**
+     * Adjust the information in a junctions to facilitate navigation in contig orientation
+     *
+     * @param sk   the kmer in desired orientation
+     * @param cjr  the Cortex link junctions record
+     * @return     the reoriented Cortex link junctions record
+     */
+    public static CortexJunctionsRecord orientJunctionsRecord(String sk, CortexJunctionsRecord cjr) {
+        CortexKmer ck = new CortexKmer(sk);
+        boolean isForward = cjr.isForward();
+        String junctions = cjr.getJunctions();
+
+        if (!ck.isFlipped() && isForward) { // --> F
+            // do nothing
+        } else if (!ck.isFlipped() && !isForward) { // --> R
+            junctions = SequenceUtils.complement(junctions);
+        } else if (ck.isFlipped() && isForward) { // <-- F
+            isForward = !isForward;
+            junctions = SequenceUtils.complement(junctions);
+        } else if (ck.isFlipped() && !isForward) { // <-- R
+            isForward = !isForward;
+        }
+
+        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions);
+    }
+
+    /**
      * Return a list of all of the kmers in the graph between a starting kmer and the end of the junctions record
      * @param cg   the Cortex graph
      * @param sk   the kmer in desired orientation
@@ -168,20 +211,17 @@ public class CortexUtils {
      * @return     the list of kmers
      */
     public static List<String> getKmersInLink(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
-        CortexKmer ck = new CortexKmer(sk);
+        cjr = orientJunctionsRecord(sk, cjr);
 
-        if (ck.isFlipped()) {
-            cjr = CortexUtils.flipJunctionsRecord(cjr);
-        }
-
-        String junctions = cjr.getJunctions();
         int junctionsUsed = 0;
         String curKmer = sk;
+        boolean isForward = cjr.isForward();
+        String junctions = cjr.getJunctions();
 
         List<String> kmersInLink = new ArrayList<String>();
         kmersInLink.add(sk);
 
-        if (cjr.isForward()) {
+        if (isForward) {
             Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
 
             while (nextKmers.size() > 0 && junctionsUsed < junctions.length()) {
