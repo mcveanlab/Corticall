@@ -119,6 +119,8 @@ function showContigAsLinear(contigName, graphName) {
         height = innerHeight;
     var covOffset = 220;
 
+    var palette = d3.scale.category20b();
+
     d3.json("/search?contigName=" + contigName + "&graphName=" + graphName)
             .on("progress", function () {
                 d3.select("#status").text("Displaying contig...");
@@ -238,6 +240,18 @@ function showContigAsLinear(contigName, graphName) {
                             .attr("y", (height/2) - covOffset - d.cov - 5)
                             .attr("width", 20)
                             .attr("height", d.cov + 5)
+                            .on("click", function(a) {
+                                var sk = d.kmer;
+
+                                d3.json("/cr?graphName=" + graphName + "&sk=" + sk)
+                                        .on("progress", function() {
+                                            d3.select("#status").text("Fetching CortexRecord information for " + sk + "...");
+                                        })
+                                        .on("load", function(json) {
+                                            d3.select("#status").text(json.cr);
+                                        })
+                                        .get();
+                            })
                             .on("mouseover", function() {
                                 d3.select(this).style("fill", "#ddd");
 
@@ -245,6 +259,12 @@ function showContigAsLinear(contigName, graphName) {
                                         .attr("id", "covtip")
                                         .attr("x", 20*(d.pos - graph.kmerSize + 1))
                                         .attr("y", (height/2) - covOffset - d.cov - 20)
+                                        .text(d.cov);
+
+                                svg.append("text")
+                                        .attr("id", "covtip")
+                                        .attr("x", 20*(d.pos - graph.kmerSize + 1))
+                                        .attr("y", (height/2) - covOffset + 30)
                                         .text(d.cov);
 
                                 svg.append("rect")
@@ -309,16 +329,19 @@ function showContigAsLinear(contigName, graphName) {
                     var id = "#" + d.kmer;
                     var x = parseInt(d3.select(id).attr("x"));
                     var y = parseInt(d3.select(id).attr("y"));
+                    var dy = Math.floor((Math.random()*20) - 10);
+
                     if (d.flipped && y > (height/2) - 30 && y < (height/2) + 30) {
                         x += 20.0 * (d.kmer.length - 1);
                     }
 
                     if (!d3.select(id).empty()) {
                         var kx = parseInt(d3.select(id).attr("x"));
-                        var ky = parseInt(d3.select(id).attr("y")) - 8;
+                        var ky = parseInt(d3.select(id).attr("y")) - 8 + dy;
 
                         svg.append("line")
                                 .attr("id", "link_" + d.kmer)
+                                .attr("class", "link")
                                 .attr("x1", kx)
                                 .attr("y1", ky)
                                 .attr("x2", kx + (ky > (height/2) - 30 && ky < (height/2) + 30 ? 20*(d.kmer.length - 1) : 0))
@@ -337,13 +360,14 @@ function showContigAsLinear(contigName, graphName) {
 
                             if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty()) {
                                 var x1 = d3.select("#" + k1).attr("x");
-                                var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8;
+                                var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8 + dy;
                                 var x2 = d3.select("#" + k2).attr("x");
-                                var y2 = parseInt(d3.select("#" + k2).attr("y")) - 8;
+                                var y2 = parseInt(d3.select("#" + k2).attr("y")) - 8 + dy;
 
                                 if (x2 - x1 > 20) {
                                     svg.append("line")
                                             .attr("id", "link_" + d.kmer)
+                                            .attr("class", "link")
                                             .attr("x1", x1)
                                             .attr("y1", y1)
                                             .attr("x2", x2 - 20)
@@ -354,6 +378,7 @@ function showContigAsLinear(contigName, graphName) {
 
                                     svg.append("line")
                                             .attr("id", "link_" + d.kmer)
+                                            .attr("class", "link")
                                             .attr("x1", x2 - 20)
                                             .attr("y1", y1)
                                             .attr("x2", x2)
@@ -364,6 +389,7 @@ function showContigAsLinear(contigName, graphName) {
                                 } else {
                                     svg.append("line")
                                             .attr("id", "link_" + d.kmer)
+                                            .attr("class", "link")
                                             .attr("x1", x1)
                                             .attr("y1", y1)
                                             .attr("x2", x2)
@@ -381,11 +407,36 @@ function showContigAsLinear(contigName, graphName) {
                             .attr("cx", x)
                             .attr("cy", y - 25)
                             .attr("r", 4)
-                            .style("stroke", d.flipped && y > (height/2) - 30 && y < (height/2) + 30 ? "#0000ff" : "#ff0000")
                             .style("stroke-width", 3.0)
-                            //.style("stroke", "#ccc")
+                            .style("stroke", "#ccc")
                             .style("fill", "white")
                             .on("click", function() {
+                                if (d3.select(this).attr("class") == "link_on") {
+                                    d3.select(this)
+                                            .attr("class", "link_off")
+                                            .style("stroke", "#ccc")
+                                            .style("fill", "white")
+
+                                    d3.selectAll("#link_" + d.kmer)
+                                            .style("stroke", "#ccc")
+                                            .style("stroke-opacity", 0.0)
+                                } else {
+                                    var color = palette(Math.floor((Math.random()*20)+1));
+
+                                    d3.select(this)
+                                            .attr("class", "link_on")
+                                            .style("stroke", color)
+                                            .style("fill", color)
+                                            //.style("stroke", "#dc3522")
+                                            //.style("fill", "#dc3522")
+
+                                    d3.selectAll("#link_" + d.kmer)
+                                            //.style("stroke", "#dc3522")
+                                            .style("stroke", color)
+                                            .style("stroke-opacity", 0.9)
+                                }
+                            })
+                            .on("dblclick", function(a) {
                                 d3.json("/links?graphName=" + graphName + "&sk=" + d.kmer)
                                         .on("progress", function() {
                                             d3.select("#status").text("Fetching link information...");
@@ -395,28 +446,6 @@ function showContigAsLinear(contigName, graphName) {
                                         })
                                         .get();
                             })
-                            .on("mouseover", function() {
-                                d3.select(this)
-                                        .style("stroke", "#dc3522")
-                                        .style("fill", "#dc3522")
-
-                                d3.selectAll("#link_" + d.kmer)
-                                        .style("stroke", "#dc3522")
-                                        .style("stroke-opacity", 0.9)
-                            })
-                            .on("mouseout", function() {
-                                d3.select(this)
-                                        .transition()
-                                        .duration(1000)
-                                        .style("stroke", "#ccc")
-                                        .style("fill", "white")
-
-                                d3.selectAll("#link_" + d.kmer)
-                                        .transition()
-                                        .duration(1000)
-                                        .style("stroke", "#ccc")
-                                        .style("stroke-opacity", 0.0)
-                            });
                 })
 
                 d3.select("#status").text("Ready.");
