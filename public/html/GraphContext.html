@@ -199,16 +199,18 @@ function showContigAsLinear(contigName, graphName) {
                 var highestCoverage = 0;
 
                 contigKmers.forEach(function(d) {
+                    var lowercaseEnd = (d.pos < graph.originalContig.length && d.type == "CLIPPED") || (d.pos - graph.kmerSize + 1) >= graph.originalContig.length || d.missing;
+
                     svg.append("text")
                             .attr("id", d.kmer)
-                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
-                            //.attr("class", "base" + d.kmer.charAt(0))
+//                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
+                            .attr("class", lowercaseEnd ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(d.pos - graph.kmerSize + 1))
                             .attr("y", height / 2)
                             .style("text-decoration", d.missing ? "line-through" : "none")
-                            .text(d.type != "CONTIG" ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
-                            //.text(d.kmer.charAt(0))
+//                            .text(d.type != "CONTIG" ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
+                            .text(lowercaseEnd ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
                             .on("mouseover", function(a) {
                                 svg.append("rect")
                                         .attr("id", "kmercursor")
@@ -314,15 +316,16 @@ function showContigAsLinear(contigName, graphName) {
 
                 for (var i = 1; i < lastContigKmer.kmer.length; i++) {
                     var d = lastContigKmer;
+                    var lowercaseEnd = (d.pos + i - graph.kmerSize + 1) < 0 || (d.pos + i - graph.kmerSize + 1) >= graph.originalContig.length;
+
                     svg.append("text")
                             .attr("id", "lastKmer")
-                            //.attr("class", "base" + lastContigKmer.kmer.charAt(i))
-                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(i) + "noncontig" : "base" + d.kmer.charAt(i))
+                            .attr("class", lowercaseEnd || d.missing ? "base" + d.kmer.charAt(i) + "noncontig" : "base" + d.kmer.charAt(i))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(lastContigKmer.pos - graph.kmerSize + 1 + i))
                             .attr("y", height / 2)
-                            //.text(lastContigKmer.kmer.charAt(i))
-                            .text(d.type != "CONTIG" ? d.kmer.charAt(i).toLowerCase() : d.kmer.charAt(i))
+                            .text(lastContigKmer.kmer.charAt(i))
+                            .text(lowercaseEnd ? d.kmer.charAt(i).toLowerCase() : d.kmer.charAt(i))
                 }
 
                 graph.verticesWithLinks.forEach(function(d) {
@@ -351,14 +354,37 @@ function showContigAsLinear(contigName, graphName) {
                                 .style("stroke-opacity", 0.0)
                     }
 
-                    for (var i = 0; i < d.kl.length - 1; i++) {
+
+                    covs = {};
+                    for (var i = 0; i < d.kl.length; i++) {
                         var lr = d.kl[i];
 
                         for (var j = 0; j < lr.kmers.length - 1; j++) {
                             var k1 = lr.kmers[j];
                             var k2 = lr.kmers[j + 1];
+                            var key = k1 + "_" + k2;
 
-                            if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty()) {
+                            if (key in covs) {
+                                covs[key] += lr.cov;
+                            } else {
+                                covs[key] = lr.cov;
+                            }
+                        }
+                    }
+
+                    displayed = {};
+
+                    for (var i = 0; i < d.kl.length; i++) {
+                        var lr = d.kl[i];
+
+                        for (var j = 0; j < lr.kmers.length - 1; j++) {
+                            var k1= lr.kmers[j];
+                            var k2 = lr.kmers[j + 1];
+                            var key = k1 + "_" + k2;
+
+                            if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty() && !(key in displayed)) {
+                                displayed[key] = true;
+
                                 var x1 = d3.select("#" + k1).attr("x");
                                 var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8 + dy;
                                 var x2 = d3.select("#" + k2).attr("x");
@@ -372,9 +398,11 @@ function showContigAsLinear(contigName, graphName) {
                                             .attr("y1", y1)
                                             .attr("x2", x2 - 20)
                                             .attr("y2", y1)
+                                            .attr("title", covs[key])
                                             .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-width", Math.log(covs[key]) + 1)
                                             .style("stroke-opacity", 0.0)
+                                            .style("pointer-events", "none")
 
                                     svg.append("line")
                                             .attr("id", "link_" + d.kmer)
@@ -383,9 +411,11 @@ function showContigAsLinear(contigName, graphName) {
                                             .attr("y1", y1)
                                             .attr("x2", x2)
                                             .attr("y2", y2)
+                                            .attr("title", covs[key])
                                             .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-width", Math.log(covs[key]) + 1)
                                             .style("stroke-opacity", 0.0)
+                                            .style("pointer-events", "none")
                                 } else {
                                     svg.append("line")
                                             .attr("id", "link_" + d.kmer)
@@ -394,9 +424,11 @@ function showContigAsLinear(contigName, graphName) {
                                             .attr("y1", y1)
                                             .attr("x2", x2)
                                             .attr("y2", y2)
+                                            .attr("title", covs[key])
                                             .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(lr.cov) + 1)
+                                            .style("stroke-width", Math.log(covs[key]) + 1)
                                             .style("stroke-opacity", 0.0)
+                                            .style("pointer-events", "none")
                                 }
                             }
                         }
@@ -405,7 +437,7 @@ function showContigAsLinear(contigName, graphName) {
                     svg.append("circle")
                             .attr("id", "haslinks_" + d.kmer)
                             .attr("cx", x)
-                            .attr("cy", y - 25)
+                            .attr("cy", d.flipped ? y + 12 : y - 25)
                             .attr("r", 4)
                             .style("stroke-width", 3.0)
                             .style("stroke", "#ccc")
@@ -420,6 +452,7 @@ function showContigAsLinear(contigName, graphName) {
                                     d3.selectAll("#link_" + d.kmer)
                                             .style("stroke", "#ccc")
                                             .style("stroke-opacity", 0.0)
+                                            .style("pointer-events", "none")
                                 } else {
                                     var color = palette(Math.floor((Math.random()*20)+1));
 
@@ -427,13 +460,35 @@ function showContigAsLinear(contigName, graphName) {
                                             .attr("class", "link_on")
                                             .style("stroke", color)
                                             .style("fill", color)
-                                            //.style("stroke", "#dc3522")
-                                            //.style("fill", "#dc3522")
 
                                     d3.selectAll("#link_" + d.kmer)
-                                            //.style("stroke", "#dc3522")
                                             .style("stroke", color)
-                                            .style("stroke-opacity", 0.9)
+                                            .style("stroke-opacity", 0.5)
+                                            .style("pointer-events", "all")
+                                            .on("mouseenter", function() {
+                                                var x1 = parseInt(d3.select(this).attr("x1"));
+                                                var x2 = parseInt(d3.select(this).attr("x2"));
+                                                var y1 = parseInt(d3.select(this).attr("y1"));
+                                                var y2 = parseInt(d3.select(this).attr("y2"));
+                                                var dy = (y1 == y2) ? -5 : +5;
+
+                                                d3.select(this)
+                                                        .style("stroke-opacity", 1.0)
+
+                                                svg.append("text")
+                                                        .attr("id", "linktip")
+                                                        .attr("x", (x2 + x1)/2)
+                                                        .attr("y", ((y2 + y1)/2) + dy)
+                                                        .attr("text-anchor", "middle")
+                                                        .text(d3.select(this).attr("title"));
+                                            })
+                                            .on("mouseleave", function() {
+                                                d3.selectAll("#linktip").remove();
+
+                                                d3.select(this)
+                                                        .style("stroke-opacity", 0.5)
+
+                                            })
                                 }
                             })
                             .on("dblclick", function(a) {
