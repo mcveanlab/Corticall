@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import com.sun.net.httpserver.HttpServer;
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -30,6 +31,9 @@ import java.util.*;
 public class GraphContext extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (.fasta)")
     public File CONTIGS;
+
+    @Argument(fullName="reference", shortName="r", doc="Reference (.fasta)")
+    public IndexedFastaSequenceFile REF;
 
     @Argument(fullName="graph", shortName="g", doc="Graph (.ctx)")
     public LinkedHashSet<CortexGraph> GRAPHS;
@@ -157,6 +161,15 @@ public class GraphContext extends Module {
             if (query.get("contigName").matches("^[ACGT]+$")) {
                 contigs.put("manual", query.get("contigName"));
                 query.put("contigName", "manual");
+            } else if (query.get("contigName").matches("^Pf3D7.+$")) {
+                String[] pieces = query.get("contigName").split("[:-]");
+
+                int start = Integer.valueOf(pieces[1].replaceAll(",", ""));
+                int end = Integer.valueOf(pieces[2].replaceAll(",", ""));
+
+                ReferenceSequence rseq = REF.getSubsequenceAt(pieces[0], start, end);
+                contigs.put("manual", new String(rseq.getBases()));
+                query.put("contigName", "manual");
             }
 
             if (query.containsKey("contigName") && contigs.containsKey(query.get("contigName")) && graphs.containsKey(query.get("graphName"))) {
@@ -260,15 +273,12 @@ public class GraphContext extends Module {
                     String sk = cv.getKmer();
                     CortexKmer ck = new CortexKmer(sk);
 
-                    if (sk.equals("CATTACTATCACTTATAACTAATATTTCTTT")) {
-                        log.info("Found weird kmer");
-                    }
-
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
                             Set<Map<String, Object>> kls = new HashSet<Map<String, Object>>();
 
                             CortexLinksRecord clr = link.get(ck);
+                            boolean isFlipped = false;
                             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
                                 int cov = cjr.getCoverage(0);
                                 List<String> kmersInLink = CortexUtils.getKmersInLink(cg, sk, cjr);
@@ -278,11 +288,13 @@ public class GraphContext extends Module {
                                 kl.put("cov", cov);
 
                                 kls.add(kl);
+
+                                isFlipped = !(CortexUtils.orientJunctionsRecord(sk, cjr)).isForward();
                             }
 
                             Map<String, Object> entry = new HashMap<String, Object>();
                             entry.put("kmer", sk);
-                            entry.put("flipped", ck.isFlipped());
+                            entry.put("flipped", isFlipped);
                             entry.put("kl", kls);
 
                             verticesWithLinks.add(entry);
@@ -292,6 +304,7 @@ public class GraphContext extends Module {
 
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
+                jo.put("originalContig", contigs.get(query.get("contigName")));
                 jo.put("kmerSize", cg.getKmerSize());
                 jo.put("clipStart", firstFlank.length());
                 jo.put("clipEnd", contig.length() - lastFlank.length());
@@ -393,10 +406,6 @@ public class GraphContext extends Module {
                                 CortexLinksRecord clr = link.get(ck);
 
                                 clr = CortexUtils.orientLinksRecord(query.get("sk"), clr);
-
-//                                if (ck.isFlipped()) {
-//                                    clr = CortexUtils.flipLinksRecord(clr);
-//                                }
 
                                 jo.put("tip", clr.toString().replaceAll("\n", ", "));
 

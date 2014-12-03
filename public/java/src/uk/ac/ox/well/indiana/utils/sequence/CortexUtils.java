@@ -241,6 +241,7 @@ public class CortexUtils {
 
                         kmersInLink.add(expectedNextKmer);
                     } else {
+                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
                         //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
                         break;
                     }
@@ -268,6 +269,7 @@ public class CortexUtils {
 
                         kmersInLink.add(0, expectedPrevKmer);
                     } else {
+                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
                         //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
                         break;
                     }
