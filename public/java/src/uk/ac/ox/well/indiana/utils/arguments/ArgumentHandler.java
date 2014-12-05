@@ -18,6 +18,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
 
@@ -274,6 +275,8 @@ public class ArgumentHandler {
                 return new CortexGraph(value);
             } else if (type.equals(CortexLinks.class)) {
                 return new CortexLinks(value);
+            } else if (type.equals(CortexLinksMap.class)) {
+                return new CortexLinksMap(value);
             } else if (type.equals(CortexMap.class)) {
                 return new CortexMap(value, Main.getLogger());
             } else if (type.equals(GFF3.class)) {
@@ -289,8 +292,6 @@ public class ArgumentHandler {
                 BufferedOutputStream bos = new BufferedOutputStream(fdout, 1048576);
                 return new PrintStream(bos, false);
             } else if (type.equals(SAMFileReader.class)) {
-                //return new SAMFileReader(new File(value));
-
                 SAMFileReader sfr = new SAMFileReader(new File(value));
                 sfr.setValidationStringency(ValidationStringency.LENIENT);
 

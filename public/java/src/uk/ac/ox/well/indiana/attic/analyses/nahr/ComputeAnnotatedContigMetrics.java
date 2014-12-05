@@ -10,6 +10,7 @@ import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
@@ -94,7 +95,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
     }
 
     private int numSwitches(String ann) {
-        String ann2 = ann.replaceAll("B", "").replaceAll("\\.", "");
+        String ann2 = ann.replaceAll("[BMA\\._]", "");
         int numSwitches = 0;
 
         if (ann2.length() > 0) {
@@ -309,45 +310,35 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
                 int ref0 = 0;
                 int ref1 = 0;
-                int refBoth = 0;
-                int refNone = 0;
                 int refAmb = 0;
+                int refBoth = 0;
+                int refNovel = 0;
+                int refRep = 0;
+                int refMissingH = 0;
+                int refMissingL = 0;
 
                 for (int i = 0; i < kmerLength; i++) {
                     switch (te.get("kmerOrigin").charAt(i)) {
-                        case '0': ref0++;    break;
-                        case '1': ref1++;    break;
-                        case 'B': refBoth++; break;
-                        case '.': refNone++; break;
-                        case 'A': refAmb++;  break;
-                        default :            break;
-                    }
-                }
-
-                boolean firstZeroSeen = false;
-                boolean hasDiscontiguities = false;
-                int numDiscontiguities = 0;
-
-                for (int i = 1; i < kmerLength; i++) {
-                    char kmerOrigin = te.get("kmerOrigin").charAt(i);
-                    char contiguity = te.get("kmerContiguity").charAt(i);
-
-                    if (kmerOrigin != '.') {
-                        if (contiguity == '0') {
-                            if (!firstZeroSeen) { firstZeroSeen = true; }
-                            else {
-                                hasDiscontiguities = true;
-                                numDiscontiguities++;
-                            }
-                        }
+                        case '0': ref0++;        break;
+                        case '1': ref1++;        break;
+                        case '_': refAmb++;      break;
+                        case 'B': refBoth++;     break;
+                        case '.': refNovel++;    break;
+                        case 'R': refRep++;      break;
+                        case 'M': refMissingH++; break;
+                        case 'm': refMissingL++; break;
+                        default :                break;
                     }
                 }
 
                 int lrun0 = longestRun(te.get("kmerOrigin"), '0');
                 int lrun1 = longestRun(te.get("kmerOrigin"), '1');
+                int lrunAmb = longestRun(te.get("kmerOrigin"), '_');
                 int lrunBoth = longestRun(te.get("kmerOrigin"), 'B');
-                int lrunNone = longestRun(te.get("kmerOrigin"), '.');
-                int lrunAmb = longestRun(te.get("kmerOrigin"), 'A');
+                int lrunNovel = longestRun(te.get("kmerOrigin"), '.');
+                int lrunRep = longestRun(te.get("kmerOrigin"), 'R');
+                int lrunMissingH = longestRun(te.get("kmerOrigin"), 'M');
+                int lrunMissingL = longestRun(te.get("kmerOrigin"), 'm');
                 int numSwitches = numSwitches(te.get("kmerOrigin"));
 
                 Map<String, String> entry = new LinkedHashMap<String, String>();
@@ -358,17 +349,22 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 entry.put("kmerLength", String.valueOf(kmerLength));
                 entry.put("ref0", String.valueOf(ref0));
                 entry.put("ref1", String.valueOf(ref1));
-                entry.put("refBoth", String.valueOf(refBoth));
-                entry.put("refNone", String.valueOf(refNone));
                 entry.put("refAmb", String.valueOf(refAmb));
+                entry.put("refBoth", String.valueOf(refBoth));
+                entry.put("refNovel", String.valueOf(refNovel));
+                entry.put("refRep", String.valueOf(refRep));
+                entry.put("refMissingH", String.valueOf(refMissingH));
+                entry.put("refMissingL", String.valueOf(refMissingL));
                 entry.put("lrun0", String.valueOf(lrun0));
                 entry.put("lrun1", String.valueOf(lrun1));
-                entry.put("lrunBoth", String.valueOf(lrunBoth));
-                entry.put("lrunNone", String.valueOf(lrunNone));
                 entry.put("lrunAmb", String.valueOf(lrunAmb));
+                entry.put("lrunBoth", String.valueOf(lrunBoth));
+                entry.put("lrunNovel", String.valueOf(lrunNovel));
+                entry.put("lrunRep", String.valueOf(lrunRep));
+                entry.put("lrunMissingH", String.valueOf(lrunMissingH));
+                entry.put("lrunMissingL", String.valueOf(lrunMissingL));
                 entry.put("numSwitches", String.valueOf(numSwitches));
-                entry.put("hasDiscontiguities", hasDiscontiguities ? "1" : "0");
-                entry.put("numDiscontiguities", String.valueOf(numDiscontiguities));
+                entry.put("isReaped", te.get("contigName").matches(".+\\.\\d+$") ? "1" : "0");
 
                 if (cis.containsKey(accession + "." + te.get("contigName"))) {
                     ContigInfo ci = cis.get(accession + "." + te.get("contigName"));

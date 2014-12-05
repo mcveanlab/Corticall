@@ -1,13 +1,15 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
+import htsjdk.samtools.util.SequenceUtil;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A set of utilities for dealing with Cortex graphs and records
@@ -129,11 +131,155 @@ public class CortexUtils {
         return prevKmers;
     }
 
+    /**
+     * Flip the information in a links record to the opposite orientation
+     *
+     * @param clr  the Cortex links record
+     * @return     the flipped Cortex links record
+     */
+    public static CortexLinksRecord flipLinksRecord(CortexLinksRecord clr) {
+        String rsk = SequenceUtils.reverseComplement(clr.getKmerAsString());
+        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            cjrs.add(flipJunctionsRecord(cjr));
+        }
+
+        return new CortexLinksRecord(rsk, cjrs);
+    }
+
+    /**
+     * Flip the information in a junctions record to the opposite orientation
+     *
+     * @param cjr  the Cortex link junctions record
+     * @return     the flipped Cortex link junctions record
+     */
     public static CortexJunctionsRecord flipJunctionsRecord(CortexJunctionsRecord cjr) {
         return new CortexJunctionsRecord(!cjr.isForward(),
                                          cjr.getNumKmers(),
                                          cjr.getNumJunctions(),
                                          cjr.getCoverages(),
-                                         SequenceUtils.reverseComplement(cjr.getJunctions()));
+                                         SequenceUtils.complement(cjr.getJunctions()));
     }
+
+    /**
+     * Adjust the information in a links record to the opposite orientation
+     *
+     * @param sk   the kmer in desired orientation
+     * @param clr  the Cortex link junctions record
+     * @return     the reoriented Cortex links record
+     */
+    public static CortexLinksRecord orientLinksRecord(String sk, CortexLinksRecord clr) {
+        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            cjrs.add(orientJunctionsRecord(sk, cjr));
+        }
+
+        return new CortexLinksRecord(sk, cjrs);
+    }
+
+    /**
+     * Adjust the information in a junctions to facilitate navigation in contig orientation
+     *
+     * @param sk   the kmer in desired orientation
+     * @param cjr  the Cortex link junctions record
+     * @return     the reoriented Cortex link junctions record
+     */
+    public static CortexJunctionsRecord orientJunctionsRecord(String sk, CortexJunctionsRecord cjr) {
+        CortexKmer ck = new CortexKmer(sk);
+        boolean isForward = cjr.isForward();
+        String junctions = cjr.getJunctions();
+
+        if (!ck.isFlipped() && isForward) { // --> F
+            // do nothing
+        } else if (!ck.isFlipped() && !isForward) { // --> R
+            junctions = SequenceUtils.complement(junctions);
+        } else if (ck.isFlipped() && isForward) { // <-- F
+            isForward = !isForward;
+            junctions = SequenceUtils.complement(junctions);
+        } else if (ck.isFlipped() && !isForward) { // <-- R
+            isForward = !isForward;
+        }
+
+        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions);
+    }
+
+    /**
+     * Return a list of all of the kmers in the graph between a starting kmer and the end of the junctions record
+     * @param cg   the Cortex graph
+     * @param sk   the kmer in desired orientation
+     * @param cjr  the Cortex link junctions record
+     * @return     the list of kmers
+     */
+    public static List<String> getKmersInLink(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
+        cjr = orientJunctionsRecord(sk, cjr);
+
+        int junctionsUsed = 0;
+        String curKmer = sk;
+        boolean isForward = cjr.isForward();
+        String junctions = cjr.getJunctions();
+
+        List<String> kmersInLink = new ArrayList<String>();
+        kmersInLink.add(sk);
+
+        if (isForward) {
+            Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
+
+            while (nextKmers.size() > 0 && junctionsUsed < junctions.length()) {
+                if (nextKmers.size() == 1) {
+                    curKmer = nextKmers.iterator().next();
+                    nextKmers = CortexUtils.getNextKmers(cg, curKmer);
+
+                    kmersInLink.add(curKmer);
+                } else {
+                    char nbase = junctions.charAt(junctionsUsed);
+
+                    String expectedNextKmer = curKmer.substring(1, curKmer.length()) + nbase;
+
+                    if (nextKmers.contains(expectedNextKmer)) {
+                        curKmer = expectedNextKmer;
+                        nextKmers = CortexUtils.getNextKmers(cg, curKmer);
+
+                        kmersInLink.add(expectedNextKmer);
+                    } else {
+                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
+                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
+                        break;
+                    }
+
+                    junctionsUsed++;
+                }
+            }
+        } else {
+            Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
+
+            while (prevKmers.size() > 0 && junctionsUsed < junctions.length()) {
+                if (prevKmers.size() == 1) {
+                    curKmer = prevKmers.iterator().next();
+                    prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
+
+                    kmersInLink.add(0, curKmer);
+                } else {
+                    char pbase = junctions.charAt(junctionsUsed);
+
+                    String expectedPrevKmer = pbase + curKmer.substring(0, curKmer.length() - 1);
+
+                    if (prevKmers.contains(expectedPrevKmer)) {
+                        curKmer = expectedPrevKmer;
+                        prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
+
+                        kmersInLink.add(0, expectedPrevKmer);
+                    } else {
+                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
+                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
+                        break;
+                    }
+
+                    junctionsUsed++;
+                }
+            }
+        }
+
+        return kmersInLink;
+    }
+
 }

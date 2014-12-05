@@ -1,3 +1,9 @@
+*.ctp
+*.ctx
+*.metrics
+*.fasta
+*.yaml
+*.svg
 *.swp
 *.iml
 *.idea
