@@ -205,8 +205,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 }
 
                 ci.cigarCanonical = read.getCigarString();
-                ci.nmCanonical = read.getIntegerAttribute("NM");
-                ci.mdCanonical = read.getStringAttribute("MD");
+                ci.nmCanonical = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
+                ci.mdCanonical = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -256,9 +256,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
+                //ci.cigarRef0 = read.getCigarString();
+                //ci.nmRef0 = read.getIntegerAttribute("NM");
+                //ci.mdRef0 = read.getStringAttribute("MD");
                 ci.cigarRef0 = read.getCigarString();
-                ci.nmRef0 = read.getIntegerAttribute("NM");
-                ci.mdRef0 = read.getStringAttribute("MD");
+                ci.nmRef0 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
+                ci.mdRef0 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -310,9 +313,12 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
+                //ci.cigarRef1 = read.getCigarString();
+                //ci.nmRef1 = read.getIntegerAttribute("NM");
+                //ci.mdRef1 = read.getStringAttribute("MD");
                 ci.cigarRef1 = read.getCigarString();
-                ci.nmRef1 = read.getIntegerAttribute("NM");
-                ci.mdRef1 = read.getStringAttribute("MD");
+                ci.nmRef1 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
+                ci.mdRef1 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
