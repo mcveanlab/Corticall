@@ -197,19 +197,25 @@ function showContigAsLinear(contigName, graphName) {
                 })
 
                 var highestCoverage = 0;
+                var lowestPos = 0;
+                var highestPos = 0;
+                var kmerPositions = {};
 
                 contigKmers.forEach(function(d) {
+                    if (d.pos < lowestPos)  { lowestPos  = d.pos; }
+                    if (d.pos > highestPos) { highestPos = d.pos; }
+
                     var lowercaseEnd = (d.pos < graph.originalContig.length && d.type == "CLIPPED") || (d.pos - graph.kmerSize + 1) >= graph.originalContig.length || d.missing;
+
+                    kmerPositions[d.pos - graph.kmerSize + 1] = d.kmer;
 
                     svg.append("text")
                             .attr("id", d.kmer)
-//                            .attr("class", d.type == "CLIPPED" || d.missing ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
                             .attr("class", lowercaseEnd ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(d.pos - graph.kmerSize + 1))
                             .attr("y", height / 2)
                             .style("text-decoration", d.missing ? "line-through" : "none")
-//                            .text(d.type != "CONTIG" ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
                             .text(lowercaseEnd ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
                             .on("mouseover", function(a) {
                                 svg.append("rect")
@@ -354,11 +360,11 @@ function showContigAsLinear(contigName, graphName) {
                                 .style("stroke-opacity", 0.0)
                     }
 
-
                     covs = {};
                     for (var i = 0; i < d.kl.length; i++) {
                         var lr = d.kl[i];
 
+                        /*
                         for (var j = 0; j < lr.kmers.length - 1; j++) {
                             var k1 = lr.kmers[j];
                             var k2 = lr.kmers[j + 1];
@@ -368,6 +374,25 @@ function showContigAsLinear(contigName, graphName) {
                                 covs[key] += lr.cov;
                             } else {
                                 covs[key] = lr.cov;
+                            }
+                        }
+                        */
+
+                        for (var j = 0; j < lr.kmers.length - 1; j++) {
+                            var k1 = lr.kmers[j];
+
+                            for (var k = j+1; k < lr.kmers.length; k++) {
+                                var k2 = lr.kmers[k];
+
+                                if (k1 != k2) {
+                                    var key = k1 + "_" + k2;
+
+                                    if (key in covs) {
+                                        covs[key] += lr.cov;
+                                    } else {
+                                        covs[key] = lr.cov;
+                                    }
+                                }
                             }
                         }
                     }
@@ -502,6 +527,96 @@ function showContigAsLinear(contigName, graphName) {
                                         .get();
                             })
                 })
+
+                var covMax = Math.max.apply(Math, d3.values(covs));
+
+                var hc = d3.scale.linear()
+                        .domain([0, covMax])
+                        .range([1, 0.5])
+
+                for (var m = lowestPos; m <= highestPos - graph.kmerSize + 1; m++) {
+                    for (var n = 0; n < highestPos - m - graph.kmerSize + 1; n++) {
+                        var x = (20.0 * m) + (n+1)*10;
+                        var y = (height / 2) + (n+1)*10 + 180;
+
+                        var id = kmerPositions[m] + "_" + kmerPositions[m+n+1];
+                        var cov = id in covs ? covs[id] : 0;
+
+                        svg.append("rect")
+                                .attr("id", id + " (" + cov + ", " + hc(cov) + ", " + d3.hsl(0, 1, hc(cov)) + ")")
+                                .attr("class", "hv")
+                                .attr("x", x)
+                                .attr("y", y)
+                                .attr("width", 14)
+                                .attr("height", 14)
+                                .attr("transform", "rotate(45, " + x + ", " + y + ")")
+                                .attr("k1", kmerPositions[m])
+                                .attr("k2", kmerPositions[m+n+1])
+                                .attr("coverage", cov)
+                                .style("stroke-width", 1.0)
+                                .style("stroke", "#eeeeee")
+                                .style("fill", d3.hsl(0, 1, hc(cov)))
+                                .on("mouseover", function(d) {
+                                    var k1 = d3.select(this).attr("k1");
+                                    var k1x = parseInt(d3.select("#" + k1).attr("x"));
+                                    var k1y = parseInt(d3.select("#" + k1).attr("y"));
+
+                                    var k2 = d3.select(this).attr("k2");
+                                    var k2x = parseInt(d3.select("#" + k2).attr("x"));
+                                    var k2y = parseInt(d3.select("#" + k2).attr("y"));
+
+                                    svg.append("line")
+                                            .attr("id", "hvtip")
+                                            .attr("x1", k1x)
+                                            .attr("y1", (height/2) + 200)
+                                            .attr("x2", k1x)
+                                            .attr("y2", (height/2))
+                                            .style("stroke-width", 1.2)
+                                            .style("stroke", "#000000")
+
+                                    svg.append("line")
+                                            .attr("id", "hvtip")
+                                            .attr("x1", k2x)
+                                            .attr("y1", (height/2) + 200)
+                                            .attr("x2", k2x)
+                                            .attr("y2", (height/2))
+                                            .style("stroke-width", 1.2)
+                                            .style("stroke", "#000000")
+
+                                    svg.append("line")
+                                            .attr("id", "hvtip")
+                                            .attr("x1", k1x)
+                                            .attr("y1", (height/2) + 200)
+                                            .attr("x2", d3.select(this).attr("x"))
+                                            .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
+                                            .style("stroke-width", 1.2)
+                                            .style("stroke", "#000000")
+
+                                    svg.append("line")
+                                            .attr("id", "hvtip")
+                                            .attr("x1", k2x)
+                                            .attr("y1", (height/2) + 200)
+                                            .attr("x2", d3.select(this).attr("x"))
+                                            .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
+                                            .style("stroke-width", 1.2)
+                                            .style("stroke", "#000000")
+                                })
+                                .on("mouseout", function() {
+                                    d3.selectAll("#hvtip").remove();
+                                })
+
+                        svg.append("text")
+                                .attr("id", "hvbox")
+                                .attr("x", x)
+                                .attr("y", y + 12.5)
+                                .style("text-anchor", "middle")
+                                .style("font-size", "7px")
+                                .style("fill", "#aaaaaa")
+                                .style("pointer-events", "none")
+                                .text(cov)
+
+                    }
+                }
 
                 d3.select("#status").text("Ready.");
 
