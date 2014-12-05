@@ -5,19 +5,56 @@ body {
     background-color: #FFFFFF;
 }
 
-#datasets {
-    background-color: #FFFFFF;
+#status {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 16.0px;
 }
 
-#results {
-    background-color: #E7E8E7;
+#viewer text {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 24.0px;
+    pointer-events: all;
 }
 
-#viewer {
-    background-color: #FFFFFF;
+.baseA { fill: #abd25e; }
+.baseC { fill: #249aa7; }
+.baseG { fill: #f8c830; }
+.baseT { fill: #f1594a; }
+.baseN { fill: #cccccc; }
+
+.overlay {
+    fill: none;
+    pointer-events: all;
 }
 
-#selected {
-    color: red;
+/*
+#hvbox {
+    font-family: Lucidatypewriter, monospace;
+    font-size: 1.0px;
+    text-anchor: middle;
+}
+*/
+
+/*
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 0.2px;
+    stroke-opacity: 0.5;
+}
+*/
+
+/*
+.link {
+    pointer-events: none;
+}
+*/
+
+#kmercursor {
+    fill: #ccc;
+    stroke: none;
 }
 
+#cov {
+    fill: #ccc;
+}

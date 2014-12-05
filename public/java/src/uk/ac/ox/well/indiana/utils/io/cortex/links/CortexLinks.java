@@ -62,30 +62,58 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
 
             JSONObject header = new JSONObject(headerBuilder.toString());
 
-            version = header.getInt("formatVersion");
+            if (!header.has("formatVersion") && !header.has("format_version")) {
+                throw new IndianaException("Cannot parse CortexLinks format version field");
+            }
+            version = header.has("formatVersion") ? header.getInt("formatVersion") : header.getInt("format_version");
 
-            if (version != 2) {
+            if (version != 2 && version != 3) {
                 throw new IndianaException("Cannot parse CortexLinks format version '" + version + "'");
             }
 
-            numColors = header.getInt("ncols");
-            kmerSize = header.getInt("kmer_size");
-            numKmersInGraph = header.getLong("num_kmers_in_graph");
-            numKmersWithLinks = header.getLong("num_kmers_with_paths");
-            numLinks = header.getLong("num_paths");
-            linkBytes = header.getLong("path_bytes");
+            if (version == 2) {
+                numColors = header.getInt("ncols");
+                kmerSize = header.getInt("kmer_size");
+                numKmersInGraph = header.getLong("num_kmers_in_graph");
+                numKmersWithLinks = header.getLong("num_kmers_with_paths");
+                numLinks = header.getLong("num_paths");
+                linkBytes = header.getLong("path_bytes");
 
-            JSONArray colors = header.getJSONArray("colours");
-            for (int i = 0; i < colors.length(); i++) {
-                JSONObject jColor = colors.getJSONObject(i);
+                JSONArray colors = header.getJSONArray("colours");
+                for (int i = 0; i < colors.length(); i++) {
+                    JSONObject jColor = colors.getJSONObject(i);
 
-                CortexColor color = new CortexColor();
-                color.setSampleName(jColor.getString("sample"));
-                color.setTotalSequence(jColor.getLong("total_sequence"));
-                color.setTipClippingApplied(true);
-                color.setLowCovgSupernodesRemoved(true);
+                    CortexColor color = new CortexColor();
+                    color.setSampleName(jColor.getString("sample"));
+                    color.setTotalSequence(jColor.getLong("total_sequence"));
+                    color.setTipClippingApplied(true);
+                    color.setLowCovgSupernodesRemoved(true);
 
-                this.colors.add(color);
+                    this.colors.add(color);
+                }
+            } else {
+                JSONObject graph = header.getJSONObject("graph");
+                JSONObject paths = header.getJSONObject("paths");
+
+                numColors = graph.getInt("num_colours");
+                kmerSize = graph.getInt("kmer_size");
+                numKmersInGraph = graph.getLong("num_kmers_in_graph");
+                numKmersWithLinks = paths.getLong("num_kmers_with_paths");
+                numLinks = paths.getLong("num_paths");
+                linkBytes = paths.getLong("path_bytes");
+
+                JSONArray colors = graph.getJSONArray("colours");
+                for (int i = 0; i < colors.length(); i++) {
+                    JSONObject jColor = colors.getJSONObject(i);
+
+                    CortexColor color = new CortexColor();
+                    color.setSampleName(jColor.getString("sample"));
+                    color.setTotalSequence(jColor.getLong("total_sequence"));
+                    color.setTipClippingApplied(jColor.getBoolean("cleaned_tips"));
+                    color.setLowCovgSupernodesRemoved(true);
+
+                    this.colors.add(color);
+                }
             }
 
             while ((line = buffered.readLine()) != null) {

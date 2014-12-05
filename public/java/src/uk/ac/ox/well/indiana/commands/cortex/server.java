@@ -1,14 +1,20 @@
 package uk.ac.ox.well.indiana.commands.cortex;
 
-import com.google.common.base.Joiner;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.yaml.snakeyaml.Yaml;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -16,29 +22,856 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Description(text="Starts the server for visualizing assembly data")
 public class server extends Module {
-    @Argument(fullName="contigs", shortName="c", doc="Contigs (FASTA)")
-    public File CONTIGS;
-
-    @Argument(fullName="graph", shortName="g", doc="Cortex graph file")
-    public TreeMap<String, File> GRAPHS;
-
-    @Argument(fullName="link", shortName="l", doc="Link information")
-    public TreeMap<String, File> LINKS;
+    @Argument(fullName="manifest", shortName="m", doc="Manifest file (YAML)")
+    public File MANIFEST;
 
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
+    private class Manifest {
+        private Map<String, Object> manifestMap;
+
+        public Manifest(File manifestFile) {
+            Yaml yaml = new Yaml();
+            try {
+                manifestMap = (Map<String, Object>) yaml.load(new FileInputStream(manifestFile));
+            } catch (FileNotFoundException e) {
+                throw new IndianaException("Could not parse server configuration file, '" + manifestFile.getAbsolutePath() + "'", e);
+            }
+        }
+
+        public Set<String> getCrosses() { return manifestMap.keySet(); }
+
+        public Set<String> getSamples(String cross) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            return new TreeSet<String>(sampleMap.keySet());
+        }
+
+        public Set<String> getAccessions(String cross, String sample) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            Map accMap = (Map) sampleMap.get(sample);
+            return new TreeSet<String>(accMap.keySet());
+        }
+
+        private Map getItems(String cross, String sample, String accession) {
+            Map sampleMap = (Map) manifestMap.get(cross);
+            Map accMap = (Map) sampleMap.get(sample);
+            return (Map) accMap.get(accession);
+        }
+
+        public Map<String, SAMFileReader> getBams(String cross, String sample, String accession) {
+            Map bamMap = (Map) getItems(cross, sample, accession).get("bams");
+
+            Map<String, SAMFileReader> bamFileMap = new HashMap<String, SAMFileReader>();
+            for (Object key : bamMap.keySet()) {
+                File file = new File((String) bamMap.get(key));
+                SAMFileReader sfr = new SAMFileReader(file);
+                bamFileMap.put((String) key, sfr);
+            }
+
+            return bamFileMap;
+        }
+
+        public Map<String, GFF3> getGffs(String cross, String sample, String accession) {
+            Map gffMap = (Map) getItems(cross, sample, accession).get("gffs");
+
+            Map<String, GFF3> gffFileMap = new HashMap<String, GFF3>();
+            for (Object key : gffMap.keySet()) {
+                File file = new File((String) gffMap.get(key));
+                gffFileMap.put((String) key, new GFF3(file));
+            }
+
+            return gffFileMap;
+        }
+
+        public Map<String, IndexedFastaSequenceFile> getRefs(String cross, String sample, String accession) {
+            Map refMap = (Map) getItems(cross, sample, accession).get("refs");
+            Map<String, IndexedFastaSequenceFile> refFileMap = new HashMap<String, IndexedFastaSequenceFile>();
+
+            try {
+                for (Object key : refMap.keySet()) {
+                    File file = new File((String) refMap.get(key));
+                    refFileMap.put((String) key, new IndexedFastaSequenceFile(file));
+                }
+            } catch (IOException e) {
+                throw new IndianaException("Unable to load fasta", e);
+            }
+
+            return refFileMap;
+        }
+
+        public Set<String> getGraphKmerSizes(String cross, String sample, String accession) {
+            Map graphsMap = (Map) getItems(cross, sample, accession).get("graphs");
+
+            return new TreeSet<String>(graphsMap.keySet());
+        }
+
+        public Set<String> getGraphLabels(String cross, String sample, String accession, String kmerSize) {
+            Map graphsMap = (Map) getItems(cross, sample, accession).get("graphs");
+            Map graphMap = (Map) graphsMap.get(kmerSize);
+
+            Set<String> graphLabelMap = new TreeSet<String>(graphMap.keySet());
+
+            return graphLabelMap;
+        }
+
+        public Map<String, File> getGraphs(String cross, String sample, String accession, String kmerSize, String label) {
+            Map graphsMap = (Map) ((Map) ((Map) getItems(cross, sample, accession).get("graphs")).get(kmerSize)).get(label);
+
+            Map<String, File> graphs = new HashMap<String, File>();
+            for (Object key : graphsMap.keySet()) {
+                String skey = (String) key;
+
+                if (skey.equals("graph")) {
+                    File graph = new File((String) graphsMap.get(skey));
+
+                    graphs.put(skey, graph);
+                }
+            }
+
+            return graphs;
+        }
+
+        public Map<String, File> getLinks(String cross, String sample, String accession, String kmerSize, String label) {
+            Map graphsMap = (Map) ((Map) ((Map) getItems(cross, sample, accession).get("graphs")).get(kmerSize)).get(label);
+
+            Map<String, File> links = new HashMap<String, File>();
+            for (Object key : graphsMap.keySet()) {
+                String skey = (String) key;
+
+                if (skey.startsWith("links_")) {
+                    File link = new File((String) graphsMap.get(skey));
+
+                    links.put(skey, link);
+                }
+            }
+
+            return links;
+        }
+
+        public File getContigs(String cross, String sample, String accession) {
+            Map contigsMap = (Map) getItems(cross, sample, accession).get("contigs");
+
+            File contigs = null;
+
+            for (Object key : contigsMap.keySet()) {
+                String skey = (String) key;
+                contigs = new File((String) contigsMap.get(skey));
+            }
+
+            return contigs;
+        }
+
+        public File getMetrics(String cross, String sample, String accession) {
+            Map metricsMap = (Map) getItems(cross, sample, accession).get("metrics");
+
+            File metrics = null;
+
+            for (Object key : metricsMap.keySet()) {
+                String skey = (String) key;
+                //metrics = new File((String) metricsMap.get(skey));
+
+                Map metricMap = (Map) metricsMap.get(skey);
+                metrics = new File((String) metricMap.get("metrics"));
+            }
+
+            return metrics;
+        }
+
+        public File getCircos(String cross, String sample, String accession) {
+            Map circosMap = (Map) getItems(cross, sample, accession).get("circos");
+
+            File circos = null;
+
+            for (Object key : circosMap.keySet()) {
+                String skey = (String) key;
+                //circos = new File((String) circosMap.get(skey));
+
+                Map metricMap = (Map) circosMap.get(skey);
+                circos = new File((String) metricMap.get("circos"));
+            }
+
+            return circos;
+        }
+
+        public int numSamples(String cross) {
+            return getSamples(cross).size();
+        }
+
+        public int numAccessions(String cross) {
+            Set<String> accessions = new HashSet<String>();
+
+            for (String sample : getSamples(cross)) {
+                accessions.addAll(getAccessions(cross, sample));
+            }
+
+            return accessions.size();
+        }
+
+        public int numKmerSizes(String cross) {
+            Set<String> kmerSizes = new HashSet<String>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        kmerSizes.add(kmerSize);
+                    }
+                }
+            }
+
+            return kmerSizes.size();
+        }
+
+        public int numGraphs(String cross) {
+            Set<File> graphs = new HashSet<File>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label : getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> graphFiles = getGraphs(cross, sample, accession, kmerSize, label);
+
+                            graphs.addAll(graphFiles.values());
+                        }
+                    }
+                }
+            }
+
+            return graphs.size();
+        }
+
+        public int numLinks(String cross) {
+            Set<File> links = new HashSet<File>();
+
+            for (String sample : getSamples(cross)) {
+                for (String accession : getAccessions(cross, sample)) {
+                    for (String kmerSize : getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label : getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> linkFiles = getLinks(cross, sample, accession, kmerSize, label);
+
+                            links.addAll(linkFiles.values());
+                        }
+                    }
+                }
+            }
+
+            return links.size();
+        }
+    }
+
+    private Manifest m;
+
+    private JexlEngine initializeJexlEngine() {
+        JexlEngine je = new JexlEngine();
+        je.setCache(512);
+        je.setLenient(false);
+        je.setSilent(false);
+
+        return je;
+    }
+
+    private JexlEngine je;
+
+    private abstract class BaseHandler implements HttpHandler {
+        public Map<String, String> query(String query) {
+            Map<String, String> result = new HashMap<String, String>();
+
+            query = query.replaceAll("&&", "<and>");
+
+            for (String param : query.split("&")) {
+                String pair[] = param.split("=", 2);
+                if (pair.length > 1) {
+                    result.put(pair[0], pair[1].replaceAll("<and>", "&&"));
+                } else {
+                    result.put(pair[0], "");
+                }
+            }
+
+            return result;
+        }
+
+        public void write(HttpExchange httpExchange, String response) throws IOException {
+            write(httpExchange, 200, response);
+        }
+
+        public void write(HttpExchange httpExchange, int code, String response) throws IOException {
+            httpExchange.sendResponseHeaders(code, response.length());
+
+            OutputStream os = httpExchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
+    private class PageHandler extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            String page = "/html/" + httpExchange.getRequestURI();
+            File f = new File("./public" + page);
+
+            int code = 200;
+            String response;
+
+            if (f.exists()) {
+                InputStream is;
+
+                if (log.isDebugEnabled()) {
+                    is = new FileInputStream(f);
+                } else {
+                    is = this.getClass().getResourceAsStream(page);
+                }
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(is));
+                StringBuilder responseData = new StringBuilder();
+
+                String line;
+                while ((line = in.readLine()) != null) {
+                    responseData.append(line).append("\n");
+                }
+
+                Headers h = httpExchange.getResponseHeaders();
+                if      (page.endsWith(".js"))   { h.add("Content-Type", "text/javascript"); }
+                else if (page.endsWith(".css"))  { h.add("Content-Type", "text/css");        }
+                else if (page.endsWith(".html")) { h.add("Content-Type", "text/html");       }
+
+                response = responseData.toString();
+            } else {
+                code = 404;
+                response = "Page not found.";
+            }
+
+            write(httpExchange, code, response);
+        }
+    }
+
+    private class CrossesList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Set<String> crosses = m.getCrosses();
+
+            JSONObject jo = new JSONObject();
+            jo.put("crosses", crosses);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class SamplesList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+
+            Set<String> samples = m.getSamples(cross);
+
+            JSONObject jo = new JSONObject();
+            jo.put("samples", samples);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class AccessionsList extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+
+            Set<String> accessions = m.getAccessions(cross, sample);
+
+            JSONObject jo = new JSONObject();
+            jo.put("accessions", accessions);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class NumContigs extends BaseHandler {
+        private Map<File, Integer> numContigsCache = new HashMap<File, Integer>();
+
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            File metricsFile = m.getMetrics(cross, sample, accession);
+
+            if (!numContigsCache.containsKey(metricsFile)) {
+                TableReader tr = new TableReader(metricsFile);
+
+                int numContigs = 0;
+                for (Map<String, String> te : tr) {
+                    numContigs++;
+                }
+
+                numContigsCache.put(metricsFile, numContigs);
+            }
+
+            JSONObject jo = new JSONObject();
+            jo.put("numContigs", numContigsCache.get(metricsFile));
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class Circos extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            File circosFile = m.getCircos(cross, sample, accession);
+
+            LineReader lr = new LineReader(circosFile);
+            StringBuilder circosXml = new StringBuilder();
+            String line;
+            while ((line = lr.getNextRecord()) != null) {
+                if (!line.contains("id=\"contig")) {
+                    circosXml.append(line).append("\n");
+                }
+            }
+
+            write(httpExchange, circosXml.toString());
+        }
+    }
+
+    private class Search extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String jexl = query.get("jexl");
+
+            Expression e = je.createExpression(jexl);
+
+            Set<String> contigNames = new HashSet<String>();
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (Map<String, String> te : tr) {
+                JexlContext jexlContext = new MapContext();
+
+                for (String key : te.keySet()) {
+                    jexlContext.set(key, te.get(key));
+                }
+
+                try {
+                    if (!e.getExpression().isEmpty() && (Boolean) e.evaluate(jexlContext)) {
+                        String contigName = te.get("contigName");
+                        contigNames.add(contigName);
+                    }
+                } catch (ClassCastException ex) {
+                    throw new IndianaException("Problem evaluating JEXL expression for expression " + e + ": ", ex);
+                }
+            }
+
+            StringBuilder xml = new StringBuilder();
+
+            Pattern p = Pattern.compile("id=\"(.+)\"");
+
+            File circosFile = m.getCircos(cross, sample, accession);
+            LineReader lr = new LineReader(circosFile);
+            String line;
+            while ((line = lr.getNextRecord()) != null) {
+                if (line.contains("id=\"contig")) {
+                    Matcher m = p.matcher(line);
+
+                    if (m.find()) {
+                        String contigName = m.group(1);
+
+                        if (contigNames.contains(contigName)) {
+                            xml.append(line);
+                        }
+                    }
+                } else {
+                    xml.append(line);
+                }
+            }
+
+            write(httpExchange, xml.toString());
+        }
+    }
+
+    private class Info extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (Map<String, String> te : tr) {
+                if (contigName.equals(te.get("contigName"))) {
+                    te.remove("kmerOrigin");
+                    te.remove("seq");
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("info", te);
+
+                    write(httpExchange, jo.toString());
+                    break;
+                }
+            }
+
+            write(httpExchange, 404, "not found");
+        }
+    }
+
+    private class Graphs extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+
+            Set<Map<String, String>> entries = new HashSet<Map<String, String>>();
+
+            Map<String, String> allEntry = new HashMap<String, String>();
+            allEntry.put("kmerSize", "all");
+            allEntry.put("label", "all");
+            entries.add(allEntry);
+
+            for (String kmerSize : m.getGraphKmerSizes(cross, sample, accession)) {
+                for (String graphLabel : m.getGraphLabels(cross, sample, accession, kmerSize)) {
+                    Map<String, String> entry = new HashMap<String, String>();
+
+                    entry.put("kmerSize", kmerSize);
+                    entry.put("label", graphLabel);
+                    entries.add(entry);
+                }
+            }
+
+            JSONObject jo = new JSONObject();
+            jo.put("entries", entries);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
+    private class Contig extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+
+            for (Map<String, String> te : tr) {
+                if (contigName.equals(te.get("contigName"))) {
+                    String seq = te.get("seq");
+
+                    Set<Map<String, String>> entries = new HashSet<Map<String, String>>();
+
+                    for (int i = 0; i < seq.length(); i++) {
+                        Map<String, String> entry = new HashMap<String, String>();
+                        String base = String.valueOf(seq.charAt(i));
+                        String id = String.format("%s_%d", base, i);
+                        entry.put("base", base);
+                        entry.put("name", id);
+                        entry.put("class", base);
+
+                        if (i > 0) {
+                            String prevBase = String.valueOf(seq.charAt(i - 1));
+                            String prevId = String.format("%s_%d", prevBase, i - 1);
+                            entry.put("parent", prevId);
+                        }
+
+                        entries.add(entry);
+                    }
+
+                    for (String kmerSize : m.getGraphKmerSizes(cross, sample, accession)) {
+                        for (String label: m.getGraphLabels(cross, sample, accession, kmerSize)) {
+                            Map<String, File> graphMap = m.getGraphs(cross, sample, accession, kmerSize, label);
+
+                            for (String name : graphMap.keySet()) {
+                                CortexGraph cg = new CortexGraph(graphMap.get(name));
+                                int ks = cg.getKmerSize();
+
+                                for (int i = 0; i <= seq.length() - ks; i++) {
+                                    String kmer = seq.substring(i, i + ks);
+
+                                    Set<String> outKmers = CortexUtils.getNextKmers(cg, kmer);
+
+                                    if (i <= seq.length() - ks - 1) {
+                                        String nextKmer = seq.substring(i + 1, i + 1 + ks);
+
+                                        outKmers.remove(nextKmer);
+
+                                        for (String outKmer : outKmers) {
+                                            Map<String, String> entry = new HashMap<String, String>();
+
+                                            String outEdge = String.valueOf(outKmer.charAt(outKmer.length() - 1));
+                                            String id = String.format("%s_%d", outEdge, i + ks);
+
+                                            entry.put("base", outEdge);
+                                            entry.put("name", id);
+                                            entry.put("class", "noncontig");
+                                            entries.add(entry);
+
+                                            String prevBase = String.valueOf(kmer.charAt(kmer.length() - 1));
+                                            String prevId = String.format("%s_%d", prevBase, i + ks - 1);
+                                            entry.put("parent", prevId);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("seq", new JSONArray(entries));
+
+                    write(httpExchange, jo.toString());
+                    break;
+                }
+            }
+
+            write(httpExchange, 404, "not found");
+        }
+    }
+
+    private class LinearContig extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String cross = query.get("cross");
+            String sample = query.get("sample");
+            String accession = query.get("accession");
+            String contigName = query.get("contigName");
+            String kmerSize = query.get("kmerSize");
+            String graphLabel = query.get("graphLabel");
+
+            File metrics = m.getMetrics(cross, sample, accession);
+            TableReader tr = new TableReader(metrics);
+            for (Map<String, String> te : tr) {
+                if (te.get("contigName").equals(contigName)) {
+                    String contig = te.get("seq");
+                    String kmerOrigin = te.get("kmerOrigin");
+
+                    Map<Integer, Set<Map<String, String>>> bases = new HashMap<Integer, Set<Map<String, String>>>();
+
+                    for (int i = 0; i < contig.length(); i++) {
+                        Map<String, String> baseMap = new HashMap<String, String>();
+                        String base = String.valueOf(contig.charAt(i));
+                        String id = String.format("%s_%d", base, i);
+
+                        baseMap.put("base", base);
+                        baseMap.put("id", id);
+                        baseMap.put("class", base);
+                        baseMap.put("pos", String.valueOf(i));
+                        baseMap.put("type", "contig");
+                        if (i < kmerOrigin.length()) {
+                            baseMap.put("annotation", String.valueOf(kmerOrigin.charAt(i)));
+                        }
+
+                        bases.put(i, new HashSet<Map<String, String>>());
+                        bases.get(i).add(baseMap);
+                    }
+
+                    for (String ks : m.getGraphKmerSizes(cross, sample, accession)) {
+                        if (ks.equals(kmerSize) || kmerSize.equals("all")) {
+                            for (String gl : m.getGraphLabels(cross, sample, accession, ks)) {
+                                if (gl.equals(graphLabel) || graphLabel.equals("all")) {
+                                    Map<String, File> graphMap = m.getGraphs(cross, sample, accession, ks, gl);
+
+                                    for (String label : graphMap.keySet()) {
+                                        CortexGraph cg = new CortexGraph(graphMap.get(label));
+
+                                        for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
+                                            String sk = contig.substring(i, i + cg.getKmerSize());
+                                            CortexKmer ck = new CortexKmer(sk);
+                                            CortexRecord cr = cg.findRecord(ck);
+
+                                            if (cr == null) {
+                                                for (Map<String, String> baseMap : bases.get(i)) {
+                                                    baseMap.put("missing", "1");
+                                                }
+                                            } else {
+                                                if (i > 0) {
+                                                    String psk = contig.substring(i - 1, i - 1 + cg.getKmerSize());
+
+                                                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
+                                                    prevKmers.remove(psk);
+
+                                                    if (prevKmers.size() > 0) {
+                                                        for (String prevKmer : prevKmers) {
+                                                            Map<String, String> prevBaseMap = new HashMap<String, String>();
+                                                            String prevBase = String.valueOf(prevKmer.charAt(0));
+                                                            String prevId = String.format("%s_%d", prevBase, i - 1);
+
+                                                            prevBaseMap.put("base", prevBase);
+                                                            prevBaseMap.put("id", prevId);
+                                                            prevBaseMap.put("class", "none");
+                                                            prevBaseMap.put("pos", String.valueOf(i - 1));
+                                                            prevBaseMap.put("type", "inedge");
+
+                                                            bases.get(i - 1).add(prevBaseMap);
+                                                        }
+                                                    }
+                                                }
+
+                                                if (i < contig.length() - cg.getKmerSize() - 1) {
+                                                    String nsk = contig.substring(i + 1, i + 1 + cg.getKmerSize());
+
+                                                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
+                                                    nextKmers.remove(nsk);
+
+                                                    if (nextKmers.size() > 0) {
+                                                        for (String nextKmer : nextKmers) {
+                                                            Map<String, String> nextBaseMap = new HashMap<String, String>();
+                                                            String nextBase = String.valueOf(nextKmer.charAt(nextKmer.length() - 1));
+                                                            String nextId = String.format("%s_%d", nextBase, i + 1 + cg.getKmerSize());
+
+                                                            nextBaseMap.put("base", nextBase);
+                                                            nextBaseMap.put("id", nextId);
+                                                            nextBaseMap.put("class", "none");
+                                                            nextBaseMap.put("pos", String.valueOf(i + 1 + cg.getKmerSize()));
+                                                            nextBaseMap.put("type", "outedge");
+
+                                                            bases.get(i + 1 + cg.getKmerSize()).add(nextBaseMap);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    JSONObject jo = new JSONObject();
+                    jo.put("bases", bases);
+                    write(httpExchange, jo.toString());
+                }
+            }
+
+            write(httpExchange, 404, "not implemented");
+        }
+    }
+
+    @Override
+    public void execute() {
+        log.info("Loading...");
+
+        m = new Manifest(MANIFEST);
+        je = initializeJexlEngine();
+
+        for (String cross : m.getCrosses()) {
+            log.info("  {}: {} samples, {} accessions, {} kmer sizes, {} graphs, {} links",
+                    cross,
+                    m.numSamples(cross),
+                    m.numAccessions(cross),
+                    m.numKmerSizes(cross),
+                    m.numGraphs(cross),
+                    m.numLinks(cross)
+            );
+        }
+
+        log.info("Starting server...");
+
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server.createContext("/", new PageHandler());
+            server.createContext("/crosses", new CrossesList());
+            server.createContext("/samples", new SamplesList());
+            server.createContext("/accessions", new AccessionsList());
+            server.createContext("/numcontigs", new NumContigs());
+            server.createContext("/circos", new Circos());
+            server.createContext("/search", new Search());
+            server.createContext("/info", new Info());
+            server.createContext("/graphs", new Graphs());
+            server.createContext("/contig", new Contig());
+            server.createContext("/linearcontig", new LinearContig());
+            server.setExecutor(null);
+            server.start();
+        } catch (IOException e) {
+            throw new IndianaException("Unable to start server", e);
+        }
+
+        log.info("  listening on port {}", PORT);
+
+        /*
+        contigs = loadContigs();
+        links = loadLinks();
+
+        log.info("  loaded {} contigs", contigs.size());
+        for (String graphLabel : links.keySet()) {
+            log.info("  loaded {} kmers with links from {}", links.get(graphLabel).size(), graphLabel);
+        }
+
+        log.info("Starting server...");
+
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server.createContext("/",                new PageHandler("/html/index.html"));
+            server.createContext("/test",            new PageHandler("/html/newindex.html"));
+            server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
+            server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
+            server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
+            server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
+            server.createContext("/graph.json",      new PageHandler("/html/graph.json"));
+            server.createContext("/contigs.csv",     new ContigsHandler());
+            server.createContext("/contig",          new ContigHandler());
+            server.createContext("/context",         new ContigContextHandler());
+            server.createContext("/masked",          new MaskHandler());
+            server.createContext("/edges",           new EdgeHandler());
+            server.createContext("/links",           new LinksHandler());
+            server.createContext("/link",            new LinkHandler());
+            server.createContext("/linksplot",       new LinksPlotHandler());
+            server.createContext("/covplot",         new CoveragePlotHandler());
+            server.createContext("/dataset",         new DataSetHandler());
+            server.createContext("/simplegraph",     new SimpleGraphHandler());
+            server.setExecutor(null);
+            server.start();
+        } catch (IOException e) {
+            throw new IndianaException("Unable to start server", e);
+        }
+
+        log.info("  listening on port {}", PORT);
+        */
+    }
+
+    /*
     private Map<String, String> contigs;
     private Map<String, Map<CortexKmer, CortexLinksRecord>> links;
 
@@ -1035,47 +1868,6 @@ public class server extends Module {
 
         return links;
     }
+    */
 
-    @Override
-    public void execute() {
-        log.info("Loading...");
-
-        contigs = loadContigs();
-        links = loadLinks();
-
-        log.info("  loaded {} contigs", contigs.size());
-        for (String graphLabel : links.keySet()) {
-            log.info("  loaded {} kmers with links from {}", links.get(graphLabel).size(), graphLabel);
-        }
-
-        log.info("Starting server...");
-
-        try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-            server.createContext("/",                new PageHandler("/html/index.html"));
-            server.createContext("/test",            new PageHandler("/html/newindex.html"));
-            server.createContext("/tidy",            new PageHandler("/html/tidy.html"));
-            server.createContext("/d3.v3.min.js",    new PageHandler("/html/d3.v3.min.js"));
-            server.createContext("/autocomplete.js", new PageHandler("/html/autocomplete.js"));
-            server.createContext("/indiana.css",     new PageHandler("/html/indiana.css"));
-            server.createContext("/graph.json",      new PageHandler("/html/graph.json"));
-            server.createContext("/contigs.csv",     new ContigsHandler());
-            server.createContext("/contig",          new ContigHandler());
-            server.createContext("/context",         new ContigContextHandler());
-            server.createContext("/masked",          new MaskHandler());
-            server.createContext("/edges",           new EdgeHandler());
-            server.createContext("/links",           new LinksHandler());
-            server.createContext("/link",            new LinkHandler());
-            server.createContext("/linksplot",       new LinksPlotHandler());
-            server.createContext("/covplot",         new CoveragePlotHandler());
-            server.createContext("/dataset",         new DataSetHandler());
-            server.createContext("/simplegraph",     new SimpleGraphHandler());
-            server.setExecutor(null);
-            server.start();
-        } catch (IOException e) {
-            throw new IndianaException("Unable to start server", e);
-        }
-
-        log.info("  listening on port {}", PORT);
-    }
 }
