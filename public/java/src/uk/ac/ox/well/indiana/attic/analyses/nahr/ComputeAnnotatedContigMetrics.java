@@ -68,6 +68,15 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public int numAlignmentsInCanonical = 0;
         public int numAlignmentsInRef0 = 0;
         public int numAlignmentsInRef1 = 0;
+        public String cigarCanonical;
+        public String cigarRef0;
+        public String cigarRef1;
+        public int nmCanonical;
+        public int nmRef0;
+        public int nmRef1;
+        public String mdCanonical;
+        public String mdRef0;
+        public String mdRef1;
     }
 
     private int longestRun(String ann, char entry) {
@@ -195,6 +204,10 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
+                ci.cigarCanonical = read.getCigarString();
+                ci.nmCanonical = read.getIntegerAttribute("NM");
+                ci.mdCanonical = read.getStringAttribute("MD");
+
                 cis.put(accession + "." + read.getReadName(), ci);
             }
         }
@@ -242,6 +255,10 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         }
                     } catch (NumberFormatException e) {}
                 }
+
+                ci.cigarRef0 = read.getCigarString();
+                ci.nmRef0 = read.getIntegerAttribute("NM");
+                ci.mdRef0 = read.getStringAttribute("MD");
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -292,6 +309,10 @@ public class ComputeAnnotatedContigMetrics extends Module {
                         }
                     } catch (NumberFormatException e) {}
                 }
+
+                ci.cigarRef1 = read.getCigarString();
+                ci.nmRef1 = read.getIntegerAttribute("NM");
+                ci.mdRef1 = read.getStringAttribute("MD");
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -401,14 +422,25 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInCanonical", ci.clippedInCanonical ? "1" : "0");
                     entry.put("numAlignmentsInCanonical", String.valueOf(ci.numAlignmentsInCanonical));
                     entry.put("perfectAlignmentInCanonical", ci.perfectAlignmentInCanonical ? "1" : "0");
+                    entry.put("cigarCanonical", ci.cigarCanonical);
+                    entry.put("nmCanonical", String.valueOf(ci.nmCanonical));
+                    entry.put("mdCanonical", String.valueOf(ci.mdCanonical));
+
                     entry.put("alignedToRef0", ci.alignedToRef0 ? "1" : "0");
                     entry.put("clippedInRef0", ci.clippedInRef0 ? "1" : "0");
                     entry.put("numAlignmentsInRef0", String.valueOf(ci.numAlignmentsInRef0));
                     entry.put("perfectAlignmentInRef0", ci.perfectAlignmentInRef0 ? "1" : "0");
+                    entry.put("cigarRef0", ci.cigarRef0);
+                    entry.put("nmRef0", String.valueOf(ci.nmRef0));
+                    entry.put("mdRef0", String.valueOf(ci.mdRef0));
+
                     entry.put("alignedToRef1", ci.alignedToRef1 ? "1" : "0");
                     entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
                     entry.put("numAlignmentsInRef1", String.valueOf(ci.numAlignmentsInRef1));
                     entry.put("perfectAlignmentInRef1", ci.perfectAlignmentInRef1 ? "1" : "0");
+                    entry.put("cigarRef1", ci.cigarRef1);
+                    entry.put("nmRef1", String.valueOf(ci.nmRef1));
+                    entry.put("mdRef1", String.valueOf(ci.mdRef1));
                 } else {
                     entry.put("canonicalLocus", "NA");
                     entry.put("ref0Locus", "NA");
@@ -419,20 +451,33 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("ref1ToCanonicalExact", "NA");
                     entry.put("sameChromosome", "NA");
                     entry.put("sameEffectiveLocus", "NA");
+
                     entry.put("genesRef0", "NA");
                     entry.put("genesRef1", "NA");
+
                     entry.put("alignedToCanonical", "NA");
                     entry.put("clippedInCanonical", "NA");
                     entry.put("numAlignmentsInCanonical", "NA");
                     entry.put("perfectAlignmentInCanonical", "NA");
+                    entry.put("cigarCanonical", "NA");
+                    entry.put("nmCanonical", "NA");
+                    entry.put("mdCanonical", "NA");
+
                     entry.put("alignedToRef0", "NA");
                     entry.put("clippedInRef0", "NA");
                     entry.put("numAlignmentsInRef0", "NA");
                     entry.put("perfectAlignmentInRef0", "NA");
+                    entry.put("cigarRef0", "NA");
+                    entry.put("nmRef0", "NA");
+                    entry.put("mdRef0", "NA");
+
                     entry.put("alignedToRef1", "NA");
                     entry.put("clippedInRef1", "NA");
                     entry.put("numAlignmentsInRef1", "NA");
                     entry.put("perfectAlignmentInRef1", "NA");
+                    entry.put("cigarRef1", "NA");
+                    entry.put("nmRef1", "NA");
+                    entry.put("mdRef1", "NA");
                 }
 
                 entry.put("seq", te.get("seq"));
