@@ -435,6 +435,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarCanonical", ci.cigarCanonical);
                     entry.put("nmCanonical", String.valueOf(ci.nmCanonical));
                     entry.put("mdCanonical", String.valueOf(ci.mdCanonical));
+                    entry.put("mqCanonical", String.valueOf(ci.mqCanonical));
 
                     entry.put("alignedToRef0", ci.alignedToRef0 ? "1" : "0");
                     entry.put("clippedInRef0", ci.clippedInRef0 ? "1" : "0");
@@ -443,6 +444,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarRef0", ci.cigarRef0);
                     entry.put("nmRef0", String.valueOf(ci.nmRef0));
                     entry.put("mdRef0", String.valueOf(ci.mdRef0));
+                    entry.put("mqRef0", String.valueOf(ci.mqRef0));
 
                     entry.put("alignedToRef1", ci.alignedToRef1 ? "1" : "0");
                     entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
@@ -451,6 +453,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarRef1", ci.cigarRef1);
                     entry.put("nmRef1", String.valueOf(ci.nmRef1));
                     entry.put("mdRef1", String.valueOf(ci.mdRef1));
+                    entry.put("mqRef1", String.valueOf(ci.mqRef1));
                 } else {
                     entry.put("canonicalLocus", "NA");
                     entry.put("ref0Locus", "NA");
@@ -472,6 +475,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarCanonical", "NA");
                     entry.put("nmCanonical", "NA");
                     entry.put("mdCanonical", "NA");
+                    entry.put("mqCanonical", "NA");
 
                     entry.put("alignedToRef0", "NA");
                     entry.put("clippedInRef0", "NA");
@@ -480,6 +484,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarRef0", "NA");
                     entry.put("nmRef0", "NA");
                     entry.put("mdRef0", "NA");
+                    entry.put("mqRef0", "NA");
 
                     entry.put("alignedToRef1", "NA");
                     entry.put("clippedInRef1", "NA");
@@ -488,6 +493,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("cigarRef1", "NA");
                     entry.put("nmRef1", "NA");
                     entry.put("mdRef1", "NA");
+                    entry.put("mqRef1", "NA");
                 }
 
                 entry.put("seq", te.get("seq"));
