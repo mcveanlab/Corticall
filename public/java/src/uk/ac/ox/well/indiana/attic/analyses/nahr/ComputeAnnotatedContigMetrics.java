@@ -56,6 +56,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public Interval ref1ToCanonicalExact;
         public boolean sameChromosome = false;
         public boolean sameEffectiveLocus = false;
+
         public boolean alignedToCanonical = false;
         public boolean alignedToRef0 = false;
         public boolean alignedToRef1 = false;
@@ -77,6 +78,9 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public String mdCanonical;
         public String mdRef0;
         public String mdRef1;
+        public int mqCanonical;
+        public int mqRef0;
+        public int mqRef1;
     }
 
     private int longestRun(String ann, char entry) {
@@ -207,6 +211,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ci.cigarCanonical = read.getCigarString();
                 ci.nmCanonical = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdCanonical = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
+                ci.mqCanonical = read.getMappingQuality();
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -262,6 +267,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ci.cigarRef0 = read.getCigarString();
                 ci.nmRef0 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdRef0 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
+                ci.mqRef0 = read.getMappingQuality();
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
@@ -313,12 +319,10 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
-                //ci.cigarRef1 = read.getCigarString();
-                //ci.nmRef1 = read.getIntegerAttribute("NM");
-                //ci.mdRef1 = read.getStringAttribute("MD");
                 ci.cigarRef1 = read.getCigarString();
                 ci.nmRef1 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdRef1 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
+                ci.mqRef1 = read.getMappingQuality();
 
                 cis.put(accession + "." + read.getReadName(), ci);
             }
