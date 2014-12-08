@@ -1,10 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.CigarElement;
-import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.*;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -81,6 +78,29 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public int mqCanonical;
         public int mqRef0;
         public int mqRef1;
+        /*
+        public int numHCanonical;
+        public int numHRef0;
+        public int numHRef1;
+        public int numSCanonical;
+        public int numSRef0;
+        public int numSRef1;
+        public int numICanonical;
+        public int numIRef0;
+        public int numIRef1;
+        public int numDCanonical;
+        public int numDRef0;
+        public int numDRef1;
+        public int lengthSCanonical;
+        public int lengthSRef0;
+        public int lengthSRef1;
+        public int lengthDCanonical;
+        public int lengthDRef0;
+        public int lengthDRef1;
+        public int lengthICanonical;
+        public int lengthIRef0;
+        public int lengthIRef1;
+        */
     }
 
     private int longestRun(String ann, char entry) {
@@ -168,6 +188,20 @@ public class ComputeAnnotatedContigMetrics extends Module {
 
         return imap;
     }
+
+    /*
+    private int numOfCigarOp(Cigar cigar, CigarOperator co) {
+        int count = 0;
+
+        for (CigarElement ce : cigar.getCigarElements()) {
+            if (ce.getOperator().equals(co)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+    */
 
     @Override
     public void execute() {

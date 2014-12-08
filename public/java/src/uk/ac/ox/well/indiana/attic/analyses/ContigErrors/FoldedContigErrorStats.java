@@ -18,6 +18,9 @@ public class FoldedContigErrorStats extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (in BAM format)")
     public SAMFileReader CONTIGS;
 
+    @Argument(fullName="mqThreshold", shortName="m", doc="Mapping quality threshold")
+    public Integer MQ_THRESHOLD = 0;
+
     @Output
     public PrintStream out;
 
@@ -64,7 +67,7 @@ public class FoldedContigErrorStats extends Module {
         int[] allTotal = new int[lengthMax];
 
         for (SAMRecord read : CONTIGS) {
-            if (read.getAlignmentStart() > 0) { // && read.getReadLength() >= 0 && read.getReadLength() < lengthMax) {
+            if (read.getAlignmentStart() > 0 && read.getMappingQuality() >= MQ_THRESHOLD) { // && read.getReadLength() >= 0 && read.getReadLength() < lengthMax) {
                 String md = read.getStringAttribute("MD");
 
                 int numMatches = 0;
