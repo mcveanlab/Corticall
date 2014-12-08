@@ -66,6 +66,9 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public int numAlignmentsInCanonical = 0;
         public int numAlignmentsInRef0 = 0;
         public int numAlignmentsInRef1 = 0;
+        public boolean isRcCanonical;
+        public boolean isRcRef0;
+        public boolean isRcRef1;
         public String cigarCanonical;
         public String cigarRef0;
         public String cigarRef1;
@@ -78,29 +81,6 @@ public class ComputeAnnotatedContigMetrics extends Module {
         public int mqCanonical;
         public int mqRef0;
         public int mqRef1;
-        /*
-        public int numHCanonical;
-        public int numHRef0;
-        public int numHRef1;
-        public int numSCanonical;
-        public int numSRef0;
-        public int numSRef1;
-        public int numICanonical;
-        public int numIRef0;
-        public int numIRef1;
-        public int numDCanonical;
-        public int numDRef0;
-        public int numDRef1;
-        public int lengthSCanonical;
-        public int lengthSRef0;
-        public int lengthSRef1;
-        public int lengthDCanonical;
-        public int lengthDRef0;
-        public int lengthDRef1;
-        public int lengthICanonical;
-        public int lengthIRef0;
-        public int lengthIRef1;
-        */
     }
 
     private int longestRun(String ann, char entry) {
@@ -242,6 +222,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
+                ci.isRcCanonical = read.getReadNegativeStrandFlag();
                 ci.cigarCanonical = read.getCigarString();
                 ci.nmCanonical = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdCanonical = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
@@ -295,9 +276,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
-                //ci.cigarRef0 = read.getCigarString();
-                //ci.nmRef0 = read.getIntegerAttribute("NM");
-                //ci.mdRef0 = read.getStringAttribute("MD");
+                ci.isRcRef0 = read.getReadNegativeStrandFlag();
                 ci.cigarRef0 = read.getCigarString();
                 ci.nmRef0 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdRef0 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
@@ -353,6 +332,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     } catch (NumberFormatException e) {}
                 }
 
+                ci.isRcRef1 = read.getReadNegativeStrandFlag();
                 ci.cigarRef1 = read.getCigarString();
                 ci.nmRef1 = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
                 ci.mdRef1 = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
@@ -466,6 +446,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInCanonical", ci.clippedInCanonical ? "1" : "0");
                     entry.put("numAlignmentsInCanonical", String.valueOf(ci.numAlignmentsInCanonical));
                     entry.put("perfectAlignmentInCanonical", ci.perfectAlignmentInCanonical ? "1" : "0");
+                    entry.put("isRcCanonical", ci.isRcCanonical ? "1" : "0");
                     entry.put("cigarCanonical", ci.cigarCanonical);
                     entry.put("nmCanonical", String.valueOf(ci.nmCanonical));
                     entry.put("mdCanonical", String.valueOf(ci.mdCanonical));
@@ -475,6 +456,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInRef0", ci.clippedInRef0 ? "1" : "0");
                     entry.put("numAlignmentsInRef0", String.valueOf(ci.numAlignmentsInRef0));
                     entry.put("perfectAlignmentInRef0", ci.perfectAlignmentInRef0 ? "1" : "0");
+                    entry.put("isRcRef0", ci.isRcRef0 ? "1" : "0");
                     entry.put("cigarRef0", ci.cigarRef0);
                     entry.put("nmRef0", String.valueOf(ci.nmRef0));
                     entry.put("mdRef0", String.valueOf(ci.mdRef0));
@@ -484,6 +466,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInRef1", ci.clippedInRef1 ? "1" : "0");
                     entry.put("numAlignmentsInRef1", String.valueOf(ci.numAlignmentsInRef1));
                     entry.put("perfectAlignmentInRef1", ci.perfectAlignmentInRef1 ? "1" : "0");
+                    entry.put("isRcRef1", ci.isRcRef1 ? "1" : "0");
                     entry.put("cigarRef1", ci.cigarRef1);
                     entry.put("nmRef1", String.valueOf(ci.nmRef1));
                     entry.put("mdRef1", String.valueOf(ci.mdRef1));
@@ -506,6 +489,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInCanonical", "NA");
                     entry.put("numAlignmentsInCanonical", "NA");
                     entry.put("perfectAlignmentInCanonical", "NA");
+                    entry.put("isRcCanonical", "NA");
                     entry.put("cigarCanonical", "NA");
                     entry.put("nmCanonical", "NA");
                     entry.put("mdCanonical", "NA");
@@ -515,6 +499,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInRef0", "NA");
                     entry.put("numAlignmentsInRef0", "NA");
                     entry.put("perfectAlignmentInRef0", "NA");
+                    entry.put("isRcRef0", "NA");
                     entry.put("cigarRef0", "NA");
                     entry.put("nmRef0", "NA");
                     entry.put("mdRef0", "NA");
@@ -524,6 +509,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                     entry.put("clippedInRef1", "NA");
                     entry.put("numAlignmentsInRef1", "NA");
                     entry.put("perfectAlignmentInRef1", "NA");
+                    entry.put("isRcRef1", "NA");
                     entry.put("cigarRef1", "NA");
                     entry.put("nmRef1", "NA");
                     entry.put("mdRef1", "NA");
