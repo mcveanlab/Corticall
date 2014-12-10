@@ -174,9 +174,27 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
                         coverages[c] = Integer.valueOf(linkLine[3 + c]);
                     }
 
-                    String junctions = linkLine[linkLine.length - 1];
+                    String junctions = linkLine[3 + numColors];
 
-                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
+                    String seq = null;
+                    int[] juncpos = null;
+                    if (linkLine.length > 3 + numColors + 1) {
+                        for (int j = 3 + numColors + 1; j < linkLine.length; j++) {
+                            String entry = linkLine[j];
+
+                            if (entry.contains("seq=")) {
+                                seq = entry.replaceAll("seq=", "");
+                            } else if (entry.contains("juncpos=")) {
+                                String[] sjuncpos = entry.replaceAll("juncpos=", "").split(",");
+                                juncpos = new int[sjuncpos.length];
+                                for (int k = 0; k < sjuncpos.length; k++) {
+                                    juncpos[k] = Integer.valueOf(sjuncpos[k]);
+                                }
+                            }
+                        }
+                    }
+
+                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions, seq, juncpos);
                     cjs.add(cj);
                 }
 
