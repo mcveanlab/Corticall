@@ -158,7 +158,10 @@ public class CortexUtils {
                                          cjr.getNumKmers(),
                                          cjr.getNumJunctions(),
                                          cjr.getCoverages(),
-                                         SequenceUtils.complement(cjr.getJunctions()));
+                                         SequenceUtils.complement(cjr.getJunctions()),
+                                         SequenceUtils.reverseComplement(cjr.getSeq()),
+                                         cjr.getJunctionPositions()
+                   );
     }
 
     /**
@@ -200,7 +203,7 @@ public class CortexUtils {
             isForward = !isForward;
         }
 
-        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions);
+        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions, cjr.getSeq(), cjr.getJunctionPositions());
     }
 
     /**
@@ -210,7 +213,7 @@ public class CortexUtils {
      * @param cjr  the Cortex link junctions record
      * @return     the list of kmers
      */
-    public static List<String> getKmersInLink(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
+    public static List<String> getKmersInLinkByNavigation(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
         cjr = orientJunctionsRecord(sk, cjr);
 
         int junctionsUsed = 0;
@@ -241,9 +244,7 @@ public class CortexUtils {
 
                         kmersInLink.add(expectedNextKmer);
                     } else {
-                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
-                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
-                        break;
+                        throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + nbase + " " + expectedNextKmer + " " + nextKmers);
                     }
 
                     junctionsUsed++;
@@ -269,9 +270,7 @@ public class CortexUtils {
 
                         kmersInLink.add(0, expectedPrevKmer);
                     } else {
-                        System.err.println("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
-                        //throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
-                        break;
+                        throw new IndianaException("Junction record specified a navigation that conflicted with the graph: " + junctions + " " + pbase + " " + expectedPrevKmer + " " + prevKmers);
                     }
 
                     junctionsUsed++;
@@ -282,4 +281,40 @@ public class CortexUtils {
         return kmersInLink;
     }
 
+    public static List<String> getKmersInLinkFromSeq(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
+        List<String> expectedKmers = new ArrayList<String>();
+        String seq = cjr.getSeq();
+        CortexKmer ck = new CortexKmer(sk);
+        if ((!ck.isFlipped() && !cjr.isForward()) || (ck.isFlipped() && cjr.isForward())) {
+            seq = SequenceUtils.reverseComplement(seq);
+        }
+        for (int i = 0; i <= seq.length() - cg.getKmerSize(); i++) {
+            String kmer = seq.substring(i, i + cg.getKmerSize());
+            expectedKmers.add(kmer);
+        }
+
+        return expectedKmers;
+    }
+
+    public static List<String> getKmersInLink(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
+        return (cjr.getSeq() != null) ? getKmersInLinkFromSeq(cg, sk, cjr) : getKmersInLinkByNavigation(cg, sk, cjr);
+    }
+
+    public static Map<String, Integer> getKmersAndCoverageInLink(CortexGraph cg, String sk, CortexLinksRecord clr) {
+        Map<String, Integer> kmersAndCoverage = new HashMap<String, Integer>();
+
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            List<String> kil = getKmersInLink(cg, sk, cjr);
+
+            for (String ki : kil) {
+                if (!kmersAndCoverage.containsKey(ki)) {
+                    kmersAndCoverage.put(ki, cjr.getCoverage(0));
+                } else {
+                    kmersAndCoverage.put(ki, cjr.getCoverage(0) + kmersAndCoverage.get(ki));
+                }
+            }
+        }
+
+        return kmersAndCoverage;
+    }
 }

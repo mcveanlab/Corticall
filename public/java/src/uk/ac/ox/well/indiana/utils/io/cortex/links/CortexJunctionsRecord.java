@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
+import com.google.common.base.Joiner;
+
 import java.util.Arrays;
 
 public class CortexJunctionsRecord {
@@ -8,13 +10,17 @@ public class CortexJunctionsRecord {
     private int numJunctions;
     private int[] coverages;
     private String junctions;
+    private String seq;
+    private int[] juncpos;
 
-    public CortexJunctionsRecord(boolean isForwardOrientation, int numKmers, int numJunctions, int[] coverages, String junctions) {
+    public CortexJunctionsRecord(boolean isForwardOrientation, int numKmers, int numJunctions, int[] coverages, String junctions, String seq, int[] juncpos) {
         this.isFw = isForwardOrientation;
         this.numKmers = numKmers;
         this.numJunctions = numJunctions;
         this.coverages = coverages;
         this.junctions = junctions;
+        this.seq = seq;
+        this.juncpos = juncpos;
     }
 
     public String toString() {
@@ -30,6 +36,22 @@ public class CortexJunctionsRecord {
 
         buffer.append(junctions);
 
+        if (seq != null) {
+            buffer.append(" seq=").append(seq);
+        }
+
+        if (juncpos != null) {
+            buffer.append(" juncpos=");
+
+            for (int j = 0; j < juncpos.length; j++) {
+                buffer.append(juncpos[j]);
+
+                if (j < juncpos.length - 1) {
+                    buffer.append(",");
+                }
+            }
+        }
+
         return buffer.toString();
     }
 
@@ -39,6 +61,8 @@ public class CortexJunctionsRecord {
     public int[] getCoverages() { return coverages; }
     public int getCoverage(int i) { return coverages[i]; }
     public String getJunctions() { return junctions; }
+    public String getSeq() { return seq; }
+    public int[] getJunctionPositions() { return juncpos; }
 
     @Override
     public boolean equals(Object o) {

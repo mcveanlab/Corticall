@@ -70,4 +70,27 @@ public class CortexLinksTest {
         Assert.assertEquals(cprLast1, cprLast2);
         Assert.assertNotEquals(cprFirst1, cprLast1);
     }
+
+    @Test
+    public void testParseRecordWithExtendedInfo() {
+        CortexLinks ctp = new CortexLinks("testdata/PG0051-C.ERR019061.chr1.pe.ctp");
+
+        for (CortexLinksRecord clr : ctp) {
+            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                String seq = cjr.getSeq();
+
+                Assert.assertNotNull(seq);
+            }
+        }
+
+        CortexLinks ctp2 = new CortexLinks("testdata/PG0085-C.infer.se.ctp");
+
+        for (CortexLinksRecord clr : ctp2) {
+            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                String seq = cjr.getSeq();
+
+                Assert.assertNull(seq);
+            }
+        }
+    }
 }
