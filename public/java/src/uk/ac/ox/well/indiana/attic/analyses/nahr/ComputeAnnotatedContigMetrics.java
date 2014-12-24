@@ -225,7 +225,7 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 ci.isRcCanonical = read.getReadNegativeStrandFlag();
                 ci.cigarCanonical = read.getCigarString();
                 ci.nmCanonical = (read.getAttribute("NM") == null) ? -1 : read.getIntegerAttribute("NM");
-                ci.mdCanonical = (read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
+                ci.mdCanonical = (ci.canonicalLocus == null || read.getAttribute("NM") == null) ? "NA" : read.getStringAttribute("MD");
                 ci.mqCanonical = read.getMappingQuality();
 
                 cis.put(accession + "." + read.getReadName(), ci);
