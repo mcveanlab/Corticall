@@ -521,6 +521,8 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 //entry.put("kmerContiguity", te.get("kmerContiguity"));
                 //entry.put("kmerCoverage", te.get("kmerCoverage"));
 
+                log.debug("{}", entry);
+
                 tw.addEntry(entry);
             }
         }
