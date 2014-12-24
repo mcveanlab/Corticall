@@ -414,9 +414,9 @@ public class ComputeAnnotatedContigMetrics extends Module {
                 if (cis.containsKey(accession + "." + te.get("contigName"))) {
                     ContigInfo ci = cis.get(accession + "." + te.get("contigName"));
 
-                    entry.put("canonicalLocus", ci.canonicalLocus.toString());
-                    entry.put("ref0Locus", ci.ref0Locus.toString());
-                    entry.put("ref1Locus", ci.ref1Locus.toString());
+                    entry.put("canonicalLocus", (ci.canonicalLocus == null) ? "NA" : ci.canonicalLocus.toString());
+                    entry.put("ref0Locus", (ci.ref0Locus == null) ? "NA" : ci.ref0Locus.toString());
+                    entry.put("ref1Locus", (ci.ref1Locus == null) ? "NA" : ci.ref1Locus.toString());
                     entry.put("ref0ToCanonicalBlock", ci.ref0ToCanonicalBlock == null ? "NA" : ci.ref0ToCanonicalBlock.toString());
                     entry.put("ref1ToCanonicalBlock", ci.ref1ToCanonicalBlock == null ? "NA" : ci.ref1ToCanonicalBlock.toString());
                     entry.put("ref0ToCanonicalExact", ci.ref0ToCanonicalExact == null ? "NA" : ci.ref0ToCanonicalExact.toString());
