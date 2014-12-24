@@ -48,6 +48,6 @@ public class TableWriter {
             entryList.add(entry);
         }
 
-        out.println(Joiner.on("\t").join(entryList));
+        out.println(Joiner.on("\t").useForNull("NA").join(entryList));
     }
 }
