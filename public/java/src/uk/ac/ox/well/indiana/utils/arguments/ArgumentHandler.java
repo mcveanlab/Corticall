@@ -263,6 +263,8 @@ public class ArgumentHandler {
                 return new File(value);
             } else if (type.equals(Integer.class)) {
                 return Integer.valueOf(value);
+            } else if (type.equals(Long.class)) {
+                return Long.valueOf(value);
             } else if (type.equals(Float.class)) {
                 return Float.valueOf(value);
             } else if (type.equals(Double.class)) {
