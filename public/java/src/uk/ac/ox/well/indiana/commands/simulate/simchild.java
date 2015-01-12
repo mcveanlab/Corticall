@@ -5,10 +5,12 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
-import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFFileReader;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
 import org.apache.commons.math3.random.EmpiricalDistribution;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -180,7 +182,16 @@ public class simchild extends Module {
         vcwb.setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary());
         VariantContextWriter vcw = vcwb.build();
 
-        vcw.writeHeader(VCF.getFileHeader());
+        Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
+        headerLines.add(VCF.getFileHeader().getFormatHeaderLine("GT"));
+
+        Set<String> sampleNames = new HashSet<String>();
+        sampleNames.add("child_" + SEED);
+
+        VCFHeader header = new VCFHeader(headerLines, sampleNames);
+        header.setSequenceDictionary(VCF.getFileHeader().getSequenceDictionary());
+
+        vcw.writeHeader(header);
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
@@ -189,7 +200,20 @@ public class simchild extends Module {
                 for (Integer i : copiedVariants.get(chr).keySet()) {
                     VariantContext vc = copiedVariants.get(chr).get(i);
 
-                    vcw.add(vc);
+                    Genotype oldg = vc.getGenotype(0);
+
+                    //Genotype newg = new GenotypeBuilder().copy(vc.getGenotype(0)).name("child_" + SEED).make();
+                    Genotype newg = (new GenotypeBuilder("child_" + SEED, oldg.getAlleles())).make();
+
+                    GenotypesContext gc = GenotypesContext.create(newg);
+
+                    VariantContext vcn = (new VariantContextBuilder(vc))
+                            .noID()
+                            .attributes(null)
+                            .genotypes(gc)
+                            .make();
+
+                    vcw.add(vcn);
                 }
             }
         }
