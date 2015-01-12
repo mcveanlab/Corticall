@@ -44,7 +44,7 @@
         <dependency org="com.google.java.contract" name="cofoja" rev="1.1-r150" />
         <dependency org="org.xerial.snappy" name="snappy-java" rev="1.0.3-rc3" />
         <dependency org="org.apache.ant.bzip2" name="bzip2" rev="1.8.2" />
-        <dependency org="htsjdk" name="htsjdk" rev="1.117" />
+        <dependency org="htsjdk" name="htsjdk" rev="1.127" />
         <dependency org="org.broadinstitute.picard" name="picard" rev="1.117" />
 
         <dependency org="org.json" name="json" rev="20140107" />
