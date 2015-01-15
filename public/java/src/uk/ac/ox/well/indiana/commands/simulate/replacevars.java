@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
@@ -15,6 +16,7 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 public class replacevars extends Module {
@@ -35,6 +37,9 @@ public class replacevars extends Module {
 
     @Output
     public File out;
+
+    @Output(fullName="replacementsOut", shortName="rout", doc="Output file for var replacements")
+    public PrintStream rout;
 
     @Override
     public void execute() {
@@ -103,6 +108,8 @@ public class replacevars extends Module {
 
         vcw.writeHeader(header);
 
+        Map<String, Map<Integer, List<VariantContext>>> variants = new HashMap<String, Map<Integer, List<VariantContext>>>();
+
         for (GFF3Record refgr : refToAltMap.keySet()) {
             GFF3Record altgr = refToAltMap.get(refgr);
 
@@ -125,7 +132,7 @@ public class replacevars extends Module {
                     .genotypes(delgc)
                     .make();
 
-            vcw.add(vcd);
+            //vcw.add(vcd);
 
             Allele abef = Allele.create(new String(REF.getSubsequenceAt(refgr.getSeqid(), refgr.getStart() - 1, refgr.getStart() - 1).getBases()), true);
             Allele aall = Allele.create(new String(ALT.getSubsequenceAt(altgr.getSeqid(), altgr.getStart(), altgr.getEnd()).getBases()), false);
@@ -146,7 +153,30 @@ public class replacevars extends Module {
                     .genotypes(insgc)
                     .make();
 
-            vcw.add(vci);
+            //vcw.add(vci);
+
+            if (!variants.containsKey(refgr.getSeqid())) {
+                variants.put(refgr.getSeqid(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!variants.get(refgr.getSeqid()).containsKey(refgr.getStart())) {
+                variants.get(refgr.getSeqid()).put(refgr.getStart(), new ArrayList<VariantContext>());
+            }
+
+            variants.get(refgr.getSeqid()).get(refgr.getStart()).add(vcd);
+            variants.get(refgr.getSeqid()).get(refgr.getStart()).add(vci);
+        }
+
+        for (SAMSequenceRecord ssr : REF.getSequenceDictionary().getSequences()) {
+            String chrom = ssr.getSequenceName();
+
+            if (variants.containsKey(chrom)) {
+                for (Integer pos : variants.get(chrom).keySet()) {
+                    for (VariantContext vc : variants.get(chrom).get(pos)) {
+                        vcw.add(vc);
+                    }
+                }
+            }
         }
 
         vcw.close();
