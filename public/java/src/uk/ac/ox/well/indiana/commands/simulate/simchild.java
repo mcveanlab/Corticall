@@ -492,7 +492,26 @@ public class simchild extends Module {
             if (vcs.containsKey(chr)) {
                 for (int pos : vcs.get(chr).keySet()) {
                     for (VariantContext vc : vcs.get(chr).get(pos)) {
-                        vcw.add(vc);
+                        /*
+                        VariantContext vca = (new VariantContextBuilder(vc))
+                                .attributes(null)
+                                .attribute("DENOVO", "NAHR")
+                                .m
+                                */
+
+                        Genotype newg = (new GenotypeBuilder("child_" + SEED, vc.getAlternateAlleles())).make();
+
+                        VariantContext vcn = (new VariantContextBuilder())
+                                .chr(vc.getChr())
+                                .start(vc.getStart())
+                                .stop(vc.getEnd())
+                                .noID()
+                                .attribute("DENOVO", "NAHR")
+                                .alleles(vc.getAlleles())
+                                .genotypes(newg)
+                                .make();
+
+                        vcw.add(vcn);
                     }
                 }
             }
