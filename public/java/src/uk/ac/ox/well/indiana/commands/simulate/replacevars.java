@@ -100,6 +100,7 @@ public class replacevars extends Module {
         for (GFF3Record refgr : refToAltMap.keySet()) {
             GFF3Record altgr = refToAltMap.get(refgr);
 
+            /*
             Allele rbef = Allele.create(new String(REF.getSubsequenceAt(refgr.getSeqid(), refgr.getStart() - 1, refgr.getStart() - 1).getBases()));
             Allele rall = Allele.create(new String(REF.getSubsequenceAt(refgr.getSeqid(), refgr.getStart(), refgr.getEnd()).getBases()), true);
             List<Allele> ralls = new ArrayList<Allele>();
@@ -148,6 +149,37 @@ public class replacevars extends Module {
 
             variants.get(refgr.getSeqid()).get(refgr.getStart()).add(vcd);
             variants.get(refgr.getSeqid()).get(refgr.getStart()).add(vci);
+            */
+
+            Allele oldVar = Allele.create(new String(REF.getSubsequenceAt(refgr.getSeqid(), refgr.getStart(), refgr.getEnd()).getBases()), true);
+            Allele newVar = Allele.create(new String(ALT.getSubsequenceAt(altgr.getSeqid(), altgr.getStart(), altgr.getEnd()).getBases()), false);
+
+            Genotype varg = (new GenotypeBuilder(SAMPLE_NAME, Arrays.asList(newVar))).make();
+
+            VariantContext vcv = (new VariantContextBuilder())
+                    .chr(refgr.getSeqid())
+                    .start(refgr.getStart())
+                    .computeEndFromAlleles(Arrays.asList(oldVar, newVar), refgr.getStart())
+                    .noID()
+                    .attribute("VAR_OLD", refgr.getAttribute("ID"))
+                    .attribute("VAR_OLD_CLASS", refgr.getAttribute("class"))
+                    .attribute("VAR_OLD_POS", refgr.getAttribute("position"))
+                    .attribute("VAR_NEW", altgr.getAttribute("ID"))
+                    .attribute("VAR_NEW_CLASS", altgr.getAttribute("class"))
+                    .attribute("VAR_NEW_POS", altgr.getAttribute("position"))
+                    .alleles(Arrays.asList(oldVar, newVar))
+                    .genotypes(varg)
+                    .make();
+
+            if (!variants.containsKey(refgr.getSeqid())) {
+                variants.put(refgr.getSeqid(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!variants.get(refgr.getSeqid()).containsKey(refgr.getStart())) {
+                variants.get(refgr.getSeqid()).put(refgr.getStart(), new ArrayList<VariantContext>());
+            }
+
+            variants.get(refgr.getSeqid()).get(refgr.getStart()).add(vcv);
         }
 
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
@@ -163,7 +195,12 @@ public class replacevars extends Module {
         VCFHeader header = new VCFHeader(headerLines, sampleNames);
         header.setSequenceDictionary(REF.getSequenceDictionary());
         header.addMetaDataLine(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
-        header.addMetaDataLine(new VCFInfoHeaderLine("VAR", 1, VCFHeaderLineType.String, "Is a var gene"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_OLD", 1, VCFHeaderLineType.String, "The var gene that was removed"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_OLD_CLASS", 1, VCFHeaderLineType.String, "The old var UPS class"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_OLD_POS", 1, VCFHeaderLineType.String, "The old var position"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_NEW", 1, VCFHeaderLineType.String, "The var gene replacement"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_NEW_CLASS", 1, VCFHeaderLineType.String, "The new var UPS class"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("VAR_NEW_POS", 1, VCFHeaderLineType.String, "The new var position"));
 
         vcw.writeHeader(header);
 
