@@ -169,7 +169,7 @@ public class simchild extends Module {
     private void addDeNovoInsertions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
         for (int i = 0; i < numVariants; i++) {
             SAMSequenceRecord ssr = getRandomAutosome();
-            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+            int pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
             Allele refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
             Allele altAllele;
@@ -208,7 +208,7 @@ public class simchild extends Module {
     private void addDeNovoDeletions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
         for (int i = 0; i < numVariants; i++) {
             SAMSequenceRecord ssr = getRandomAutosome();
-            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+            int pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
             Allele refAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), true);
             Allele altAllele = Allele.create(refAllele.getBases()[0], false);
