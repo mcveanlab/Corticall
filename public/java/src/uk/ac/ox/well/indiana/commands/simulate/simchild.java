@@ -162,7 +162,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            log.info("Added de novo SNP: {}", vcn);
+            //log.info("Added de novo SNP: {}", vcn);
         }
     }
 
@@ -201,7 +201,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            log.info("Added de novo INS: {}", vcn);
+            //log.info("Added de novo INS: {}", vcn);
         }
     }
 
@@ -235,7 +235,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            log.info("Added de novo DEL: {}", vcn);
+            //log.info("Added de novo DEL: {}", vcn);
         }
     }
 
@@ -276,7 +276,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            log.info("Added de novo INV: {}", vcn);
+            //log.info("Added de novo INV: {}", vcn);
         }
     }
 
@@ -344,7 +344,7 @@ public class simchild extends Module {
                 vars.add(vc);
             }
         }
-        log.info("  loaded {} variants", numVariants);
+        log.info("  loaded {} variants ({} vars)", numVariants, vars.size());
 
         log.info("Constructing base genome...");
         int numCopiedVariants = 0;
@@ -483,7 +483,19 @@ public class simchild extends Module {
                 vcs.get(chrom).put(pos, new ArrayList<VariantContext>());
             }
 
-            vcs.get(chrom).get(pos).add(vc);
+            Genotype newg = (new GenotypeBuilder("child_" + SEED, vc.getAlternateAlleles())).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(vc.getChr())
+                    .start(vc.getStart())
+                    .stop(vc.getEnd())
+                    .noID()
+                    .attribute("DENOVO", "NAHR")
+                    .alleles(vc.getAlleles())
+                    .genotypes(newg)
+                    .make();
+
+            vcs.get(chrom).get(pos).add(vcn);
         }
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
@@ -492,26 +504,7 @@ public class simchild extends Module {
             if (vcs.containsKey(chr)) {
                 for (int pos : vcs.get(chr).keySet()) {
                     for (VariantContext vc : vcs.get(chr).get(pos)) {
-                        /*
-                        VariantContext vca = (new VariantContextBuilder(vc))
-                                .attributes(null)
-                                .attribute("DENOVO", "NAHR")
-                                .m
-                                */
-
-                        Genotype newg = (new GenotypeBuilder("child_" + SEED, vc.getAlternateAlleles())).make();
-
-                        VariantContext vcn = (new VariantContextBuilder())
-                                .chr(vc.getChr())
-                                .start(vc.getStart())
-                                .stop(vc.getEnd())
-                                .noID()
-                                .attribute("DENOVO", "NAHR")
-                                .alleles(vc.getAlleles())
-                                .genotypes(newg)
-                                .make();
-
-                        vcw.add(vcn);
+                        vcw.add(vc);
                     }
                 }
             }
