@@ -126,6 +126,32 @@ public class SequenceUtils {
     }
 
     /**
+     * Get the reverse of the sequence.
+     *
+     * @param sequence  the sequence that should be reverse complemented
+     * @return  the reverse complement of the sequence
+     */
+    public static byte[] reverse(byte[] sequence) {
+        byte[] rc = new byte[sequence.length];
+
+        for (int i = 0; i < sequence.length; i++) {
+            rc[sequence.length - 1 - i] = sequence[i];
+        }
+
+        return rc;
+    }
+
+    /**
+     * Get the reverse of the sequence.
+     *
+     * @param sequence  the sequence that should be reverse complemented
+     * @return  the reverse complement of the sequence
+     */
+    public static String reverse(String sequence) {
+        return new String(reverse(sequence.getBytes()));
+    }
+
+    /**
      * Get the reverse complement of the sequence.
      *
      * @param sequence  the sequence that should be reverse complemented
