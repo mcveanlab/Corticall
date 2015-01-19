@@ -1,20 +1,17 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
-import cern.jet.random.Empirical;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.VCFFileReader;
-import htsjdk.variant.vcf.VCFHeader;
-import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.*;
 import org.apache.commons.math3.random.EmpiricalDistribution;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -93,6 +90,195 @@ public class simchild extends Module {
     }
 
     private int whereRecombine(int length) { return rng.nextInt(length); }
+
+    private SAMSequenceRecord getRandomAutosome() {
+        SAMSequenceRecord ssr;
+
+        do {
+            int seqIndex = rng.nextInt(REF.getSequenceDictionary().size());
+            ssr = REF.getSequenceDictionary().getSequence(seqIndex);
+        } while (ssr.getSequenceName().equals("M76611") || ssr.getSequenceName().equals("PFC10_API_IRAB"));
+
+        return ssr;
+    }
+
+    private Allele getRefAllele(String chr, int pos, int length) {
+        return Allele.create(new String(REF.getSubsequenceAt(chr, pos, pos + length).getBases()), true);
+    }
+
+    private Allele getRandomAltAllele(Allele refAllele, int length) {
+        Allele altAllele = Allele.create(refAllele.getBases(), false);
+
+        final String[] bases = {"A", "C", "G", "T"};
+
+        if (length == 0) {
+            while (altAllele.basesMatch(refAllele)) {
+                int baseIndex = rng.nextInt(bases.length);
+                altAllele = Allele.create(bases[baseIndex], false);
+            }
+        } else {
+            StringBuilder altAlleleString = new StringBuilder();
+            altAlleleString.append(refAllele.getBaseString());
+
+            for (int i = 0; i < length; i++) {
+                int baseIndex = rng.nextInt(bases.length);
+
+                altAlleleString.append(bases[baseIndex]);
+            }
+
+            altAllele = Allele.create(altAlleleString.toString(), false);
+        }
+
+        return altAllele;
+    }
+
+    private void addDeNovoSNPs(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
+        for (int i = 0; i < numVariants; i++) {
+            SAMSequenceRecord ssr = getRandomAutosome();
+            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+
+            Allele refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
+            Allele altAllele = getRandomAltAllele(refAllele, 0);
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(ssr.getSequenceName())
+                    .start(pos)
+                    .stop(pos)
+                    .noID()
+                    .attribute("DENOVO", "SNP")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(ssr.getSequenceName())) {
+                vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+
+            log.info("Added de novo SNP: {}", vcn);
+        }
+    }
+
+    private void addDeNovoInsertions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+        for (int i = 0; i < numVariants; i++) {
+            SAMSequenceRecord ssr = getRandomAutosome();
+            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+
+            Allele refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
+            Allele altAllele;
+
+            String refString = new String(REF.getSubsequenceAt(ssr.getSequenceName(), pos, pos + length).getBases());
+            do {
+                altAllele = getRandomAltAllele(refAllele, length);
+            } while (altAllele.basesMatch(refString));
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(ssr.getSequenceName())
+                    .start(pos)
+                    .stop(pos)
+                    .noID()
+                    .attribute("DENOVO", "INS")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(ssr.getSequenceName())) {
+                vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+
+            log.info("Added de novo INS: {}", vcn);
+        }
+    }
+
+    private void addDeNovoDeletions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+        for (int i = 0; i < numVariants; i++) {
+            SAMSequenceRecord ssr = getRandomAutosome();
+            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+
+            Allele refAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), true);
+            Allele altAllele = Allele.create(refAllele.getBases()[0], false);
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(ssr.getSequenceName())
+                    .start(pos)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
+                    .noID()
+                    .attribute("DENOVO", "DEL")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(ssr.getSequenceName())) {
+                vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+
+            log.info("Added de novo DEL: {}", vcn);
+        }
+    }
+
+    private void addDeNovoInversions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+        for (int i = 0; i < numVariants; i++) {
+            SAMSequenceRecord ssr;
+            int pos;
+
+            Allele refAllele, altAllele;
+
+            do {
+                ssr = getRandomAutosome();
+                pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+
+                refAllele = getRefAllele(ssr.getSequenceName(), pos, length);
+                altAllele = Allele.create(SequenceUtils.reverse(refAllele.getBases()), false);
+            } while (refAllele.basesMatch(altAllele));
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(ssr.getSequenceName())
+                    .start(pos)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
+                    .noID()
+                    .attribute("DENOVO", "INV")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(ssr.getSequenceName())) {
+                vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+
+            log.info("Added de novo INV: {}", vcn);
+        }
+    }
 
     @Override
     public void execute() {
@@ -177,6 +363,52 @@ public class simchild extends Module {
         }
         log.info("  copied {} variants", numCopiedVariants);
 
+        log.info("Simulating gene conversion events...");
+        int removedVariants = 0, addedVariants = 0;
+        for (String chr : variants.keySet()) {
+            int numGCEvents = 3;
+
+            List<Integer> positions = new ArrayList<Integer>();
+            for (Integer i : variants.get(chr).keySet()) {
+                positions.add(i);
+            }
+
+            Collections.sort(positions);
+
+            for (int i = 0; i < numGCEvents; i++) {
+                int numVariantsInGC = rng.nextInt(2) + 1;
+
+                int index;
+                do {
+                    index = rng.nextInt(positions.size() - numVariantsInGC - 1);
+                } while (index <= 0);
+
+                List<Integer> gcVariants = new ArrayList<Integer>();
+                gcVariants.add(positions.get(index));
+
+                for (int j = 1; j < numVariantsInGC; j++) {
+                    gcVariants.add(positions.get(index + j));
+                }
+
+                for (int gcVariant : gcVariants) {
+                    if (copiedVariants.containsKey(chr) && copiedVariants.get(chr).containsKey(gcVariant)) {
+                        copiedVariants.get(chr).remove(gcVariant);
+
+                        removedVariants++;
+                    } else {
+                        if (!copiedVariants.containsKey(chr)) {
+                            copiedVariants.put(chr, new TreeMap<Integer, VariantContext>());
+                        }
+
+                        copiedVariants.get(chr).put(gcVariant, variants.get(chr).get(gcVariant));
+
+                        addedVariants++;
+                    }
+                }
+            }
+        }
+        log.info("  removed {} variants, added {} variants", removedVariants, addedVariants);
+
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
         vcwb.setOutputFile(out);
         vcwb.setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary());
@@ -190,8 +422,11 @@ public class simchild extends Module {
 
         VCFHeader header = new VCFHeader(headerLines, sampleNames);
         header.setSequenceDictionary(VCF.getFileHeader().getSequenceDictionary());
+        header.addMetaDataLine(new VCFInfoHeaderLine("DENOVO", 1, VCFHeaderLineType.String, "The type of de novo event added"));
 
         vcw.writeHeader(header);
+
+        Map<String, Map<Integer, List<VariantContext>>> vcs = new HashMap<String, Map<Integer, List<VariantContext>>>();
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
@@ -201,10 +436,7 @@ public class simchild extends Module {
                     VariantContext vc = copiedVariants.get(chr).get(i);
 
                     Genotype oldg = vc.getGenotype(0);
-
-                    //Genotype newg = new GenotypeBuilder().copy(vc.getGenotype(0)).name("child_" + SEED).make();
                     Genotype newg = (new GenotypeBuilder("child_" + SEED, oldg.getAlleles())).make();
-
                     GenotypesContext gc = GenotypesContext.create(newg);
 
                     VariantContext vcn = (new VariantContextBuilder(vc))
@@ -213,7 +445,33 @@ public class simchild extends Module {
                             .genotypes(gc)
                             .make();
 
-                    vcw.add(vcn);
+                    if (!vcs.containsKey(ssr.getSequenceName())) {
+                        vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+                    }
+
+                    if (!vcs.get(ssr.getSequenceName()).containsKey(vc.getStart())) {
+                        vcs.get(ssr.getSequenceName()).put(vc.getStart(), new ArrayList<VariantContext>());
+                    }
+
+                    vcs.get(ssr.getSequenceName()).get(vc.getStart()).add(vcn);
+                }
+            }
+        }
+
+        addDeNovoSNPs(vcs, 10, "child_" + SEED);
+        addDeNovoInsertions(vcs, 10, "child_" + SEED, 1);
+        addDeNovoDeletions(vcs, 10, "child_" + SEED, 1);
+        addDeNovoInversions(vcs, 10, "child_" + SEED, 1);
+        //addDeNovoNAHRs(vcs, 10, "child_" + SEED, 1);
+
+        for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
+            String chr = ssr.getSequenceName();
+
+            if (vcs.containsKey(chr)) {
+                for (int pos : vcs.get(chr).keySet()) {
+                    for (VariantContext vc : vcs.get(chr).get(pos)) {
+                        vcw.add(vc);
+                    }
                 }
             }
         }
