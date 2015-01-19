@@ -458,11 +458,12 @@ public class simchild extends Module {
             }
         }
 
-        addDeNovoSNPs(vcs, 10, "child_" + SEED);
-        addDeNovoInsertions(vcs, 10, "child_" + SEED, 1);
-        addDeNovoDeletions(vcs, 10, "child_" + SEED, 1);
-        addDeNovoInversions(vcs, 10, "child_" + SEED, 1);
-        //addDeNovoNAHRs(vcs, 10, "child_" + SEED, 1);
+        addDeNovoSNPs(vcs, 25, "child_" + SEED);
+        for (int i = 1; i < 100; i++) {
+            addDeNovoInsertions(vcs, 25, "child_" + SEED, i);
+            addDeNovoDeletions(vcs,  25, "child_" + SEED, i);
+            addDeNovoInversions(vcs, 25, "child_" + SEED, i);
+        }
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
