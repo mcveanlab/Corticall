@@ -423,6 +423,9 @@ public class simchild extends Module {
         VCFHeader header = new VCFHeader(headerLines, sampleNames);
         header.setSequenceDictionary(VCF.getFileHeader().getSequenceDictionary());
         header.addMetaDataLine(new VCFInfoHeaderLine("DENOVO", 1, VCFHeaderLineType.String, "The type of de novo event added"));
+        for (VCFInfoHeaderLine infoHeaderLine : VCF.getFileHeader().getInfoHeaderLines()) {
+            header.addMetaDataLine(infoHeaderLine);
+        }
 
         vcw.writeHeader(header);
 
