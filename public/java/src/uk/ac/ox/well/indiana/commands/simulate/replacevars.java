@@ -90,7 +90,7 @@ public class replacevars extends Module {
                 for (int i = 0; i < (refgrs.size() < altgrs.size() ? refgrs.size() : altgrs.size()); i++) {
                     refToAltMap.put(refgrs.get(i), altgrs.get(i));
 
-                    rout.println(refgrs.get(i).getAttribute("ID") + "\t" + altgrs.get(i).getAttribute("ID"));
+                    rout.println(refgrs.get(i).getAttribute("ID") + "\t" + refgrs.get(i).getAttribute("class") + "\t" + altgrs.get(i).getAttribute("ID") + "\t" + altgrs.get(i).getAttribute("class"));
 
                     log.info("  var3D7={} varHB3={}", refgrs.get(i).getAttribute("ID"), altgrs.get(i).getAttribute("ID"));
                 }
