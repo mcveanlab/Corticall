@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
@@ -17,6 +18,7 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 public class simvar extends Module {
@@ -40,6 +42,9 @@ public class simvar extends Module {
 
     @Output
     public File out;
+
+    @Output(fullName="sout", shortName="so", doc="Sequence recomb out")
+    public PrintStream sout;
 
     @Override
     public void execute() {
@@ -74,6 +79,20 @@ public class simvar extends Module {
                 similarVars.get(upsClass).get(pos).add(gr);
             }
         }
+
+        sout.println(Joiner.on("\t").join(
+                "id1",
+                "id2",
+                "class1",
+                "class2",
+                "position1",
+                "position2",
+                "seq1",
+                "seq2",
+                "sites1",
+                "sites2",
+                "recombs"
+        ));
 
         Map<String, Map<Integer, List<VariantContext>>> variants = new HashMap<String, Map<Integer, List<VariantContext>>>();
 
@@ -182,6 +201,20 @@ public class simvar extends Module {
                         } else {
                             newVar.append(seq2.substring(lastPos, seq2.length()));
                         }
+
+                        sout.println(Joiner.on("\t").join(
+                                var1.getAttribute("ID"),
+                                var2.getAttribute("ID"),
+                                var1.getAttribute("class"),
+                                var2.getAttribute("class"),
+                                var1.getAttribute("position"),
+                                var2.getAttribute("position"),
+                                seq1,
+                                seq2,
+                                Joiner.on(",").join(possibleRecombSites1),
+                                Joiner.on(",").join(possibleRecombSites2),
+                                Joiner.on(",").join(recombs)
+                        ));
 
                         log.info("         nv={}", newVar.toString());
                         log.info("         sw={}", switches.toString());
