@@ -272,7 +272,7 @@ public class simchild extends Module {
 
             do {
                 ssr = getRandomAutosome();
-                pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+                pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
                 refAllele = getRefAllele(ssr.getSequenceName(), pos, length);
                 altAllele = Allele.create(SequenceUtils.reverse(refAllele.getBases()), false);
