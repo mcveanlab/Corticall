@@ -3,6 +3,8 @@ package uk.ac.ox.well.indiana.commands.simulate;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -35,8 +37,9 @@ public class simchild extends Module {
 
     private Random rng;
 
-    Map<String, double[]> empDists;
-    Map<String, EmpiricalDistribution> empRates;
+    private Map<String, double[]> empDists;
+    private Map<String, EmpiricalDistribution> empRates;
+    private IntervalTreeMap<String> mask = new IntervalTreeMap<String>();
 
     private EmpiricalDistribution loadDistribution(double[] rates) {
         EmpiricalDistribution ed = new EmpiricalDistribution();
@@ -132,10 +135,25 @@ public class simchild extends Module {
         return altAllele;
     }
 
+    private void addToMask(String chr, int pos, int length) {
+        Interval interval = new Interval(chr, pos - 2, pos + length + 2);
+
+        mask.put(interval, null);
+    }
+
+    private boolean isInMask(String chr, int pos, int length) {
+        Interval interval = new Interval(chr, pos, pos + length);
+
+        return mask.containsOverlapping(interval);
+    }
+
     private void addDeNovoSNPs(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
         for (int i = 0; i < numVariants; i++) {
             SAMSequenceRecord ssr = getRandomAutosome();
-            int pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+            int pos;
+            do {
+                pos = rng.nextInt(ssr.getSequenceLength()) + 1;
+            } while (isInMask(ssr.getSequenceName(), pos, 1));
 
             Allele refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
             Allele altAllele = getRandomAltAllele(refAllele, 0);
@@ -162,14 +180,17 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            //log.info("Added de novo SNP: {}", vcn);
+            addToMask(ssr.getSequenceName(), pos, 1);
         }
     }
 
     private void addDeNovoInsertions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
         for (int i = 0; i < numVariants; i++) {
             SAMSequenceRecord ssr = getRandomAutosome();
-            int pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
+            int pos;
+            do {
+                pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
+            } while (isInMask(ssr.getSequenceName(), pos, 1));
 
             Allele refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
             Allele altAllele;
@@ -201,14 +222,17 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            //log.info("Added de novo INS: {}", vcn);
+            addToMask(ssr.getSequenceName(), pos, 1);
         }
     }
 
     private void addDeNovoDeletions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
         for (int i = 0; i < numVariants; i++) {
             SAMSequenceRecord ssr = getRandomAutosome();
-            int pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
+            int pos;
+            do {
+                pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
+            } while (isInMask(ssr.getSequenceName(), pos, length));
 
             Allele refAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), true);
             Allele altAllele = Allele.create(refAllele.getBases()[0], false);
@@ -235,7 +259,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            //log.info("Added de novo DEL: {}", vcn);
+            addToMask(ssr.getSequenceName(), pos, length);
         }
     }
 
@@ -252,7 +276,7 @@ public class simchild extends Module {
 
                 refAllele = getRefAllele(ssr.getSequenceName(), pos, length);
                 altAllele = Allele.create(SequenceUtils.reverse(refAllele.getBases()), false);
-            } while (refAllele.basesMatch(altAllele));
+            } while (refAllele.basesMatch(altAllele) || isInMask(ssr.getSequenceName(), pos, length));
 
             Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
 
@@ -276,7 +300,7 @@ public class simchild extends Module {
 
             vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            //log.info("Added de novo INV: {}", vcn);
+            addToMask(ssr.getSequenceName(), pos, length);
         }
     }
 
@@ -444,7 +468,6 @@ public class simchild extends Module {
 
                     VariantContext vcn = (new VariantContextBuilder(vc))
                             .noID()
-                            //.attributes(null)
                             .genotypes(gc)
                             .make();
 
@@ -461,11 +484,11 @@ public class simchild extends Module {
             }
         }
 
-        addDeNovoSNPs(vcs, 25, "child_" + SEED);
-        for (int i = 1; i < 100; i++) {
-            addDeNovoInsertions(vcs, 25, "child_" + SEED, i);
-            addDeNovoDeletions(vcs,  25, "child_" + SEED, i);
-            addDeNovoInversions(vcs, 25, "child_" + SEED, i);
+        addDeNovoSNPs(vcs, 250, "child_" + SEED);
+        for (int i = 1; i <= 250; i++) {
+            addDeNovoInsertions(vcs, 10, "child_" + SEED, i);
+            addDeNovoDeletions(vcs,  10, "child_" + SEED, i);
+            addDeNovoInversions(vcs, 10, "child_" + SEED, i);
         }
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
