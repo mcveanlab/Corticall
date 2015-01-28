@@ -10,9 +10,11 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.*;
 import org.apache.commons.math3.random.EmpiricalDistribution;
+import org.apache.ivy.util.StringUtils;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -29,6 +31,9 @@ public class simchild extends Module {
     @Argument(fullName="seed", shortName="s", doc="Seed for RNG", required=false)
     public Long SEED;
 
+    @Argument(fullName="strMap", shortName="m", doc="STR map")
+    public File STRS;
+
     @Output
     public File out;
 
@@ -40,6 +45,23 @@ public class simchild extends Module {
     private Map<String, double[]> empDists;
     private Map<String, EmpiricalDistribution> empRates;
     private IntervalTreeMap<String> mask = new IntervalTreeMap<String>();
+
+    private Map<Integer, List<Map<String, String>>> loadStrMap() {
+        Map<Integer, List<Map<String, String>>> strs = new TreeMap<Integer, List<Map<String, String>>>();
+        TableReader tr = new TableReader(STRS);
+
+        for (Map<String, String> te : tr) {
+            Integer strLength = Integer.valueOf(te.get("strLength"));
+
+            if (!strs.containsKey(strLength)) {
+                strs.put(strLength, new ArrayList<Map<String, String>>());
+            }
+
+            strs.get(strLength).add(te);
+        }
+
+        return strs;
+    }
 
     private EmpiricalDistribution loadDistribution(double[] rates) {
         EmpiricalDistribution ed = new EmpiricalDistribution();
@@ -304,12 +326,162 @@ public class simchild extends Module {
         }
     }
 
+    private void addDeNovoStrExpansions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length, Map<Integer, List<Map<String, String>>> strMap) {
+        List<Map<String, String>> strs = strMap.get(length);
+
+        for (int i = 0; i < numVariants; i++) {
+            String chr;
+            int pos;
+
+            Allele refAllele, altAllele;
+
+            do {
+                int strIndex = rng.nextInt(strs.size()) + 1;
+                Map<String, String> te = strs.get(strIndex);
+
+                chr = te.get("chr");
+                int start = Integer.valueOf(te.get("start"));
+                pos = start - 1;
+                int numRepeats = rng.nextInt(Integer.valueOf(te.get("numRepeats")) - 1) + 1;
+
+                refAllele = getRefAllele(chr, start - 1, 0);
+                altAllele = Allele.create(StringUtils.repeat(te.get("str"), numRepeats), false);
+            } while (isInMask(chr, pos, altAllele.length()));
+
+            log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(chr)
+                    .start(pos)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
+                    .noID()
+                    .attribute("DENOVO", "STR_EXP")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(chr)) {
+                vcs.put(chr, new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(chr).containsKey(pos)) {
+                vcs.get(chr).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(chr).get(pos).add(vcn);
+
+            addToMask(chr, pos, altAllele.length());
+        }
+    }
+
+    private void addDeNovoStrContractions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length, Map<Integer, List<Map<String, String>>> strMap) {
+        List<Map<String, String>> strs = strMap.get(length);
+
+        for (int i = 0; i < numVariants; i++) {
+            String chr;
+            int pos;
+
+            Allele refAllele, altAllele;
+
+            do {
+                int strIndex = rng.nextInt(strs.size()) + 1;
+                Map<String, String> te = strs.get(strIndex);
+
+                chr = te.get("chr");
+                int start = Integer.valueOf(te.get("start"));
+                pos = start - 1;
+                int numRepeats = rng.nextInt(Integer.valueOf(te.get("numRepeats")) - 1) + 1;
+
+                String prevBase = getRefAllele(chr, start - 1, 0).getBaseString();
+
+                altAllele = Allele.create(prevBase, false);
+                refAllele = Allele.create(prevBase + StringUtils.repeat(te.get("str"), numRepeats), true);
+            } while (isInMask(chr, pos, altAllele.length()));
+
+            log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(chr)
+                    .start(pos)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
+                    .noID()
+                    .attribute("DENOVO", "STR_CON")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(chr)) {
+                vcs.put(chr, new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(chr).containsKey(pos)) {
+                vcs.get(chr).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(chr).get(pos).add(vcn);
+
+            addToMask(chr, pos, altAllele.length());
+        }
+    }
+
+    private void addDeNovoTandemDuplications(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+        for (int i = 0; i < numVariants; i++) {
+            SAMSequenceRecord ssr;
+            int pos;
+
+            Allele refAllele, altAllele;
+
+            do {
+                ssr = getRandomAutosome();
+                pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
+
+                refAllele = getRefAllele(ssr.getSequenceName(), pos - 1, 0);
+                altAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), false);
+            } while (isInMask(ssr.getSequenceName(), pos, length));
+
+            Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
+
+            VariantContext vcn = (new VariantContextBuilder())
+                    .chr(ssr.getSequenceName())
+                    .start(pos)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
+                    .noID()
+                    .attribute("DENOVO", "TD")
+                    .alleles(Arrays.asList(refAllele, altAllele))
+                    .genotypes(newg)
+                    .make();
+
+            if (!vcs.containsKey(ssr.getSequenceName())) {
+                vcs.put(ssr.getSequenceName(), new TreeMap<Integer, List<VariantContext>>());
+            }
+
+            if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+            }
+
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+
+            addToMask(ssr.getSequenceName(), pos, length);
+        }
+    }
+
+
     @Override
     public void execute() {
         if (SEED == null) { SEED = System.currentTimeMillis(); }
 
         rng = new Random(SEED);
         initializeRates();
+
+        log.info("Loading STR positions...");
+        Map<Integer, List<Map<String, String>>> strMap = loadStrMap();
+        for (Integer strLength : strMap.keySet()) {
+            log.info("  strLength={}: instances={}", strLength, strMap.get(strLength).size());
+        }
 
         Map<String, SAMSequenceRecord> chrs = new TreeMap<String, SAMSequenceRecord>();
         for (SAMSequenceRecord ssr : REF.getSequenceDictionary().getSequences()) {
@@ -489,6 +661,15 @@ public class simchild extends Module {
             addDeNovoInsertions(vcs, 10, "child_" + SEED, i);
             addDeNovoDeletions(vcs,  10, "child_" + SEED, i);
             addDeNovoInversions(vcs, 10, "child_" + SEED, i);
+        }
+
+        for (int strLength = 2; strLength <= 5; strLength++) {
+            addDeNovoStrExpansions(vcs, 10, "child_" + SEED, strLength, strMap);
+            addDeNovoStrContractions(vcs, 10, "child_" + SEED, strLength, strMap);
+        }
+
+        for (int tdLength = 10; tdLength <= 50; tdLength++) {
+            addDeNovoTandemDuplications(vcs, 10, "child_" + SEED, tdLength);
         }
 
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
