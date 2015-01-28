@@ -139,8 +139,8 @@ public class findstrs extends Module {
                         te.put("str", kmer);
                         te.put("numRepeats", String.valueOf(numRepeats));
                         te.put("chr", interval.getSequence());
-                        te.put("start", String.valueOf(interval.getStart()));
-                        te.put("end", String.valueOf(interval.getEnd()));
+                        te.put("start", String.valueOf(interval.getStart() + 1));
+                        te.put("end", String.valueOf(interval.getEnd() + 1));
 
                         tw.addEntry(te);
                     }
