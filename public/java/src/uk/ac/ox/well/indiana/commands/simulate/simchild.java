@@ -439,7 +439,7 @@ public class simchild extends Module {
                 ssr = getRandomAutosome();
                 pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
-                refAllele = getRefAllele(ssr.getSequenceName(), pos - 1, 0);
+                refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
                 altAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), false);
             } while (isInMask(ssr.getSequenceName(), pos, length));
 
@@ -448,7 +448,7 @@ public class simchild extends Module {
             VariantContext vcn = (new VariantContextBuilder())
                     .chr(ssr.getSequenceName())
                     .start(pos - 1)
-                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos - 1)
+                    .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
                     .noID()
                     .attribute("DENOVO", "TD")
                     .alleles(Arrays.asList(refAllele, altAllele))
@@ -460,12 +460,12 @@ public class simchild extends Module {
             }
 
             if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
-                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
+                vcs.get(ssr.getSequenceName()).put(pos - 1, new ArrayList<VariantContext>());
             }
 
-            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
+            vcs.get(ssr.getSequenceName()).get(pos - 1).add(vcn);
 
-            addToMask(ssr.getSequenceName(), pos, length);
+            addToMask(ssr.getSequenceName(), pos - 1, length);
         }
     }
 
