@@ -447,7 +447,7 @@ public class simchild extends Module {
 
             VariantContext vcn = (new VariantContextBuilder())
                     .chr(ssr.getSequenceName())
-                    .start(pos)
+                    .start(pos - 1)
                     .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
                     .noID()
                     .attribute("DENOVO", "TD")
