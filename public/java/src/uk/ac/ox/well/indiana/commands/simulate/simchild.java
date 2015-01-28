@@ -164,9 +164,10 @@ public class simchild extends Module {
     }
 
     private boolean isInMask(String chr, int pos, int length) {
-        Interval interval = new Interval(chr, pos, pos + length);
+        Interval shortInterval = new Interval(chr, pos, pos);
+        Interval fullInterval  = new Interval(chr, pos, pos + length);
 
-        return mask.containsOverlapping(interval);
+        return mask.containsOverlapping(shortInterval) || mask.containsOverlapping(fullInterval);
     }
 
     private void addDeNovoSNPs(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
@@ -440,14 +441,14 @@ public class simchild extends Module {
                 pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
                 refAllele = getRefAllele(ssr.getSequenceName(), pos, 0);
-                altAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length).getBases(), false);
+                altAllele = Allele.create(getRefAllele(ssr.getSequenceName(), pos, length + 1).getBases(), false);
             } while (isInMask(ssr.getSequenceName(), pos, length));
 
             Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
 
             VariantContext vcn = (new VariantContextBuilder())
                     .chr(ssr.getSequenceName())
-                    .start(pos - 1)
+                    .start(pos)
                     .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
                     .noID()
                     .attribute("DENOVO", "TD")
@@ -460,12 +461,12 @@ public class simchild extends Module {
             }
 
             if (!vcs.get(ssr.getSequenceName()).containsKey(pos)) {
-                vcs.get(ssr.getSequenceName()).put(pos - 1, new ArrayList<VariantContext>());
+                vcs.get(ssr.getSequenceName()).put(pos, new ArrayList<VariantContext>());
             }
 
-            vcs.get(ssr.getSequenceName()).get(pos - 1).add(vcn);
+            vcs.get(ssr.getSequenceName()).get(pos).add(vcn);
 
-            addToMask(ssr.getSequenceName(), pos - 1, length);
+            addToMask(ssr.getSequenceName(), pos, length);
         }
     }
 
