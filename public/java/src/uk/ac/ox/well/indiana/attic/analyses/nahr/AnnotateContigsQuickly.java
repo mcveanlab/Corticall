@@ -31,7 +31,7 @@ public class AnnotateContigsQuickly extends Module {
     @Argument(fullName="covThresholds", shortName="ct", doc="Coverage thresholds table")
     public File COV_THRESHOLDS;
 
-    @Argument(fullName="otherKs", shortName="ok", doc="Graphs at other kmer sizes")
+    @Argument(fullName="otherKs", shortName="ok", doc="Graphs at other kmer sizes", required=false)
     public HashSet<CortexGraph> OTHER_KS;
 
     @Output
@@ -185,20 +185,22 @@ public class AnnotateContigsQuickly extends Module {
 
                     coverages.add(String.valueOf(cov));
 
-                    for (CortexGraph og : OTHER_KS) {
-                        if (og.getKmerSize() != kmerSize && i <= seq.length() - og.getKmerSize()) {
-                            String sk = seq.substring(i, i + og.getKmerSize());
-                            CortexKmer ck = new CortexKmer(sk);
-                            CortexRecord ogr = og.findRecord(ck);
+                    if (OTHER_KS != null && !OTHER_KS.isEmpty()) {
+                        for (CortexGraph og : OTHER_KS) {
+                            if (og.getKmerSize() != kmerSize && i <= seq.length() - og.getKmerSize()) {
+                                String sk = seq.substring(i, i + og.getKmerSize());
+                                CortexKmer ck = new CortexKmer(sk);
+                                CortexRecord ogr = og.findRecord(ck);
 
-                            if (ogr == null) {
-                                if (og.getKmerSize() > kmerSize) {
-                                    missingAtHigherK = true;
-                                } else if (og.getKmerSize() < kmerSize) {
-                                    missingAtLowerK = true;
+                                if (ogr == null) {
+                                    if (og.getKmerSize() > kmerSize) {
+                                        missingAtHigherK = true;
+                                    } else if (og.getKmerSize() < kmerSize) {
+                                        missingAtLowerK = true;
+                                    }
+
+                                    break;
                                 }
-
-                                break;
                             }
                         }
                     }
