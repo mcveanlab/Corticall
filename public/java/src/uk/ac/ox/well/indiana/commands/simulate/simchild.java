@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class simchild extends Module {
+public class SimChild extends Module {
     @Argument(fullName="reference", shortName="R", doc="Reference sequence")
     public IndexedFastaSequenceFile REF;
 

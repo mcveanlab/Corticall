@@ -1,26 +1,30 @@
 package uk.ac.ox.well.indiana.attic.analyses.nahr;
 
 import com.sun.net.httpserver.HttpServer;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import org.apache.ivy.util.StringUtils;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.http.BasicHandler;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -32,13 +36,16 @@ public class GraphContext extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs (.fasta)")
     public File CONTIGS;
 
+    @Argument(fullName="metrics", shortName="m", doc="Metrics (.metrics)")
+    public File METRICS;
+
     @Argument(fullName="reference", shortName="r", doc="Reference (.fasta)")
     public IndexedFastaSequenceFile REF;
 
     @Argument(fullName="graph", shortName="g", doc="Graph (.ctx)")
     public LinkedHashSet<CortexGraph> GRAPHS;
 
-    @Argument(fullName="links", shortName="l", doc="Links (.ctp)")
+    @Argument(fullName="links", shortName="l", doc="Links (.ctp)", required=false)
     public HashSet<CortexLinksMap> LINKS;
 
     @Argument(fullName="port", shortName="p", doc="Port")
@@ -48,6 +55,7 @@ public class GraphContext extends Module {
     public PrintStream out;
 
     private Map<String, String> contigs = new HashMap<String, String>();
+    private Map<String, Map<String, String>> metrics = new HashMap<String, Map<String, String>>();
 
     private class PageHandler extends BasicHandler {
         @Override
@@ -153,6 +161,30 @@ public class GraphContext extends Module {
         }
     }
 
+    private Cigar cigarStringToCigar(String cs) {
+        List<CigarElement> ces = new ArrayList<CigarElement>();
+
+        int start = 0;
+        int stop = 1;
+
+        while (stop < cs.length()) {
+            char c = cs.charAt(stop);
+
+            if (c == 'M' || c == 'S' || c == 'H' || c == 'I' || c == 'D') {
+                int length = Integer.valueOf(cs.substring(start, stop));
+                CigarOperator co = CigarOperator.characterToEnum(c);
+
+                ces.add(new CigarElement(length, co));
+
+                start = stop + 1;
+            }
+
+            stop++;
+        }
+
+        return new Cigar(ces);
+    }
+
     private class SearchHandler extends BasicHandler {
         @Override
         public String process(File page, Map<String, String> query) {
@@ -173,14 +205,73 @@ public class GraphContext extends Module {
             }
 
             if (query.containsKey("contigName") && contigs.containsKey(query.get("contigName")) && graphs.containsKey(query.get("graphName"))) {
+                boolean showLinks = query.get("showLinks").equals("links_on");
+
                 String contig = contigs.get(query.get("contigName"));
+                String originalContig = contigs.get(query.get("contigName"));
+                String refFormattedString = "";
+                String kmerOrigin = "";
+
+                if (metrics.containsKey(query.get("contigName"))) {
+                    String[] loc = metrics.get(query.get("contigName")).get("canonicalLocus").split("[:-]");
+                    if (!loc[0].equals("*")) {
+                        boolean isRc = metrics.get(query.get("contigName")).get("isRcCanonical").equals("1");
+
+                        if (isRc) {
+                            contig = SequenceUtils.reverseComplement(contig);
+                            originalContig = SequenceUtils.reverseComplement(originalContig);
+                        }
+
+                        int locStart = Integer.valueOf(loc[1]);
+                        int locEnd = Integer.valueOf(loc[2]);
+
+                        Cigar cigar = cigarStringToCigar(metrics.get(query.get("contigName")).get("cigarCanonical"));
+                        if (cigar.getCigarElement(0).getOperator().equals(CigarOperator.S)) {
+                            locStart -= cigar.getCigarElement(0).getLength();
+                        }
+
+                        if (cigar.getCigarElement(cigar.getCigarElements().size() - 1).getOperator().equals(CigarOperator.S)) {
+                            locEnd += cigar.getCigarElement(cigar.getCigarElements().size() - 1).getLength();
+                        }
+
+                        String ref = new String(REF.getSubsequenceAt(loc[0], locStart, locEnd).getBases());
+
+                        StringBuilder refFormatted = new StringBuilder();
+                        int pos = 0;
+                        for (CigarElement ce : cigar.getCigarElements()) {
+                            CigarOperator co = ce.getOperator();
+                            switch (co) {
+                                case S:
+                                    refFormatted.append(ref.substring(pos, pos + ce.getLength()).toLowerCase());
+                                    break;
+                                case M:
+                                    refFormatted.append(ref.substring(pos, pos + ce.getLength()));
+                                    break;
+                                case I:
+                                    refFormatted.append(StringUtils.repeat("-", ce.getLength()));
+                                    break;
+                            }
+
+                            if (ce.getOperator().consumesReferenceBases()) {
+                                pos += ce.getLength();
+                            }
+                        }
+
+                        refFormattedString = refFormatted.toString();
+
+                        kmerOrigin = metrics.get(query.get("contigName")).get("kmerOrigin");
+                    }
+                }
+
                 CortexGraph cg = graphs.get(query.get("graphName"));
 
                 String sampleName = cg.getColor(0).getSampleName();
                 Set<CortexLinksMap> links = new HashSet<CortexLinksMap>();
-                for (CortexLinksMap link : LINKS) {
-                    if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
-                        links.add(link);
+                if (LINKS != null && !LINKS.isEmpty()) {
+                    for (CortexLinksMap link : LINKS) {
+                        if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
+                            links.add(link);
+                        }
                     }
                 }
 
@@ -196,7 +287,7 @@ public class GraphContext extends Module {
                 Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer);
                 Set<String> usedPrevKmers = new HashSet<String>();
                 usedPrevKmers.add(firstKmer);
-                while (pks.size() == 1 && usedPrevKmers.size() <= 500) {
+                while (pks.size() == 1 && usedPrevKmers.size() <= 100) {
                     String kmer = pks.iterator().next();
                     firstFlank.insert(0, kmer.charAt(0));
 
@@ -213,7 +304,7 @@ public class GraphContext extends Module {
                 Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer);
                 Set<String> usedNextKmers = new HashSet<String>();
                 usedNextKmers.add(lastKmer);
-                while (nks.size() == 1 && usedNextKmers.size() <= 500) {
+                while (nks.size() == 1 && usedNextKmers.size() <= 100) {
                     String kmer = nks.iterator().next();
                     lastFlank.append(kmer.charAt(kmer.length() - 1));
 
@@ -268,43 +359,69 @@ public class GraphContext extends Module {
                 }
 
                 Set<Map<String, Object>> verticesWithLinks = new HashSet<Map<String, Object>>();
+                DataFrame<String, String, Integer> hv = new DataFrame<String, String, Integer>(0);
 
-                for (CtxVertex cv : g.vertexSet()) {
-                    String sk = cv.getKmer();
+                for (int q = 0; q <= contig.length() - cg.getKmerSize(); q++) {
+                    //String sk = cv.getKmer();
+                    String sk = contig.substring(q, q + cg.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
 
                     for (CortexLinksMap link : links) {
                         if (link.containsKey(ck)) {
-                            Set<Map<String, Object>> kls = new HashSet<Map<String, Object>>();
-
                             CortexLinksRecord clr = link.get(ck);
-                            boolean isFlipped = false;
-                            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                                int cov = cjr.getCoverage(0);
-                                List<String> kmersInLink = CortexUtils.getKmersInLink(cg, sk, cjr);
-
-                                Map<String, Object> kl = new HashMap<String, Object>();
-                                kl.put("kmers", kmersInLink);
-                                kl.put("cov", cov);
-
-                                kls.add(kl);
-
-                                isFlipped = !(CortexUtils.orientJunctionsRecord(sk, cjr)).isForward();
-                            }
+                            Map<String, Integer> lc = (!showLinks) ? new HashMap<String, Integer>() : CortexUtils.getKmersAndCoverageInLink(cg, sk, clr);
 
                             Map<String, Object> entry = new HashMap<String, Object>();
                             entry.put("kmer", sk);
-                            entry.put("flipped", isFlipped);
-                            entry.put("kl", kls);
+                            entry.put("lc", lc);
 
                             verticesWithLinks.add(entry);
+
+                            if (showLinks) {
+                                for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                                    List<String> lk = CortexUtils.getKmersInLink(cg, sk, cjr);
+
+                                    for (int i = 0; i < lk.size(); i++) {
+                                        String kili = lk.get(i);
+
+                                        for (int j = 0; j < lk.size(); j++) {
+                                            String kilj = lk.get(j);
+
+                                            if (i != j) {
+                                                hv.set(kili, kilj, hv.get(kili, kilj) + cjr.getCoverage(0));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
+                /*
+                int hvMax = 0;
+                Map<String, Integer> hvlin = new HashMap<String, Integer>();
+                if (showLinks) {
+                    for (String kili : hv.getRowNames()) {
+                        for (String kilj : hv.getColNames()) {
+                            int cov = hv.get(kili, kilj);
+
+                            String id = kili + "_" + kilj;
+                            hvlin.put(id, cov);
+
+                            if (cov > hvMax) {
+                                hvMax = cov;
+                            }
+                        }
+                    }
+                }
+                */
+
                 JSONObject jo = new JSONObject();
                 jo.put("contig", contig);
-                jo.put("originalContig", contigs.get(query.get("contigName")));
+                jo.put("originalContig", originalContig);
+                jo.put("ref", refFormattedString);
+                jo.put("kmerOrigin", kmerOrigin);
                 jo.put("kmerSize", cg.getKmerSize());
                 jo.put("clipStart", firstFlank.length());
                 jo.put("clipEnd", contig.length() - lastFlank.length());
@@ -324,6 +441,8 @@ public class GraphContext extends Module {
 
                 jo.put("vertices", va);
                 jo.put("verticesWithLinks", verticesWithLinks);
+                //jo.put("hvlin", hvlin);
+                //jo.put("hvmax", hvMax);
 
                 return jo.toString();
             }
@@ -363,16 +482,18 @@ public class GraphContext extends Module {
                     }
 
                     String sampleName = cg.getColor(0).getSampleName();
-                    for (CortexLinksMap link : LINKS) {
-                        if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
-                            if (link.containsKey(ck)) {
-                                CortexLinksRecord clr = link.get(ck);
-                                int cov = 0;
-                                for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                                    cov += cjr.getCoverage(0);
-                                }
+                    if (LINKS != null && !LINKS.isEmpty()) {
+                        for (CortexLinksMap link : LINKS) {
+                            if (sampleName.equals(link.getCortexLinks().getColor(0).getSampleName())) {
+                                if (link.containsKey(ck)) {
+                                    CortexLinksRecord clr = link.get(ck);
+                                    int cov = 0;
+                                    for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                                        cov += cjr.getCoverage(0);
+                                    }
 
-                                text += " (" + cov + " links)";
+                                    text += " (" + cov + " links)";
+                                }
                             }
                         }
                     }
@@ -422,7 +543,21 @@ public class GraphContext extends Module {
     }
 
     private void loadContigs() {
-        contigs = new HashMap<String, String>();
+        if (contigs == null || contigs.size() == 0) {
+            contigs = new HashMap<String, String>();
+
+            TableReader tr = new TableReader(METRICS);
+            metrics = new HashMap<String, Map<String, String>>();
+
+            for (Map<String, String> te : tr) {
+                String contigName = te.get("contigName");
+                String seq = te.get("seq");
+
+                contigs.put(contigName, seq);
+
+                metrics.put(contigName, te);
+            }
+        }
 
         FastaSequenceFile fasta = new FastaSequenceFile(CONTIGS, false);
         ReferenceSequence rseq;
@@ -438,20 +573,23 @@ public class GraphContext extends Module {
     public void execute() {
         Map<String, Set<CortexLinksMap>> links = new HashMap<String, Set<CortexLinksMap>>();
         Map<String, Set<String>> linkFilenames = new HashMap<String, Set<String>>();
-        for (CortexLinksMap cl : LINKS) {
-            String name = cl.getCortexLinks().getColor(0).getSampleName();
+        if (LINKS != null && !LINKS.isEmpty()) {
+            for (CortexLinksMap cl : LINKS) {
+                String name = cl.getCortexLinks().getColor(0).getSampleName();
 
-            if (!links.containsKey(name)) {
-                links.put(name, new HashSet<CortexLinksMap>());
-                linkFilenames.put(name, new HashSet<String>());
+                if (!links.containsKey(name)) {
+                    links.put(name, new HashSet<CortexLinksMap>());
+                    linkFilenames.put(name, new HashSet<String>());
+                }
+
+                links.get(name).add(cl);
+                linkFilenames.get(name).add(cl.getCortexLinks().getCortexLinksFile().getAbsolutePath());
             }
+            log.info("Loaded {} links", LINKS.size());
 
-            links.get(name).add(cl);
-            linkFilenames.get(name).add(cl.getCortexLinks().getCortexLinksFile().getName());
-        }
-        log.info("Loaded {} links", LINKS.size());
-        for (CortexLinksMap clm : LINKS) {
-            log.info("  {}: {}", clm.getCortexLinks().getCortexLinksFile().getName(), clm.getCortexLinks().getNumLinks());
+            for (CortexLinksMap clm : LINKS) {
+                log.info("  {}: {}", clm.getCortexLinks().getCortexLinksFile().getAbsolutePath(), clm.getCortexLinks().getNumLinks());
+            }
         }
 
         log.info("Loaded {} graphs", GRAPHS.size());

@@ -27,6 +27,16 @@ body {
     pointer-events: all;
 }
 
+.ko_R { fill: #cccccc; } /* masked */
+.ko_C { fill: #e1e6fa; } /* insufficient coverage in sample */
+.ko_M { fill: #c4d7ed; } /* kmer starting here is missing at higher K */
+.ko_m { fill: #abc8e2; } /* kmer starting here is missing at lower K */
+.ko_1 { fill: #df5a49; } /* confidently parent 1 */
+.ko_0 { fill: #e27a3f; } /* confidently parent 0 */
+.ko__ { fill: #efc94c; } /* probably parental but could not be confidently determined */
+.ko_B { fill: #45829d; } /* confidently shared */
+.ko_N { fill: #f0788c; } /* novel */
+
 /*
 #hvbox {
     font-family: Lucidatypewriter, monospace;
