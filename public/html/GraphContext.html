@@ -38,6 +38,7 @@
 
     <section>
         <select id="selectGraph"></select>
+        <select id="showLinks"></select>
         <input type="search" id="search" placeholder="Enter name of contig" style="width: 500px">
         <span id="status">Ready.</span>
     </section>
@@ -89,6 +90,15 @@ d3.json("graphlist", function (json) {
     d3.select("#selectGraph").on("change", showContig);
 });
 
+d3.select("#showLinks")
+        .selectAll("option")
+        .data(["links_off", "links_on"])
+        .enter()
+        .append("option")
+        .text(function (d) { return d; })
+
+d3.select("#showLinks").on("change", showContig);
+
 d3.select("#search").on("keyup", function () {
     if (d3.event.keyCode == 13) {
         showContig();
@@ -100,12 +110,14 @@ function showContig() {
 
     var graphIndex = d3.select("#selectGraph").property("selectedIndex");
     var graphName = d3.select("#selectGraph").selectAll("option")[0][graphIndex].__data__;
+    var showLinksIndex = d3.select("#showLinks").property("selectedIndex");
+    var showLinks = d3.select("#showLinks").selectAll("option")[0][showLinksIndex].__data__;
     var contigName = encodeURIComponent(d3.select("#search").property("value"));
 
     if (graphName != null && contigName != null && graphName != "" && contigName != "") {
         switch (displayType) {
             case "linear":
-                showContigAsLinear(contigName, graphName);
+                showContigAsLinear(contigName, graphName, showLinks);
                 break;
             case "graph":
                 showContigAsGraph(contigName, graphName);
@@ -114,14 +126,16 @@ function showContig() {
     }
 }
 
-function showContigAsLinear(contigName, graphName) {
+function showContigAsLinear(contigName, graphName, showLinks) {
     var width  = innerWidth,
         height = innerHeight;
-    var covOffset = 220;
+    var covOffset = 320;
+    var refOffset = 270;
+    var koOffset  = 250;
 
     var palette = d3.scale.category20b();
 
-    d3.json("/search?contigName=" + contigName + "&graphName=" + graphName)
+    d3.json("/search?contigName=" + contigName + "&graphName=" + graphName + "&showLinks=" + showLinks)
             .on("progress", function () {
                 d3.select("#status").text("Displaying contig...");
             })
@@ -211,12 +225,15 @@ function showContigAsLinear(contigName, graphName) {
 
                     svg.append("text")
                             .attr("id", d.kmer)
-                            .attr("class", lowercaseEnd ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
+                            //.attr("class", lowercaseEnd ? "base" + d.kmer.charAt(0) + "noncontig" : "base" + d.kmer.charAt(0))
+                            //.attr("class", "base" + d.kmer.charAt(0))
+                            .attr("class", "base" + d.kmer.charAt(0) + (d.missing ? "missing" : ""))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(d.pos - graph.kmerSize + 1))
                             .attr("y", height / 2)
                             .style("text-decoration", d.missing ? "line-through" : "none")
-                            .text(lowercaseEnd ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
+                            //.text(lowercaseEnd ? d.kmer.charAt(0).toLowerCase() : d.kmer.charAt(0))
+                            .text(d.kmer.charAt(0))
                             .on("mouseover", function(a) {
                                 svg.append("rect")
                                         .attr("id", "kmercursor")
@@ -244,7 +261,7 @@ function showContigAsLinear(contigName, graphName) {
                     svg.append("rect")
                             .attr("id", "cov")
                             .attr("class", "cov")
-                            .attr("x", 20*(d.pos - graph.kmerSize + 1))
+                            .attr("x", 20*(d.pos - graph.kmerSize + 1) - 10)
                             .attr("y", (height/2) - covOffset - d.cov - 5)
                             .attr("width", 20)
                             .attr("height", d.cov + 5)
@@ -279,20 +296,91 @@ function showContigAsLinear(contigName, graphName) {
                                         .attr("id", "kmercursor")
                                         .attr("width", 20.0 * graph.kmerSize)
                                         .attr("height", 3.0)
-                                        .attr("x", parseInt(d3.select(this).attr("x")) - 10)
+                                        .attr("x", parseInt(d3.select(this).attr("x")))
                                         .attr("y", (height / 2) + 2)
                             })
                             .on("mouseout", function() {
                                 d3.select(this).style("fill", "#ccc");
 
                                 svg.selectAll("#covtip").remove();
-                                svg.selectAll("#kmercursor") .remove();
+                                svg.selectAll("#kmercursor").remove();
                             })
 
                     if (d.cov > highestCoverage) {
                         highestCoverage = d.cov;
                     }
                 })
+
+                for (var i = 0; i < graph.kmerOrigin.length; i++) {
+                    var ko = graph.kmerOrigin.charAt(i);
+
+                    var tip = "";
+                    switch (ko) {
+                        case 'R': tip = "masked"; break;
+                        case 'C': tip = "insufficient coverage in sample"; break;
+                        case 'M': tip = "kmer starting here is missing at higher K"; break;
+                        case 'm': tip = "kmer starting here is missing at lower K"; break;
+                        case '1': tip = "confidently parent 1"; break;
+                        case '0': tip = "confidently parent 0"; break;
+                        case 'B': tip = "confidently shared"; break;
+                        case '_': tip = "probably parental but could not be confidently determined"; break;
+                        case '.': tip = "novel"; break;
+                    }
+
+                    if (ko == ".") { ko = "N"; }
+
+                    svg.append("rect")
+                            .attr("id", "ko")
+                            .attr("class", "ko_" + ko)
+                            .attr("x", 20*(i + graph.clipStart) - 10)
+                            .attr("y", (height/2) - koOffset)
+                            .attr("width", 20)
+                            .attr("height", 20)
+                            .attr("tip", tip)
+                            .on("mouseover", function() {
+                                svg.append("text")
+                                        .attr("id", "kotip")
+                                        .attr("x", d3.select(this).attr("x"))
+                                        .attr("y", d3.select(this).attr("y"))
+                                        .text(d3.select(this).attr("tip"))
+
+                                svg.append("rect")
+                                        .attr("id", "kmercursor")
+                                        .attr("width", 20.0 * graph.kmerSize)
+                                        .attr("height", 3.0)
+                                        .attr("x", parseInt(d3.select(this).attr("x")))
+                                        .attr("y", (height / 2) + 2)
+                            })
+                            .on("mouseout", function() {
+                                d3.selectAll("#kotip").remove();
+                                d3.selectAll("#kmercursor").remove();
+                            })
+                }
+
+                for (var i = 0; i < graph.ref.length; i++) {
+                    var contigBase = graph.originalContig.charAt(i);
+                    var refBase = graph.ref.charAt(i);
+                    var isMatch = (refBase == contigBase);
+
+                    svg.append("text")
+                            .attr("id", refBase + "_" + i)
+                            .attr("class", isMatch ? "base" + refBase + "match" : "base" + refBase)
+                            .attr("text-anchor", "middle")
+                            .attr("x", 20*(i + graph.clipStart))
+                            .attr("y", (height/2) - refOffset)
+                            .text(refBase)
+                            .on("mouseover", function() {
+                                svg.append("rect")
+                                        .attr("id", "kmercursor")
+                                        .attr("width", 20.0 * graph.kmerSize)
+                                        .attr("height", 3.0)
+                                        .attr("x", parseInt(d3.select(this).attr("x")) - 10)
+                                        .attr("y", (height / 2) + 2)
+                            })
+                            .on("mouseout", function() {
+                                d3.selectAll("#kmercursor").remove();
+                            })
+                }
 
                 var gridlines = [];
                 for (i = 50; i < highestCoverage; i += 50) {
@@ -326,12 +414,14 @@ function showContigAsLinear(contigName, graphName) {
 
                     svg.append("text")
                             .attr("id", "lastKmer")
-                            .attr("class", lowercaseEnd || d.missing ? "base" + d.kmer.charAt(i) + "noncontig" : "base" + d.kmer.charAt(i))
+                            //.attr("class", lowercaseEnd || d.missing ? "base" + d.kmer.charAt(i) + "noncontig" : "base" + d.kmer.charAt(i))
+                            .attr("class", "base" + d.kmer.charAt(i))
                             .attr("text-anchor", "middle")
                             .attr("x", 20*(lastContigKmer.pos - graph.kmerSize + 1 + i))
                             .attr("y", height / 2)
                             .text(lastContigKmer.kmer.charAt(i))
-                            .text(lowercaseEnd ? d.kmer.charAt(i).toLowerCase() : d.kmer.charAt(i))
+                            //.text(lowercaseEnd ? d.kmer.charAt(i).toLowerCase() : d.kmer.charAt(i))
+                            .text(d.kmer.charAt(i))
                 }
 
                 graph.verticesWithLinks.forEach(function(d) {
@@ -361,10 +451,10 @@ function showContigAsLinear(contigName, graphName) {
                     }
 
                     covs = {};
+                    /*
                     for (var i = 0; i < d.kl.length; i++) {
                         var lr = d.kl[i];
 
-                        /*
                         for (var j = 0; j < lr.kmers.length - 1; j++) {
                             var k1 = lr.kmers[j];
                             var k2 = lr.kmers[j + 1];
@@ -376,8 +466,8 @@ function showContigAsLinear(contigName, graphName) {
                                 covs[key] = lr.cov;
                             }
                         }
-                        */
 
+                        //
                         for (var j = 0; j < lr.kmers.length - 1; j++) {
                             var k1 = lr.kmers[j];
 
@@ -395,66 +485,75 @@ function showContigAsLinear(contigName, graphName) {
                                 }
                             }
                         }
+                        //
                     }
+                    */
 
                     displayed = {};
 
-                    for (var i = 0; i < d.kl.length; i++) {
-                        var lr = d.kl[i];
+                    for (var i = 0; i < d3.keys(d.lc).length; i++) {
+                        //var lr = d.lc[i];
+                        var id = d3.keys(d.lc)[i];
+                        var pieces = id.replace("#", "").split("_");
+                        var cov = d.lc[id];
 
-                        for (var j = 0; j < lr.kmers.length - 1; j++) {
-                            var k1= lr.kmers[j];
-                            var k2 = lr.kmers[j + 1];
-                            var key = k1 + "_" + k2;
+                        var k1 = pieces[0];
+                        var k2 = pieces[1];
+                        var key = k1 + "_" + k2;
 
-                            if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty() && !(key in displayed)) {
-                                displayed[key] = true;
+                        if (key in covs) {
+                            covs[key] += cov;
+                        } else {
+                            covs[key] = cov;
+                        }
 
-                                var x1 = d3.select("#" + k1).attr("x");
-                                var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8 + dy;
-                                var x2 = d3.select("#" + k2).attr("x");
-                                var y2 = parseInt(d3.select("#" + k2).attr("y")) - 8 + dy;
+                        if (!d3.select("#" + k1).empty() && !d3.select("#" + k2).empty() && !(key in displayed)) {
+                            displayed[key] = true;
 
-                                if (x2 - x1 > 20) {
-                                    svg.append("line")
-                                            .attr("id", "link_" + d.kmer)
-                                            .attr("class", "link")
-                                            .attr("x1", x1)
-                                            .attr("y1", y1)
-                                            .attr("x2", x2 - 20)
-                                            .attr("y2", y1)
-                                            .attr("title", covs[key])
-                                            .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(covs[key]) + 1)
-                                            .style("stroke-opacity", 0.0)
-                                            .style("pointer-events", "none")
+                            var x1 = d3.select("#" + k1).attr("x");
+                            var y1 = parseInt(d3.select("#" + k1).attr("y")) - 8 + dy;
+                            var x2 = d3.select("#" + k2).attr("x");
+                            var y2 = parseInt(d3.select("#" + k2).attr("y")) - 8 + dy;
 
-                                    svg.append("line")
-                                            .attr("id", "link_" + d.kmer)
-                                            .attr("class", "link")
-                                            .attr("x1", x2 - 20)
-                                            .attr("y1", y1)
-                                            .attr("x2", x2)
-                                            .attr("y2", y2)
-                                            .attr("title", covs[key])
-                                            .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(covs[key]) + 1)
-                                            .style("stroke-opacity", 0.0)
-                                            .style("pointer-events", "none")
-                                } else {
-                                    svg.append("line")
-                                            .attr("id", "link_" + d.kmer)
-                                            .attr("class", "link")
-                                            .attr("x1", x1)
-                                            .attr("y1", y1)
-                                            .attr("x2", x2)
-                                            .attr("y2", y2)
-                                            .attr("title", covs[key])
-                                            .style("stroke", "#ccc")
-                                            .style("stroke-width", Math.log(covs[key]) + 1)
-                                            .style("stroke-opacity", 0.0)
-                                            .style("pointer-events", "none")
-                                }
+                            if (x2 - x1 > 20) {
+                                svg.append("line")
+                                        .attr("id", "link_" + d.kmer)
+                                        .attr("class", "link")
+                                        .attr("x1", x1)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2 - 20)
+                                        .attr("y2", y1)
+                                        .attr("title", cov)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(cov) + 1)
+                                        .style("stroke-opacity", 0.0)
+                                        .style("pointer-events", "none")
+
+                                svg.append("line")
+                                        .attr("id", "link_" + d.kmer)
+                                        .attr("class", "link")
+                                        .attr("x1", x2 - 20)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2)
+                                        .attr("y2", y2)
+                                        .attr("title", cov)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(cov) + 1)
+                                        .style("stroke-opacity", 0.0)
+                                        .style("pointer-events", "none")
+                            } else {
+                                svg.append("line")
+                                        .attr("id", "link_" + d.kmer)
+                                        .attr("class", "link")
+                                        .attr("x1", x1)
+                                        .attr("y1", y1)
+                                        .attr("x2", x2)
+                                        .attr("y2", y2)
+                                        .attr("title", cov)
+                                        .style("stroke", "#ccc")
+                                        .style("stroke-width", Math.log(cov) + 1)
+                                        .style("stroke-opacity", 0.0)
+                                        .style("pointer-events", "none")
                             }
                         }
                     }
@@ -528,7 +627,8 @@ function showContigAsLinear(contigName, graphName) {
                             })
                 })
 
-                var covMax = Math.max.apply(Math, d3.values(covs));
+                /*
+                var covMax = graph.hvmax;
 
                 var hc = d3.scale.linear()
                         .domain([0, covMax])
@@ -540,83 +640,85 @@ function showContigAsLinear(contigName, graphName) {
                         var y = (height / 2) + (n+1)*10 + 180;
 
                         var id = kmerPositions[m] + "_" + kmerPositions[m+n+1];
-                        var cov = id in covs ? covs[id] : 0;
+                        var cov = id in graph.hvlin ? graph.hvlin[id] : 0;
 
-                        svg.append("rect")
-                                .attr("id", id + " (" + cov + ", " + hc(cov) + ", " + d3.hsl(0, 1, hc(cov)) + ")")
-                                .attr("class", "hv")
-                                .attr("x", x)
-                                .attr("y", y)
-                                .attr("width", 14)
-                                .attr("height", 14)
-                                .attr("transform", "rotate(45, " + x + ", " + y + ")")
-                                .attr("k1", kmerPositions[m])
-                                .attr("k2", kmerPositions[m+n+1])
-                                .attr("coverage", cov)
-                                .style("stroke-width", 1.0)
-                                .style("stroke", "#eeeeee")
-                                .style("fill", d3.hsl(0, 1, hc(cov)))
-                                .on("mouseover", function(d) {
-                                    var k1 = d3.select(this).attr("k1");
-                                    var k1x = parseInt(d3.select("#" + k1).attr("x"));
-                                    var k1y = parseInt(d3.select("#" + k1).attr("y"));
+                        if (cov > 0) {
+                            svg.append("rect")
+                                    .attr("id", id + " (" + cov + ", " + hc(cov) + ", " + d3.hsl(0, 1, hc(cov)) + ")")
+                                    .attr("class", "hv")
+                                    .attr("x", x)
+                                    .attr("y", y)
+                                    .attr("width", 14)
+                                    .attr("height", 14)
+                                    .attr("transform", "rotate(45, " + x + ", " + y + ")")
+                                    .attr("k1", kmerPositions[m])
+                                    .attr("k2", kmerPositions[m + n + 1])
+                                    .attr("coverage", cov)
+                                    .style("stroke-width", 1.0)
+                                    .style("stroke", "#eeeeee")
+                                    .style("fill", d3.hsl(0, 1, hc(cov)))
+                                    .on("mouseover", function (d) {
+                                        var k1 = d3.select(this).attr("k1");
+                                        var k1x = parseInt(d3.select("#" + k1).attr("x"));
+                                        var k1y = parseInt(d3.select("#" + k1).attr("y"));
 
-                                    var k2 = d3.select(this).attr("k2");
-                                    var k2x = parseInt(d3.select("#" + k2).attr("x"));
-                                    var k2y = parseInt(d3.select("#" + k2).attr("y"));
+                                        var k2 = d3.select(this).attr("k2");
+                                        var k2x = parseInt(d3.select("#" + k2).attr("x"));
+                                        var k2y = parseInt(d3.select("#" + k2).attr("y"));
 
-                                    svg.append("line")
-                                            .attr("id", "hvtip")
-                                            .attr("x1", k1x)
-                                            .attr("y1", (height/2) + 200)
-                                            .attr("x2", k1x)
-                                            .attr("y2", (height/2))
-                                            .style("stroke-width", 1.2)
-                                            .style("stroke", "#000000")
+                                        svg.append("line")
+                                                .attr("id", "hvtip")
+                                                .attr("x1", k1x)
+                                                .attr("y1", (height / 2) + 200)
+                                                .attr("x2", k1x)
+                                                .attr("y2", (height / 2))
+                                                .style("stroke-width", 1.2)
+                                                .style("stroke", "#000000")
 
-                                    svg.append("line")
-                                            .attr("id", "hvtip")
-                                            .attr("x1", k2x)
-                                            .attr("y1", (height/2) + 200)
-                                            .attr("x2", k2x)
-                                            .attr("y2", (height/2))
-                                            .style("stroke-width", 1.2)
-                                            .style("stroke", "#000000")
+                                        svg.append("line")
+                                                .attr("id", "hvtip")
+                                                .attr("x1", k2x)
+                                                .attr("y1", (height / 2) + 200)
+                                                .attr("x2", k2x)
+                                                .attr("y2", (height / 2))
+                                                .style("stroke-width", 1.2)
+                                                .style("stroke", "#000000")
 
-                                    svg.append("line")
-                                            .attr("id", "hvtip")
-                                            .attr("x1", k1x)
-                                            .attr("y1", (height/2) + 200)
-                                            .attr("x2", d3.select(this).attr("x"))
-                                            .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
-                                            .style("stroke-width", 1.2)
-                                            .style("stroke", "#000000")
+                                        svg.append("line")
+                                                .attr("id", "hvtip")
+                                                .attr("x1", k1x)
+                                                .attr("y1", (height / 2) + 200)
+                                                .attr("x2", d3.select(this).attr("x"))
+                                                .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
+                                                .style("stroke-width", 1.2)
+                                                .style("stroke", "#000000")
 
-                                    svg.append("line")
-                                            .attr("id", "hvtip")
-                                            .attr("x1", k2x)
-                                            .attr("y1", (height/2) + 200)
-                                            .attr("x2", d3.select(this).attr("x"))
-                                            .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
-                                            .style("stroke-width", 1.2)
-                                            .style("stroke", "#000000")
-                                })
-                                .on("mouseout", function() {
-                                    d3.selectAll("#hvtip").remove();
-                                })
+                                        svg.append("line")
+                                                .attr("id", "hvtip")
+                                                .attr("x1", k2x)
+                                                .attr("y1", (height / 2) + 200)
+                                                .attr("x2", d3.select(this).attr("x"))
+                                                .attr("y2", parseInt(d3.select(this).attr("y")) + 20.0)
+                                                .style("stroke-width", 1.2)
+                                                .style("stroke", "#000000")
+                                    })
+                                    .on("mouseout", function () {
+                                        d3.selectAll("#hvtip").remove();
+                                    })
 
-                        svg.append("text")
-                                .attr("id", "hvbox")
-                                .attr("x", x)
-                                .attr("y", y + 12.5)
-                                .style("text-anchor", "middle")
-                                .style("font-size", "7px")
-                                .style("fill", "#aaaaaa")
-                                .style("pointer-events", "none")
-                                .text(cov)
-
+                            svg.append("text")
+                                    .attr("id", "hvbox")
+                                    .attr("x", x)
+                                    .attr("y", y + 12.5)
+                                    .style("text-anchor", "middle")
+                                    .style("font-size", "7px")
+                                    .style("fill", "#aaaaaa")
+                                    .style("pointer-events", "none")
+                                    .text(cov)
+                        }
                     }
                 }
+                */
 
                 d3.select("#status").text("Ready.");
 

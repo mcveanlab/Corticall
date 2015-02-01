@@ -11,10 +11,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
-import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.PrintStream;
@@ -160,7 +158,7 @@ public class ContigConfidence extends Module {
                             linkMap.put(sk, clm.get(ck));
 
                             for (CortexJunctionsRecord cjr : clm.get(ck).getJunctions()) {
-                                Set<String> kil = new HashSet<String>(CortexUtils.getKmersInLink(cg, sk, cjr));
+                                Set<String> kil = new HashSet<String>(CortexUtils.getKmersInLinkByNavigation(cg, sk, cjr));
 
                                 kmersInLinks.put(cjr, kil);
                             }

@@ -1,6 +1,10 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
 import htsjdk.samtools.util.SequenceUtil;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -301,20 +305,49 @@ public class CortexUtils {
     }
 
     public static Map<String, Integer> getKmersAndCoverageInLink(CortexGraph cg, String sk, CortexLinksRecord clr) {
-        Map<String, Integer> kmersAndCoverage = new HashMap<String, Integer>();
+        Map<String, Integer> kmersAndCoverage = new LinkedHashMap<String, Integer>();
 
         for (CortexJunctionsRecord cjr : clr.getJunctions()) {
             List<String> kil = getKmersInLink(cg, sk, cjr);
 
-            for (String ki : kil) {
-                if (!kmersAndCoverage.containsKey(ki)) {
-                    kmersAndCoverage.put(ki, cjr.getCoverage(0));
+            for (int i = 0; i < kil.size() - 1; i++) {
+                String kila = kil.get(i);
+                String kilb = kil.get(i+1);
+                String id = "#" + kila + "_" + kilb;
+
+                int cov = cjr.getCoverage(0);
+
+                if (!kmersAndCoverage.containsKey(id)) {
+                    kmersAndCoverage.put(id, cov);
                 } else {
-                    kmersAndCoverage.put(ki, cjr.getCoverage(0) + kmersAndCoverage.get(ki));
+                    kmersAndCoverage.put(id, kmersAndCoverage.get(id) + cov);
                 }
             }
         }
 
         return kmersAndCoverage;
+    }
+
+    public static DataFrame<String, String, Integer> getKmersAndCoverageHVStyle(CortexGraph cg, String sk, CortexLinksRecord clr) {
+        DataFrame<String, String, Integer> hv = new DataFrame<String, String, Integer>(0);
+
+        for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+            List<String> kil = getKmersInLink(cg, sk, cjr);
+            int cov = cjr.getCoverage(0);
+
+            for (int i = 0; i < kil.size(); i++) {
+                String kili = kil.get(i);
+
+                for (int j = 0; j < kil.size(); j++) {
+                    String kilj = kil.get(j);
+
+                    if (i != j) {
+                        hv.set(kili, kilj, hv.get(kili, kilj) + cov);
+                    }
+                }
+            }
+        }
+
+        return hv;
     }
 }
