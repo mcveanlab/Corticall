@@ -1,27 +1,41 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
+import java.io.File;
 import java.io.PrintStream;
 
 public class CreateSequenceDictionary extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs")
-    public FastaSequenceFile CONTIGS;
+    public File CONTIGS;
 
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
+        LineReader lr = new LineReader(CONTIGS);
+
         out.println("@HD\tVN:1.0\tSO:unsorted");
 
-        ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
-            out.println("@SQ\tSN:" + rseq.getName() + "\tLN:" + rseq.length());
+        String contigName = null;
+        StringBuilder contigBuilder = new StringBuilder();
+        while (lr.hasNext()) {
+            String l = lr.getNextRecord();
+
+            if (l.startsWith(">")) {
+                if (contigName != null) {
+                    out.println("@SQ\tSN:" + contigName + "\tLN:" + contigBuilder.length());
+                }
+
+                contigName = l.replaceAll(">", "").split("\\s+")[0];
+                contigBuilder = new StringBuilder();
+            } else {
+                contigBuilder.append(l);
+            }
         }
     }
 }
