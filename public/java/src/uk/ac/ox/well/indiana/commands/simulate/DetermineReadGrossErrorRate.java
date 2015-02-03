@@ -23,7 +23,10 @@ public class DetermineReadGrossErrorRate extends Module {
     public void execute() {
         TableWriter tw = new TableWriter(out);
 
+        log.info("Processing BAMs...");
         for (SAMFileReader bam : BAMS) {
+            log.info("  {} {}", bam.getFileHeader().getReadGroups().get(0).getSample(), bam.getFileHeader().getReadGroups().get(0).getReadGroupId());
+
             long basesSeen = 0;
             long nmSeen = 0;
 
