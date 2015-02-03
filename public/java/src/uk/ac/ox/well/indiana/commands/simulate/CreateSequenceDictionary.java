@@ -37,5 +37,10 @@ public class CreateSequenceDictionary extends Module {
                 contigBuilder.append(l);
             }
         }
+
+        out.println("@SQ\tSN:" + contigName + "\tLN:" + contigBuilder.length());
+
+        //FastaSequenceIndex fsi = new FastaSequenceIndex(new File(CONTIGS.getAbsolutePath() + ".fai"));
+        //log.info("fsi={}", fsi.size());
     }
 }
