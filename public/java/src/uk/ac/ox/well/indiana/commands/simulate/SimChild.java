@@ -686,6 +686,7 @@ public class SimChild extends Module {
         header.addMetaDataLine(new VCFInfoHeaderLine("REPUNIT", 1, VCFHeaderLineType.String, "The repeated unit in the STR"));
         header.addMetaDataLine(new VCFInfoHeaderLine("REPS_BEFORE", 1, VCFHeaderLineType.Integer, "The number of repeated units in the STR before modification"));
         header.addMetaDataLine(new VCFInfoHeaderLine("REPS_AFTER", 1, VCFHeaderLineType.Integer, "The number of repeated units in the STR after modification"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("SIMID", 1, VCFHeaderLineType.String, "The ID of the simulated variant"));
         for (VCFInfoHeaderLine infoHeaderLine : VCF.getFileHeader().getInfoHeaderLines()) {
             header.addMetaDataLine(infoHeaderLine);
         }
@@ -739,13 +740,20 @@ public class SimChild extends Module {
             addDeNovoTandemDuplications(vcs, 10, "child_" + SEED, tdLength);
         }
 
+        int simid = 0;
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
 
             if (vcs.containsKey(chr)) {
                 for (int pos : vcs.get(chr).keySet()) {
                     for (VariantContext vc : vcs.get(chr).get(pos)) {
-                        vcw.add(vc);
+                        VariantContext newvc = (new VariantContextBuilder(vc))
+                                .attribute("SIMID", "simchild" + simid)
+                                .make();
+
+                        vcw.add(newvc);
+
+                        simid++;
                     }
                 }
             }

@@ -79,7 +79,7 @@ public class IncorporateVariantsIntoGenome extends Module {
                 if (variants.containsKey(name) && variants.get(name).containsKey(i)) {
                     for (VariantContext vc : variants.get(name).get(i)) {
                         String alleleToRemove = vc.getReference().getBaseString();
-                        String alleleToAdd = vc.getAlternateAllele(0).getBaseString();
+                        String alleleToAdd = !vc.isVariant() ? vc.getReference().getBaseString() : vc.getAlternateAllele(0).getBaseString();
 
                         for (int j = 0; j < alleleToRemove.length(); j++) {
                             alleles.set(i + j, "");
@@ -108,11 +108,7 @@ public class IncorporateVariantsIntoGenome extends Module {
                             pos++;
                         }
 
-                        String id = String.format("%s:%d:%s:%s",
-                                vc.getChr(),
-                                vc.getStart(),
-                                vc.getReference().getBaseString(),
-                                vc.getAlternateAllele(0).getBaseString());
+                        String id = vc.getAttributeAsString("SIMID", "unknown");
 
                         if (!attributes.containsKey(id)) {
                             attributes.put(id, new HashMap<String, String>());
@@ -123,7 +119,6 @@ public class IncorporateVariantsIntoGenome extends Module {
 
                         attributes.get(id).put("flank_left", leftFlank);
                         attributes.get(id).put("flank_right", rightFlank);
-                        //log.info("{}:{} {} {} {} {}", vc.getChr(), vc.getStart(), leftFlank.toString(), alleleToAdd, rightFlank.toString(), vc);
                     }
                 }
             }
@@ -154,14 +149,10 @@ public class IncorporateVariantsIntoGenome extends Module {
         for (VariantContext vc : VCF) {
             variantNum++;
 
-            String id = String.format("%s:%d:%s:%s",
-                    vc.getChr(),
-                    vc.getStart(),
-                    vc.getReference().getBaseString(),
-                    vc.getAlternateAllele(0).getBaseString());
+            String id = vc.getAttributeAsString("SIMID", "unknown");
 
-            String end1id = String.format("@variant%d %s/1", variantNum, id);
-            String end2id = String.format("@variant%d %s/2", variantNum, id);
+            String end1id = String.format("@%s variant%d/1", id, variantNum);
+            String end2id = String.format("@%s variant%d/2", id, variantNum);
 
             if (attributes.containsKey(id)) {
                 VariantContext newvc = (new VariantContextBuilder(vc))
