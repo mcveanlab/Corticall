@@ -335,6 +335,9 @@ public class SimChild extends Module {
             int pos;
 
             Allele refAllele, altAllele;
+            String repUnit = null;
+            int repsBefore = 0;
+            int repsAfter = 0;
 
             do {
                 int strIndex = rng.nextInt(strs.size()) + 1;
@@ -347,9 +350,13 @@ public class SimChild extends Module {
 
                 refAllele = getRefAllele(chr, start - 1, 0);
                 altAllele = Allele.create(StringUtils.repeat(te.get("str"), numRepeats), false);
+
+                repUnit = te.get("str");
+                repsBefore = Integer.valueOf(te.get("numRepeats"));
+                repsAfter = repsBefore + numRepeats;
             } while (isInMask(chr, pos, altAllele.length()));
 
-            log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
+            //log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
 
             Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
 
@@ -359,6 +366,9 @@ public class SimChild extends Module {
                     .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
                     .noID()
                     .attribute("DENOVO", "STR_EXP")
+                    .attribute("REPUNIT", repUnit)
+                    .attribute("REPS_BEFORE", repsBefore)
+                    .attribute("REPS_AFTER", repsAfter)
                     .alleles(Arrays.asList(refAllele, altAllele))
                     .genotypes(newg)
                     .make();
@@ -385,6 +395,9 @@ public class SimChild extends Module {
             int pos;
 
             Allele refAllele, altAllele;
+            String repUnit = null;
+            int repsBefore = 0;
+            int repsAfter = 0;
 
             do {
                 int strIndex = rng.nextInt(strs.size()) + 1;
@@ -399,9 +412,13 @@ public class SimChild extends Module {
 
                 altAllele = Allele.create(prevBase, false);
                 refAllele = Allele.create(prevBase + StringUtils.repeat(te.get("str"), numRepeats), true);
+
+                repUnit = te.get("str");
+                repsBefore = Integer.valueOf(te.get("numRepeats"));
+                repsAfter = repsBefore - numRepeats;
             } while (isInMask(chr, pos, altAllele.length()));
 
-            log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
+            //log.info("  {}:{} {} {}", chr, pos, refAllele, altAllele);
 
             Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
 
@@ -411,6 +428,9 @@ public class SimChild extends Module {
                     .computeEndFromAlleles(Arrays.asList(refAllele, altAllele), pos)
                     .noID()
                     .attribute("DENOVO", "STR_CON")
+                    .attribute("REPUNIT", repUnit)
+                    .attribute("REPS_BEFORE", repsBefore)
+                    .attribute("REPS_AFTER", repsAfter)
                     .alleles(Arrays.asList(refAllele, altAllele))
                     .genotypes(newg)
                     .make();
@@ -527,11 +547,15 @@ public class SimChild extends Module {
         int numVariants = 0;
         Map<String, Map<Integer, VariantContext>> variants = new HashMap<String, Map<Integer, VariantContext>>();
         for (VariantContext vc : VCF) {
-            if (!variants.containsKey(vc.getChr())) {
-                variants.put(vc.getChr(), new HashMap<Integer, VariantContext>());
+            VariantContext newvc = (new VariantContextBuilder(vc))
+                    .attributes(null)
+                    .make();
+
+            if (!variants.containsKey(newvc.getChr())) {
+                variants.put(newvc.getChr(), new HashMap<Integer, VariantContext>());
             }
 
-            variants.get(vc.getChr()).put(vc.getStart() - 1, vc);
+            variants.get(newvc.getChr()).put(newvc.getStart() - 1, newvc);
 
             numVariants++;
         }
@@ -545,6 +569,26 @@ public class SimChild extends Module {
             for (int i = 0; i < chrs.get(chr).getSequenceLength(); i++) {
                 if (recombs.containsKey(chr) && recombs.get(chr).contains(i)) {
                     copyFromAlt = !copyFromAlt;
+
+                    VariantContext recombvc = (new VariantContextBuilder())
+                            .chr(chr)
+                            .start(i)
+                            .stop(i)
+                            .alleles(Arrays.asList(getRefAllele(chr, i, 0)))
+                            .genotypes(
+                                    (new GenotypeBuilder()
+                                            .name("child_" + SEED)
+                                            .alleles(Arrays.asList(getRefAllele(chr, i, 0))))
+                                    .make()
+                            )
+                            .attribute("DENOVO", "RECOMB")
+                            .make();
+
+                    if (!copiedVariants.containsKey(chr)) {
+                        copiedVariants.put(chr, new TreeMap<Integer, VariantContext>());
+                    }
+
+                    copiedVariants.get(chr).put(i, recombvc);
                 }
 
                 if (copyFromAlt && variants.containsKey(chr) && variants.get(chr).containsKey(i)) {
@@ -589,7 +633,18 @@ public class SimChild extends Module {
 
                 for (int gcVariant : gcVariants) {
                     if (copiedVariants.containsKey(chr) && copiedVariants.get(chr).containsKey(gcVariant)) {
-                        copiedVariants.get(chr).remove(gcVariant);
+                        VariantContext vc = copiedVariants.get(chr).get(gcVariant);
+                        VariantContext newvc = (new VariantContextBuilder(vc))
+                                .attribute("DENOVO", "GC")
+                                .attribute("GCINDEX", i)
+                                .alleles(Arrays.asList(vc.getReference()))
+                                .genotypes((new GenotypeBuilder(vc.getGenotype(0)))
+                                        .alleles(Arrays.asList(vc.getReference()))
+                                        .make())
+                                .make();
+
+                        //copiedVariants.get(chr).remove(gcVariant);
+                        copiedVariants.get(chr).put(gcVariant, newvc);
 
                         removedVariants++;
                     } else {
@@ -597,7 +652,14 @@ public class SimChild extends Module {
                             copiedVariants.put(chr, new TreeMap<Integer, VariantContext>());
                         }
 
-                        copiedVariants.get(chr).put(gcVariant, variants.get(chr).get(gcVariant));
+                        VariantContext vc = variants.get(chr).get(gcVariant);
+                        VariantContext newvc = (new VariantContextBuilder(vc))
+                                .attribute("DENOVO", "GC")
+                                .attribute("GCINDEX", i)
+                                .make();
+
+                        //copiedVariants.get(chr).put(gcVariant, variants.get(chr).get(gcVariant));
+                        copiedVariants.get(chr).put(gcVariant, newvc);
 
                         addedVariants++;
                     }
@@ -620,6 +682,10 @@ public class SimChild extends Module {
         VCFHeader header = new VCFHeader(headerLines, sampleNames);
         header.setSequenceDictionary(VCF.getFileHeader().getSequenceDictionary());
         header.addMetaDataLine(new VCFInfoHeaderLine("DENOVO", 1, VCFHeaderLineType.String, "The type of de novo event added"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("GCINDEX", 1, VCFHeaderLineType.Integer, "The id of the gene conversion event"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("REPUNIT", 1, VCFHeaderLineType.String, "The repeated unit in the STR"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("REPS_BEFORE", 1, VCFHeaderLineType.Integer, "The number of repeated units in the STR before modification"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("REPS_AFTER", 1, VCFHeaderLineType.Integer, "The number of repeated units in the STR after modification"));
         for (VCFInfoHeaderLine infoHeaderLine : VCF.getFileHeader().getInfoHeaderLines()) {
             header.addMetaDataLine(infoHeaderLine);
         }
