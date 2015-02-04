@@ -289,15 +289,23 @@ public class SimVar extends Module {
         header.setSequenceDictionary(REF.getSequenceDictionary());
         header.addMetaDataLine(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
         header.addMetaDataLine(new VCFInfoHeaderLine("NAHR", 1, VCFHeaderLineType.String, "Is a var recombination"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("SIMID", 1, VCFHeaderLineType.String, "The ID of the simulated variant"));
 
         vcw.writeHeader(header);
 
+        int simid = 0;
         for (SAMSequenceRecord ssr : REF.getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
             if (variants.containsKey(chr)) {
                 for (int pos : variants.get(chr).keySet()) {
                     for (VariantContext vc : variants.get(chr).get(pos)) {
-                        vcw.add(vc);
+                        VariantContext newvc = (new VariantContextBuilder(vc))
+                                .attribute("SIMID", "simvar" + simid)
+                                .make();
+
+                        vcw.add(newvc);
+
+                        simid++;
                     }
                 }
             }
