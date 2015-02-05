@@ -599,6 +599,8 @@ public class SimChild extends Module {
                     copiedVariants.get(chr).put(i, variants.get(chr).get(i));
 
                     numCopiedVariants++;
+
+                    addToMask(chr, i, 0);
                 }
             }
         }
@@ -647,6 +649,8 @@ public class SimChild extends Module {
                         copiedVariants.get(chr).put(gcVariant, newvc);
 
                         removedVariants++;
+
+                        addToMask(chr, newvc.getStart(), 0);
                     } else {
                         if (!copiedVariants.containsKey(chr)) {
                             copiedVariants.put(chr, new TreeMap<Integer, VariantContext>());
@@ -662,6 +666,8 @@ public class SimChild extends Module {
                         copiedVariants.get(chr).put(gcVariant, newvc);
 
                         addedVariants++;
+
+                        addToMask(chr, newvc.getStart(), 0);
                     }
                 }
             }
