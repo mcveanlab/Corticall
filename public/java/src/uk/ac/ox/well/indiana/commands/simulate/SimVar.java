@@ -168,39 +168,45 @@ public class SimVar extends Module {
                     int numRecombs = rng.nextInt(3) + 2;
 
                     if (possibleRecombSites1.size() > numRecombs) {
-                        Set<Integer> recombs = new TreeSet<Integer>();
-                        for (int nr = 0; nr < numRecombs; nr++) {
-                            recombs.add(rng.nextInt(possibleRecombSites1.size()));
-                        }
+                        StringBuilder newVar, switches;
+                        Set<Integer> recombs;
 
-                        boolean copyFrom1 = true;
-                        int lastPos = 0;
+                        do {
+                            newVar = new StringBuilder();
+                            switches = new StringBuilder();
+                            recombs = new TreeSet<Integer>();
 
-                        StringBuilder newVar = new StringBuilder();
-                        StringBuilder switches = new StringBuilder();
-                        for (Integer index : recombs) {
-                            if (copyFrom1) {
-                                int currentPos = possibleRecombSites1.get(index);
-                                newVar.append(seq1.substring(lastPos, currentPos));
-                                switches.append(StringUtils.repeat(" ", currentPos - lastPos - 1)).append("v");
-
-                                lastPos = possibleRecombSites2.get(index);
-                            } else {
-                                int currentPos = possibleRecombSites2.get(index);
-                                newVar.append(seq2.substring(lastPos, currentPos));
-                                switches.append(StringUtils.repeat(" ", currentPos - lastPos - 1)).append("^");
-
-                                lastPos = possibleRecombSites1.get(index);
+                            for (int nr = 0; nr < numRecombs; nr++) {
+                                recombs.add(rng.nextInt(possibleRecombSites1.size()));
                             }
 
-                            copyFrom1 = !copyFrom1;
-                        }
+                            boolean copyFrom1 = true;
+                            int lastPos = 0;
 
-                        if (copyFrom1) {
-                            newVar.append(seq1.substring(lastPos, seq1.length()));
-                        } else {
-                            newVar.append(seq2.substring(lastPos, seq2.length()));
-                        }
+                            for (Integer index : recombs) {
+                                if (copyFrom1) {
+                                    int currentPos = possibleRecombSites1.get(index);
+                                    newVar.append(seq1.substring(lastPos, currentPos));
+                                    switches.append(StringUtils.repeat(" ", currentPos - lastPos - 1)).append("v");
+
+                                    lastPos = possibleRecombSites2.get(index);
+                                } else {
+                                    int currentPos = possibleRecombSites2.get(index);
+                                    newVar.append(seq2.substring(lastPos, currentPos));
+                                    switches.append(StringUtils.repeat(" ", currentPos - lastPos - 1)).append("^");
+
+                                    lastPos = possibleRecombSites1.get(index);
+                                }
+
+                                copyFrom1 = !copyFrom1;
+                            }
+
+                            if (copyFrom1) {
+                                newVar.append(seq1.substring(lastPos, seq1.length()));
+                            } else {
+                                newVar.append(seq2.substring(lastPos, seq2.length()));
+                            }
+                        } while (seq1.equals(newVar.toString()));
 
                         sout.println(Joiner.on("\t").join(
                                 var1.getAttribute("ID"),
