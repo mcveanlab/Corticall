@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ReplaceVars extends Module {
+public class ReplaceVarGenes extends Module {
     @Argument(fullName="ref", shortName="r", doc="Reference sequence")
     public IndexedFastaSequenceFile REF;
 

@@ -13,7 +13,7 @@ import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import java.io.PrintStream;
 import java.util.*;
 
-public class FindStrs extends Module {
+public class FindStrLoci extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference FASTA")
     public FastaSequenceFile REFERENCE;
 
