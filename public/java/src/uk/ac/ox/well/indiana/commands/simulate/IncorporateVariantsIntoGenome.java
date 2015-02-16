@@ -98,13 +98,12 @@ public class IncorporateVariantsIntoGenome extends Module {
                 if (variants.containsKey(name) && variants.get(name).containsKey(i)) {
                     for (VariantContext vc : variants.get(name).get(i)) {
                         String id = vc.getAttributeAsString("SIMID", "unknown");
+                        String denovo = vc.getAttributeAsString("DENOVO", "unknown");
+                        String nahr = vc.getAttributeAsString("NAHR", "unknown");
+                        Integer gcindex = vc.getAttributeAsInt("GCINDEX", 0);
 
                         if (!attributes.containsKey(id)) {
                             attributes.put(id, new HashMap<String, String>());
-                        }
-
-                        if (id.equals("simchild16669")) {
-                            log.info("Found it.");
                         }
 
                         StringBuilder  leftFlankBuilder = new StringBuilder();
@@ -130,25 +129,23 @@ public class IncorporateVariantsIntoGenome extends Module {
 
                         int length = 0;
                         if (vc.isVariant()) {
-                            //length = Math.abs(vc.getAlternateAllele(0).length() - vc.getReference().length());
                             length = Math.abs(vc.getAlternateAllele(0).length());
                         }
 
-                        String bedname = id + "." + vc.getType().toString() + ".ref=" + vc.getReference().getBaseString();
+                        String bedname = "id=" + id
+                                + ";type=" + vc.getType().toString()
+                                + ";denovo=" + denovo
+                                + ";nahr=" + nahr
+                                + ";gcindex=" + gcindex
+                                + ";ref=" + vc.getReference().getBaseString();
+
                         if (vc.isVariant()) {
-                            bedname += ".alt=" + vc.getAlternateAllele(0);
+                            bedname += ";alt=" + vc.getAlternateAllele(0);
                         }
-                        bedname += ".left=" + leftFlank;
-                        bedname += ".right=" + rightFlank;
+                        bedname += ";left=" + leftFlank;
+                        bedname += ";right=" + rightFlank;
 
                         bout.println(Joiner.on("\t").join(name, gpos, gpos + length, bedname));
-
-                        /*
-                        if (vc.isSimpleDeletion()) {
-                            gpos -= vc.getReference().length() - 1;
-                        }
-                        gpos++;
-                        */
                     }
                 }
 
