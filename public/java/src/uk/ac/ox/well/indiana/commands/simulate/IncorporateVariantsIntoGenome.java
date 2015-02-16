@@ -38,6 +38,9 @@ public class IncorporateVariantsIntoGenome extends Module {
     @Output(fullName="f2out", shortName="f2o", doc="Fastq out 2")
     public PrintStream f2out;
 
+    @Output(fullName="bedout", shortName="bo", doc="Bed out")
+    public PrintStream bout;
+
     @Override
     public void execute() {
         Map<String, Map<Integer, Set<VariantContext>>> variants = new HashMap<String, Map<Integer, Set<VariantContext>>>();
@@ -90,9 +93,20 @@ public class IncorporateVariantsIntoGenome extends Module {
                 }
             }
 
+            int gpos = 0;
             for (int i = 0; i < seq.length(); i++) {
                 if (variants.containsKey(name) && variants.get(name).containsKey(i)) {
                     for (VariantContext vc : variants.get(name).get(i)) {
+                        String id = vc.getAttributeAsString("SIMID", "unknown");
+
+                        if (!attributes.containsKey(id)) {
+                            attributes.put(id, new HashMap<String, String>());
+                        }
+
+                        if (id.equals("simchild16669")) {
+                            log.info("Found it.");
+                        }
+
                         StringBuilder  leftFlankBuilder = new StringBuilder();
                         StringBuilder rightFlankBuilder = new StringBuilder();
 
@@ -108,19 +122,37 @@ public class IncorporateVariantsIntoGenome extends Module {
                             pos++;
                         }
 
-                        String id = vc.getAttributeAsString("SIMID", "unknown");
-
-                        if (!attributes.containsKey(id)) {
-                            attributes.put(id, new HashMap<String, String>());
-                        }
-
                         String leftFlank = leftFlankBuilder.length() > 50 ? leftFlankBuilder.substring(leftFlankBuilder.length() - 50, leftFlankBuilder.length()) : leftFlankBuilder.toString();
-                        String rightFlank = rightFlankBuilder.length() > 50 ? rightFlankBuilder.substring(rightFlankBuilder.length() - 50, rightFlankBuilder.length()) : rightFlankBuilder.toString();
+                        String rightFlank = rightFlankBuilder.length() > 50 ? rightFlankBuilder.substring(0, 50) : rightFlankBuilder.toString();
 
                         attributes.get(id).put("flank_left", leftFlank);
                         attributes.get(id).put("flank_right", rightFlank);
+
+                        int length = 0;
+                        if (vc.isVariant()) {
+                            //length = Math.abs(vc.getAlternateAllele(0).length() - vc.getReference().length());
+                            length = Math.abs(vc.getAlternateAllele(0).length());
+                        }
+
+                        String bedname = id + "." + vc.getType().toString() + ".ref=" + vc.getReference().getBaseString();
+                        if (vc.isVariant()) {
+                            bedname += ".alt=" + vc.getAlternateAllele(0);
+                        }
+                        bedname += ".left=" + leftFlank;
+                        bedname += ".right=" + rightFlank;
+
+                        bout.println(Joiner.on("\t").join(name, gpos, gpos + length, bedname));
+
+                        /*
+                        if (vc.isSimpleDeletion()) {
+                            gpos -= vc.getReference().length() - 1;
+                        }
+                        gpos++;
+                        */
                     }
                 }
+
+                gpos += alleles.get(i).length();
             }
 
             StringBuilder sb = new StringBuilder();
