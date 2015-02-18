@@ -28,15 +28,14 @@ public class EvaluateNovelKmerRecovery extends Module {
     @Argument(fullName="pedigreeGraph", shortName="g", doc="Pedigree graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
-    public Integer KMER_SIZE = 41;
-
     @Output
     public PrintStream out;
 
     private class KmerEntry {
         public String variantId;
         public boolean found = false;
+        public boolean novel = false;
+        public int coverage = 0;
 
         public KmerEntry(String variantId) {
             this.variantId = variantId;
@@ -64,8 +63,8 @@ public class EvaluateNovelKmerRecovery extends Module {
         while ((rseq = REFERENCE.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
 
-            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                CortexKmer ck = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
                 if (!kmerCount.containsKey(ck)) {
                     kmerCount.put(ck, 1);
@@ -89,8 +88,8 @@ public class EvaluateNovelKmerRecovery extends Module {
             variants.put(infoMap.get("id"), te);
 
             String chrom = te.get("chrom");
-            int start = Integer.valueOf(te.get("start")) + 1 - (KMER_SIZE-1);
-            int stop  = Integer.valueOf(te.get("stop")) + 1 + (KMER_SIZE-1);
+            int start = Integer.valueOf(te.get("start")) + 1 - (GRAPH.getKmerSize()-1);
+            int stop  = Integer.valueOf(te.get("stop")) + 1 + (GRAPH.getKmerSize()-1);
 
             if (start < 0) { start = 0; }
             if (stop > REFERENCE.getSequence(chrom).length()) {
@@ -99,8 +98,8 @@ public class EvaluateNovelKmerRecovery extends Module {
 
             String seq = new String(REFERENCE.getSubsequenceAt(chrom, start, stop).getBases());
 
-            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                CortexKmer ck = new CortexKmer(seq.substring(i, i + KMER_SIZE));
+            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
                 if (kmerCount.containsKey(ck) && kmerCount.get(ck) == 1) {
                     variantKmers.put(ck, new KmerEntry(infoMap.get("id")));
@@ -129,13 +128,20 @@ public class EvaluateNovelKmerRecovery extends Module {
                 }
             }
 
+            if (variantKmers.containsKey(cr.getCortexKmer())) {
+                variantKmers.get(cr.getCortexKmer()).found = true;
+                variantKmers.get(cr.getCortexKmer()).coverage = cr.getCoverage(childColor);
+            } else {
+                variantKmers.put(cr.getCortexKmer(), new KmerEntry("other"));
+                variantKmers.get(cr.getCortexKmer()).found = true;
+                variantKmers.get(cr.getCortexKmer()).coverage = cr.getCoverage(childColor);
+            }
+
             if (isNovelKmer) {
                 novelKmers++;
 
-                //log.info("  novel {}", cr);
-
                 if (variantKmers.containsKey(cr.getCortexKmer())) {
-                    variantKmers.get(cr.getCortexKmer()).found = true;
+                    variantKmers.get(cr.getCortexKmer()).novel = true;
                 }
             }
         }
@@ -143,43 +149,80 @@ public class EvaluateNovelKmerRecovery extends Module {
 
         log.info("Summarizing...");
         Map<String, Integer> expected = new HashMap<String, Integer>();
-        Map<String, Integer> actual = new HashMap<String, Integer>();
+        Map<String, Integer> found = new HashMap<String, Integer>();
+        Map<String, Integer> novel = new HashMap<String, Integer>();
+        //Map<String, Integer> cov5 = new HashMap<String, Integer>();
+        //Map<String, Integer> cov10 = new HashMap<String, Integer>();
+        //Map<String, Integer> cov15 = new HashMap<String, Integer>();
+        //Map<String, Integer> cov20 = new HashMap<String, Integer>();
+        //Map<String, Integer> cov25 = new HashMap<String, Integer>();
+        //Map<String, Integer> cov30 = new HashMap<String, Integer>();
 
         for (CortexKmer ck : variantKmers.keySet()) {
             String variantId = variantKmers.get(ck).variantId;
-            Map<String, String> te = variants.get(variantId);
-            Map<String, String> variantInfo = parseInfoField(te.get("info"));
+            Map<String, String> te = variantId.equals("other") ? null : variants.get(variantId);
+            Map<String, String> variantInfo = variantId.equals("other") ? null : parseInfoField(te.get("info"));
 
-            String denovo = variantInfo.get("denovo");
-            String nahr = variantInfo.get("nahr");
+            //String denovo = variantInfo.get("denovo");
+            //int length = 0;
+            //if (denovo.equals("INS") || denovo.equals("TD") || denovo.equals("STR_EXP")) { length = variantInfo.get("alt").length() - 1; }
+            //if (denovo.equals("DEL") || denovo.equals("STR_CON")) { length = variantInfo.get("ref").length() - 1; }
+            //if (denovo.equals("INV")) { length = variantInfo.get("ref").length(); }
+            //String vclass = denovo + "." + length;
 
-            String vclass = denovo;
-            if (denovo.equals("unknown") && !nahr.equals("unknown")) {
-                vclass = nahr;
+            String vclass = variantId.equals("other") ? "other" : variantInfo.get("denovo");
+
+            if (!expected.containsKey(vclass)) {
+                expected.put(vclass, 0);
+                found.put(vclass, 0);
+                novel.put(vclass, 0);
+                //cov5.put(vclass, 0);
+                //cov10.put(vclass, 0);
+                //cov15.put(vclass, 0);
+                //cov20.put(vclass, 0);
+                //cov25.put(vclass, 0);
+                //cov30.put(vclass, 0);
             }
 
-            if (!expected.containsKey(denovo)) {
-                expected.put(denovo, 0);
-                actual.put(denovo, 0);
-            }
-
-            expected.put(denovo, expected.get(denovo) + 1);
+            expected.put(vclass, expected.get(vclass) + 1);
             if (variantKmers.get(ck).found) {
-                actual.put(denovo, actual.get(denovo) + 1);
+                found.put(vclass, found.get(vclass) + 1);
+
+                if (variantKmers.get(ck).novel) {
+                    novel.put(vclass, novel.get(vclass) + 1);
+
+                    //if (variantKmers.get(ck).coverage >= 5)  { cov5.put(vclass, cov5.get(vclass) + 1); }
+                    //if (variantKmers.get(ck).coverage >= 10) { cov10.put(vclass, cov10.get(vclass) + 1); }
+                    //if (variantKmers.get(ck).coverage >= 15) { cov15.put(vclass, cov15.get(vclass) + 1); }
+                    //if (variantKmers.get(ck).coverage >= 20) { cov20.put(vclass, cov20.get(vclass) + 1); }
+                    //if (variantKmers.get(ck).coverage >= 25) { cov25.put(vclass, cov25.get(vclass) + 1); }
+                    //if (variantKmers.get(ck).coverage >= 30) { cov30.put(vclass, cov30.get(vclass) + 1); }
+                }
             }
         }
 
-        log.info("  exp={}", Joiner.on(", ").withKeyValueSeparator("=").useForNull("null").join(expected));
-        log.info("  act={}", Joiner.on(", ").withKeyValueSeparator("=").useForNull("null").join(actual));
+        //log.info("    exp={}", Joiner.on(", ").withKeyValueSeparator("=").useForNull("null").join(expected));
+        //log.info("  found={}", Joiner.on(", ").withKeyValueSeparator("=").useForNull("null").join(found));
+        //log.info("  novel={}", Joiner.on(", ").withKeyValueSeparator("=").useForNull("null").join(novel));
 
         TableWriter tw = new TableWriter(out);
 
         for (String vclass : expected.keySet()) {
             Map<String, String> te = new LinkedHashMap<String, String>();
 
-            te.put("class", vclass);
+            String[] pieces = vclass.split("\\.");
+
+            te.put("class", pieces[0]);
+            te.put("length", (pieces.length == 2) ? pieces[1] : "0");
             te.put("expected", String.valueOf(expected.get(vclass)));
-            te.put("actual", String.valueOf(actual.get(vclass)));
+            te.put("found", String.valueOf(found.get(vclass)));
+            te.put("novel", String.valueOf(novel.get(vclass)));
+            //te.put("cov5", String.valueOf(cov5.get(vclass)));
+            //te.put("cov10", String.valueOf(cov10.get(vclass)));
+            //te.put("cov15", String.valueOf(cov15.get(vclass)));
+            //te.put("cov20", String.valueOf(cov20.get(vclass)));
+            //te.put("cov25", String.valueOf(cov25.get(vclass)));
+            //te.put("cov30", String.valueOf(cov30.get(vclass)));
 
             tw.addEntry(te);
         }
