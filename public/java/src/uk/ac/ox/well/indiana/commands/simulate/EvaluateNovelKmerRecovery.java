@@ -9,6 +9,7 @@ import htsjdk.variant.vcf.VCFFileReader;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -23,11 +24,14 @@ public class EvaluateNovelKmerRecovery extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference")
     public IndexedFastaSequenceFile REFERENCE;
 
-    @Argument(fullName="ref0", shortName="r0", doc="Reference parent 0")
+    @Argument(fullName="ref0", shortName="r0", doc="Reference parent 0", required=false)
     public FastaSequenceFile REF0;
 
-    @Argument(fullName="ref1", shortName="r1", doc="Reference parent 1")
+    @Argument(fullName="ref1", shortName="r1", doc="Reference parent 1", required=false)
     public FastaSequenceFile REF1;
+
+    @Argument(fullName="contigMetrics", shortName="m", doc="Contig metrics", required=false)
+    public File METRICS;
 
     @Argument(fullName="bed", shortName="b", doc="Bed file")
     public File BED;
@@ -62,9 +66,9 @@ public class EvaluateNovelKmerRecovery extends Module {
         return infoMap;
     }
 
-    @Override
-    public void execute() {
-        log.info("Loading reference kmer counts...");
+    private Set<CortexKmer> loadNovelKmersFromReferences() {
+        Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+
         Map<CortexKmer, Integer> kmerCount = new HashMap<CortexKmer, Integer>();
         ReferenceSequence rseq;
         while ((rseq = REFERENCE.nextSequence()) != null) {
@@ -108,14 +112,56 @@ public class EvaluateNovelKmerRecovery extends Module {
                 }
             }
         }
-        log.info("  {} kmers", kmerCount.size());
 
-        TableReader tr = new TableReader(BED, new String[] {"chrom", "start", "stop", "info"});
+        for (CortexKmer ck : kmerCount.keySet()) {
+            if (kmerCount.get(ck) == 1) {
+                novelKmers.add(ck);
+            }
+        }
+        return novelKmers;
+    }
+
+    private Set<CortexKmer> loadNovelKmersFromContigMetrics() {
+        Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+
+        TableReader tr = new TableReader(METRICS);
+
+        for (Map<String, String> te : tr) {
+            String seq = te.get("seq");
+            String kmerOrigin = te.get("kmerOrigin");
+            int kmerSize = seq.length() - kmerOrigin.length() + 1;
+
+            for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                CortexKmer ck = new CortexKmer(seq.substring(i, i + kmerSize));
+
+                if (kmerOrigin.charAt(i) == '.') {
+                    novelKmers.add(ck);
+                }
+            }
+        }
+
+        return novelKmers;
+    }
+
+    @Override
+    public void execute() {
+        Set<CortexKmer> novelKmers;
+        if (REF0 != null && REF1 != null) {
+            log.info("Loading novel kmer counts from references...");
+            novelKmers = loadNovelKmersFromReferences();
+        } else if (METRICS != null) {
+            log.info("Loading novel kmer counts from contig annotations...");
+            novelKmers = loadNovelKmersFromContigMetrics();
+        } else {
+            throw new IndianaException("Must either specify -r0 and -r1 or -m for novel kmer tally");
+        }
+        log.info("  {} novel kmers", novelKmers.size());
 
         Map<String, Map<String, String>> variants = new HashMap<String, Map<String, String>>();
         Map<CortexKmer, KmerEntry> variantKmers = new HashMap<CortexKmer, KmerEntry>();
 
         log.info("Loading novel kmers from variants...");
+        TableReader tr = new TableReader(BED, new String[] {"chrom", "start", "stop", "info"});
         for (Map<String, String> te : tr) {
             Map<String, String> infoMap = parseInfoField(te.get("info"));
 
@@ -135,7 +181,7 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (kmerCount.containsKey(ck) && kmerCount.get(ck) == 1) {
+                if (novelKmers.contains(ck)) {
                     variantKmers.put(ck, new KmerEntry(infoMap.get("id")));
                 }
             }
@@ -144,6 +190,7 @@ public class EvaluateNovelKmerRecovery extends Module {
         log.info("  {} kmers", variantKmers.size());
 
         log.info("Loading other novel kmers...");
+        ReferenceSequence rseq;
         int moreKmers = 0;
         while ((rseq = REFERENCE.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
@@ -151,7 +198,7 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (kmerCount.containsKey(ck) && kmerCount.get(ck) == 1 && !variantKmers.containsKey(ck)) {
+                if (novelKmers.contains(ck) && !variantKmers.containsKey(ck)) {
                     variantKmers.put(ck, new KmerEntry("other"));
                 }
             }
@@ -159,7 +206,7 @@ public class EvaluateNovelKmerRecovery extends Module {
         log.info("  {} kmers", moreKmers);
 
         log.info("Looking for novel kmers in graph...");
-        int novelKmers = 0;
+        int novelKmerCount = 0;
 
         int childColor = 0;
         for (int c = 0; c < GRAPH.getNumColors(); c++) {
@@ -183,7 +230,7 @@ public class EvaluateNovelKmerRecovery extends Module {
             }
 
             if (isNovelKmer) {
-                novelKmers++;
+                novelKmerCount++;
 
                 if (variantKmers.containsKey(cr.getCortexKmer())) {
                     variantKmers.get(cr.getCortexKmer()).novel = true;
@@ -195,7 +242,7 @@ public class EvaluateNovelKmerRecovery extends Module {
                 }
             }
         }
-        log.info("  {} novel kmers", novelKmers);
+        log.info("  {} novel kmers", novelKmerCount);
 
         log.info("Summarizing...");
         Map<String, Integer> expected = new HashMap<String, Integer>();
