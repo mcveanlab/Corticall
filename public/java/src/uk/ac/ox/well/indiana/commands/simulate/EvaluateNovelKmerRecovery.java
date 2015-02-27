@@ -24,10 +24,10 @@ public class EvaluateNovelKmerRecovery extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference")
     public IndexedFastaSequenceFile REFERENCE;
 
-    @Argument(fullName="ref0", shortName="r0", doc="Reference parent 0", required=false)
+    @Argument(fullName="ref0", shortName="r0", doc="Reference parent 0")
     public FastaSequenceFile REF0;
 
-    @Argument(fullName="ref1", shortName="r1", doc="Reference parent 1", required=false)
+    @Argument(fullName="ref1", shortName="r1", doc="Reference parent 1")
     public FastaSequenceFile REF1;
 
     @Argument(fullName="contigMetrics", shortName="m", doc="Contig metrics", required=false)
@@ -45,8 +45,6 @@ public class EvaluateNovelKmerRecovery extends Module {
     private class KmerEntry {
         public String variantId;
         public boolean found = false;
-        public boolean novel = false;
-        public int coverage = 0;
 
         public KmerEntry(String variantId) {
             this.variantId = variantId;
@@ -145,20 +143,20 @@ public class EvaluateNovelKmerRecovery extends Module {
 
     @Override
     public void execute() {
-        Set<CortexKmer> novelKmers;
-        if (REF0 != null && REF1 != null) {
-            log.info("Loading novel kmer counts from references...");
-            novelKmers = loadNovelKmersFromReferences();
-        } else if (METRICS != null) {
-            log.info("Loading novel kmer counts from contig annotations...");
-            novelKmers = loadNovelKmersFromContigMetrics();
-        } else {
-            throw new IndianaException("Must either specify -r0 and -r1 or -m for novel kmer tally");
-        }
-        log.info("  {} novel kmers", novelKmers.size());
+        log.info("Loading novel kmers...");
+
+        Set<CortexKmer> novelKmersFromReference = loadNovelKmersFromReferences();
+        log.info("  reference: {}", novelKmersFromReference.size());
+
+        Set<CortexKmer> novelKmersFromMetrics = loadNovelKmersFromContigMetrics();
+        log.info("    metrics: {}", novelKmersFromMetrics.size());
 
         Map<String, Map<String, String>> variants = new HashMap<String, Map<String, String>>();
-        Map<CortexKmer, KmerEntry> variantKmers = new HashMap<CortexKmer, KmerEntry>();
+
+        Map<CortexKmer, KmerEntry> kmerRecovery = new HashMap<CortexKmer, KmerEntry>();
+        for (CortexKmer ck : novelKmersFromReference) {
+            kmerRecovery.put(ck, new KmerEntry("other"));
+        }
 
         log.info("Loading novel kmers from variants...");
         TableReader tr = new TableReader(BED, new String[] {"chrom", "start", "stop", "info"});
@@ -181,83 +179,53 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (novelKmers.contains(ck)) {
-                    variantKmers.put(ck, new KmerEntry(infoMap.get("id")));
+                if (kmerRecovery.containsKey(ck)) {
+                    kmerRecovery.put(ck, new KmerEntry(infoMap.get("id")));
                 }
             }
         }
 
-        log.info("  {} kmers", variantKmers.size());
-
-        log.info("Loading other novel kmers...");
-        ReferenceSequence rseq;
-        int moreKmers = 0;
-        while ((rseq = REFERENCE.nextSequence()) != null) {
-            String seq = new String(rseq.getBases());
-
-            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
-
-                if (novelKmers.contains(ck) && !variantKmers.containsKey(ck)) {
-                    variantKmers.put(ck, new KmerEntry("other"));
-                }
-            }
-        }
-        log.info("  {} kmers", moreKmers);
-
-        log.info("Looking for novel kmers in graph...");
-        int novelKmerCount = 0;
-
-        int childColor = 0;
-        for (int c = 0; c < GRAPH.getNumColors(); c++) {
-            if (GRAPH.getColor(c).getSampleName().contains("child")) {
-                childColor = c;
+        int novelVariantKmers = 0;
+        for (CortexKmer ck : kmerRecovery.keySet()) {
+            if (!kmerRecovery.get(ck).variantId.equals("other")) {
+                novelVariantKmers++;
             }
         }
 
-        for (CortexRecord cr : GRAPH) {
-            boolean isNovelKmer = cr.getCoverage(childColor) > 0;
+        log.info("  {} novel variant kmers", novelVariantKmers);
 
-            for (int c = 0; c < GRAPH.getNumColors(); c++) {
-                if (c != childColor) {
-                    isNovelKmer &= cr.getCoverage(c) == 0;
-                }
-            }
+        log.info("Looking for novel kmers in metrics...");
+        int novelKmerCountExpected = 0;
+        int novelKmerCountUnexpected = 0;
 
-            if (variantKmers.containsKey(cr.getCortexKmer())) {
-                variantKmers.get(cr.getCortexKmer()).found = true;
-                variantKmers.get(cr.getCortexKmer()).coverage = cr.getCoverage(childColor);
-            }
+        for (CortexKmer ck : novelKmersFromMetrics) {
+            if (kmerRecovery.containsKey(ck)) {
+                kmerRecovery.get(ck).found = true;
 
-            if (isNovelKmer) {
-                novelKmerCount++;
+                novelKmerCountExpected++;
+            } else {
+                kmerRecovery.put(ck, new KmerEntry("unexpected"));
+                kmerRecovery.get(ck).found = true;
 
-                if (variantKmers.containsKey(cr.getCortexKmer())) {
-                    variantKmers.get(cr.getCortexKmer()).novel = true;
-                } else {
-                    variantKmers.put(cr.getCortexKmer(), new KmerEntry("other"));
-                    variantKmers.get(cr.getCortexKmer()).found = true;
-                    variantKmers.get(cr.getCortexKmer()).novel = true;
-                    variantKmers.get(cr.getCortexKmer()).coverage = cr.getCoverage(childColor);
-                }
+                novelKmerCountUnexpected++;
             }
         }
-        log.info("  {} novel kmers", novelKmerCount);
+        log.info("  {} expected novel kmers", novelKmerCountExpected);
+        log.info("  {} unexpected novel kmers", novelKmerCountUnexpected);
 
         log.info("Summarizing...");
         Map<String, Integer> expected = new HashMap<String, Integer>();
         Map<String, Integer> found = new HashMap<String, Integer>();
-        Map<String, Integer> novel = new HashMap<String, Integer>();
 
         int kmersSeen = 0;
-        for (CortexKmer ck : variantKmers.keySet()) {
+        for (CortexKmer ck : kmerRecovery.keySet()) {
             kmersSeen++;
 
-            String variantId = variantKmers.get(ck).variantId;
-            Map<String, String> te = variantId.equals("other") ? null : variants.get(variantId);
+            String variantId = kmerRecovery.get(ck).variantId;
+            Map<String, String> te = variantId.equals("other") || variantId.equals("unexpected") ? null : variants.get(variantId);
             Map<String, String> variantInfo = te == null ? null : parseInfoField(te.get("info"));
 
-            String vclass = variantInfo == null ? "other" : variantInfo.get("denovo");
+            String vclass = variantInfo == null ? variantId : variantInfo.get("denovo");
 
             if (variantInfo != null && !variantInfo.get("nahr").equals("unknown")) {
                 vclass = "NAHR";
@@ -272,16 +240,11 @@ public class EvaluateNovelKmerRecovery extends Module {
             if (!expected.containsKey(vclass)) {
                 expected.put(vclass, 0);
                 found.put(vclass, 0);
-                novel.put(vclass, 0);
             }
 
             expected.put(vclass, expected.get(vclass) + 1);
-            if (variantKmers.get(ck).found) {
+            if (kmerRecovery.get(ck).found) {
                 found.put(vclass, found.get(vclass) + 1);
-
-                if (variantKmers.get(ck).novel) {
-                    novel.put(vclass, novel.get(vclass) + 1);
-                }
             }
         }
         log.info("  {} kmers", kmersSeen);
@@ -294,9 +257,8 @@ public class EvaluateNovelKmerRecovery extends Module {
             String[] pieces = vclass.split("\\.");
 
             te.put("class", pieces[0]);
-            te.put("expected", String.valueOf(expected.get(vclass)));
+            te.put("expected", vclass.equals("unexpected") ? "0" : String.valueOf(expected.get(vclass)));
             te.put("found", String.valueOf(found.get(vclass)));
-            te.put("novel", String.valueOf(novel.get(vclass)));
 
             tw.addEntry(te);
         }
