@@ -65,9 +65,9 @@ public class EvaluateNovelKmerRecovery extends Module {
     }
 
     private Set<CortexKmer> loadNovelKmersFromReferences() {
-        Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+        Map<CortexKmer, Integer> childKmers = new HashMap<CortexKmer, Integer>();
+        Set<CortexKmer> parentKmers = new HashSet<CortexKmer>();
 
-        Map<CortexKmer, Integer> kmerCount = new HashMap<CortexKmer, Integer>();
         ReferenceSequence rseq;
         while ((rseq = REFERENCE.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
@@ -75,10 +75,10 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (!kmerCount.containsKey(ck)) {
-                    kmerCount.put(ck, 1);
+                if (!childKmers.containsKey(ck)) {
+                    childKmers.put(ck, 1);
                 } else {
-                    kmerCount.put(ck, kmerCount.get(ck) + 1);
+                    childKmers.put(ck, childKmers.get(ck) + 1);
                 }
             }
         }
@@ -89,11 +89,7 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (!kmerCount.containsKey(ck)) {
-                    kmerCount.put(ck, 1);
-                } else {
-                    kmerCount.put(ck, kmerCount.get(ck) + 1);
-                }
+                parentKmers.add(ck);
             }
         }
 
@@ -103,19 +99,17 @@ public class EvaluateNovelKmerRecovery extends Module {
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                if (!kmerCount.containsKey(ck)) {
-                    kmerCount.put(ck, 1);
-                } else {
-                    kmerCount.put(ck, kmerCount.get(ck) + 1);
-                }
+                parentKmers.add(ck);
             }
         }
 
-        for (CortexKmer ck : kmerCount.keySet()) {
-            if (kmerCount.get(ck) == 1) {
+        Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+        for (CortexKmer ck : childKmers.keySet()) {
+            if (!parentKmers.contains(ck) && childKmers.get(ck) == 1) {
                 novelKmers.add(ck);
             }
         }
+
         return novelKmers;
     }
 
