@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -105,7 +106,7 @@ public class EvaluateNovelKmerRecovery extends Module {
 
         Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
         for (CortexKmer ck : childKmers.keySet()) {
-            if (!parentKmers.contains(ck) && childKmers.get(ck) == 1) {
+            if (!parentKmers.contains(ck)) { // && childKmers.get(ck) == 1) {
                 novelKmers.add(ck);
             }
         }
@@ -192,6 +193,8 @@ public class EvaluateNovelKmerRecovery extends Module {
         int novelKmerCountExpected = 0;
         int novelKmerCountUnexpected = 0;
 
+        Set<CortexKmer> unexpectedKmers = new HashSet<CortexKmer>();
+
         for (CortexKmer ck : novelKmersFromMetrics) {
             if (kmerRecovery.containsKey(ck)) {
                 kmerRecovery.get(ck).found = true;
@@ -202,9 +205,30 @@ public class EvaluateNovelKmerRecovery extends Module {
                 kmerRecovery.get(ck).found = true;
 
                 novelKmerCountUnexpected++;
+
+                unexpectedKmers.add(ck);
             }
         }
         log.info("  {} expected novel kmers", novelKmerCountExpected);
+
+        REFERENCE.reset();
+        ReferenceSequence rseq;
+        while ((rseq = REFERENCE.nextSequence()) != null) {
+            String seq = new String(rseq.getBases());
+
+            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
+
+                if (unexpectedKmers.contains(ck)) {
+                    log.debug("  unexpected: {} {}:{}", ck, rseq.getName(), i);
+                }
+            }
+        }
+
+        for (CortexKmer ck : unexpectedKmers) {
+            log.info("  unexpected: {}", ck);
+        }
+
         log.info("  {} unexpected novel kmers", novelKmerCountUnexpected);
 
         log.info("Summarizing...");
