@@ -28,6 +28,9 @@ public class FindChimericLongReads extends Module {
     @Output
     public PrintStream out;
 
+    //@Output(fullName="chimerasOut", shortName="co", doc="Chimeras output")
+    //public PrintStream cout;
+
     private Map<CortexKmer, String> loadDiagnosticKmers() {
         Map<CortexKmer, String> kmers = new HashMap<CortexKmer, String>();
 
@@ -48,6 +51,11 @@ public class FindChimericLongReads extends Module {
         Map<CortexKmer, String> kmers = loadDiagnosticKmers();
         log.info("  {} kmers", kmers.size());
 
+        Set<String> chrs = new TreeSet<String>();
+        for (CortexKmer ck : kmers.keySet()) {
+            chrs.add(kmers.get(ck));
+        }
+
         log.info("Processing long reads...");
         TableWriter tw = new TableWriter(out);
 
@@ -65,48 +73,32 @@ public class FindChimericLongReads extends Module {
                 numReads++;
 
                 Map<String, Integer> chrCounts = new TreeMap<String, Integer>();
+                for (String chr : chrs) {
+                    chrCounts.put(chr, 0);
+                }
+
                 String seq = fr.getReadString();
                 for (int i = 0; i <= seq.length() - kmerSize; i++) {
                     CortexKmer ck = new CortexKmer(seq.substring(i, i + kmerSize));
 
                     if (kmers.containsKey(ck)) {
                         String chr = kmers.get(ck);
-                        if (!chrCounts.containsKey(chr)) {
-                            chrCounts.put(chr, 1);
-                        } else {
-                            chrCounts.put(chr, chrCounts.get(chr) + 1);
-                        }
+                        chrCounts.put(chr, chrCounts.get(chr) + 1);
                     }
                 }
 
-                Map<String, Integer> chrCountsFilt = new TreeMap<String, Integer>();
+                Map<String, String> ce = new LinkedHashMap<String, String>();
+                ce.put("file", fqr.getFile().getName());
+                ce.put("readName", fr.getReadHeader());
+                ce.put("readLength", String.valueOf(fr.getReadString().length()));
                 for (String chr : chrCounts.keySet()) {
-                    if (chrCounts.get(chr) >= 10) {
-                        chrCountsFilt.put(chr, chrCounts.get(chr));
-                    }
+                    ce.put(chr, String.valueOf(chrCounts.get(chr)));
                 }
 
-                int numChrs = chrCountsFilt.size();
-
-                if (!chrsTouched.containsKey(numChrs)) {
-                    chrsTouched.put(numChrs, 1);
-                } else {
-                    chrsTouched.put(numChrs, chrsTouched.get(numChrs) + 1);
-                }
-
-                //log.info("  {} {} {}", fr.getReadHeader(), seq.length(), Joiner.on(", ").withKeyValueSeparator("=").join(chrCountsFilt));
+                tw.addEntry(ce);
             }
 
             log.info("    {}", Joiner.on(", ").withKeyValueSeparator("=").join(chrsTouched));
-
-            Map<String, String> te = new LinkedHashMap<String, String>();
-            te.put("filename", fqr.getFile().getName());
-
-            for (int numChrs : chrsTouched.keySet()) {
-                te.put(String.valueOf(numChrs), String.valueOf(chrsTouched.get(numChrs)));
-            }
-
-            tw.addEntry(te);
         }
     }
 }
