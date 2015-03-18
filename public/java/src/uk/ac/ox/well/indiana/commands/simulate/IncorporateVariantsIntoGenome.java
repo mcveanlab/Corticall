@@ -108,11 +108,9 @@ public class IncorporateVariantsIntoGenome extends Module {
             while (sri.hasNext()) {
                 SAMRecord read = sri.next();
 
-                /*for (int i = read.getAlignmentStart(); i < read.getAlignmentEnd(); i++) {
-                    covs[i - 1]++;
-                }*/
-
-                covs[read.getAlignmentStart() - 1]++;
+                if (read.getFirstOfPairFlag()) {
+                    covs[read.getAlignmentStart() - 1]++;
+                }
             }
 
             sri.close();

@@ -21,4 +21,5 @@ public class MoreMathUtils {
         return (int) Math.floor(n/nearest)*nearest;
     }
 
+    public static boolean equals(double x, double y, double tol) { return Math.abs(x - y) < tol; }
 }
