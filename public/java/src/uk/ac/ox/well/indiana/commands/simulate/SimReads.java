@@ -178,7 +178,7 @@ public class SimReads extends Module {
         if (isFirstEndOfRead) {
             read = new StringBuilder(fragment.substring(0, readLength + 10));
         } else {
-            String fragmentRc = SequenceUtils.reverse(fragment);
+            String fragmentRc = SequenceUtils.reverseComplement(fragment);
             read = new StringBuilder(fragmentRc.substring(0, readLength + 10));
         }
 
@@ -272,7 +272,7 @@ public class SimReads extends Module {
 
         log.info("Simulating reads...");
         long fragmentIndex = 0;
-        for (String chr : rs.keySet()) {
+        for (String chr : ref.keySet()) {
             log.info("  {}", chr);
 
             for (int i = 0; i < rs.get(chr).length; i++) {
