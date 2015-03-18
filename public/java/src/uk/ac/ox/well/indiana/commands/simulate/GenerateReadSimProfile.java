@@ -311,7 +311,7 @@ public class GenerateReadSimProfile extends Module {
         String refName = "";
         for (SAMRecord read : BAM) {
             if (!read.getReferenceName().equals(refName)) {
-                if (refName.equals("Pf3D7_03_v3")) { break; }
+                //if (refName.equals("Pf3D7_03_v3")) { break; }
 
                 refName = read.getReferenceName();
                 log.info("  {}", refName);
