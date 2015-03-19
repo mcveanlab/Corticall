@@ -60,7 +60,8 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
     }
 
     public Object get(String primaryKey, String columnName) {
-        return has(primaryKey, columnName) ? data.get(primaryKey).get(columnName) : "NA";
+        //return has(primaryKey, columnName) ? data.get(primaryKey).get(columnName) : "NA";
+        return data.get(primaryKey).get(columnName);
     }
 
     public void write(PrintStream out) {
