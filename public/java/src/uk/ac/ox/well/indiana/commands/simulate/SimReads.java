@@ -174,7 +174,10 @@ public class SimReads extends Module {
                 int errorTypeBin = errorTypes.draw();
 
                 if (errorTypeBin == 0) { // mismatches
-                    int errorPos = mmd.draw() + 2;
+                    int errorPos;
+                    do {
+                        errorPos = mmd.draw() + 2;
+                    } while (errorPos < read.length());
                     String correctBase = String.valueOf(read.charAt(errorPos));
                     String context = read.substring(errorPos - 2, errorPos);
 
@@ -192,7 +195,11 @@ public class SimReads extends Module {
 
                     read.setCharAt(errorPos, newBase.charAt(0));
                 } else if (errorTypeBin == 1) { // insertions
-                    int errorPos = insd.draw() + 2;
+                    //int errorPos = insd.draw() + 2;
+                    int errorPos;
+                    do {
+                        errorPos = insd.draw() + 2;
+                    } while (errorPos < read.length());
                     String context = read.substring(errorPos - 2, errorPos);
 
                     int[] baseDist = new int[4];
@@ -211,7 +218,11 @@ public class SimReads extends Module {
                     String insertionSeq = newBase + restOfInsertion;
                     read.insert(errorPos, insertionSeq);
                 } else if (errorTypeBin == 2) { // deletion
-                    int errorPos = deld.draw() + 2;
+                    //int errorPos = deld.draw() + 2;
+                    int errorPos;
+                    do {
+                        errorPos = deld.draw() + 2;
+                    } while (errorPos < read.length());
                     int deletionLength = deletionSizeRates.draw();
 
                     read.delete(errorPos, errorPos + deletionLength);
