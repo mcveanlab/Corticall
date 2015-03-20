@@ -314,7 +314,6 @@ public class SimReads extends Module {
                 log.info("  {}", chr);
 
                 for (int i = 0; i < rs.get(chr).length; i++) {
-                //for (int i = 0; i < 10000; i++) {
                     if (i % (rs.get(chr).length / 10) == 0) {
                         log.info("    {}/{} bp", i, rs.get(chr).length);
                     }
