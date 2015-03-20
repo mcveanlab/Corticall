@@ -220,7 +220,7 @@ public class SimReads extends Module {
 
         }
 
-        return read.substring(2, readLength + 2);
+        return (read.length() > readLength + 2) ? read.substring(2, readLength + 2) : null;
     }
 
     private void initializeEmpiricalDistributions(DataTables ts) {
@@ -333,20 +333,22 @@ public class SimReads extends Module {
                             String read1 = generateRead(fragment, readLength, true, fragmentOnNegativeStrand);
                             String read2 = generateRead(fragment, readLength, false, fragmentOnNegativeStrand);
 
-                            String readName1 = String.format("@sim%d.%s.%d %s:%d/1", SEED, chr, fragmentIndex, chr, i);
-                            String readName2 = String.format("@sim%d.%s.%d %s:%d/2", SEED, chr, fragmentIndex, chr, i);
+                            if (read1 != null && read2 != null) {
+                                String readName1 = String.format("@sim%d.%s.%d %s:%d/1", SEED, chr, fragmentIndex, chr, i);
+                                String readName2 = String.format("@sim%d.%s.%d %s:%d/2", SEED, chr, fragmentIndex, chr, i);
 
-                            o1.println(readName1);
-                            o1.println(read1);
-                            o1.println("+");
-                            o1.println(StringUtils.repeat("I", read1.length()));
+                                o1.println(readName1);
+                                o1.println(read1);
+                                o1.println("+");
+                                o1.println(StringUtils.repeat("I", read1.length()));
 
-                            o2.println(readName2);
-                            o2.println(read2);
-                            o2.println("+");
-                            o2.println(StringUtils.repeat("I", read2.length()));
+                                o2.println(readName2);
+                                o2.println(read2);
+                                o2.println("+");
+                                o2.println(StringUtils.repeat("I", read2.length()));
 
-                            fragmentIndex++;
+                                fragmentIndex++;
+                            }
                         }
                     }
                 }
