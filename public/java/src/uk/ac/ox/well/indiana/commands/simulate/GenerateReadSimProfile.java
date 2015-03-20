@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileReader;
@@ -8,14 +9,13 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
+import uk.ac.ox.well.indiana.utils.sequence.AlignmentUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class GenerateReadSimProfile extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference")
@@ -29,215 +29,80 @@ public class GenerateReadSimProfile extends Module {
 
     private enum ErrorType { MM, INS, DEL };
 
-    private class CovariateTable {
-        private Map<ErrorType, Map<Boolean, Map<Boolean, Map<String, Map<Integer, Long>>>>> table = new TreeMap<ErrorType, Map<Boolean, Map<Boolean, Map<String, Map<Integer, Long>>>>>();
-
-        public void increment(ErrorType type, boolean isFirstEndOfRead, boolean isNegativeStrand, String context, int position) {
-            if (!table.containsKey(type)) {
-                table.put(type, new TreeMap<Boolean, Map<Boolean, Map<String, Map<Integer, Long>>>>());
-            }
-
-            if (!table.get(type).containsKey(isFirstEndOfRead)) {
-                table.get(type).put(isFirstEndOfRead, new TreeMap<Boolean, Map<String, Map<Integer, Long>>>());
-            }
-
-            if (!table.get(type).get(isFirstEndOfRead).containsKey(isNegativeStrand)) {
-                table.get(type).get(isFirstEndOfRead).put(isNegativeStrand, new TreeMap<String, Map<Integer, Long>>());
-            }
-
-            if (!table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).containsKey(context)) {
-                table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).put(context, new TreeMap<Integer, Long>());
-            }
-
-            if (!table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).get(context).containsKey(position)) {
-                table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).get(context).put(position, 0l);
-            }
-
-            long oldValue = table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).get(context).get(position);
-            table.get(type).get(isFirstEndOfRead).get(isNegativeStrand).get(context).put(position, oldValue + 1);
-        }
-
-        public String toString() {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-
-            TableWriter tw = new TableWriter(ps);
-
-            for (ErrorType et : table.keySet()) {
-                for (Boolean isFirstEndOfRead : table.get(et).keySet()) {
-                    for (Boolean isNegativeStrand : table.get(et).get(isFirstEndOfRead).keySet()) {
-                        for (String context : table.get(et).get(isFirstEndOfRead).get(isNegativeStrand).keySet()) {
-                            for (Integer position : table.get(et).get(isFirstEndOfRead).get(isNegativeStrand).get(context).keySet()) {
-                                long count = table.get(et).get(isFirstEndOfRead).get(isNegativeStrand).get(context).get(position);
-
-                                Map<String, String> te = new LinkedHashMap<String, String>();
-
-                                te.put("covariateTable", "covariateTable");
-                                te.put("et", et.name());
-                                te.put("isFirstEndOfRead", String.valueOf(isFirstEndOfRead));
-                                te.put("isNegativeStrand", String.valueOf(isNegativeStrand));
-                                te.put("context", context);
-                                te.put("position", String.valueOf(position));
-                                te.put("count", String.valueOf(count));
-
-                                tw.addEntry(te);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return baos.toString();
-        }
-    }
-
-    private class Histogram {
-        private Map<Integer, Integer> hist = new TreeMap<Integer, Integer>();
-        private String tableName;
-        private String keyName;
-        private String valName;
-
-        public Histogram(String tableName, String keyName, String valName) {
-            this.tableName = tableName;
-            this.keyName = keyName;
-            this.valName = valName;
-        }
-
-        public void increment(int bin) {
-            if (!hist.containsKey(bin)) { hist.put(bin, 0); }
-
-            hist.put(bin, hist.get(bin) + 1);
-        }
-
-        public String toString() {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-
-            TableWriter tw = new TableWriter(ps);
-
-            for (int bin : hist.keySet()) {
-                Map<String, String> te = new LinkedHashMap<String, String>();
-                te.put(tableName, tableName);
-                te.put(keyName, String.valueOf(bin));
-                te.put(valName, String.valueOf(hist.get(bin)));
-
-                tw.addEntry(te);
-            }
-
-            return baos.toString();
-        }
-    }
-
     private class ReadSimulationProfile {
-        private int readLength = 0;
-        private long numReads = 0;
-        private long numPairs = 0;
-        private long numChimericPairs = 0;
-
-        private int numInsertions = 0;
-        private int numDeletions = 0;
-        private int numMismatches = 0;
-
         private Set<String> readNamesSeen = new HashSet<String>();
+        private DataTables ts = new DataTables();
 
-        private CovariateTable t = new CovariateTable();
-        private Histogram fs = new Histogram("fragmentSizeDist", "fragmentSize", "count");
-        private Histogram es = new Histogram("errorNumDist", "numErrorsPerRead", "count");
+        private int readLength = 0;
 
-        private Pattern p = Pattern.compile("[0-9]+|[A-Z]|\\^[A-Z]+");
-
-        private int computeInitialPosition(SAMRecord read) {
-            int currentPosition = 0;
-
-            if (read.getCigar().getCigarElements().size() > 0 && read.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.S)) {
-                currentPosition = read.getCigar().getCigarElement(0).getLength();
-            }
-
-            return currentPosition;
+        public ReadSimulationProfile() {
+            ts.addTable("stats", "Basic stats from empirical data", "readLength", "numReads", "numReadsWithErrors", "numPairs", "numChimericPairs", "numMismatches", "numInsertions", "numDeletions");
+            ts.addTable("fragmentSizeDist", "Distribution of fragment sizes", "fragmentSize", "count");
+            ts.addTable("insertionSizeDist", "Distribution of insertion sizes", "insertionSize", "count");
+            ts.addTable("deletionSizeDist", "Distribution of deletion sizes", "deletionSize", "count");
+            ts.addTable("errorNumDist", "Distribution of number of errors in a read", "numErrors", "count");
+            ts.addTable("covariateTable", "Table of error covariates", "type", "isFirstEndOfRead", "isNegativeStrand", "context", "position", "firstBaseOfError", "count");
         }
 
         public void accumulate(SAMRecord read) {
-            numReads++;
+            ts.getTable("stats").increment("onlyrow", "numReads");
 
             if (readLength == 0 || read.getReadLength() > readLength) {
                 readLength = read.getReadLength();
+
+                ts.getTable("stats").set("onlyrow", "readLength", readLength);
             }
 
             if (!readNamesSeen.contains(read.getReadName())) {
                 readNamesSeen.add(read.getReadName());
             } else {
-                numPairs++;
+                ts.getTable("stats").increment("onlyrow", "numPairs");
+
                 if (!read.getReferenceName().equals(read.getMateReferenceName()) &&
                    (!read.getReadUnmappedFlag() || !read.getMateUnmappedFlag())) {
-                    numChimericPairs++;
+                    ts.getTable("stats").increment("onlyrow", "numChimericPairs");
                 } else {
                     int fragmentSize = Math.abs(read.getInferredInsertSize());
 
                     if (fragmentSize > 0 && fragmentSize < 1000) {
-                        fs.increment(fragmentSize);
+                        String pk = String.format("%04d", fragmentSize);
+                        ts.getTable("fragmentSizeDist").set(pk, "fragmentSize", fragmentSize);
+                        ts.getTable("fragmentSizeDist").increment(pk, "count");
                     }
                 }
             }
 
-            String md = read.getStringAttribute("MD");
+            Set<Integer> mismatchPositions = AlignmentUtils.getMismatchPositions(read);
+            Set<Integer> insertionPositions = AlignmentUtils.getInsertionPositions(read);
+            Set<Integer> deletionPositions = AlignmentUtils.getDeletionPositions(read);
 
-            int initialPosition = computeInitialPosition(read);
-            int currentPosition = initialPosition;
-
-            Set<Integer> insertionPositions = new TreeSet<Integer>();
-            Set<Integer> deletionPositions = new TreeSet<Integer>();
-            Set<Integer> mismatchPositions = new TreeSet<Integer>();
-            Set<Integer> errorPositions = new TreeSet<Integer>();
-
-            for (CigarElement ce : read.getCigar().getCigarElements()) {
-                if (!ce.getOperator().equals(CigarOperator.H) && !ce.getOperator().equals(CigarOperator.S)) {
-                    if (ce.getOperator().equals(CigarOperator.I)) {
-                        insertionPositions.add(currentPosition);
-                        errorPositions.add(currentPosition);
-
-                        numInsertions++;
-                    } else if (ce.getOperator().equals(CigarOperator.D)) {
-                        deletionPositions.add(currentPosition);
-                        errorPositions.add(currentPosition);
-
-                        numDeletions++;
-                    }
-
-                    currentPosition += ce.getLength();
-                }
-            }
-
+            addErrors(read, mismatchPositions, ErrorType.MM);
             addErrors(read, insertionPositions, ErrorType.INS);
             addErrors(read, deletionPositions, ErrorType.DEL);
 
-            if (md != null) {
-                Matcher m = p.matcher(md);
+            ts.getTable("stats").add("onlyrow", "numMismatches", mismatchPositions.size());
+            ts.getTable("stats").add("onlyrow", "numInsertions", insertionPositions.size());
+            ts.getTable("stats").add("onlyrow", "numDeletions", deletionPositions.size());
 
-                currentPosition = initialPosition;
-                if (read.getCigar().getCigarElements().size() > 0 && read.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.S)) {
-                    currentPosition = read.getCigar().getCigarElement(0).getLength();
-                }
-
-                while (m.find()) {
-                    String piece = md.substring(m.start(), m.end());
-
-                    if (!piece.contains("^")) {
-                        if (piece.matches("[A-Z]")) {
-                            numMismatches++;
-                            mismatchPositions.add(currentPosition);
-                            errorPositions.add(currentPosition);
-
-                            currentPosition++;
-                        } else {
-                            currentPosition += Integer.parseInt(piece);
-                        }
-                    }
-                }
-
-                addErrors(read, mismatchPositions, ErrorType.MM);
+            if (mismatchPositions.size() + insertionPositions.size() + deletionPositions.size() > 0) {
+                ts.getTable("stats").increment("onlyrow", "numReadsWithErrors");
             }
 
-            es.increment(errorPositions.size());
+            for (int size : AlignmentUtils.getInsertionSizes(read)) {
+                ts.getTable("insertionSizeDist").set(String.format("%04d", size), "insertionSize", size);
+                ts.getTable("insertionSizeDist").increment(String.format("%04d", size), "count");
+            }
+
+            for (int size : AlignmentUtils.getDeletionSizes(read)) {
+                ts.getTable("deletionSizeDist").set(String.format("%04d", size), "deletionSize", size);
+                ts.getTable("deletionSizeDist").increment(String.format("%04d", size), "count");
+            }
+
+            int numErrors = mismatchPositions.size() + insertionPositions.size() + deletionPositions.size();
+            if (numErrors > 0) {
+                ts.getTable("errorNumDist").set(String.format("%04d", numErrors), "numErrors", numErrors);
+                ts.getTable("errorNumDist").increment(String.format("%04d", numErrors), "count");
+            }
         }
 
         private Set<Integer> flipStrand(Set<Integer> positions, int readLength) {
@@ -272,34 +137,23 @@ public class GenerateReadSimProfile extends Module {
                     prevContext = readBases.substring(pos - 2, pos);
                 }
 
-                if (!prevContext.contains("N")) {
-                    t.increment(type, read.getFirstOfPairFlag(), read.getReadNegativeStrandFlag(), prevContext, pos);
+                if (!prevContext.contains("N") && pos >= 0 && pos < readLength && pos < readBases.length()) {
+                    char firstBaseOfError = (type == ErrorType.DEL) ? '.' : read.getReadString().charAt(pos);
+                    String pk = Joiner.on(".").join(type, read.getFirstOfPairFlag(), read.getReadNegativeStrandFlag(), prevContext, firstBaseOfError, String.format("%04d", pos));
+
+                    ts.getTable("covariateTable").set(pk, "type", type);
+                    ts.getTable("covariateTable").set(pk, "isFirstEndOfRead", read.getFirstOfPairFlag());
+                    ts.getTable("covariateTable").set(pk, "isNegativeStrand", read.getReadNegativeStrandFlag());
+                    ts.getTable("covariateTable").set(pk, "context", prevContext);
+                    ts.getTable("covariateTable").set(pk, "firstBaseOfError", firstBaseOfError);
+                    ts.getTable("covariateTable").set(pk, "position", pos);
+                    ts.getTable("covariateTable").increment(pk, "count");
                 }
             }
         }
 
-        public String toString() {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-
-            TableWriter tw = new TableWriter(ps);
-
-            Map<String, String> te = new LinkedHashMap<String, String>();
-            te.put("stats", "stats");
-            te.put("readLength", String.valueOf(readLength));
-            te.put("numReads", String.valueOf(numReads));
-            te.put("numPairs", String.valueOf(numPairs));
-            te.put("numChimericPairs", String.valueOf(numChimericPairs));
-            te.put("numMismatches", String.valueOf(numMismatches));
-            te.put("numInsertions", String.valueOf(numInsertions));
-            te.put("numDeletions", String.valueOf(numDeletions));
-
-            tw.addEntry(te);
-
-            return baos.toString() + "\n" +
-                   es.toString()   + "\n" +
-                   fs.toString()   + "\n" +
-                   t.toString();
+        public void write(PrintStream out) {
+            ts.write(out);
         }
     }
 
@@ -311,7 +165,7 @@ public class GenerateReadSimProfile extends Module {
         String refName = "";
         for (SAMRecord read : BAM) {
             if (!read.getReferenceName().equals(refName)) {
-                //if (refName.equals("Pf3D7_03_v3")) { break; }
+                if (refName.equals("Pf3D7_07_v3")) { break; }
 
                 refName = read.getReferenceName();
                 log.info("  {}", refName);
@@ -320,6 +174,6 @@ public class GenerateReadSimProfile extends Module {
             et.accumulate(read);
         }
 
-        out.println(et);
+        et.write(out);
     }
 }
