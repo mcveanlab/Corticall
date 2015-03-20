@@ -9,7 +9,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
     private String tableName;
     private String description;
     private Set<String> columnNames = new LinkedHashSet<String>();
-    private Map<String, Map<String, Object>> data = new LinkedHashMap<String, Map<String, Object>>();
+    private Map<String, Map<String, Object>> data = new TreeMap<String, Map<String, Object>>();
 
     private Iterator<String> pkIterator;
 
@@ -60,8 +60,25 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
     }
 
     public Object get(String primaryKey, String columnName) {
-        //return has(primaryKey, columnName) ? data.get(primaryKey).get(columnName) : "NA";
         return data.get(primaryKey).get(columnName);
+    }
+
+    public void increment(String primaryKey, String columnName) {
+        Object o = has(primaryKey, columnName) ? get(primaryKey, columnName) : 0l;
+
+        set(primaryKey, columnName, ((Long) o) + 1);
+    }
+
+    public void decrement(String primaryKey, String columnName) {
+        Object o = has(primaryKey, columnName) ? get(primaryKey, columnName) : 0l;
+
+        set(primaryKey, columnName, ((Long) o) - 1);
+    }
+
+    public void add(String primaryKey, String columnName, long o1) {
+        Object o = has(primaryKey, columnName) ? get(primaryKey, columnName) : 0l;
+
+        set(primaryKey, columnName, ((Long) o) + o1);
     }
 
     public void write(PrintStream out) {

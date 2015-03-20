@@ -5,6 +5,8 @@ import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -99,5 +101,29 @@ public class AlignmentUtils {
         diffPositions.addAll(getDeletionPositions(read));
 
         return diffPositions;
+    }
+
+    public static List<Integer> getInsertionSizes(SAMRecord read) {
+        List<Integer> insertionSizes = new ArrayList<Integer>();
+
+        for (CigarElement ce : read.getCigar().getCigarElements()) {
+            if (ce.getOperator().equals(CigarOperator.I)) {
+                insertionSizes.add(ce.getLength());
+            }
+        }
+
+        return insertionSizes;
+    }
+
+    public static List<Integer> getDeletionSizes(SAMRecord read) {
+        List<Integer> deletionSizes = new ArrayList<Integer>();
+
+        for (CigarElement ce : read.getCigar().getCigarElements()) {
+            if (ce.getOperator().equals(CigarOperator.D)) {
+                deletionSizes.add(ce.getLength());
+            }
+        }
+
+        return deletionSizes;
     }
 }
