@@ -51,6 +51,7 @@ public class SimReads extends Module {
     private DataTree covTree;
 
     private List<String> chrNames = new ArrayList<String>();
+    private int numChimerasIntroduced = 0;
 
     private Map<String, String> loadReference() {
         Map<String, String> ref = new TreeMap<String, String>();
@@ -123,7 +124,8 @@ public class SimReads extends Module {
             read = new StringBuilder(fragmentRc);
         }
 
-        boolean shouldHaveErrors = rateOfErrorfulReads.draw() == 1;
+        //boolean shouldHaveErrors = rateOfErrorfulReads.draw() == 1;
+        boolean shouldHaveErrors = rng.nextDouble() <= rateOfErrorfulReads.getRates()[1];
         if (shouldHaveErrors) {
             int numErrors = errorNumRates.draw();
 
@@ -264,8 +266,9 @@ public class SimReads extends Module {
         if (pos + fragmentSize < ref.get(chr).length()) {
             fragment = ref.get(chr).substring(pos, pos + fragmentSize);
 
-            boolean shouldBeChimeric = (rateOfChimeras.draw() == 1);
+            boolean shouldBeChimeric = rng.nextDouble() <= rateOfChimeras.getRates()[1];
             if (shouldBeChimeric) {
+                numChimerasIntroduced++;
                 String chimericChr = chr;
 
                 while (chimericChr.equals(chr)) {
@@ -311,6 +314,7 @@ public class SimReads extends Module {
                 log.info("  {}", chr);
 
                 for (int i = 0; i < rs.get(chr).length; i++) {
+                //for (int i = 0; i < 10000; i++) {
                     if (i % (rs.get(chr).length / 10) == 0) {
                         log.info("    {}/{} bp", i, rs.get(chr).length);
                     }
@@ -348,5 +352,9 @@ public class SimReads extends Module {
                 }
             }
         }
+
+        log.info("Stats");
+        log.info("  paired-end reads: {}", fragmentIndex);
+        log.info("  chimeric pairs:   {}", numChimerasIntroduced);
     }
 }
