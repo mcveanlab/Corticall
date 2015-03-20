@@ -45,6 +45,10 @@ public class EmpiricalDistribution {
         }
     }
 
+    public double[] getRates() {
+        return rates;
+    }
+
     private int findBin(double cdfValue) {
         int lowerBin = 0;
         int higherBin = cdf.length - 1;
