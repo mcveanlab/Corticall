@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import cern.jet.random.Empirical;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.apache.ivy.util.StringUtils;
@@ -160,12 +161,33 @@ public class SimReads extends Module {
             posErrorRates = posErrorRatesRc;
         }
 
+        double[] posErrorNorm = new double[readLength];
+        double posErrorSum = 0;
+        for (int i = 0; i < readLength; i++) {
+            if (i + 2 < posErrorRates.length) {
+                posErrorSum += posErrorRates[i + 2];
+            }
+        }
+        for (int i = 0; i < readLength; i++) {
+            if (i + 2 < posErrorRates.length) {
+                posErrorNorm[i] = posErrorRates[i + 2] / posErrorSum;
+            }
+        }
+
+        EmpiricalDistribution posd = new EmpiricalDistribution(posErrorRates, rng);
+        //EmpiricalDistribution psnd = new EmpiricalDistribution(posErrorNorm, rng);
+
         if (shouldHaveErrors) {
             int numErrors = computeNumErrors(posErrorRates, readLength);
 
-            int[] mmErrorRates = new int[readLength];
-            int[] insErrorRates = new int[readLength];
-            int[] delErrorRates = new int[readLength];
+            double[] insErrorDist = new double[readLength];
+            double insErrorSum = 0;
+
+            double[] delErrorDist = new double[readLength];
+            double delErrorSum = 0;
+
+            double[] mmErrorDist = new double[readLength];
+            double mmErrorSum = 0;
 
             for (int j = 2; j < readLength + 2; j++) {
                 String context = read.substring(j - 2, j);
@@ -179,13 +201,15 @@ public class SimReads extends Module {
                         insCount += (Integer) covTree.get("INS", isFirstEndOfRead, fragmentIsNegativeStrand, context, j - 2, base).iterator().next();
                     }
                 }
-                insErrorRates[j - 2] = insCount;
+                insErrorDist[j - 2] = insCount;
+                insErrorSum += insCount;
 
                 int delCount = 0;
                 if (covTree.has("DEL", isFirstEndOfRead, fragmentIsNegativeStrand, context, j - 2, ".")) {
                     delCount += (Integer) covTree.get("DEL", isFirstEndOfRead, fragmentIsNegativeStrand, context, j - 2, ".").iterator().next();
                 }
-                delErrorRates[j - 2] = delCount;
+                delErrorDist[j - 2] = delCount;
+                delErrorSum += delCount;
 
                 bases.remove(currentBase);
 
@@ -195,17 +219,57 @@ public class SimReads extends Module {
                         mmCount += (Integer) covTree.get("MM", isFirstEndOfRead, fragmentIsNegativeStrand, context, j - 2, base).iterator().next();
                     }
                 }
-                mmErrorRates[j - 2] = mmCount;
+                mmErrorDist[j - 2] = mmCount;
+                mmErrorSum += mmCount;
             }
 
-            EmpiricalDistribution mmd  = new EmpiricalDistribution(mmErrorRates);
-            EmpiricalDistribution insd = new EmpiricalDistribution(insErrorRates);
-            EmpiricalDistribution deld = new EmpiricalDistribution(delErrorRates);
+            double insErrorNorm = 0;
+            double delErrorNorm = 0;
+            double mmErrorNorm = 0;
+            for (int i = 0; i < readLength; i++) {
+                insErrorDist[i] = (posErrorNorm[i]) * (insErrorDist[i] / insErrorSum);
+                delErrorDist[i] = (posErrorNorm[i]) * (delErrorDist[i] / delErrorSum);
+                mmErrorDist[i]  = (posErrorNorm[i]) * (mmErrorDist[i]  / mmErrorSum);
+
+                insErrorNorm += insErrorDist[i];
+                delErrorNorm += delErrorDist[i];
+                mmErrorNorm += mmErrorDist[i];
+            }
+
+            for (int i = 0; i < readLength; i++) {
+                insErrorDist[i] /= insErrorNorm;
+                delErrorDist[i] /= delErrorNorm;
+                mmErrorDist[i]  /= mmErrorNorm;
+            }
+
+            EmpiricalDistribution mmd  = new EmpiricalDistribution(mmErrorDist, rng);
+            EmpiricalDistribution insd = new EmpiricalDistribution(insErrorDist, rng);
+            EmpiricalDistribution deld = new EmpiricalDistribution(delErrorDist, rng);
 
             String[] bases = new String[] { "A", "C", "G", "T" };
 
+            double sumMm = 0, sumIns = 0, sumDel = 0;
+            for (int i = 0; i < readLength; i++) {
+                //log.info("{} {} {} {}", i, mmErrorDist[i], insErrorDist[i], delErrorDist[i]);
+
+                sumMm += mmErrorDist[i];
+                sumIns += insErrorDist[i];
+                sumDel += delErrorDist[i];
+            }
+
+            //log.info("to {} {} {}", sumMm, sumIns, sumDel);
+
             for (int i = 0; i < numErrors; i++) {
                 int errorTypeBin = errorTypes.draw();
+
+                /*
+                int errorPos;
+                do {
+                    errorPos = posd.draw();
+
+                    log.info("{} {} {}", i, errorTypeBin, errorPos);
+                } while (errorPos < 2 || errorPos > readLength);
+                */
 
                 if (errorTypeBin == 0) { // mismatches
                     int errorPos;
@@ -224,7 +288,7 @@ public class SimReads extends Module {
                         }
                     }
 
-                    EmpiricalDistribution bd = new EmpiricalDistribution(baseDist);
+                    EmpiricalDistribution bd = new EmpiricalDistribution(baseDist, rng);
                     String newBase = bases[bd.draw()];
 
                     read.setCharAt(errorPos, newBase.charAt(0));
@@ -242,7 +306,7 @@ public class SimReads extends Module {
                         }
                     }
 
-                    EmpiricalDistribution bd = new EmpiricalDistribution(baseDist);
+                    EmpiricalDistribution bd = new EmpiricalDistribution(baseDist, rng);
                     String newBase = bases[bd.draw()];
 
                     int insertionLength = insertionSizeRates.draw() - 1;
@@ -277,13 +341,13 @@ public class SimReads extends Module {
         int numInsertions = (Integer) stats.get("numInsertions");
         int numDeletions = (Integer) stats.get("numDeletions");
 
-        fragmentSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("fragmentSizeDist"), "fragmentSize"));
-        rateOfChimeras = new EmpiricalDistribution(new int[] { numPairs - numChimericPairs, numChimericPairs });
-        rateOfErrorfulReads = new EmpiricalDistribution(new int[] { numReads - numReadsWithErrors, numReadsWithErrors });
-        errorNumRates = new EmpiricalDistribution(loadDist(ts.getTable("errorNumDist"), "numErrors"));
-        errorTypes = new EmpiricalDistribution(new int[] { numMismatches, numInsertions, numDeletions });
-        insertionSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("insertionSizeDist"), "insertionSize"));
-        deletionSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("deletionSizeDist"), "deletionSize"));
+        fragmentSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("fragmentSizeDist"), "fragmentSize"), rng);
+        rateOfChimeras = new EmpiricalDistribution(new int[] { numPairs - numChimericPairs, numChimericPairs }, rng);
+        rateOfErrorfulReads = new EmpiricalDistribution(new int[] { numReads - numReadsWithErrors, numReadsWithErrors }, rng);
+        errorNumRates = new EmpiricalDistribution(loadDist(ts.getTable("errorNumDist"), "numErrors"), rng);
+        errorTypes = new EmpiricalDistribution(new int[] { numMismatches, numInsertions, numDeletions }, rng);
+        insertionSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("insertionSizeDist"), "insertionSize"), rng);
+        deletionSizeRates = new EmpiricalDistribution(loadDist(ts.getTable("deletionSizeDist"), "deletionSize"), rng);
 
         covTree = new DataTree();
         for (Map<String, Object> e : ts.getTable("covariateTable")) {
