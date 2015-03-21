@@ -10,7 +10,7 @@ import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.containers.DataTree;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.distributions.EmpiricalDistribution;
 
@@ -22,11 +22,11 @@ public class SimReads extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference")
     public FastaSequenceFile REFERENCE;
 
-    @Argument(fullName="readStartDistribution", shortName="s", doc="Read start distribution")
-    public File READ_START_DIST;
+    @Argument(fullName="readProfile", shortName="s", doc="Read simulation profile")
+    public File READ_PROFILE;
 
     @Argument(fullName="errorSimProfile", shortName="e", doc="Error simulation profile")
-    public File SIM_PROFILE;
+    public File ERROR_PROFILE;
 
     @Argument(fullName="chr", shortName="c", doc="Chr to process")
     public String CHR;
@@ -67,26 +67,42 @@ public class SimReads extends Module {
         return ref;
     }
 
-    private Map<String, int[]> loadReadStartDist(Map<String, String> ref) {
-        Map<String, int[]> rs = new HashMap<String, int[]>();
+    private class Entry {
+        public int numReadsWithErrors;
+        public int numReads;
+        public int numFragmentsWithErrors;
+        public int numFragments;
+    }
 
-        for (String chr : ref.keySet()) {
-            int[] d = new int[ref.get(chr).length()];
+    private Map<String, Map<Integer, Entry>> loadReadProfile() {
+        Map<String, Map<Integer, Entry>> table = new HashMap<String, Map<Integer, Entry>>();
 
-            rs.put(chr, d);
+        LineReader lr = new LineReader(READ_PROFILE);
+        lr.getNextRecord();
+
+        while (lr.hasNext()) {
+            String line = lr.getNextRecord();
+            String[] fields = line.split("\\s+");
+
+            String chr = fields[0];
+            int pos = Integer.valueOf(fields[1]);
+
+            Entry e = new Entry();
+            e.numReadsWithErrors = Integer.valueOf(fields[2]);
+            e.numReads = Integer.valueOf(fields[3]);
+            e.numFragmentsWithErrors = Integer.valueOf(fields[4]);
+            e.numFragments = Integer.valueOf(fields[5]);
+
+            if (!table.containsKey(chr)) {
+                table.put(chr, new HashMap<Integer, Entry>());
+            }
+
+            if (!table.get(chr).containsKey(pos)) {
+                table.get(chr).put(pos, e);
+            }
         }
 
-        TableReader tr = new TableReader(READ_START_DIST, new String[] { "chr", "start", "count" });
-
-        for (Map<String, String> te : tr) {
-            String chr = te.get("chr");
-            int start = Integer.valueOf(te.get("start"));
-            int count = Integer.valueOf(te.get("count"));
-
-            rs.get(chr)[start] = count;
-        }
-
-        return rs;
+        return table;
     }
 
     private int[] loadDist(DataTable t, String binColumnName) {
@@ -115,19 +131,37 @@ public class SimReads extends Module {
         return dist;
     }
 
-    private String generateRead(String fragment, int readLength, boolean isFirstEndOfRead, boolean fragmentIsNegativeStrand) {
+    private int computeNumErrors(double[] posErrorRates, int readLength) {
+        int numErrors = 0;
+        for (int i = 2; i < readLength + 2; i++) {
+            double val = rng.nextDouble();
+
+            if (posErrorRates.length > i && val <= posErrorRates[i]) {
+                numErrors++;
+            }
+        }
+
+        return numErrors;
+    }
+
+    private String generateRead(String fragment, double[] posErrorRates, int readLength, boolean isFirstEndOfRead, boolean fragmentIsNegativeStrand, boolean shouldHaveErrors) {
         StringBuilder read;
         if (isFirstEndOfRead) {
             read = new StringBuilder(fragment);
         } else {
             String fragmentRc = SequenceUtils.reverseComplement(fragment);
             read = new StringBuilder(fragmentRc);
+
+            double[] posErrorRatesRc = new double[posErrorRates.length];
+            for (int i = 0; i < posErrorRates.length; i++) {
+                posErrorRatesRc[i] = posErrorRates[posErrorRates.length - i - 1];
+            }
+
+            posErrorRates = posErrorRatesRc;
         }
 
-        //boolean shouldHaveErrors = rateOfErrorfulReads.draw() == 1;
-        boolean shouldHaveErrors = rng.nextDouble() <= rateOfErrorfulReads.getRates()[1];
         if (shouldHaveErrors) {
-            int numErrors = errorNumRates.draw();
+            int numErrors = computeNumErrors(posErrorRates, readLength);
 
             int[] mmErrorRates = new int[readLength];
             int[] insErrorRates = new int[readLength];
@@ -195,7 +229,6 @@ public class SimReads extends Module {
 
                     read.setCharAt(errorPos, newBase.charAt(0));
                 } else if (errorTypeBin == 1) { // insertions
-                    //int errorPos = insd.draw() + 2;
                     int errorPos;
                     do {
                         errorPos = insd.draw() + 2;
@@ -218,7 +251,6 @@ public class SimReads extends Module {
                     String insertionSeq = newBase + restOfInsertion;
                     read.insert(errorPos, insertionSeq);
                 } else if (errorTypeBin == 2) { // deletion
-                    //int errorPos = deld.draw() + 2;
                     int errorPos;
                     do {
                         errorPos = deld.draw() + 2;
@@ -297,42 +329,56 @@ public class SimReads extends Module {
         return fragment;
     }
 
+    private double[] getPositionalErrorRates(Map<Integer, Entry> es, int pos, int length) {
+        double[] er = new double[length];
+
+        for (int i = 0; i < length; i++) {
+            if (es.containsKey(pos + i)) {
+                er[i] = (double) es.get(pos + i).numReadsWithErrors / (double) es.get(pos + i).numReads;
+            }
+        }
+
+        return er;
+    }
+
     @Override
     public void execute() {
         if (SEED == null) { SEED = System.currentTimeMillis(); }
         rng = new Random(SEED);
 
         log.info("Loading data...");
-        log.info("  simulation profile...");
-        DataTables ts = new DataTables(SIM_PROFILE);
+        log.info("  error profile...");
+        DataTables ts = new DataTables(ERROR_PROFILE);
         initializeEmpiricalDistributions(ts);
         int readLength = (Integer) ts.getTable("stats").iterator().next().get("readLength");
 
         log.info("    seed: {}", SEED);
         log.info("    readLength: {}", readLength);
 
+        log.info("  read profile...");
+        Map<String, Map<Integer, Entry>> rs = loadReadProfile();
+
         log.info("  reference sequence...");
         Map<String, String> ref = loadReference();
         chrNames.addAll(ref.keySet());
 
-        log.info("  fragment start distribution...");
-        Map<String, int[]> rs = loadReadStartDist(ref);
-
         log.info("Simulating reads...");
         long fragmentIndex = 0;
-        for (String chr : ref.keySet()) {
-            if (chr.equals(CHR)) {
+        for (String chr : rs.keySet()) {
+            if (chr.equals(CHR) && ref.containsKey(chr)) {
                 log.info("  {}", chr);
 
-                for (int i = 0; i < rs.get(chr).length; i++) {
-                    if (i % (rs.get(chr).length / 10) == 0) {
-                        log.info("    {}/{} bp", i, rs.get(chr).length);
+                for (int i = 0; i < ref.get(chr).length(); i++) {
+                    if (i % (ref.get(chr).length() / 10) == 0) {
+                        log.info("    {}/{} bp", i, ref.get(chr).length());
                     }
 
-                    int numStarts = rs.get(chr)[i];
+                    int numStarts = rs.get(chr).containsKey(i) ? rs.get(chr).get(i).numFragments : 0;
+                    int numErrors = rs.get(chr).containsKey(i) ? rs.get(chr).get(i).numFragmentsWithErrors : 0;
 
                     for (int j = 0; j < numStarts; j++) {
                         String fragment = generateFragment(ref, chr, i, readLength);
+                        double[] posErrorRates = getPositionalErrorRates(rs.get(chr), i, fragment.length());
 
                         if (!fragment.isEmpty()) {
                             boolean fragmentOnNegativeStrand = rng.nextBoolean();
@@ -340,8 +386,8 @@ public class SimReads extends Module {
                                 fragment = SequenceUtils.reverseComplement(fragment);
                             }
 
-                            String read1 = generateRead(fragment, readLength, true, fragmentOnNegativeStrand);
-                            String read2 = generateRead(fragment, readLength, false, fragmentOnNegativeStrand);
+                            String read1 = generateRead(fragment, posErrorRates, readLength, true, fragmentOnNegativeStrand, numErrors < j);
+                            String read2 = generateRead(fragment, posErrorRates, readLength, false, fragmentOnNegativeStrand, numErrors < j);
 
                             if (read1 != null && read2 != null) {
                                 String readName1 = String.format("@sim%d.%s.%d %s:%d/1", SEED, chr, fragmentIndex, chr, i);

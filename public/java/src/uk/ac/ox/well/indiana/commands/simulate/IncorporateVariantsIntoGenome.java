@@ -1,13 +1,8 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
@@ -26,9 +21,6 @@ public class IncorporateVariantsIntoGenome extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference")
     public FastaSequenceFile REF;
 
-    @Argument(fullName="refCoverage", shortName="c", doc="BAM file from which to extract coverage info")
-    public SAMFileReader COV;
-
     @Argument(fullName="vcf", shortName="v", doc="VCF")
     public VCFFileReader VCF;
 
@@ -46,9 +38,6 @@ public class IncorporateVariantsIntoGenome extends Module {
 
     @Output(fullName="bedout", shortName="bo", doc="Bed out")
     public PrintStream bout;
-
-    @Output(fullName="covout", shortName="co", doc="Coverage out")
-    public PrintStream cout;
 
     @Override
     public void execute() {
@@ -101,19 +90,6 @@ public class IncorporateVariantsIntoGenome extends Module {
                     }
                 }
             }
-
-            SAMRecordIterator sri = COV.queryOverlapping(name, 0, rseq.length());
-            int[] covs = new int[rseq.length()];
-
-            while (sri.hasNext()) {
-                SAMRecord read = sri.next();
-
-                if (read.getFirstOfPairFlag()) {
-                    covs[read.getAlignmentStart() - 1]++;
-                }
-            }
-
-            sri.close();
 
             int gpos = 0;
             for (int i = 0; i < seq.length(); i++) {
@@ -169,12 +145,6 @@ public class IncorporateVariantsIntoGenome extends Module {
 
                         bout.println(Joiner.on("\t").join(name, gpos, gpos + length, bedname));
                     }
-                }
-
-                int cov = covs[i];
-
-                for (int q = 0; q < alleles.get(i).length(); q++) {
-                    cout.println(Joiner.on("\t").join(name, gpos + q, cov));
                 }
 
                 gpos += alleles.get(i).length();
