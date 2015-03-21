@@ -19,8 +19,25 @@ public class EmpiricalDistribution {
         initialize(dist, new Random(seed));
     }
 
-    public EmpiricalDistribution(int[] dist, Random rng) {
-        initialize(dist, rng);
+    public EmpiricalDistribution(int[] dist, Random rng) { initialize(dist, rng); }
+
+    public EmpiricalDistribution(double[] rates) {
+        initialize(rates, new Random(System.currentTimeMillis()));
+    }
+
+    public EmpiricalDistribution(double[] rates, long seed) {
+        initialize(rates, new Random(seed));
+    }
+
+    public EmpiricalDistribution(double[] rates, Random rng) {
+        initialize(rates, rng);
+    }
+
+    private void initialize(double[] rates, Random rng) {
+        this.rng = rng;
+        this.rates = rates;
+
+        computeCdf();
     }
 
     private void initialize(int[] dist, Random rng) {
@@ -37,6 +54,10 @@ public class EmpiricalDistribution {
             rates[i] = (double) dist[i] / (double) sum;
         }
 
+        computeCdf();
+    }
+
+    private void computeCdf() {
         double cdfSum = 0.0;
         cdf = new double[rates.length];
         for (int i = 0; i < rates.length; i++) {
