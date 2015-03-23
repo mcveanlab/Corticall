@@ -459,7 +459,7 @@ public class SimReads extends Module {
                             boolean fragmentOnNegativeStrand = rng.nextBoolean();
 
                             Interval interval = new Interval(chr, i, i + fragment.length());
-                            if (rr.get(chr).containsContained(interval) && rng.nextDouble() <= 0.25) {
+                            if (rr.get(chr).containsContained(interval) && rng.nextDouble() <= 0.50) {
                                 int deletionPos = rng.nextInt(fragment.length());
                                 int deletionLength = 5 + rng.nextInt(20);
 
