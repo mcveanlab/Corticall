@@ -463,7 +463,7 @@ public class SimReads extends Module {
                                 int deletionPos = rng.nextInt(fragment.length());
                                 int deletionLength = 5 + rng.nextInt(20);
 
-                                if (deletionPos + deletionLength < fragment.length() && fragment.length() - deletionLength > readLength) {
+                                if (deletionPos + deletionLength < fragment.length() && fragment.length() - deletionLength > readLength + 20) {
                                     //log.info("{} {} {}", deletionPos, deletionLength, fragment.length());
 
                                     StringBuilder sb = new StringBuilder(fragment);
