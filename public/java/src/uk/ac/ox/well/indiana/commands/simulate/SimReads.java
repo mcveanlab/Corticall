@@ -3,6 +3,8 @@ package uk.ac.ox.well.indiana.commands.simulate;
 import cern.jet.random.Empirical;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import org.apache.ivy.util.StringUtils;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -11,6 +13,7 @@ import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.containers.DataTree;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.statistics.distributions.EmpiricalDistribution;
@@ -28,6 +31,9 @@ public class SimReads extends Module {
 
     @Argument(fullName="errorSimProfile", shortName="e", doc="Error simulation profile")
     public File ERROR_PROFILE;
+
+    @Argument(fullName="repetitiveRegions", shortName="b", doc="Repetitive regions (bed)")
+    public File REPETITIVE_REGIONS;
 
     @Argument(fullName="chr", shortName="c", doc="Chr to process")
     public String CHR;
@@ -130,6 +136,27 @@ public class SimReads extends Module {
         }
 
         return dist;
+    }
+
+    private Map<String, IntervalTreeMap<Integer>> loadRepetitiveRegions() {
+        Map<String, IntervalTreeMap<Integer>> rr = new HashMap<String, IntervalTreeMap<Integer>>();
+        TableReader tr = new TableReader(REPETITIVE_REGIONS, new String[] { "sequence", "begin", "end" });
+
+        for (Map<String, String> te : tr) {
+            String chr = te.get("sequence");
+            int begin = Integer.valueOf(te.get("begin"));
+            int end = Integer.valueOf(te.get("end"));
+
+            Interval interval = new Interval(chr, begin, end);
+
+            if (!rr.containsKey(chr)) {
+                rr.put(chr, new IntervalTreeMap<Integer>());
+            }
+
+            rr.get(chr).put(interval, null);
+        }
+
+        return rr;
     }
 
     private int computeNumErrors(double[] posErrorRates, int readLength) {
@@ -248,28 +275,8 @@ public class SimReads extends Module {
 
             String[] bases = new String[] { "A", "C", "G", "T" };
 
-            double sumMm = 0, sumIns = 0, sumDel = 0;
-            for (int i = 0; i < readLength; i++) {
-                //log.info("{} {} {} {}", i, mmErrorDist[i], insErrorDist[i], delErrorDist[i]);
-
-                sumMm += mmErrorDist[i];
-                sumIns += insErrorDist[i];
-                sumDel += delErrorDist[i];
-            }
-
-            //log.info("to {} {} {}", sumMm, sumIns, sumDel);
-
             for (int i = 0; i < numErrors; i++) {
                 int errorTypeBin = errorTypes.draw();
-
-                /*
-                int errorPos;
-                do {
-                    errorPos = posd.draw();
-
-                    log.info("{} {} {}", i, errorTypeBin, errorPos);
-                } while (errorPos < 2 || errorPos > readLength);
-                */
 
                 if (errorTypeBin == 0) { // mismatches
                     int errorPos;
@@ -426,8 +433,12 @@ public class SimReads extends Module {
         Map<String, String> ref = loadReference();
         chrNames.addAll(ref.keySet());
 
+        log.info("  repetitive regions...");
+        Map<String, IntervalTreeMap<Integer>> rr = loadRepetitiveRegions();
+
         log.info("Simulating reads...");
         long fragmentIndex = 0;
+        int alteredFragments = 0;
         for (String chr : rs.keySet()) {
             if (chr.equals(CHR) && ref.containsKey(chr)) {
                 log.info("  {}", chr);
@@ -446,9 +457,28 @@ public class SimReads extends Module {
 
                         if (!fragment.isEmpty()) {
                             boolean fragmentOnNegativeStrand = rng.nextBoolean();
+
+                            Interval interval = new Interval(chr, i, i + fragment.length());
+                            if (rr.get(chr).containsContained(interval) && rng.nextDouble() <= 0.25) {
+                                int deletionPos = rng.nextInt(fragment.length());
+                                int deletionLength = 5 + rng.nextInt(20);
+
+                                if (deletionPos + deletionLength < fragment.length() && fragment.length() - deletionLength > readLength) {
+                                    //log.info("{} {} {}", deletionPos, deletionLength, fragment.length());
+
+                                    StringBuilder sb = new StringBuilder(fragment);
+                                    sb.delete(deletionPos, deletionPos + deletionLength);
+
+                                    fragment = sb.toString();
+
+                                    alteredFragments++;
+                                }
+                            }
+
                             if (fragmentOnNegativeStrand) {
                                 fragment = SequenceUtils.reverseComplement(fragment);
                             }
+
 
                             String read1 = generateRead(fragment, posErrorRates, readLength, true, fragmentOnNegativeStrand, numErrors < j);
                             String read2 = generateRead(fragment, posErrorRates, readLength, false, fragmentOnNegativeStrand, numErrors < j);
@@ -478,5 +508,6 @@ public class SimReads extends Module {
         log.info("Stats");
         log.info("  paired-end reads: {}", fragmentIndex);
         log.info("  chimeric pairs:   {}", numChimerasIntroduced);
+        log.info("  altered fragment: {}", alteredFragments);
     }
 }
