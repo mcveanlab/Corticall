@@ -5,6 +5,8 @@ import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -33,9 +35,13 @@ public class lengthdist extends Module {
     private class GeneralizedSequenceReader implements Iterator<String>, Iterable<String> {
         private SAMFileReader sfr;
         private FastqReader fqr;
+        private FastaSequenceFile fsr;
+
+        private Set<String> fss;
 
         private SAMRecordIterator sri;
         private Iterator<FastqRecord> fri;
+        private Iterator<String> fsi;
 
         public GeneralizedSequenceReader(File file) {
             if (file.getName().endsWith(".bam")) {
@@ -43,6 +49,14 @@ public class lengthdist extends Module {
                 sfr.setValidationStringency(ValidationStringency.SILENT);
             } else if (file.getName().endsWith(".fastq") || file.getName().endsWith(".fq") || file.getName().endsWith(".fastq.gz") || file.getName().endsWith(".fq.gz")) {
                 fqr = new FastqReader(file, true);
+            } else if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fa")) {
+                fsr = new FastaSequenceFile(file, false);
+                fss = new LinkedHashSet<String>();
+
+                ReferenceSequence rseq;
+                while ((rseq = fsr.nextSequence()) != null) {
+                    fss.add(new String(rseq.getBases()));
+                }
             } else {
                 throw new IndianaException("Cannot parse '" + file.getAbsolutePath() + "' with generalized reader");
             }
@@ -54,6 +68,8 @@ public class lengthdist extends Module {
                 sri = sfr.iterator();
             } else if (fqr != null) {
                 fri = fqr.iterator();
+            } else if (fsr != null) {
+                fsi = fss.iterator();
             }
 
             return this;
@@ -61,12 +77,20 @@ public class lengthdist extends Module {
 
         @Override
         public boolean hasNext() {
-            return (sri != null) ? sri.hasNext() : fri.hasNext();
+            if      (sri != null) { return sri.hasNext(); }
+            else if (fri != null) { return fri.hasNext(); }
+            else if (fsi != null) { return fsi.hasNext(); }
+
+            return false;
         }
 
         @Override
         public String next() {
-            return (sri != null) ? sri.next().getReadString() : fri.next().getReadString();
+            if (sri != null) { return sri.next().getReadString(); }
+            else if (fri != null) { return fri.next().getReadString(); }
+            else if (fsi != null) { return fsi.next(); }
+
+            return null;
         }
 
         @Override
