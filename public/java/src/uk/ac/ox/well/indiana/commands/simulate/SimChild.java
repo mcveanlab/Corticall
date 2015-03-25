@@ -298,7 +298,7 @@ public class SimChild extends Module {
                 pos = rng.nextInt(ssr.getSequenceLength() - length) + 1;
 
                 refAllele = getRefAllele(ssr.getSequenceName(), pos, length);
-                altAllele = Allele.create(SequenceUtils.reverse(refAllele.getBases()), false);
+                altAllele = Allele.create(SequenceUtils.reverseComplement(refAllele.getBases()), false);
             } while (refAllele.basesMatch(altAllele) || isInMask(ssr.getSequenceName(), pos, length));
 
             Genotype newg = (new GenotypeBuilder(sampleName, Arrays.asList(altAllele))).make();
