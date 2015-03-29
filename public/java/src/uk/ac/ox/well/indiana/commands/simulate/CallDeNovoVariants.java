@@ -1,6 +1,5 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
-import com.google.common.base.Joiner;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileReader;
@@ -9,22 +8,15 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import scala.xml.dtd.impl.Base;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
-import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -156,7 +148,7 @@ public class CallDeNovoVariants extends Module {
         fout.println("}");
     }
 
-    private enum PutativeVariantType { MISMATCH, INSERTION, DELETION, INVERSION }
+    private enum PutativeVariantType { SNP, INSERTION, DELETION, INVERSION, STR_CON, STR_EXP, TD }
 
     private class PutativeVariant {
         private String refAllele = "";
@@ -167,7 +159,7 @@ public class CallDeNovoVariants extends Module {
         private int altPos = -1;
         private String altPrevBase = "";
 
-        private PutativeVariantType pt = PutativeVariantType.MISMATCH;
+        private PutativeVariantType pt = PutativeVariantType.SNP;
         private int numContainedNovelKmers = 0;
         private int numFlankingNovelKmers = 0;
 
@@ -178,13 +170,13 @@ public class CallDeNovoVariants extends Module {
         @Override
         public String toString() {
             return "PutativeVariant{" +
-                    "refAllele='" + refAllele + '\'' +
+                    "pt=" + pt +
+                    ", refAllele='" + refAllele + '\'' +
                     ", refPos=" + refPos +
                     ", refPrevBase='" + refPrevBase + '\'' +
                     ", altAllele='" + altAllele + '\'' +
                     ", altPos=" + altPos +
                     ", altPrevBase='" + altPrevBase + '\'' +
-                    ", pt=" + pt +
                     ", numContainedNovelKmers=" + numContainedNovelKmers +
                     ", numFlankingNovelKmers=" + numFlankingNovelKmers +
                     '}';
@@ -229,7 +221,7 @@ public class CallDeNovoVariants extends Module {
     }
 
     private boolean isComplementaryMutationType(PutativeVariant pvi, PutativeVariant pvj) {
-        if (pvi.pt == PutativeVariantType.MISMATCH && pvj.pt == PutativeVariantType.MISMATCH) {
+        if (pvi.pt == PutativeVariantType.SNP && pvj.pt == PutativeVariantType.SNP) {
             return true;
         } else if (pvi.pt == PutativeVariantType.DELETION && pvj.pt == PutativeVariantType.INSERTION) {
             return true;
@@ -241,7 +233,7 @@ public class CallDeNovoVariants extends Module {
     }
 
     private boolean isComplementaryAllele(PutativeVariant pvi, PutativeVariant pvj) {
-        if (pvi.pt == PutativeVariantType.MISMATCH && pvj.pt == PutativeVariantType.MISMATCH) {
+        if (pvi.pt == PutativeVariantType.SNP && pvj.pt == PutativeVariantType.SNP) {
             return pvi.refAllele.equals(SequenceUtils.reverseComplement(pvj.altAllele)) && pvi.altAllele.equals(SequenceUtils.reverseComplement(pvj.refAllele));
         } else if (pvi.pt == PutativeVariantType.DELETION && pvj.pt == PutativeVariantType.INSERTION) {
             //return pvi.refAllele.equals(SequenceUtils.reverseComplement(pvj.altAllele));
@@ -338,13 +330,11 @@ public class CallDeNovoVariants extends Module {
                                 pv.refPos = rpos + i;
                                 pv.altAllele = altAllele;
                                 pv.altPos = cpos + i;
-                                pv.pt = PutativeVariantType.MISMATCH;
+                                pv.pt = PutativeVariantType.SNP;
                                 pv.plausibleAlleles = new LinkedHashSet<String>();
                                 pv.plausibleAlleles.add(altAllele);
 
                                 pvs.add(pv);
-
-                                //log.info("  {}Mismatch: {} {} {} {} {}", StringUtil.repeatCharNTimes(' ', pos + i), pos + i, rsb.charAt(pos + i), csb.charAt(pos + i), refAllele, altAllele);
                             }
                         }
 
@@ -370,8 +360,6 @@ public class CallDeNovoVariants extends Module {
 
                         pvs.add(pv);
 
-                        //log.info("  {}Insertion: {} {} {} {}", StringUtil.repeatCharNTimes(' ', pos), pos, rsb.charAt(pos - 1), csb.substring(pos, pos + ce.getLength()), altAllele);
-
                         cpos += ce.getLength();
                     } else if (ce.getOperator().equals(CigarOperator.D)) {
                         asb.append('^');
@@ -389,7 +377,7 @@ public class CallDeNovoVariants extends Module {
                         pv.plausibleAlleles.add(refAllele);
 
                         for (int i = 0; i < refAllele.length(); i++) {
-                            if (cpos + i < contig.length() && refAllele.charAt(i) == contig.charAt(cpos + i)) {
+                            if (rpos + i + 1 < refSequence.length() && rpos + i + 1 + ce.getLength() < refSequence.length() && cpos + i < contig.length() && refAllele.charAt(i) == contig.charAt(cpos + i)) {
                                 String plausibleAllele = refSequence.substring(rpos + i + 1, rpos + i + 1 + ce.getLength());
                                 pv.plausibleAlleles.add(plausibleAllele);
                             } else {
@@ -401,8 +389,6 @@ public class CallDeNovoVariants extends Module {
 
                         csb.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
                         ksb.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
-
-                        //log.info("  {}Deletion: {} {} {} {}", StringUtil.repeatCharNTimes(' ', pos), pos, rsb.charAt(pos - 1), rsb.substring(pos, pos + ce.getLength()), refAllele);
 
                         rpos += ce.getLength();
                     }
@@ -468,9 +454,9 @@ public class CallDeNovoVariants extends Module {
                     int rightShift = 0;
                     boolean keepGoing = true;
                     do {
-                        String refAlleleR = SequenceUtils.reverseComplement(refSequence.substring(refStart, refEnd + rightShift));
+                        String refAlleleR = (refEnd + rightShift < refSequence.length()) ? SequenceUtils.reverseComplement(refSequence.substring(refStart, refEnd + rightShift)) : null;
 
-                        if (contig.contains(refAlleleR)) {
+                        if (refAlleleR != null && contig.contains(refAlleleR)) {
                             refEnd = refEnd + rightShift;
                             rightShift++;
                         } else {
@@ -482,9 +468,9 @@ public class CallDeNovoVariants extends Module {
                     keepGoing = true;
 
                     do {
-                        String refAlleleL = SequenceUtils.reverseComplement(refSequence.substring(refStart - leftShift, refEnd));
+                        String refAlleleL = (refStart - leftShift >= 0) ? SequenceUtils.reverseComplement(refSequence.substring(refStart - leftShift, refEnd)) : null;
 
-                        if (contig.contains(refAlleleL)) {
+                        if (refAlleleL != null && contig.contains(refAlleleL)) {
                             refStart = refStart - leftShift;
                             leftShift++;
                         } else {
@@ -495,12 +481,7 @@ public class CallDeNovoVariants extends Module {
                     String refAllele = refSequence.substring(refStart, refEnd);
                     String altAllele = SequenceUtils.reverseComplement(refAllele);
 
-                    int altAllelePos = contig.indexOf(altAllele);
-
-                    //log.info("Inversion: {} {} {} {} {} {}", inversion.getStart(), inversion.getEnd(), pvs.get(inversion.getStart()), pvs.get(inversion.getEnd()), refAllele, altAllelePos);
-
                     for (int i = inversion.getStart(); i <= inversion.getEnd(); i++) {
-                        //maskedVariants.add(i);
                         pvs.get(i).isFilteredOut = true;
                     }
 
@@ -516,14 +497,74 @@ public class CallDeNovoVariants extends Module {
             }
 
             for (int i = 0; i < pvs.size(); i++) {
+                if (!pvs.get(i).isFilteredOut && pvs.get(i).pt != PutativeVariantType.SNP && pvs.get(i).pt != PutativeVariantType.INVERSION) {
+                    String allele = (pvs.get(i).pt == PutativeVariantType.DELETION) ? pvs.get(i).refAllele : pvs.get(i).altAllele;
 
+                    String finalRepeatingUnit = "";
+                    int finalRepeatUnitLength = allele.length();
+                    //int finalNumRepeats = 0;
+
+                    for (int repeatUnitLength = allele.length() - 1; repeatUnitLength >= 1; repeatUnitLength--) {
+                        if (allele.length() % repeatUnitLength == 0) {
+                            String repeatingUnit = allele.substring(0, repeatUnitLength);
+
+                            int numRepeats = 0;
+                            boolean repeatIsComplete = true;
+                            for (int j = 0; j < allele.length(); j += repeatUnitLength) {
+                                if (allele.substring(j, j + repeatUnitLength).equals(repeatingUnit)) {
+                                    numRepeats++;
+                                } else {
+                                    repeatIsComplete = false;
+                                    break;
+                                }
+                            }
+
+                            if (repeatIsComplete) {
+                                if (repeatUnitLength < finalRepeatUnitLength) {
+                                    finalRepeatingUnit = repeatingUnit;
+                                    //finalNumRepeats = numRepeats;
+                                    finalRepeatUnitLength = repeatUnitLength;
+                                }
+                            }
+                        }
+                    }
+
+                    int prevBasesStart1 = pvs.get(i).refPos - finalRepeatUnitLength;
+                    int prevBasesEnd1 = pvs.get(i).refPos;
+                    String prevBases1 = (prevBasesStart1 > 0) ? refSequence.substring(prevBasesStart1, prevBasesEnd1) : null;
+
+                    int nextBasesStart1 = pvs.get(i).refPos + allele.length();
+                    int nextBasesEnd1 = pvs.get(i).refPos + allele.length() + finalRepeatUnitLength;
+                    String nextBases1 = (nextBasesEnd1 < refSequence.length()) ? refSequence.substring(nextBasesStart1, nextBasesEnd1) : null;
+
+                    boolean matchesExistingStr = prevBases1 != null && nextBases1 != null && (finalRepeatingUnit.equals(prevBases1) || finalRepeatingUnit.equals(nextBases1));
+
+                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr) {
+                        pvs.get(i).pt = pvs.get(i).pt == PutativeVariantType.DELETION ? PutativeVariantType.STR_CON : PutativeVariantType.STR_EXP;
+                    }
+                }
+            }
+
+            for (int i = 0; i < pvs.size(); i++) {
+                if (!pvs.get(i).isFilteredOut && pvs.get(i).pt == PutativeVariantType.INSERTION) {
+                    String allele = pvs.get(i).altAllele;
+
+                    int prevBasesStart1 = pvs.get(i).refPos - allele.length();
+                    int prevBasesEnd1 = pvs.get(i).refPos;
+
+                    int nextBasesStart1 = pvs.get(i).refPos;
+                    int nextBasesEnd1 = pvs.get(i).refPos + allele.length();
+
+                    String prevBases = prevBasesStart1 >= 0 ? refSequence.substring(prevBasesStart1, prevBasesEnd1) : null;
+                    String nextBases = nextBasesEnd1 < refSequence.length() ? refSequence.substring(nextBasesStart1, nextBasesEnd1) : null;
+
+                    log.info("TD: {} {} {}", allele, prevBases, nextBases);
+                }
             }
 
             for (int i = 0; i < pvs.size(); i++) {
                 if (!pvs.get(i).isFilteredOut) {
                     log.info("  variant: {}", pvs.get(i));
-                } else {
-                    //log.info("   masked: {}", pvs.get(i));
                 }
             }
 
