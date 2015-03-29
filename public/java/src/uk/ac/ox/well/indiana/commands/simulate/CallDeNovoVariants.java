@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileReader;
@@ -268,7 +269,9 @@ public class CallDeNovoVariants extends Module {
         return false;
     }
 
-    private void showEntry(Entry e, int refIndex) {
+    private List<PutativeVariant> getVariants(Entry e, int refIndex) {
+        List<PutativeVariant> goodVariants = new ArrayList<PutativeVariant>();
+
         IndexedFastaSequenceFile ref = null;
         SAMRecord sr = null;
 
@@ -278,7 +281,7 @@ public class CallDeNovoVariants extends Module {
         }
 
         if (ref != null && sr != null && !sr.getReadUnmappedFlag()) {
-            log.info("ref{}: {}", refIndex, sr.getSAMString());
+            log.debug("ref{}: {}", refIndex, sr.getSAMString());
 
             String refSequence = new String(ref.getSubsequenceAt(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd()).getBases());
             String contig = sr.getReadString();
@@ -309,6 +312,11 @@ public class CallDeNovoVariants extends Module {
                 cpos += sr.getCigar().getCigarElement(0).getLength();
             } else if (sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.H)) {
                 ksb.delete(0, sr.getCigar().getCigarElement(0).getLength());
+            }
+
+            if (sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getOperator().equals(CigarOperator.H)) {
+                int hclength = sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getLength();
+                ksb.delete(ksb.length() - hclength - 1, ksb.length());
             }
 
             List<PutativeVariant> pvs = new ArrayList<PutativeVariant>();
@@ -397,11 +405,11 @@ public class CallDeNovoVariants extends Module {
                 }
             }
 
-            log.info("  {}", psb.toString());
-            log.info("  {}", rsb.toString());
-            log.info("  {}", asb.toString());
-            log.info("  {}", csb.toString());
-            log.info("  {}", ksb.toString());
+            log.debug("  {}", psb.toString());
+            log.debug("  {}", rsb.toString());
+            log.debug("  {}", asb.toString());
+            log.debug("  {}", csb.toString());
+            log.debug("  {}", ksb.toString());
 
             IntervalTreeMap<Integer> inversions = new IntervalTreeMap<Integer>();
             for (int i = 0; i < pvs.size(); i++) {
@@ -500,20 +508,16 @@ public class CallDeNovoVariants extends Module {
                 if (!pvs.get(i).isFilteredOut && pvs.get(i).pt != PutativeVariantType.SNP && pvs.get(i).pt != PutativeVariantType.INVERSION) {
                     String allele = (pvs.get(i).pt == PutativeVariantType.DELETION) ? pvs.get(i).refAllele : pvs.get(i).altAllele;
 
-                    String finalRepeatingUnit = "";
+                    String finalRepeatingUnit = allele;
                     int finalRepeatUnitLength = allele.length();
-                    //int finalNumRepeats = 0;
 
                     for (int repeatUnitLength = allele.length() - 1; repeatUnitLength >= 1; repeatUnitLength--) {
                         if (allele.length() % repeatUnitLength == 0) {
                             String repeatingUnit = allele.substring(0, repeatUnitLength);
 
-                            int numRepeats = 0;
                             boolean repeatIsComplete = true;
                             for (int j = 0; j < allele.length(); j += repeatUnitLength) {
-                                if (allele.substring(j, j + repeatUnitLength).equals(repeatingUnit)) {
-                                    numRepeats++;
-                                } else {
+                                if (!allele.substring(j, j + repeatUnitLength).equals(repeatingUnit)) {
                                     repeatIsComplete = false;
                                     break;
                                 }
@@ -522,7 +526,6 @@ public class CallDeNovoVariants extends Module {
                             if (repeatIsComplete) {
                                 if (repeatUnitLength < finalRepeatUnitLength) {
                                     finalRepeatingUnit = repeatingUnit;
-                                    //finalNumRepeats = numRepeats;
                                     finalRepeatUnitLength = repeatUnitLength;
                                 }
                             }
@@ -539,7 +542,7 @@ public class CallDeNovoVariants extends Module {
 
                     boolean matchesExistingStr = prevBases1 != null && nextBases1 != null && (finalRepeatingUnit.equals(prevBases1) || finalRepeatingUnit.equals(nextBases1));
 
-                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr) {
+                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr && finalRepeatUnitLength >= 2) {
                         pvs.get(i).pt = pvs.get(i).pt == PutativeVariantType.DELETION ? PutativeVariantType.STR_CON : PutativeVariantType.STR_EXP;
                     }
                 }
@@ -558,33 +561,53 @@ public class CallDeNovoVariants extends Module {
                     String prevBases = prevBasesStart1 >= 0 ? refSequence.substring(prevBasesStart1, prevBasesEnd1) : null;
                     String nextBases = nextBasesEnd1 < refSequence.length() ? refSequence.substring(nextBasesStart1, nextBasesEnd1) : null;
 
-                    log.info("TD: {} {} {}", allele, prevBases, nextBases);
+                    if (allele.length() >= 10 && (allele.equals(prevBases) || allele.equals(nextBases))) {
+                        pvs.get(i).pt = PutativeVariantType.TD;
+                    }
                 }
             }
 
             for (int i = 0; i < pvs.size(); i++) {
                 if (!pvs.get(i).isFilteredOut) {
-                    log.info("  variant: {}", pvs.get(i));
+                    log.debug("  variant: {}", pvs.get(i));
+
+                    goodVariants.add(pvs.get(i));
                 }
             }
 
-            log.info("");
+            log.debug("");
         }
-    }
 
-    private void showEntry(Entry e) {
-        log.info("{}:", e.attributes.get("contigName"));
-
-        showEntry(e, 0);
-        showEntry(e, 1);
+        return goodVariants;
     }
 
     @Override
     public void execute() {
         Map<String, Entry> entries = loadEntriesWithNovelKmers();
 
+        Map<PutativeVariantType, Integer> counts0 = new TreeMap<PutativeVariantType, Integer>();
+        Map<PutativeVariantType, Integer> counts1 = new TreeMap<PutativeVariantType, Integer>();
+
         for (String contigName : entries.keySet()) {
-            showEntry(entries.get(contigName));
+            Entry e = entries.get(contigName);
+
+            log.debug("{}:", e.attributes.get("contigName"));
+
+            List<PutativeVariant> v0 = getVariants(e, 0);
+            List<PutativeVariant> v1 = getVariants(e, 1);
+
+            for (PutativeVariant v : v0) {
+                if (!counts0.containsKey(v.pt)) { counts0.put(v.pt, 0); }
+                else { counts0.put(v.pt, counts0.get(v.pt) + 1); }
+            }
+
+            for (PutativeVariant v : v1) {
+                if (!counts1.containsKey(v.pt)) { counts1.put(v.pt, 0); }
+                else { counts1.put(v.pt, counts1.get(v.pt) + 1); }
+            }
         }
+
+        log.info("{}", Joiner.on("; ").withKeyValueSeparator("=").join(counts0));
+        log.info("{}", Joiner.on("; ").withKeyValueSeparator("=").join(counts1));
     }
 }
