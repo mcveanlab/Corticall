@@ -225,6 +225,7 @@ public class FindVariantsInContigs extends Module {
             te.put("length", String.valueOf(length));
             te.put("variantFound", variantFound ? "TRUE" : "FALSE");
             te.put("matchedPos", String.valueOf(matchedPos));
+            te.put("variantPos", String.valueOf(matchedPos + ((end1 == null) ? 0 : end1.getReadLength())));
             te.put("chr", newvc.getChr());
             te.put("start", String.valueOf(newvc.getStart()));
             te.put("gcindex", gcid);
@@ -241,6 +242,8 @@ public class FindVariantsInContigs extends Module {
             te.put("pos1", end1 == null ? "NA" : String.valueOf(end1.getAlignmentStart()));
             te.put("pos2", end2 == null ? "NA" : String.valueOf(end2.getAlignmentStart()));
             te.put("matchedSeq", matchedSeq);
+            te.put("refAllele", newvc.getReference().getBaseString());
+            te.put("altAllele", newvc.getAlternateAllele(0).getBaseString());
 
             if (!event.equals("NA")) {
                 tw.addEntry(te);
