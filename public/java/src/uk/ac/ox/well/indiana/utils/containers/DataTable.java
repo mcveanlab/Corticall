@@ -99,6 +99,27 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
     }
 
     @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(tableName).append("\t").append(Joiner.on("\t").join(columnNames)).append("\n");
+
+        for (String primaryKey : data.keySet()) {
+            List<String> fields = new ArrayList<String>();
+            fields.add(tableName);
+
+            for (String columnName : columnNames) {
+                fields.add(String.valueOf(get(primaryKey, columnName)));
+            }
+
+            sb.append(Joiner.on("\t").join(fields)).append("\n");
+        }
+
+        sb.append("\n");
+
+        return sb.toString();
+    }
+
+    @Override
     public Iterator<Map<String, Object>> iterator() {
         pkIterator = data.keySet().iterator();
 
