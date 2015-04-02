@@ -198,8 +198,6 @@ public class FindVariantsInContigs extends Module {
                     if (mFw.matches()) {
                         matchedSeq = mFw.group(0);
                         matchedPos = mFw.start(1);
-                        variantStart = mFw.end(1) + 1;
-                        variantEnd = mFw.start(2);
                         pos1 = mFw.start(1);
                         pos2 = mFw.start(2);
 
@@ -209,6 +207,9 @@ public class FindVariantsInContigs extends Module {
                         flank2 = mFw.group(2);
                         refAllele = refAlleleFw;
                         altAllele = altAlleleFw;
+
+                        variantStart = mFw.end(1) + 1;
+                        variantEnd = mFw.start(2);
                     }
                 } else if (contig.contains(leftFlankRc) && contig.contains(rightFlankRc)) {
                     Pattern pRc = Pattern.compile(patternRc);
@@ -217,8 +218,6 @@ public class FindVariantsInContigs extends Module {
                     if (mRc.matches()) {
                         matchedSeq = mRc.group(0);
                         matchedPos = mRc.start(1);
-                        variantStart = mRc.end(1) + 1;
-                        variantEnd = mRc.start(2);
                         pos1 = mRc.start(1);
                         pos2 = mRc.start(2);
 
@@ -228,6 +227,9 @@ public class FindVariantsInContigs extends Module {
                         flank2 = mRc.group(2);
                         refAllele = refAlleleRc;
                         altAllele = altAlleleRc;
+
+                        variantStart = mRc.end(1) + 1;
+                        variantEnd = mRc.start(2);
                     }
                 }
             }
