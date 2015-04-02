@@ -139,10 +139,6 @@ public class FindVariantsInContigs extends Module {
         }
 
         for (String id : variants.keySet()) {
-            if (id.equals("simchild1934")) {
-                log.info("Hi!");
-            }
-
             VariantContext newvc = variants.get(id);
 
             String denovo = newvc.getAttributeAsString("DENOVO", "NA");
@@ -156,12 +152,15 @@ public class FindVariantsInContigs extends Module {
             boolean variantFound = false;
             String matchedSeq = "NA";
             int matchedPos = 0;
-            int variantPos = 0;
+            int variantStart = 0;
+            int variantEnd = 0;
             int pos1 = -1;
             int pos2 = -1;
             int length = 0;
             String flank1 = "NA";
             String flank2 = "NA";
+            String refAllele = "NA";
+            String altAllele = "NA";
 
             if (newvc.isSimpleInsertion()) {
                 length = newvc.getAlternateAllele(0).length() - newvc.getReference().length();
@@ -181,11 +180,13 @@ public class FindVariantsInContigs extends Module {
                 String contig = contigSequences.get(end1.getReferenceName());
 
                 String leftFlankFw  = newvc.getAttributeAsString("flank_left", "N");
+                String refAlleleFw  = newvc.getReference().getBaseString();
                 String altAlleleFw  = newvc.isVariant() ? newvc.getAlternateAllele(0).getBaseString() : newvc.getReference().getBaseString();
                 String rightFlankFw = newvc.getAttributeAsString("flank_right", "N");
                 String patternFw    = ".*(" + leftFlankFw + ")" + altAlleleFw + "(" + rightFlankFw + ").*";
 
                 String leftFlankRc  = SequenceUtils.reverseComplement(leftFlankFw);
+                String refAlleleRc  = SequenceUtils.reverseComplement(refAlleleFw);
                 String altAlleleRc  = SequenceUtils.reverseComplement(altAlleleFw);
                 String rightFlankRc = SequenceUtils.reverseComplement(rightFlankFw);
                 String patternRc    = ".*(" + rightFlankRc + ")" + altAlleleRc + "(" + leftFlankRc + ").*";
@@ -197,7 +198,8 @@ public class FindVariantsInContigs extends Module {
                     if (mFw.matches()) {
                         matchedSeq = mFw.group(0);
                         matchedPos = mFw.start(1);
-                        variantPos = mFw.end(1) + 1;
+                        variantStart = mFw.end(1) + 1;
+                        variantEnd = mFw.start(2);
                         pos1 = mFw.start(1);
                         pos2 = mFw.start(2);
 
@@ -205,6 +207,8 @@ public class FindVariantsInContigs extends Module {
 
                         flank1 = mFw.group(1);
                         flank2 = mFw.group(2);
+                        refAllele = refAlleleFw;
+                        altAllele = altAlleleFw;
                     }
                 } else if (contig.contains(leftFlankRc) && contig.contains(rightFlankRc)) {
                     Pattern pRc = Pattern.compile(patternRc);
@@ -213,7 +217,8 @@ public class FindVariantsInContigs extends Module {
                     if (mRc.matches()) {
                         matchedSeq = mRc.group(0);
                         matchedPos = mRc.start(1);
-                        variantPos = mRc.end(1) + 1;
+                        variantStart = mRc.end(1) + 1;
+                        variantEnd = mRc.start(2);
                         pos1 = mRc.start(1);
                         pos2 = mRc.start(2);
 
@@ -221,6 +226,8 @@ public class FindVariantsInContigs extends Module {
 
                         flank1 = mRc.group(1);
                         flank2 = mRc.group(2);
+                        refAllele = refAlleleRc;
+                        altAllele = altAlleleRc;
                     }
                 }
             }
@@ -232,7 +239,8 @@ public class FindVariantsInContigs extends Module {
             te.put("length", String.valueOf(length));
             te.put("variantFound", variantFound ? "TRUE" : "FALSE");
             te.put("matchedPos", String.valueOf(matchedPos));
-            te.put("variantPos", String.valueOf(variantPos));
+            te.put("variantStart", String.valueOf(variantStart));
+            te.put("variantEnd", String.valueOf(variantEnd));
             te.put("chr", newvc.getChr());
             te.put("start", String.valueOf(newvc.getStart()));
             te.put("gcindex", gcid);
@@ -249,8 +257,8 @@ public class FindVariantsInContigs extends Module {
             te.put("pos1", pos1 < 0 ? "NA" : String.valueOf(pos1));
             te.put("pos2", pos2 < 0 ? "NA" : String.valueOf(pos2));
             te.put("matchedSeq", matchedSeq);
-            te.put("refAllele", newvc.getReference().getBaseString());
-            te.put("altAllele", newvc.getAlternateAllele(0).getBaseString());
+            te.put("refAllele", refAllele);
+            te.put("altAllele", altAllele);
 
             if (!event.equals("NA")) {
                 tw.addEntry(te);
