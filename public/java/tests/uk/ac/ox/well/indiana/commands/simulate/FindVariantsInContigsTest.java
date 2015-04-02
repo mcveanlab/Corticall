@@ -67,10 +67,14 @@ public class FindVariantsInContigsTest {
                     String testFlank2 = seq.substring(pos2, pos2 + flank2.length());
 
                     if (flank1.equals(testFlank1) && flank2.equals(testFlank2)) {
-                        int variantPos = Integer.valueOf(ke.get("variantPos"));
+                        int variantStart = Integer.valueOf(ke.get("variantStart"));
+                        int variantEnd = Integer.valueOf(ke.get("variantEnd"));
 
-                        Assert.assertEquals(variantPos, pos1 + flank1.length() + 1);
-                        Assert.assertEquals(variantPos + ke.get("altAllele").length() - 1, pos2);
+                        Assert.assertEquals(variantStart, pos1 + flank1.length() + 1);
+                        Assert.assertEquals(variantStart+ ke.get("altAllele").length() - 1, pos2);
+
+                        String altAllele = seq.substring(variantStart, variantEnd);
+                        Assert.assertEquals(ke.get("altAllele").substring(1, ke.get("altAllele").length()), altAllele);
                     }
                 }
             }
