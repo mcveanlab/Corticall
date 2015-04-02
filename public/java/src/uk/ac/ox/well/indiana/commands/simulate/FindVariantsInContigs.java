@@ -12,6 +12,7 @@ import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.vcf.VCFFileReader;
+import org.apache.commons.collections.comparators.ReverseComparator;
 import org.apache.commons.lang.StringUtils;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -138,6 +139,10 @@ public class FindVariantsInContigs extends Module {
         }
 
         for (String id : variants.keySet()) {
+            if (id.equals("simchild1934")) {
+                log.info("Hi!");
+            }
+
             VariantContext newvc = variants.get(id);
 
             String denovo = newvc.getAttributeAsString("DENOVO", "NA");
@@ -151,7 +156,12 @@ public class FindVariantsInContigs extends Module {
             boolean variantFound = false;
             String matchedSeq = "NA";
             int matchedPos = 0;
+            int variantPos = 0;
+            int pos1 = -1;
+            int pos2 = -1;
             int length = 0;
+            String flank1 = "NA";
+            String flank2 = "NA";
 
             if (newvc.isSimpleInsertion()) {
                 length = newvc.getAlternateAllele(0).length() - newvc.getReference().length();
@@ -173,47 +183,44 @@ public class FindVariantsInContigs extends Module {
                 String leftFlankFw  = newvc.getAttributeAsString("flank_left", "N");
                 String altAlleleFw  = newvc.isVariant() ? newvc.getAlternateAllele(0).getBaseString() : newvc.getReference().getBaseString();
                 String rightFlankFw = newvc.getAttributeAsString("flank_right", "N");
-                String patternFw    = ".*(" + leftFlankFw + ".*" + altAlleleFw + ".*" + rightFlankFw + ").*";
+                String patternFw    = ".*(" + leftFlankFw + ")" + altAlleleFw + "(" + rightFlankFw + ").*";
 
                 String leftFlankRc  = SequenceUtils.reverseComplement(leftFlankFw);
                 String altAlleleRc  = SequenceUtils.reverseComplement(altAlleleFw);
                 String rightFlankRc = SequenceUtils.reverseComplement(rightFlankFw);
-                String patternRc    = ".*(" + rightFlankRc + ".*" + altAlleleRc + ".*" + leftFlankRc + ").*";
+                String patternRc    = ".*(" + rightFlankRc + ")" + altAlleleRc + "(" + leftFlankRc + ").*";
 
                 if (contig.contains(leftFlankFw) && contig.contains(rightFlankFw)) {
-                    int leftFlankIndex = contig.indexOf(leftFlankFw);
-                    int rightFlankIndex = contig.indexOf(rightFlankFw);
-
-                    int start = (leftFlankIndex < rightFlankIndex) ? leftFlankIndex : rightFlankIndex;
-                    int stop = leftFlankFw.length() + ((leftFlankIndex < rightFlankIndex) ? rightFlankIndex : leftFlankIndex);
-
-                    String subcontig = contig.substring(start, stop);
-
                     Pattern pFw = Pattern.compile(patternFw);
-                    Matcher mFw = pFw.matcher(subcontig);
+                    Matcher mFw = pFw.matcher(contig);
 
                     if (mFw.matches()) {
-                        matchedSeq = mFw.group(1);
-                        matchedPos = mFw.start(1) + start;
+                        matchedSeq = mFw.group(0);
+                        matchedPos = mFw.start(1);
+                        variantPos = mFw.end(1) + 1;
+                        pos1 = mFw.start(1);
+                        pos2 = mFw.start(2);
 
                         variantFound = true;
+
+                        flank1 = mFw.group(1);
+                        flank2 = mFw.group(2);
                     }
                 } else if (contig.contains(leftFlankRc) && contig.contains(rightFlankRc)) {
-                    int leftFlankIndex = contig.indexOf(leftFlankRc);
-                    int rightFlankIndex = contig.indexOf(rightFlankRc);
-
-                    int start = (leftFlankIndex < rightFlankIndex) ? leftFlankIndex : rightFlankIndex;
-                    int stop = leftFlankRc.length() + ((leftFlankIndex < rightFlankIndex) ? rightFlankIndex : leftFlankIndex);
-
-                    String subcontig = contig.substring(start, stop);
                     Pattern pRc = Pattern.compile(patternRc);
-                    Matcher mRc = pRc.matcher(subcontig);
+                    Matcher mRc = pRc.matcher(contig);
 
                     if (mRc.matches()) {
-                        matchedSeq = mRc.group(1);
-                        matchedPos = mRc.start(1) + start;
+                        matchedSeq = mRc.group(0);
+                        matchedPos = mRc.start(1);
+                        variantPos = mRc.end(1) + 1;
+                        pos1 = mRc.start(1);
+                        pos2 = mRc.start(2);
 
                         variantFound = true;
+
+                        flank1 = mRc.group(1);
+                        flank2 = mRc.group(2);
                     }
                 }
             }
@@ -225,7 +232,7 @@ public class FindVariantsInContigs extends Module {
             te.put("length", String.valueOf(length));
             te.put("variantFound", variantFound ? "TRUE" : "FALSE");
             te.put("matchedPos", String.valueOf(matchedPos));
-            te.put("variantPos", String.valueOf(matchedPos + ((end1 == null) ? 0 : end1.getReadLength())));
+            te.put("variantPos", String.valueOf(variantPos));
             te.put("chr", newvc.getChr());
             te.put("start", String.valueOf(newvc.getStart()));
             te.put("gcindex", gcid);
@@ -233,14 +240,14 @@ public class FindVariantsInContigs extends Module {
             te.put("repUnit", repUnit);
             te.put("repsBefore", String.valueOf(repsBefore));
             te.put("repsAfter", String.valueOf(repsAfter));
-            te.put("flank1", end1 == null ? "NA" : end1.getReadString());
-            te.put("flank2", end2 == null ? "NA" : end2.getReadString());
+            te.put("flank1", flank1);
+            te.put("flank2", flank2);
             te.put("mq1", end1 == null ? "NA" : String.valueOf(end1.getMappingQuality()));
             te.put("mq2", end2 == null ? "NA" : String.valueOf(end2.getMappingQuality()));
             te.put("contig1", end1 == null ? "NA" : end1.getReferenceName());
             te.put("contig2", end2 == null ? "NA" : end2.getReferenceName());
-            te.put("pos1", end1 == null ? "NA" : String.valueOf(end1.getAlignmentStart()));
-            te.put("pos2", end2 == null ? "NA" : String.valueOf(end2.getAlignmentStart()));
+            te.put("pos1", pos1 < 0 ? "NA" : String.valueOf(pos1));
+            te.put("pos2", pos2 < 0 ? "NA" : String.valueOf(pos2));
             te.put("matchedSeq", matchedSeq);
             te.put("refAllele", newvc.getReference().getBaseString());
             te.put("altAllele", newvc.getAlternateAllele(0).getBaseString());
