@@ -13,6 +13,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -43,7 +44,7 @@ public class CallDeNovoVariants extends Module {
     public File KNOWN_TABLE;
 
     @Output
-    public File out;
+    public PrintStream out;
 
     private class Entry {
         private Map<String, String> attributes;
@@ -112,6 +113,9 @@ public class CallDeNovoVariants extends Module {
         private StringBuilder asb;
         private StringBuilder csb;
         private StringBuilder ksb;
+
+        private String contigName;
+        private String contig;
 
         @Override
         public String toString() {
@@ -182,13 +186,15 @@ public class CallDeNovoVariants extends Module {
             TableReader tr = new TableReader(KNOWN_TABLE);
 
             for (Map<String, String> te : tr) {
-                String contig1 = te.get("contig1");
+                if (te.get("variantFound").equals("TRUE")) {
+                    String contig1 = te.get("contig1");
 
-                if (!knownVariants.containsKey(contig1)) {
-                    knownVariants.put(contig1, new HashSet<Map<String, String>>());
+                    if (!knownVariants.containsKey(contig1)) {
+                        knownVariants.put(contig1, new HashSet<Map<String, String>>());
+                    }
+
+                    knownVariants.get(contig1).add(te);
                 }
-
-                knownVariants.get(contig1).add(te);
             }
         }
 
@@ -239,6 +245,54 @@ public class CallDeNovoVariants extends Module {
         return false;
     }
 
+    private Map<Integer, PutativeVariant> flipVariants(String refSequence, String contig, Map<Integer, PutativeVariant> variants) {
+        Map<Integer, PutativeVariant> newVariants = new TreeMap<Integer, PutativeVariant>();
+
+        for (int pos : variants.keySet()) {
+            PutativeVariant pv = variants.get(pos);
+            PutativeVariant newv = new PutativeVariant();
+
+            newv.refAllele = SequenceUtils.reverseComplement(pv.refAllele);
+            newv.refPos = refSequence.length() - pv.refPos - pv.refAllele.length();
+            newv.refPrevBase = SequenceUtils.reverseComplement(pv.refPrevBase);
+
+            newv.altAllele = SequenceUtils.reverseComplement(pv.altAllele);
+            newv.altPos = contig.length() - pv.altPos - pv.altAllele.length();
+            newv.altPrevBase = SequenceUtils.reverseComplement(pv.altPrevBase);
+
+            newv.pt = pv.pt;
+            newv.numContainedNovelKmers = pv.numContainedNovelKmers;
+            newv.numFlankingNovelKmers = pv.numFlankingNovelKmers;
+
+            newv.plausibleAlleles = new HashSet<String>();
+
+            newv.isFilteredOut = pv.isFilteredOut;
+
+            newv.distanceFromVariantLeft = pv.distanceFromVariantRight;
+            newv.distanceFromVariantRight = pv.distanceFromVariantLeft;
+
+            newv.sr = pv.sr;
+            newv.psb = new StringBuilder(SequenceUtils.reverseComplement(pv.psb.toString()));
+            newv.rsb = new StringBuilder(SequenceUtils.reverseComplement(pv.rsb.toString()));
+            newv.asb = new StringBuilder(SequenceUtils.reverseComplement(pv.asb.toString()));
+            newv.csb = new StringBuilder(SequenceUtils.reverseComplement(pv.csb.toString()));
+            newv.ksb = new StringBuilder(SequenceUtils.reverseComplement(pv.ksb.toString()));
+
+            newv.contigName = pv.contigName;
+            newv.contig = contig;
+
+            if (pv.pt == PutativeVariantType.INV) {
+                if (!contig.substring(newv.altPos, newv.altPos + newv.altAllele.length()).equals(newv.altAllele)) {
+                    //log.info("Hello!");
+                }
+            }
+
+            newVariants.put(newv.altPos, newv);
+        }
+
+        return newVariants;
+    }
+
     private Map<Integer, PutativeVariant> getVariants(Entry e, int refIndex) {
         Map<Integer, PutativeVariant> goodVariants = new TreeMap<Integer, PutativeVariant>();
 
@@ -256,7 +310,10 @@ public class CallDeNovoVariants extends Module {
             log.debug("  ref{}: {}", refIndex, sr.getSAMString().trim());
 
             String refSequence = new String(ref.getSubsequenceAt(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd()).getBases());
-            String contig = sr.getReadString();
+            String contig = e.attributes.get("seq");
+            if (sr.getReadNegativeStrandFlag()) {
+                contig = SequenceUtils.reverseComplement(contig);
+            }
 
             int kmerSize = e.attributes.get("seq").length() - e.attributes.get("kmerOrigin").length() + 1;
             String kmerOrigin = e.attributes.get("kmerOrigin");
@@ -277,13 +334,11 @@ public class CallDeNovoVariants extends Module {
             }
 
             int rpos = 0, cpos = 0;
-            if (sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.S)) {
+            if (sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.S) || sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.H)) {
                 csb.delete(0, sr.getCigar().getCigarElement(0).getLength());
                 ksb.delete(0, sr.getCigar().getCigarElement(0).getLength());
 
                 cpos += sr.getCigar().getCigarElement(0).getLength();
-            } else if (sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.H)) {
-                ksb.delete(0, sr.getCigar().getCigarElement(0).getLength());
             }
 
             if (sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getOperator().equals(CigarOperator.H)) {
@@ -313,6 +368,8 @@ public class CallDeNovoVariants extends Module {
                                 pv.pt = PutativeVariantType.SNP;
                                 pv.plausibleAlleles = new LinkedHashSet<String>();
                                 pv.plausibleAlleles.add(altAllele);
+                                pv.contigName = sr.getReadName();
+                                pv.contig = contig;
 
                                 pvs.add(pv);
                             }
@@ -338,6 +395,8 @@ public class CallDeNovoVariants extends Module {
                         pv.pt = PutativeVariantType.INS;
                         pv.plausibleAlleles = new LinkedHashSet<String>();
                         pv.plausibleAlleles.add(altAllele);
+                        pv.contigName = sr.getReadName();
+                        pv.contig = contig;
 
                         pvs.add(pv);
 
@@ -357,6 +416,8 @@ public class CallDeNovoVariants extends Module {
                         pv.pt = PutativeVariantType.DEL;
                         pv.plausibleAlleles = new LinkedHashSet<String>();
                         pv.plausibleAlleles.add(refAllele);
+                        pv.contigName = sr.getReadName();
+                        pv.contig = contig;
 
                         for (int i = 0; i < refAllele.length(); i++) {
                             if (rpos + i + 1 < refSequence.length() && rpos + i + 1 + ce.getLength() < refSequence.length() && cpos + i < contig.length() && refAllele.charAt(i) == contig.charAt(cpos + i)) {
@@ -376,6 +437,19 @@ public class CallDeNovoVariants extends Module {
                     }
 
                     pos += ce.getLength();
+                }
+            }
+
+            for (PutativeVariant tv : pvs) {
+                String refAllele = refSequence.substring(tv.refPos, tv.refPos + tv.refAllele.length());
+                String altAllele = contig.substring(tv.altPos, tv.altPos + tv.altAllele.length());
+
+                if (!tv.refAllele.equals(refAllele)) {
+                    log.info("Ref allele wrong");
+                }
+
+                if (!tv.altAllele.equals(altAllele)) {
+                    log.info("Alt allele wrong");
                 }
             }
 
@@ -415,6 +489,8 @@ public class CallDeNovoVariants extends Module {
                     // shrink
                     int refStart = pvi.refPos;
                     int refEnd = pvj.refPos + pvj.refAllele.length();
+                    int altStart = pvi.altPos;
+                    int altEnd = pvj.altPos + pvj.altAllele.length();
                     boolean found = false;
                     do {
                         String refAlleleR = SequenceUtils.reverseComplement(refSequence.substring(refStart + 1, refEnd));
@@ -422,13 +498,17 @@ public class CallDeNovoVariants extends Module {
 
                         if (contig.contains(refAlleleR)) {
                             refStart = refStart + 1;
+                            altStart = altStart + 1;
                             found = true;
                         } else if (contig.contains(refAlleleL)) {
                             refEnd = refEnd - 1;
+                            altEnd = altEnd - 1;
                             found = true;
                         } else {
                             refStart = refStart + 1;
                             refEnd = refEnd - 1;
+                            altStart = altStart + 1;
+                            altEnd = altEnd - 1;
                         }
                     } while (!found);
 
@@ -440,6 +520,7 @@ public class CallDeNovoVariants extends Module {
 
                         if (refAlleleR != null && contig.contains(refAlleleR)) {
                             refEnd = refEnd + rightShift;
+                            altEnd = altEnd + rightShift;
                             rightShift++;
                         } else {
                             keepGoing = false;
@@ -454,6 +535,7 @@ public class CallDeNovoVariants extends Module {
 
                         if (refAlleleL != null && contig.contains(refAlleleL)) {
                             refStart = refStart - leftShift;
+                            altStart = altStart - leftShift;
                             leftShift++;
                         } else {
                             keepGoing = false;
@@ -461,7 +543,7 @@ public class CallDeNovoVariants extends Module {
                     } while (keepGoing);
 
                     String refAllele = refSequence.substring(refStart, refEnd);
-                    String altAllele = SequenceUtils.reverseComplement(refAllele);
+                    String altAllele = contig.substring(altStart, altEnd);
 
                     for (int i = inversion.getStart(); i <= inversion.getEnd(); i++) {
                         pvs.get(i).isFilteredOut = true;
@@ -469,10 +551,12 @@ public class CallDeNovoVariants extends Module {
 
                     PutativeVariant pv = new PutativeVariant();
                     pv.refAllele = refAllele;
-                    pv.refPos = pvi.refPos;
+                    pv.refPos = refStart;
                     pv.altAllele = altAllele;
-                    pv.altPos = pvi.altPos;
+                    pv.altPos = altStart;
                     pv.pt = PutativeVariantType.INV;
+                    pv.contigName = sr.getReadName();
+                    pv.contig = contig;
 
                     pvs.add(pv);
                 }
@@ -516,7 +600,7 @@ public class CallDeNovoVariants extends Module {
 
                     boolean matchesExistingStr = prevBases1 != null && nextBases1 != null && (finalRepeatingUnit.equals(prevBases1) || finalRepeatingUnit.equals(nextBases1));
 
-                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr && finalRepeatUnitLength >= 2) {
+                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr && finalRepeatUnitLength >= 3) {
                         pvs.get(i).pt = pvs.get(i).pt == PutativeVariantType.DEL ? PutativeVariantType.STR_CON : PutativeVariantType.STR_EXP;
                     }
                 }
@@ -603,6 +687,31 @@ public class CallDeNovoVariants extends Module {
             }
 
             log.debug("");
+
+            for (PutativeVariant tv : goodVariants.values()) {
+                String refAllele = refSequence.substring(tv.refPos, tv.refPos + tv.refAllele.length());
+                String altAllele = contig.substring(tv.altPos, tv.altPos + tv.altAllele.length());
+
+                if (!tv.refAllele.equals(refAllele)) {
+                    throw new IndianaException("Alleles don't match");
+                }
+
+                if (!tv.altAllele.equals(altAllele)) {
+                    throw new IndianaException("Alleles don't match");
+                }
+            }
+
+            if (sr.getReadNegativeStrandFlag()) {
+                goodVariants = flipVariants(refSequence, e.attributes.get("seq"), goodVariants);
+
+                for (PutativeVariant tv : goodVariants.values()) {
+                    String altAllele = e.attributes.get("seq").substring(tv.altPos, tv.altPos + tv.altAllele.length());
+
+                    if (!tv.altAllele.equals(altAllele)) {
+                        throw new IndianaException("Alleles don't match");
+                    }
+                }
+            }
         }
 
         return goodVariants;
@@ -659,8 +768,15 @@ public class CallDeNovoVariants extends Module {
         String vAltAllele = v.altAllele;
         String kRefAllele = ke.get("refAllele");
         String kAltAllele = ke.get("altAllele");
+        int vPos = v.altPos;
+        int kPos = Integer.valueOf(ke.get("variantStart"));
+        boolean samePos = Math.abs(vPos - kPos) < 2;
 
         boolean found = false;
+
+        if (ke.get("event").equals("INV")) {
+            //log.info("Hello again!");
+        }
 
         if (ke.get("event").equals("SNP") || ke.get("event").equals("INV")) {
             found = vRefAllele.equals(kRefAllele) && vAltAllele.equals(kAltAllele);
@@ -668,6 +784,10 @@ public class CallDeNovoVariants extends Module {
             found = vAltAllele.equals(kAltAllele) || vAltAllele.equals(kAltAllele.substring(1, kAltAllele.length())) || vAltAllele.equals(kAltAllele.substring(0, kAltAllele.length() - 1));
         } else if (ke.get("event").equals("DEL") || ke.get("event").equals("STR_CON")) {
             found = vRefAllele.equals(kRefAllele) || vRefAllele.equals(kRefAllele.substring(1, kRefAllele.length())) || vRefAllele.equals(kRefAllele.substring(0, kRefAllele.length() - 1));
+        }
+
+        if (found && !samePos) {
+            //log.info("Huh?");
         }
 
         return found;
@@ -709,7 +829,6 @@ public class CallDeNovoVariants extends Module {
             for (PutativeVariant v : vs.values()) {
                 if (knownEvents.containsKey(contigName)) {
                     for (Map<String, String> ke : kes) {
-
                         if (fuzzyEquals(v, ke)) {
                             String id = ke.get("id");
                             String event = ke.get("event");
@@ -717,6 +836,12 @@ public class CallDeNovoVariants extends Module {
                             found.get(event).add(id);
 
                             foundClasses.put(id, v.pt.toString());
+
+                            if (event.equals("DEL") && v.pt == PutativeVariantType.UNCLASSIFIED) {
+                                //log.info("Hi! {} {}", ke.get("id"), v);
+                                //v.showAlignment(System.out);
+                                //log.info("");
+                            }
                         }
                     }
                 }
@@ -731,6 +856,8 @@ public class CallDeNovoVariants extends Module {
                     sawEvent = true;
                 }
             }
+
+            //callDeNovoVariants(e);
 
             if (SHOW && sawEvent) {
                 PutativeVariant v = vs.values().iterator().next();
