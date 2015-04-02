@@ -73,6 +73,8 @@ public class SequenceUtils {
             case 'n': rcBase = 'n'; break;
 
             case '.': rcBase = '.'; break;
+
+            default:  rcBase = nucleotide; break;
         }
 
         return rcBase;
@@ -104,6 +106,8 @@ public class SequenceUtils {
             case 'n': rcBase = 'n'; break;
 
             case '.': rcBase = '.'; break;
+
+            default:  rcBase = nucleotide; break;
         }
 
         return rcBase;
