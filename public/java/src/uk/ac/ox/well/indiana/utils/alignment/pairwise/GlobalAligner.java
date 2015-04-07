@@ -4,9 +4,6 @@ import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 
 public class GlobalAligner {
-    private double delta;
-    private double epsilon;
-
     private double[][] tm;
     private double[][] em;
 
@@ -19,9 +16,6 @@ public class GlobalAligner {
     }
 
     private void initialize(double delta, double epsilon) {
-        this.delta = delta;
-        this.epsilon = epsilon;
-
         // Define transition matrix
         tm = new double[3][3];
         tm[0] = new double[] { 1 - 2*delta, delta,   delta   };
@@ -49,19 +43,19 @@ public class GlobalAligner {
             for (int j = 0; j < target.length(); j++) {
                 if (i != 0 && j != 0) {
                     vm[i][j] = em[0][0] * MoreMathUtils.max(
-                            (1 - 2 * delta) * vm[i - 1][j - 1],
-                            (1 - epsilon) * vi[i - 1][j - 1],
-                            (1 - epsilon) * vd[i - 1][j - 1]
+                            tm[0][0] * vm[i - 1][j - 1],
+                            tm[1][0] * vi[i - 1][j - 1],
+                            tm[2][0] * vd[i - 1][j - 1]
                     );
 
                     vi[i][j] = em[1][1] * MoreMathUtils.max(
-                            (delta)*vm[i - 1][j],
-                            (epsilon)*vi[i - 1][j]
+                            tm[0][1]*vm[i - 1][j],
+                            tm[1][1]*vi[i - 1][j]
                     );
 
                     vd[i][j] = em[2][2] * MoreMathUtils.max(
-                            (delta)*vm[i][j - 1],
-                            (epsilon)*vd[i][j - 1]
+                            tm[0][2]*vm[i][j - 1],
+                            tm[2][2]*vd[i][j - 1]
                     );
                 }
             }
