@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.utils.alignment.pairwise;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 
 import java.util.ArrayList;
@@ -9,11 +10,17 @@ import java.util.Arrays;
 import java.util.List;
 
 public class GlobalAligner {
-    private double[][] tm;
-    private double[][] em_match;
-    private double em_indel;
+    private double[][] tm;       // transition matrix
+    private double[][] em_match; // emission matrix (match/mismatches)
+    private double em_indel;     // emission matrix (indels)
 
-    //private double[][] em;
+    private double[][] vm;
+    private double[][] vi;
+    private double[][] vd;
+
+    private int[][] bm;
+    private int[][] bi;
+    private int[][] bd;
 
     public GlobalAligner() { initialize(0.2, 0.1, 0.1); }
 
@@ -39,7 +46,10 @@ public class GlobalAligner {
         em_indel = 0.25;
     }
 
-    public Pair<String, String> align(String query, String target) { return viterbi(query, target); }
+    public Pair<String, String> align(String query, String target) {
+        viterbi(query, target);
+        return traceback(query, target);
+    }
 
     private int baseToIndex(char c) {
         switch (c) {
@@ -59,14 +69,14 @@ public class GlobalAligner {
         return em_match[aIndex][bIndex];
     }
 
-    private Pair<String, String> viterbi(String query, String target) {
-        double[][] vm = new double[query.length() + 1][target.length() + 1];
-        double[][] vi = new double[query.length() + 1][target.length() + 1];
-        double[][] vd = new double[query.length() + 1][target.length() + 1];
+    private void viterbi(String query, String target) {
+        vm = new double[query.length() + 1][target.length() + 1];
+        vi = new double[query.length() + 1][target.length() + 1];
+        vd = new double[query.length() + 1][target.length() + 1];
 
-        int[][] bm = new int[query.length() + 1][target.length() + 1];
-        int[][] bi = new int[query.length() + 1][target.length() + 1];
-        int[][] bd = new int[query.length() + 1][target.length() + 1];
+        bm = new int[query.length() + 1][target.length() + 1];
+        bi = new int[query.length() + 1][target.length() + 1];
+        bd = new int[query.length() + 1][target.length() + 1];
 
         vm[0][0] = 1;
         for (int i = 1; i < query.length() + 1; i++) {
@@ -113,7 +123,9 @@ public class GlobalAligner {
                 }
             }
         }
+    }
 
+    private Pair<String, String> traceback(String query, String target) {
         StringBuilder qa = new StringBuilder();
         StringBuilder ta = new StringBuilder();
 
@@ -164,6 +176,8 @@ public class GlobalAligner {
                     lastState = bd[i][j];
                     j -= 1;
                     break;
+                default:
+                    throw new IndianaException("Saw weird state: " + lastState);
             }
         }
 

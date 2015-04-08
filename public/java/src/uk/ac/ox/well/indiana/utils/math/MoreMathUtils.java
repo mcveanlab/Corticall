@@ -14,8 +14,8 @@ public class MoreMathUtils {
     }
 
     public static int whichMax(double... values) {
-        int maxIndex = -1;
-        double maxValue = Double.MIN_VALUE;
+        int maxIndex = 0;
+        double maxValue = values[0];
 
         for (int i = 0; i < values.length; i++) {
             if (values[i] > maxValue) {
