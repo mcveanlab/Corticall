@@ -22,13 +22,11 @@ public class GlobalAligner {
     private int[][] bi;
     private int[][] bd;
 
-    private double eta;
+    public GlobalAligner() { initialize(0.2, 0.1, 0.1); }
 
-    public GlobalAligner() { initialize(0.2, 0.1, 0.1, 1e-4); }
+    public GlobalAligner(double delta, double epsilon, double tau) { initialize(delta, epsilon, tau); }
 
-    public GlobalAligner(double delta, double epsilon, double tau, double eta) { initialize(delta, epsilon, tau, eta); }
-
-    private void initialize(double delta, double epsilon, double tau, double eta) {
+    private void initialize(double delta, double epsilon, double tau) {
         // Define transition matrix
         tm = new double[5][5];
         tm[0] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau };
@@ -46,8 +44,6 @@ public class GlobalAligner {
 
         // Define emission for indels
         em_indel = 0.25;
-
-        this.eta = eta;
     }
 
     public Pair<String, String> align(String query, String target) {
@@ -101,9 +97,9 @@ public class GlobalAligner {
 
                     double s = Math.log10(pab);
 
-                    double mm = s + vm[i - 1][j - 1];
-                    double mi = s + vi[i - 1][j - 1];
-                    double md = s + vd[i - 1][j - 1];
+                    double mm = s + Math.log10(tm[1][1]) + vm[i - 1][j - 1];
+                    double mi = s + Math.log10(tm[2][1]) + vi[i - 1][j - 1];
+                    double md = s + Math.log10(tm[3][1]) + vd[i - 1][j - 1];
 
                     if (mm > mi && mm > md) {
                         bm[i][j] = 1;
@@ -116,8 +112,8 @@ public class GlobalAligner {
                         vm[i][j] = md;
                     }
 
-                    double im = Math.log10(em_indel) + vm[i - 1][j];
-                    double ii = Math.log10(em_indel) + vi[i - 1][j];
+                    double im = Math.log10(em_indel) + Math.log10(tm[1][1]) + vm[i - 1][j];
+                    double ii = Math.log10(em_indel) + Math.log10(tm[1][2]) + vi[i - 1][j];
 
                     if (im > ii) {
                         bi[i][j] = 1;
@@ -127,8 +123,8 @@ public class GlobalAligner {
                         vi[i][j] = ii;
                     }
 
-                    double dm = Math.log10(em_indel) + vm[i][j - 1];
-                    double dd = Math.log10(em_indel) + vd[i][j - 1];
+                    double dm = Math.log10(em_indel) + Math.log10(tm[1][1]) + vm[i][j - 1];
+                    double dd = Math.log10(em_indel) + Math.log10(tm[1][3]) + vd[i][j - 1];
 
                     if (dm > dd) {
                         bd[i][j] = 1;
