@@ -22,11 +22,13 @@ public class GlobalAligner {
     private int[][] bi;
     private int[][] bd;
 
-    public GlobalAligner() { initialize(0.2, 0.1, 0.1); }
+    private double eta;
 
-    public GlobalAligner(double delta, double epsilon, double tau) { initialize(delta, epsilon, tau); }
+    public GlobalAligner() { initialize(0.2, 0.1, 0.1, 1e-4); }
 
-    private void initialize(double delta, double epsilon, double tau) {
+    public GlobalAligner(double delta, double epsilon, double tau, double eta) { initialize(delta, epsilon, tau, eta); }
+
+    private void initialize(double delta, double epsilon, double tau, double eta) {
         // Define transition matrix
         tm = new double[5][5];
         tm[0] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau };
@@ -44,6 +46,8 @@ public class GlobalAligner {
 
         // Define emission for indels
         em_indel = 0.25;
+
+        this.eta = eta;
     }
 
     public Pair<String, String> align(String query, String target) {
@@ -78,47 +82,60 @@ public class GlobalAligner {
         bi = new int[query.length() + 1][target.length() + 1];
         bd = new int[query.length() + 1][target.length() + 1];
 
-        vm[0][0] = 1;
+        for (int i = 0; i < query.length() + 1; i++) {
+            for (int j = 0; j < target.length() + 1; j++) {
+                vm[i][j] = Double.NEGATIVE_INFINITY;
+                vi[i][j] = Double.NEGATIVE_INFINITY;
+                vd[i][j] = Double.NEGATIVE_INFINITY;
+            }
+        }
+
+        vm[0][0] = Math.log10(1);
+        vi[0][0] = Double.NEGATIVE_INFINITY;
+        vd[0][0] = Double.NEGATIVE_INFINITY;
+
         for (int i = 1; i < query.length() + 1; i++) {
             for (int j = 1; j < target.length() + 1; j++) {
                 if (i != 0 && j != 0) {
-                    double s = emissionMatch(query.charAt(i - 1), target.charAt(j - 1));
+                    double pab = emissionMatch(query.charAt(i - 1), target.charAt(j - 1));
 
-                    double mm = tm[1][1] * vm[i - 1][j - 1];
-                    double mi = tm[2][1] * vi[i - 1][j - 1];
-                    double md = tm[3][1] * vd[i - 1][j - 1];
+                    double s = Math.log10(pab);
+
+                    double mm = s + vm[i - 1][j - 1];
+                    double mi = s + vi[i - 1][j - 1];
+                    double md = s + vd[i - 1][j - 1];
 
                     if (mm > mi && mm > md) {
                         bm[i][j] = 1;
-                        vm[i][j] = s*mm;
+                        vm[i][j] = mm;
                     } else if (mi > mm && mi > md) {
                         bm[i][j] = 2;
-                        vm[i][j] = s*mi;
+                        vm[i][j] = mi;
                     } else {
                         bm[i][j] = 3;
-                        vm[i][j] = s*md;
+                        vm[i][j] = md;
                     }
 
-                    double im = tm[1][2]*vm[i - 1][j];
-                    double ii = tm[2][2]*vi[i - 1][j];
+                    double im = Math.log10(em_indel) + vm[i - 1][j];
+                    double ii = Math.log10(em_indel) + vi[i - 1][j];
 
                     if (im > ii) {
                         bi[i][j] = 1;
-                        vi[i][j] = em_indel * tm[1][2]*vm[i - 1][j];
+                        vi[i][j] = im;
                     } else {
                         bi[i][j] = 2;
-                        vi[i][j] = em_indel * tm[2][2]*vm[i - 1][j];
+                        vi[i][j] = ii;
                     }
 
-                    double dm = tm[1][2]*vm[i][j - 1];
-                    double dd = tm[3][3]*vd[i][j - 1];
+                    double dm = Math.log10(em_indel) + vm[i][j - 1];
+                    double dd = Math.log10(em_indel) + vd[i][j - 1];
 
                     if (dm > dd) {
                         bd[i][j] = 1;
-                        vd[i][j] = em_indel * tm[1][3]*vm[i][j - 1];
+                        vd[i][j] = dm;
                     } else {
                         bd[i][j] = 3;
-                        vd[i][j] = em_indel * tm[3][3]*vm[i][j - 1];
+                        vd[i][j] = dd;
                     }
                 }
             }

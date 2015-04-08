@@ -13,7 +13,7 @@ public class GlobalAlignerTest {
         GlobalAligner ga = new GlobalAligner();
         Pair<String, String> a = ga.align(query, target);
 
-        Assert.assertEquals("T-A-G", a.getFirst());
-        Assert.assertEquals("TTACG", a.getSecond());
+        Assert.assertEquals(a.getFirst(), "T-A-G");
+        Assert.assertEquals(a.getSecond(), "TTACG");
     }
 }
