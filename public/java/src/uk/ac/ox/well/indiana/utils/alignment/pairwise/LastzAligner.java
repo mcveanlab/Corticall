@@ -10,13 +10,13 @@ import htsjdk.samtools.util.ProcessExecutor;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
 public class LastzAligner {
-    private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
+    //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
+    private final String lastzPath = "lastz";
 
     public void align(ReferenceSequence query, File targets, String format) {
         try {
