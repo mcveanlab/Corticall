@@ -1,0 +1,75 @@
+package uk.ac.ox.well.indiana.utils.alignment.pairwise;
+
+import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.ProcessExecutor;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.*;
+
+public class LastzAligner {
+    private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
+    private final String format = "";
+
+    public Map<String, String[]> alignAll(Set<ReferenceSequence> queries, File targets) {
+        try {
+            File tempQueries = File.createTempFile("queries", ".fa");
+
+            PrintStream qw = new PrintStream(tempQueries);
+            for (ReferenceSequence query : queries) {
+                qw.println(">" + query.getName());
+                qw.println(new String(query.getBases()));
+            }
+            qw.close();
+
+            String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
+
+            tempQueries.delete();
+
+            Map<String, Set<String[]>> alignments = new HashMap<String, Set<String[]>>();
+            for (String line : result.split("\n")) {
+                String[] fields = line.split("\\s+");
+
+                String contigName = fields[0];
+
+                if (!alignments.containsKey(contigName)) {
+                    alignments.put(contigName, new HashSet<String[]>());
+                }
+
+                alignments.get(contigName).add(fields);
+            }
+
+            Map<String, String[]> results = new HashMap<String, String[]>();
+
+            for (String contigName : alignments.keySet()) {
+                Set<String> cigars = new HashSet<String>();
+
+                for (String[] fields : alignments.get(contigName)) {
+                    cigars.add(fields[5]);
+                }
+
+                if (cigars.size() == 1) {
+                    String[] fields = alignments.get(contigName).iterator().next();
+                    if (alignments.get(contigName).size() > 1) {
+                        fields[4] = "0";
+                    }
+
+                    results.put(contigName, fields);
+                }
+            }
+
+            return results;
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
+}
