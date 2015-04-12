@@ -28,19 +28,27 @@ public class GlobalAligner {
 
     private void initialize(double delta, double epsilon, double tau) {
         // Define transition matrix
+        //                     b  m                    i        d        e
         tm = new double[5][5];
-        tm[0] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau };
-        tm[1] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau };
-        tm[2] = new double[] { 0, 1 - epsilon - tau,   epsilon, 0,       tau };
-        tm[3] = new double[] { 0, 1 - epsilon - tau,   0,       epsilon, tau };
-        tm[4] = new double[] { 0, 0,                   0,       0,       0   };
+        tm[0] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau }; // b
+        tm[1] = new double[] { 0, 1 - (2*delta) - tau, delta,   delta,   tau }; // m
+        tm[2] = new double[] { 0, 1 - epsilon - tau,   epsilon, 0,       tau }; // i
+        tm[3] = new double[] { 0, 1 - epsilon - tau,   0,       epsilon, tau }; // d
+        tm[4] = new double[] { 0, 0,                   0,       0,       0   }; // e
 
         // Define emission for matches
         em_match = new double[4][4];
+        /*
         em_match[0] = new double[] { 0.50, 0.05, 0.15, 0.30 };
         em_match[1] = new double[] { 0.05, 0.50, 0.30, 0.15 };
         em_match[2] = new double[] { 0.15, 0.30, 0.50, 0.05 };
         em_match[3] = new double[] { 0.30, 0.15, 0.05, 0.50 };
+        */
+
+        em_match[0] = new double[] { 0.85, 0.05, 0.05, 0.05 };
+        em_match[1] = new double[] { 0.05, 0.85, 0.05, 0.05 };
+        em_match[2] = new double[] { 0.05, 0.05, 0.85, 0.05 };
+        em_match[3] = new double[] { 0.05, 0.05, 0.05, 0.85 };
 
         // Define emission for indels
         em_indel = 0.25;
@@ -166,6 +174,8 @@ public class GlobalAligner {
                 lastState = bd[i][j];
                 j -= 1;
                 break;
+            default:
+                throw new IndianaException("Saw weird max");
         }
 
         while (i > 0 && j > 0) {
