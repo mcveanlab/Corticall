@@ -17,7 +17,26 @@ import java.util.*;
 
 public class LastzAligner {
     private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
-    private final String format = "";
+
+    public void align(ReferenceSequence query, File targets, String format) {
+        try {
+            File tempQuery = File.createTempFile("query", ".fa");
+
+            PrintStream qw = new PrintStream(tempQuery);
+            qw.println(">" + query.getName());
+            qw.println(new String(query.getBases()));
+            qw.close();
+
+            String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQuery.getAbsolutePath(), format));
+
+            tempQuery.delete();
+
+            System.out.println(result);
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
 
     public Map<String, String[]> alignAll(Set<ReferenceSequence> queries, File targets) {
         try {
@@ -32,8 +51,6 @@ public class LastzAligner {
 
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
-
-            tempQueries.delete();
 
             Map<String, Set<String[]>> alignments = new HashMap<String, Set<String[]>>();
             for (String line : result.split("\n")) {
@@ -66,6 +83,8 @@ public class LastzAligner {
                     results.put(contigName, fields);
                 }
             }
+
+            tempQueries.delete();
 
             return results;
         } catch (IOException e) {

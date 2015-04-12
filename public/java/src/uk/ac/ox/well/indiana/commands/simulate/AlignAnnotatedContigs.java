@@ -61,6 +61,10 @@ public class AlignAnnotatedContigs extends Module {
         boolean isUnaligned = refLocus.equals("*:0-0") || refLocus.equals("NA");
         boolean clippedInRef = te.get("clippedInRef" + refIndex).equals("1");
 
+        //if (te.get("contigName").contains("contig-5999")) {
+            //log.info("Hi!");
+        //}
+
         return (isUnaligned || clippedInRef);
     }
 
@@ -110,12 +114,15 @@ public class AlignAnnotatedContigs extends Module {
             String contigName = te.get("contigName");
             String seq = te.get("seq");
             String kmerOrigin = te.get("kmerOrigin");
-            String softMaskedSeq = softMaskSequence(seq, kmerOrigin);
+            //String softMaskedSeq = softMaskSequence(seq, kmerOrigin);
 
-            ReferenceSequence query = new ReferenceSequence(contigName, 0, softMaskedSeq.getBytes());
+            //ReferenceSequence query = new ReferenceSequence(contigName, 0, softMaskedSeq.getBytes());
+            ReferenceSequence query = new ReferenceSequence(contigName, 0, seq.getBytes());
 
-            if (shouldRealign(te, 0)) { queries0.add(query); }
-            if (shouldRealign(te, 1)) { queries1.add(query); }
+            //if (contigName.equals("contig-5999")) {
+                if (shouldRealign(te, 0)) { queries0.add(query); }
+                if (shouldRealign(te, 1)) { queries1.add(query); }
+            //}
 
             //if (queries0.size() == 10) { break; }
         }
