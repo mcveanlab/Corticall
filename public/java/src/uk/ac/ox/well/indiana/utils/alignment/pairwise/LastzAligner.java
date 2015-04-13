@@ -52,6 +52,8 @@ public class LastzAligner {
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
 
+            System.out.println(result);
+
             Map<String, Set<String[]>> alignments = new HashMap<String, Set<String[]>>();
             for (String line : result.split("\n")) {
                 String[] fields = line.split("\\s+");
