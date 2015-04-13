@@ -6,10 +6,12 @@ import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
@@ -52,22 +54,18 @@ public class CallDeNovoVariants extends Module {
         private SAMRecord sr1;
     }
 
-    private Map<String, Entry> loadEntriesWithNovelKmers() {
+    private Map<String, Entry> loadEntries() {
         Map<String, Entry> entries = new LinkedHashMap<String, Entry>();
 
         TableReader tr = new TableReader(METRICS);
 
         for (Map<String, String> te : tr) {
-            //int refNovel = Integer.valueOf(te.get("refNovel"));
+            String contigName = te.get("contigName");
 
-            //if (refNovel > 0) {
-                String contigName = te.get("contigName");
+            Entry e = new Entry();
+            e.attributes = te;
 
-                Entry e = new Entry();
-                e.attributes = te;
-
-                entries.put(contigName, e);
-            //}
+            entries.put(contigName, e);
         }
 
         for (SAMRecord sr0 : BAM0) {
@@ -91,10 +89,12 @@ public class CallDeNovoVariants extends Module {
         private String refAllele = "";
         private int refPos = -1;
         private String refPrevBase = "";
+        private String refNextBase = "";
 
         private String altAllele = "";
         private int altPos = -1;
         private String altPrevBase = "";
+        private String altNextBase = "";
 
         private PutativeVariantType pt = PutativeVariantType.SNP;
         private int numContainedNovelKmers = 0;
@@ -116,6 +116,7 @@ public class CallDeNovoVariants extends Module {
 
         private String contigName;
         private String contig;
+        private String refSequence;
 
         @Override
         public String toString() {
@@ -343,7 +344,7 @@ public class CallDeNovoVariants extends Module {
 
             if (sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getOperator().equals(CigarOperator.H)) {
                 int hclength = sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getLength();
-                ksb.delete(ksb.length() - hclength - 1, ksb.length());
+                //ksb.delete(ksb.length() - hclength - 1, ksb.length());
             }
 
             List<PutativeVariant> pvs = new ArrayList<PutativeVariant>();
@@ -440,6 +441,7 @@ public class CallDeNovoVariants extends Module {
                 }
             }
 
+            /*
             for (PutativeVariant tv : pvs) {
                 String refAllele = refSequence.substring(tv.refPos, tv.refPos + tv.refAllele.length());
                 String altAllele = contig.substring(tv.altPos, tv.altPos + tv.altAllele.length());
@@ -452,6 +454,7 @@ public class CallDeNovoVariants extends Module {
                     log.info("Alt allele wrong");
                 }
             }
+            */
 
             log.debug("  {}", psb.toString());
             log.debug("  {}", rsb.toString());
@@ -684,6 +687,8 @@ public class CallDeNovoVariants extends Module {
                 if (goodVariants.containsKey(pos1)) {
                     goodVariants.get(posT).distanceFromVariantRight = goodVariants.get(pos1).altPos - goodVariants.get(posT).altPos;
                 }
+
+                goodVariants.get(posT).refSequence = refSequence;
             }
 
             log.debug("");
@@ -737,23 +742,23 @@ public class CallDeNovoVariants extends Module {
                     ) {
                         dn.put(index, v0.get(index));
                     } else {
-                        v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                        dn.put(index, v0.get(index));
+                        //v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
+                        //dn.put(index, v0.get(index));
                     }
                 } else {
                     dn.put(index, v0.get(index));
                 }
             } else if (v0.containsKey(index) && !v1.containsKey(index) && (v0.get(index).numContainedNovelKmers > 0 || v0.get(index).numFlankingNovelKmers > 0)) {
                 if (v0.get(index).pt == PutativeVariantType.SNP) {
-                    v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                    dn.put(index, v0.get(index));
+                    //v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
+                    //dn.put(index, v0.get(index));
                 } else {
                     dn.put(index, v0.get(index));
                 }
             } else if (!v0.containsKey(index) && v1.containsKey(index) && (v1.get(index).numContainedNovelKmers > 0 || v1.get(index).numFlankingNovelKmers > 0)) {
                 if (v1.get(index).pt == PutativeVariantType.SNP) {
-                    v1.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                    dn.put(index, v1.get(index));
+                    //v1.get(index).pt = PutativeVariantType.UNCLASSIFIED;
+                    //dn.put(index, v1.get(index));
                 } else {
                     dn.put(index, v1.get(index));
                 }
@@ -770,13 +775,9 @@ public class CallDeNovoVariants extends Module {
         String kAltAllele = ke.get("altAllele");
         int vPos = v.altPos;
         int kPos = Integer.valueOf(ke.get("variantStart"));
-        boolean samePos = Math.abs(vPos - kPos) < 2;
+        boolean samePos = Math.abs(vPos - kPos) < 2 || (kPos + 1 + vAltAllele.length() < v.contig.length() && v.contig.substring(kPos + 1, kPos + 1 + vAltAllele.length()).equals(vAltAllele));
 
         boolean found = false;
-
-        if (ke.get("event").equals("INV")) {
-            //log.info("Hello again!");
-        }
 
         if (ke.get("event").equals("SNP") || ke.get("event").equals("INV")) {
             found = vRefAllele.equals(kRefAllele) && vAltAllele.equals(kAltAllele);
@@ -795,7 +796,7 @@ public class CallDeNovoVariants extends Module {
 
     @Override
     public void execute() {
-        Map<String, Entry> entries = loadEntriesWithNovelKmers();
+        Map<String, Entry> entries = loadEntries();
         Map<String, Set<Map<String, String>>> knownEvents = loadExistingEvents();
 
         Map<PutativeVariantType, Integer> counts = new TreeMap<PutativeVariantType, Integer>();
@@ -819,61 +820,72 @@ public class CallDeNovoVariants extends Module {
             }
         }
 
+        LastzAligner la = new LastzAligner();
+
         for (String contigName : entries.keySet()) {
             Entry e = entries.get(contigName);
 
-            Map<Integer, PutativeVariant> vs = callDeNovoVariants(e);
-            Set<Map<String, String>> kes = (knownEvents.containsKey(contigName)) ? knownEvents.get(contigName) : null;
+            if (e.sr0.getMappingQuality() > 0 && e.sr1.getMappingQuality() > 0) {
+                Set<Map<String, String>> kes = (knownEvents.containsKey(contigName)) ? knownEvents.get(contigName) : null;
+                Map<Integer, PutativeVariant> vs = callDeNovoVariants(e);
 
-            boolean sawEvent = false;
-            for (PutativeVariant v : vs.values()) {
-                if (knownEvents.containsKey(contigName)) {
-                    for (Map<String, String> ke : kes) {
-                        if (fuzzyEquals(v, ke)) {
-                            String id = ke.get("id");
-                            String event = ke.get("event");
+                ReferenceSequence rseq = new ReferenceSequence(contigName, 0, e.attributes.get("seq").getBytes());
 
-                            found.get(event).add(id);
+                /*
+                if (!knownEvents.containsKey(contigName) && vs.size() > 0) {
+                    vs.values().iterator().next().showAlignment(System.out);
 
-                            foundClasses.put(id, v.pt.toString());
+                    la.align(rseq, new File("/Users/kiran/ngs/references/plasmodium/falciparum/3D7/PlasmoDB-9.0/PlasmoDB-9.0_Pfalciparum3D7_Genome.fasta"), "maf-");
+                    la.align(rseq, new File("pseudo.hb3.fasta"), "maf-");
 
-                            if (event.equals("DEL") && v.pt == PutativeVariantType.UNCLASSIFIED) {
-                                //log.info("Hi! {} {}", ke.get("id"), v);
-                                //v.showAlignment(System.out);
-                                //log.info("");
+                    log.info("Hello!");
+                }
+                */
+
+                boolean sawEvent = false;
+                for (PutativeVariant v : vs.values()) {
+                    if (knownEvents.containsKey(contigName)) {
+                        for (Map<String, String> ke : kes) {
+                            if (fuzzyEquals(v, ke)) {
+                                String id = ke.get("id");
+                                String event = ke.get("event");
+
+                                found.get(event).add(id);
+
+                                foundClasses.put(id, v.pt.toString());
                             }
                         }
                     }
+
+                    if (!counts.containsKey(v.pt)) {
+                        counts.put(v.pt, 0);
+                    } else {
+                        counts.put(v.pt, counts.get(v.pt) + 1);
+                    }
+
+                    if (v.pt == PutativeVariantType.UNCLASSIFIED) {
+                        sawEvent = true;
+                    }
                 }
 
-                if (!counts.containsKey(v.pt)) {
-                    counts.put(v.pt, 0);
-                } else {
-                    counts.put(v.pt, counts.get(v.pt) + 1);
+                //callDeNovoVariants(e);
+
+                if (SHOW && sawEvent) {
+                    PutativeVariant v = vs.values().iterator().next();
+
+                    log.info("{}", v.sr.getSAMString().trim());
+                    log.info("{}", v.psb.toString());
+                    log.info("{}", v.rsb.toString());
+                    log.info("{}", v.asb.toString());
+                    log.info("{}", v.csb.toString());
+                    log.info("{}", v.ksb.toString());
+
+                    for (PutativeVariant v1 : vs.values()) {
+                        log.info("{}", v1);
+                    }
+
+                    log.info("");
                 }
-
-                if (v.pt == PutativeVariantType.UNCLASSIFIED) {
-                    sawEvent = true;
-                }
-            }
-
-            //callDeNovoVariants(e);
-
-            if (SHOW && sawEvent) {
-                PutativeVariant v = vs.values().iterator().next();
-
-                log.info("{}", v.sr.getSAMString().trim());
-                log.info("{}", v.psb.toString());
-                log.info("{}", v.rsb.toString());
-                log.info("{}", v.asb.toString());
-                log.info("{}", v.csb.toString());
-                log.info("{}", v.ksb.toString());
-
-                for (PutativeVariant v1 : vs.values()) {
-                    log.info("{}", v1);
-                }
-
-                log.info("");
             }
         }
 
