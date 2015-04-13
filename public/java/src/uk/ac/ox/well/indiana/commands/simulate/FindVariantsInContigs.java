@@ -126,14 +126,6 @@ public class FindVariantsInContigs extends Module {
             }
         }
 
-        for (String totalId : gcVariants.keySet()) {
-            //log.info("  id={}", totalId);
-
-            for (VariantContext newvc : gcVariants.get(totalId)) {
-                //log.info("    vc={}", newvc);
-            }
-        }
-
         for (String id : idsToRemove) {
             variants.remove(id);
         }
