@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.sequence;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
 import java.util.*;
@@ -282,7 +283,7 @@ public class SequenceUtils {
      */
     public static int numSegregatingSites(String s1, String s2) {
         if (s1.length() != s2.length()) {
-            throw new RuntimeException("Cannot compute number of segreating sites between sequences of different lengths (" + s1.length() + " vs " + s2.length() + ")");
+            throw new IndianaException("Cannot compute number of segregating sites between sequences of different lengths (" + s1.length() + " vs " + s2.length() + ")");
         }
 
         int S = 0;
