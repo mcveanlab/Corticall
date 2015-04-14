@@ -83,8 +83,8 @@ public class Main {
         Properties prop = getBuildProperties();
 
         String version = prop.get("major.version") + "." + prop.get("minor.version") + "-" + prop.get("git.version");
-        String gitDate = (String) prop.get("git.date");
-        String buildDate = (String) prop.get("build.date");
+        String gitDate = ((String) prop.get("git.date")).trim();
+        String buildDate = ((String) prop.get("build.date")).trim();
         String dates = "(repo) " + gitDate + "; (build) " + buildDate;
         log.info(progName + " {}; {}", version, dates);
     }
@@ -185,26 +185,32 @@ public class Main {
      */
     private static void showPrimaryHelp() {
         //Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
-        Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
+        //Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
 
+        /*
         int maxlength = 0;
         for (String t : commands.keySet()) {
             maxlength = (t.length() > maxlength) ? t.length() : maxlength;
         }
+        */
 
         Properties prop = getBuildProperties();
+
+        String gitDate = ((String) prop.get("git.date")).trim();
+        String buildDate = ((String) prop.get("build.date")).trim();
 
         System.out.println();
         System.out.println("Program: " + progName + " (" + progDesc + ")");
         System.out.println();
         System.out.format("Version: %s.%s.%s (%s)%n", prop.get("major.version"), prop.get("minor.version"), prop.get("git.version"), prop.getProperty("git.version.long"));
-        System.out.println("Times:   (repo) " + prop.get("git.date") + "; (build) " + prop.get("build.date"));
+        System.out.println("Times:   (repo) " + gitDate + "; (build) " + buildDate);
         System.out.println("Contact: Kiran V Garimella <kiran@well.ox.ac.uk>");
         System.out.println();
 
         System.out.println("Usage:   java -jar " + progName.toLowerCase() + ".jar <command> [options]");
         System.out.println();
 
+        /*
         System.out.print("Command:");
         int padwidth = 1;
         for (String t : commands.keySet()) {
@@ -217,6 +223,7 @@ public class Main {
         }
 
         System.out.println();
+        */
     }
 
     /**
