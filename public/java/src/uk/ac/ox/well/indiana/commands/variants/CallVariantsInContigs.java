@@ -76,6 +76,7 @@ public class CallVariantsInContigs extends Module {
                                 .attribute("mappingQuality", alignment.getMappingQuality())
                                 .attribute("cigarString", alignment.getCigarString())
                                 .attribute("alignmentLength", alignment.getAlignmentEnd() - alignment.getAlignmentStart())
+                                .attribute("contigStrand", alignment.getReadNegativeStrandFlag() ? "negative" : "positive")
                                 .genotypes(g)
                                 .make();
 
@@ -102,6 +103,7 @@ public class CallVariantsInContigs extends Module {
                         .attribute("mappingQuality", alignment.getMappingQuality())
                         .attribute("cigarString", alignment.getCigarString())
                         .attribute("alignmentLength", alignment.getAlignmentEnd() - alignment.getAlignmentStart())
+                        .attribute("contigStrand", alignment.getReadNegativeStrandFlag() ? "negative" : "positive")
                         .genotypes(g)
                         .make();
 
@@ -126,6 +128,7 @@ public class CallVariantsInContigs extends Module {
                         .attribute("mappingQuality", alignment.getMappingQuality())
                         .attribute("cigarString", alignment.getCigarString())
                         .attribute("alignmentLength", alignment.getAlignmentEnd() - alignment.getAlignmentStart())
+                        .attribute("contigStrand", alignment.getReadNegativeStrandFlag() ? "negative" : "positive")
                         .genotypes(g)
                         .make();
 
@@ -212,6 +215,7 @@ public class CallVariantsInContigs extends Module {
         header.addMetaDataLine(new VCFInfoHeaderLine("mappingQuality", 1, VCFHeaderLineType.Integer, "The mapping quality of the contig"));
         header.addMetaDataLine(new VCFInfoHeaderLine("cigarString", 1, VCFHeaderLineType.String, "The cigar string describing the alignment of the contig to the reference"));
         header.addMetaDataLine(new VCFInfoHeaderLine("alignmentLength", 1, VCFHeaderLineType.Integer, "The length of the aligned portion of the contig"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("contigStrand", 1, VCFHeaderLineType.String, "The strand on which the contig is found relative to the reference (positive or negative)"));
         vcw.writeHeader(header);
 
         int numVariantsWritten = 0;
