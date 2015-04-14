@@ -44,12 +44,17 @@ public class ConstructChunkGraph extends Module {
 
     private class AlignmentEntry {
         private int readA;
-        private int readB;
-        private boolean readBIsReversed;
+        private boolean readAIsReversed;
         private int startA;
         private int endA;
+        private int lengthA;
+
+        private int readB;
+        private boolean readBIsReversed;
         private int startB;
         private int endB;
+        private int lengthB;
+
         private int numDiffs;
         private int numTracePoints;
 
@@ -65,31 +70,62 @@ public class ConstructChunkGraph extends Module {
             String[] fields = line.split("\\s+");
 
             readA = Integer.valueOf(fields[0]);
-            readB = Integer.valueOf(fields[1]);
-            readBIsReversed = fields[2].equals("c");
             startA = Integer.valueOf(fields[3]);
             endA = Integer.valueOf(fields[4]);
+            readAIsReversed = false;
+            lengthA = 0;
+
+            readB = Integer.valueOf(fields[1]);
+            readBIsReversed = fields[2].equals("c");
             startB = Integer.valueOf(fields[5]);
             endB = Integer.valueOf(fields[6]);
+            lengthB = 0;
+
             numDiffs = Integer.valueOf(fields[7]);
             numTracePoints = Integer.valueOf(fields[8]);
         }
+
+        public void setLengthA(int lengthA) { this.lengthA = lengthA; }
+        public void setLengthB(int lengthB) { this.lengthB = lengthB; }
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb
                     .append(readA).append("\t")
                     .append(readB).append("\t")
+                    .append(readAIsReversed ? "c" : "n").append("\t")
                     .append(readBIsReversed ? "c" : "n").append("\t")
-                    .append("[").append(startA).append("..").append(endA).append("]")
+                    .append("[").append(startA).append("..").append(endA).append("] (").append(lengthA).append(") ")
                     .append(" x ")
-                    .append("[").append(startB).append("..").append(endB).append("]")
+                    .append("[").append(startB).append("..").append(endB).append("] (").append(lengthB).append(") ")
                     .append(" : < ")
                     .append(numDiffs).append(" diffs")
                     .append(" (").append(numTracePoints).append(" trace pts)");
 
             return sb.toString();
         }
+
+        public AlignmentEntry flip() {
+            AlignmentEntry aeFlipped = new AlignmentEntry();
+
+            aeFlipped.readA = readB;
+            aeFlipped.readAIsReversed = !readBIsReversed;
+            aeFlipped.lengthA = lengthB;
+            aeFlipped.startA = lengthB - endB;
+            aeFlipped.endA = lengthB - startB;
+
+            aeFlipped.readB = readA;
+            aeFlipped.readBIsReversed = !readAIsReversed;
+            aeFlipped.lengthB = lengthA;
+            aeFlipped.startB = lengthA - endA;
+            aeFlipped.endB = lengthA - startA;
+
+            aeFlipped.numDiffs = numDiffs;
+            aeFlipped.numTracePoints = numTracePoints;
+
+            return aeFlipped;
+        }
+
     }
 
     private class Read {
@@ -324,23 +360,6 @@ public class ConstructChunkGraph extends Module {
         g.removeAllEdges(markedEdges);
     }
 
-    private AlignmentEntry flipAlignmentEntry(AlignmentEntry ae) {
-        log.info("WTF");
-
-        AlignmentEntry aeFlipped = new AlignmentEntry();
-        aeFlipped.readA = ae.readB;
-        aeFlipped.readB = ae.readA;
-        aeFlipped.readBIsReversed = ae.readBIsReversed;
-        aeFlipped.startA = ae.startB;
-        aeFlipped.endA = ae.endB;
-        aeFlipped.startB = ae.startA;
-        aeFlipped.endB = ae.endA;
-        aeFlipped.numDiffs = ae.numDiffs;
-        aeFlipped.numTracePoints = ae.numTracePoints;
-
-        return aeFlipped;
-    }
-
     private DirectedGraph<Read, Overlap> constructOverlapGraph() {
         loadReads();
         loadReadMap();
@@ -357,6 +376,12 @@ public class ConstructChunkGraph extends Module {
                 AlignmentEntry ae = new AlignmentEntry(line);
                 Pair<Integer, Integer> ap = new Pair<Integer, Integer>(ae.readA, ae.readB);
 
+                Read readA = new Read(ae.readA, false, reads.get(ae.readA));
+                Read readB = new Read(ae.readB, ae.readBIsReversed, ae.readBIsReversed ? SequenceUtils.reverseComplement(reads.get(ae.readB)) : reads.get(ae.readB));
+
+                ae.setLengthA(readA.getReadLength());
+                ae.setLengthB(readB.getReadLength());
+
                 if (!alignmentEntryMap.containsKey(ap)) {
                     alignmentEntryMap.put(ap, ae);
                 }
@@ -366,9 +391,6 @@ public class ConstructChunkGraph extends Module {
                 } else {
                     alignmentCounts.put(ap, alignmentCounts.get(ap) + 1);
                 }
-
-                Read readA = new Read(ae.readA, false, reads.get(ae.readA));
-                Read readB = new Read(ae.readB, ae.readBIsReversed, ae.readBIsReversed ? SequenceUtils.reverseComplement(reads.get(ae.readB)) : reads.get(ae.readB));
 
                 if (ae.startA == 0 && ae.endA == readA.getReadLength()) {
                     containedReads.add(ae.readA);
@@ -388,9 +410,18 @@ public class ConstructChunkGraph extends Module {
                 Read readA = new Read(ae.readA, false, reads.get(ae.readA).toUpperCase());
                 Read readB = new Read(ae.readB, ae.readBIsReversed, ae.readBIsReversed ? SequenceUtils.reverseComplement(reads.get(ae.readB)) : reads.get(ae.readB).toUpperCase());
 
-                AlignmentEntry aeRev = alignmentEntryMap.get(apc);
+                AlignmentEntry aeRev = ae.flip();
                 Read readARev = new Read(ae.readA, true, SequenceUtils.reverseComplement(readA.sequence));
                 Read readBRev = new Read(ae.readB, !ae.readBIsReversed, SequenceUtils.reverseComplement(readB.sequence));
+
+                log.info("aeFw: {}", ae);
+                log.info("aeRc: {}", aeRev);
+
+                log.info("{}", readA.getReadSequence().substring(ae.startA, ae.endA));
+                log.info("{}", readB.getReadSequence().substring(ae.startB, ae.endB));
+
+                log.info("{}", readBRev.getReadSequence().substring(aeRev.startA, aeRev.endA));
+                log.info("{}", readARev.getReadSequence().substring(aeRev.startB, aeRev.endB));
 
                 if (readA.getReadLength() >= LENGTH_THRESHOLD && readB.getReadLength() >= LENGTH_THRESHOLD && !containedReads.contains(ae.readA) && !containedReads.contains(ae.readB)) {
                     if (ae.startA == 0 && ae.endB == readB.getReadLength()) {
@@ -544,9 +575,17 @@ public class ConstructChunkGraph extends Module {
 
         public void addRead(Read v, Read t, AlignmentEntry ae) {
             if (v.isReversed) {
-                addRead(v, t, v.getReadLength() - ae.endA);
+                if (ae.readA == v.getReadId()) {
+                    addRead(v, t, v.getReadLength() - ae.endA);
+                } else {
+                    addRead(v, t, ae.endB - ae.endA);
+                }
             } else {
-                addRead(v, t, ae.startA - ae.startB);
+                if (ae.readA == v.getReadId()) {
+                    addRead(v, t, ae.startA - ae.startB);
+                } else {
+                    addRead(v, t, ae.startB - ae.startA);
+                }
             }
         }
 
@@ -555,13 +594,15 @@ public class ConstructChunkGraph extends Module {
                 addRead(v);
             }
 
-            int sourcePos = positions.get(v);
-            int absolutePosition = sourcePos + relativePosition;
+            if (!positions.containsKey(t)) {
+                int sourcePos = positions.get(v);
+                int absolutePosition = sourcePos + relativePosition;
 
-            positions.put(t, absolutePosition);
+                positions.put(t, absolutePosition);
 
-            if (absolutePosition < offset) {
-                offset = absolutePosition;
+                if (absolutePosition < offset) {
+                    offset = absolutePosition;
+                }
             }
         }
 
@@ -573,7 +614,7 @@ public class ConstructChunkGraph extends Module {
                 int position = positions.get(v);
                 int absolutePosition = position - offset;
 
-                sb.append(StringUtil.repeatCharNTimes(' ', absolutePosition)).append(v.getReadSequence()).append(" (").append(v.getLabel()).append(")\n");
+                sb.append(String.format("(%-10s) ", v.getLabel())).append(StringUtil.repeatCharNTimes(' ', absolutePosition)).append(v.getReadSequence()).append("\n");
             }
 
             return sb.toString();
@@ -596,10 +637,13 @@ public class ConstructChunkGraph extends Module {
             Read v = startPoint;
             while (visibleOutDegreeOf(chunk, v) == 1) {
                 for (Overlap e : chunk.outgoingEdgesOf(v)) {
+                    Read s = chunk.getEdgeSource(e);
                     Read t = chunk.getEdgeTarget(e);
                     AlignmentEntry ae = e.getAlignment();
 
-                    ag.addRead(v, t, ae);
+                    ag.addRead(s, t, ae);
+
+                    log.info("align ag={} s={} t={} ae={} num={}\n{}", ag.offset, s.isReversed, t.isReversed, ae, ag.positions.size(), ag);
                 }
 
                 Overlap e = visibleOutgoingEdgesOf(chunk, v).iterator().next();
@@ -637,6 +681,7 @@ public class ConstructChunkGraph extends Module {
             log.info("  chunk {}:", chunkIndex);
             chunkIndex++;
 
+            printChunk(chunk);
             printChunk(chunk);
         }
 
