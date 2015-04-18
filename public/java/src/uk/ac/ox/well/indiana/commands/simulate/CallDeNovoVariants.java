@@ -10,22 +10,24 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.commands.Module;
-import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
 public class CallDeNovoVariants extends Module {
     @Argument(fullName="metrics", shortName="m", doc="Annotated contigs")
     public File METRICS;
+
+    @Argument(fullName="knownTable", shortName="k", doc="Table of known events", required=false)
+    public File KNOWN_TABLE;
 
     @Argument(fullName="ref0", shortName="r0", doc="Reference for parent 0")
     public IndexedFastaSequenceFile REF0;
@@ -38,147 +40,6 @@ public class CallDeNovoVariants extends Module {
 
     @Argument(fullName="bam1", shortName="b1", doc="BAM for parent 1")
     public SAMFileReader BAM1;
-
-    @Argument(fullName="show", shortName="s", doc="Show selected events")
-    public Boolean SHOW = false;
-
-    @Argument(fullName="knownTable", shortName="k", doc="Table of known events", required=false)
-    public File KNOWN_TABLE;
-
-    @Output
-    public PrintStream out;
-
-    private class Entry {
-        private Map<String, String> attributes;
-        private SAMRecord sr0;
-        private SAMRecord sr1;
-    }
-
-    private Map<String, Entry> loadEntries() {
-        Map<String, Entry> entries = new LinkedHashMap<String, Entry>();
-
-        TableReader tr = new TableReader(METRICS);
-
-        for (Map<String, String> te : tr) {
-            String contigName = te.get("contigName");
-
-            Entry e = new Entry();
-            e.attributes = te;
-
-            entries.put(contigName, e);
-        }
-
-        for (SAMRecord sr0 : BAM0) {
-            if (entries.containsKey(sr0.getReadName())) {
-                entries.get(sr0.getReadName()).sr0 = sr0;
-            }
-        }
-
-        for (SAMRecord sr1 : BAM1) {
-            if (entries.containsKey(sr1.getReadName())) {
-                entries.get(sr1.getReadName()).sr1 = sr1;
-            }
-        }
-
-        return entries;
-    }
-
-    private enum PutativeVariantType { SNP, INS, DEL, INV, STR_CON, STR_EXP, TD, UNCLASSIFIED }
-
-    private class PutativeVariant {
-        private String refAllele = "";
-        private int refPos = -1;
-        private String refPrevBase = "";
-        private String refNextBase = "";
-
-        private String altAllele = "";
-        private int altPos = -1;
-        private String altPrevBase = "";
-        private String altNextBase = "";
-
-        private PutativeVariantType pt = PutativeVariantType.SNP;
-        private int numContainedNovelKmers = 0;
-        private int numFlankingNovelKmers = 0;
-
-        private Set<String> plausibleAlleles = new HashSet<String>();
-
-        private boolean isFilteredOut = false;
-
-        private int distanceFromVariantLeft = Integer.MAX_VALUE;
-        private int distanceFromVariantRight = Integer.MAX_VALUE;
-
-        private SAMRecord sr;
-        private StringBuilder psb;
-        private StringBuilder rsb;
-        private StringBuilder asb;
-        private StringBuilder csb;
-        private StringBuilder ksb;
-
-        private String contigName;
-        private String contig;
-        private String refSequence;
-
-        @Override
-        public String toString() {
-            return "PutativeVariant{" +
-                    "pt=" + pt +
-                    ", refAllele='" + refAllele + '\'' +
-                    ", refPos=" + refPos +
-                    ", refPrevBase='" + refPrevBase + '\'' +
-                    ", altAllele='" + altAllele + '\'' +
-                    ", altPos=" + altPos +
-                    ", altPrevBase='" + altPrevBase + '\'' +
-                    ", numContainedNovelKmers=" + numContainedNovelKmers +
-                    ", numFlankingNovelKmers=" + numFlankingNovelKmers +
-                    '}';
-        }
-
-        public void showAlignment(PrintStream out) {
-            out.println(sr.getSAMString());
-            out.println(psb);
-            out.println(rsb);
-            out.println(asb);
-            out.println(csb);
-            out.println(ksb);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            PutativeVariant that = (PutativeVariant) o;
-
-            if (altPos != that.altPos) return false;
-            if (numContainedNovelKmers != that.numContainedNovelKmers) return false;
-            if (numFlankingNovelKmers != that.numFlankingNovelKmers) return false;
-            if (refPos != that.refPos) return false;
-            if (altAllele != null ? !altAllele.equals(that.altAllele) : that.altAllele != null) return false;
-            if (altPrevBase != null ? !altPrevBase.equals(that.altPrevBase) : that.altPrevBase != null) return false;
-            if (plausibleAlleles != null ? !plausibleAlleles.equals(that.plausibleAlleles) : that.plausibleAlleles != null)
-                return false;
-            if (pt != that.pt) return false;
-            if (refAllele != null ? !refAllele.equals(that.refAllele) : that.refAllele != null) return false;
-            if (refPrevBase != null ? !refPrevBase.equals(that.refPrevBase) : that.refPrevBase != null) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = refAllele != null ? refAllele.hashCode() : 0;
-            result = 31 * result + refPos;
-            result = 31 * result + (refPrevBase != null ? refPrevBase.hashCode() : 0);
-            result = 31 * result + (altAllele != null ? altAllele.hashCode() : 0);
-            result = 31 * result + altPos;
-            result = 31 * result + (altPrevBase != null ? altPrevBase.hashCode() : 0);
-            result = 31 * result + (pt != null ? pt.hashCode() : 0);
-            result = 31 * result + numContainedNovelKmers;
-            result = 31 * result + numFlankingNovelKmers;
-            result = 31 * result + (plausibleAlleles != null ? plausibleAlleles.hashCode() : 0);
-            return result;
-        }
-    }
 
     private Map<String, Set<Map<String, String>>> loadExistingEvents() {
         Map<String, Set<Map<String, String>>> knownVariants = new HashMap<String, Set<Map<String, String>>>();
@@ -202,714 +63,893 @@ public class CallDeNovoVariants extends Module {
         return knownVariants;
     }
 
-    private boolean isComplementaryMutationType(PutativeVariant pvi, PutativeVariant pvj) {
-        if (pvi.pt == PutativeVariantType.SNP && pvj.pt == PutativeVariantType.SNP) {
-            return true;
-        } else if (pvi.pt == PutativeVariantType.DEL && pvj.pt == PutativeVariantType.INS) {
-            return true;
-        } else if (pvi.pt == PutativeVariantType.INS && pvj.pt == PutativeVariantType.DEL) {
-            return true;
+    private Map<String, Set<SAMRecord>> loadBamRecords(SAMFileReader bam) {
+        Map<String, Set<SAMRecord>> records = new HashMap<String, Set<SAMRecord>>();
+
+        for (SAMRecord sr : bam) {
+            String contigName = sr.getReadName();
+
+            if (!records.containsKey(contigName)) {
+                records.put(contigName, new HashSet<SAMRecord>());
+            }
+
+            records.get(contigName).add(sr);
         }
 
-        return false;
+        return records;
     }
 
-    private boolean isComplementaryAllele(PutativeVariant pvi, PutativeVariant pvj) {
-        if (pvi.pt == PutativeVariantType.SNP && pvj.pt == PutativeVariantType.SNP) {
-            return pvi.refAllele.equals(SequenceUtils.reverseComplement(pvj.altAllele)) && pvi.altAllele.equals(SequenceUtils.reverseComplement(pvj.refAllele));
-        } else if (pvi.pt == PutativeVariantType.DEL && pvj.pt == PutativeVariantType.INS) {
-            for (String delAllele : pvi.plausibleAlleles) {
-                for (String insAllele : pvj.plausibleAlleles) {
-                    String insAlleleRc = SequenceUtils.reverseComplement(insAllele);
+    private List<CigarElement> getCigar(SAMRecord alignment) {
+        List<CigarElement> ces = new ArrayList<CigarElement>();
 
-                    if (delAllele.equals(insAlleleRc)) {
-                        return true;
+        if (alignment.getReadNegativeStrandFlag()) {
+            for (int i = alignment.getCigar().numCigarElements() - 1; i >= 0; i--) {
+                ces.add(alignment.getCigar().getCigarElement(i));
+            }
+        } else {
+            ces = alignment.getCigar().getCigarElements();
+        }
+
+        return ces;
+    }
+
+    private StringBuilder getQuery(ReferenceSequence qseq, SAMRecord alignment) {
+        StringBuilder query = new StringBuilder(new String(qseq.getBases()));
+
+        List<CigarElement> cigar = getCigar(alignment);
+
+        CigarElement ceLast = cigar.get(cigar.size() - 1);
+        if (ceLast.getOperator().equals(CigarOperator.H) || ceLast.getOperator().equals(CigarOperator.S)) {
+            query.delete(query.length() - ceLast.getLength(), query.length());
+        }
+
+        CigarElement ceFirst = cigar.get(0);
+        if (ceFirst.getOperator().equals(CigarOperator.H) || ceFirst.getOperator().equals(CigarOperator.S)) {
+            query.delete(0, ceFirst.getLength());
+        }
+
+        return query;
+    }
+
+    private StringBuilder getQueryPositionTrack(ReferenceSequence qseq, SAMRecord alignment) {
+        StringBuilder qpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', qseq.length()));
+
+        for (int i = 0; i < qseq.length(); i += 10) {
+            String posString = String.valueOf(i);
+            qpos.replace(i, i + posString.length(), posString);
+        }
+
+        List<CigarElement> cigar = getCigar(alignment);
+
+        CigarElement ceLast = cigar.get(cigar.size() - 1);
+        if (ceLast.getOperator().equals(CigarOperator.H) || ceLast.getOperator().equals(CigarOperator.S)) {
+            qpos.delete(qpos.length() - ceLast.getLength(), qpos.length());
+        }
+
+        CigarElement ceFirst = cigar.get(0);
+        if (ceFirst.getOperator().equals(CigarOperator.H) || ceFirst.getOperator().equals(CigarOperator.S)) {
+            qpos.delete(0, ceFirst.getLength());
+        }
+
+        return qpos;
+    }
+
+    private StringBuilder getKmerOrigin(ReferenceSequence query, String kmerOrigin, SAMRecord alignment) {
+        StringBuilder ko = new StringBuilder(kmerOrigin);
+        ko.append(StringUtil.repeatCharNTimes(ko.charAt(ko.length() - 1), query.length() - ko.length()));
+
+        List<CigarElement> cigar = getCigar(alignment);
+
+        CigarElement ceLast = cigar.get(cigar.size() - 1);
+        if (ceLast.getOperator().equals(CigarOperator.H) || ceLast.getOperator().equals(CigarOperator.S)) {
+            ko.delete(ko.length() - ceLast.getLength(), ko.length());
+        }
+
+        CigarElement ceFirst = cigar.get(0);
+        if (ceFirst.getOperator().equals(CigarOperator.H) || ceFirst.getOperator().equals(CigarOperator.S)) {
+            ko.delete(0, ceFirst.getLength());
+        }
+
+        return ko;
+    }
+
+    private StringBuilder getTarget(SAMRecord alignment, IndexedFastaSequenceFile ref) {
+        ReferenceSequence tseq = ref.getSubsequenceAt(alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd());
+        StringBuilder target = new StringBuilder(new String(tseq.getBases()));
+
+        if (alignment.getReadNegativeStrandFlag()) {
+            target = new StringBuilder(SequenceUtils.reverseComplement(target.toString()));
+        }
+
+        return target;
+    }
+
+    private String getCigarString(SAMRecord alignment) {
+        StringBuilder cigarString = new StringBuilder();
+
+        List<CigarElement> cigar = getCigar(alignment);
+        for (CigarElement ce : cigar) {
+            cigarString.append(String.format("%d%s", ce.getLength(), ce.getOperator()));
+        }
+
+        return cigarString.toString();
+    }
+
+    private void align(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref) {
+        StringBuilder target = getTarget(alignment, ref);
+        StringBuilder query = getQuery(qseq, alignment);
+        StringBuilder ko = getKmerOrigin(qseq, kmerOrigin, alignment);
+
+        StringBuilder matches = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length()));
+
+        StringBuilder qpos = getQueryPositionTrack(qseq, alignment);
+        StringBuilder tpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
+        //StringBuilder qpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
+
+        for (int i = 0; i < target.length(); i += 10) {
+            String posString = String.valueOf(i);
+            tpos.replace(i, i + posString.length(), posString);
+            //qpos.replace(i, i + posString.length(), posString);
+        }
+
+        int pos = 0;
+        for (CigarElement ce : getCigar(alignment)) {
+            if (ce.getOperator().equals(CigarOperator.M)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    if (target.charAt(i + pos) == query.charAt(i + pos)) {
+                        matches.setCharAt(i + pos, '|');
                     }
                 }
+
+                pos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.I)) {
+                target.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
+                tpos.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                matches.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                pos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.D)) {
+                query.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
+                qpos.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                ko.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                pos += ce.getLength();
             }
-
-            return false;
-        } else if (pvi.pt == PutativeVariantType.INS && pvj.pt == PutativeVariantType.DEL) {
-            for (String insAllele : pvi.plausibleAlleles) {
-                for (String delAllele : pvj.plausibleAlleles) {
-                    String delAlleleRc = SequenceUtils.reverseComplement(delAllele);
-
-                    if (insAllele.equals(delAlleleRc)) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
 
-        return false;
+        log.info("{} {}:{}-{} {} {}", qseq.getName(), alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd(), alignment.getReadNegativeStrandFlag() ? "-" : "+", getCigarString(alignment));
+        log.info("{}", tpos);
+        log.info("{}", target);
+        log.info("{}", matches);
+        log.info("{}", query);
+        log.info("{}", ko);
+        log.info("{}", qpos);
     }
 
-    private Map<Integer, PutativeVariant> flipVariants(String refSequence, String contig, Map<Integer, PutativeVariant> variants) {
-        Map<Integer, PutativeVariant> newVariants = new TreeMap<Integer, PutativeVariant>();
+    private Set<VariantContext> call(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, int refIndex) {
+        StringBuilder target = getTarget(alignment, ref);
+        StringBuilder query = getQuery(qseq, alignment);
+        StringBuilder ko = getKmerOrigin(qseq, kmerOrigin, alignment);
 
-        for (int pos : variants.keySet()) {
-            PutativeVariant pv = variants.get(pos);
-            PutativeVariant newv = new PutativeVariant();
+        Set<VariantContext> vcs = new HashSet<VariantContext>();
 
-            newv.refAllele = SequenceUtils.reverseComplement(pv.refAllele);
-            newv.refPos = refSequence.length() - pv.refPos - pv.refAllele.length();
-            newv.refPrevBase = SequenceUtils.reverseComplement(pv.refPrevBase);
+        int pos = 0, tpos = 0, qpos = 0;
+        for (CigarElement ce : getCigar(alignment)) {
+            if (ce.getOperator().equals(CigarOperator.M)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    if (query.charAt(pos + i) != target.charAt(pos + i)) {
+                        String targetAllele = String.valueOf(target.charAt(pos + i));
+                        String queryAllele = String.valueOf(query.charAt(pos + i));
 
-            newv.altAllele = SequenceUtils.reverseComplement(pv.altAllele);
-            newv.altPos = contig.length() - pv.altPos - pv.altAllele.length();
-            newv.altPrevBase = SequenceUtils.reverseComplement(pv.altPrevBase);
+                        int novelKmersContained = ko.charAt(qpos + i) == '.' ? 1 : 0;
+                        int novelKmersLeft = 0;
+                        int novelKmersRight = 0;
 
-            newv.pt = pv.pt;
-            newv.numContainedNovelKmers = pv.numContainedNovelKmers;
-            newv.numFlankingNovelKmers = pv.numFlankingNovelKmers;
-
-            newv.plausibleAlleles = new HashSet<String>();
-
-            newv.isFilteredOut = pv.isFilteredOut;
-
-            newv.distanceFromVariantLeft = pv.distanceFromVariantRight;
-            newv.distanceFromVariantRight = pv.distanceFromVariantLeft;
-
-            newv.sr = pv.sr;
-            newv.psb = new StringBuilder(SequenceUtils.reverseComplement(pv.psb.toString()));
-            newv.rsb = new StringBuilder(SequenceUtils.reverseComplement(pv.rsb.toString()));
-            newv.asb = new StringBuilder(SequenceUtils.reverseComplement(pv.asb.toString()));
-            newv.csb = new StringBuilder(SequenceUtils.reverseComplement(pv.csb.toString()));
-            newv.ksb = new StringBuilder(SequenceUtils.reverseComplement(pv.ksb.toString()));
-
-            newv.contigName = pv.contigName;
-            newv.contig = contig;
-
-            if (pv.pt == PutativeVariantType.INV) {
-                if (!contig.substring(newv.altPos, newv.altPos + newv.altAllele.length()).equals(newv.altAllele)) {
-                    //log.info("Hello!");
-                }
-            }
-
-            newVariants.put(newv.altPos, newv);
-        }
-
-        return newVariants;
-    }
-
-    private Map<Integer, PutativeVariant> getVariants(Entry e, int refIndex) {
-        Map<Integer, PutativeVariant> goodVariants = new TreeMap<Integer, PutativeVariant>();
-
-        IndexedFastaSequenceFile ref = null;
-        SAMRecord sr = null;
-
-        log.debug("{}:", e.attributes.get("contigName"));
-
-        if (!e.attributes.get("ref" + refIndex + "Locus").equals("NA") && !e.attributes.get("ref" + refIndex + "Locus").contains("*")) {
-            ref = (refIndex == 0) ? REF0 : REF1;
-            sr = (refIndex == 0) ? e.sr0 : e.sr1;
-        }
-
-        if (ref != null && sr != null && !sr.getReadUnmappedFlag()) {
-            log.debug("  ref{}: {}", refIndex, sr.getSAMString().trim());
-
-            String refSequence = new String(ref.getSubsequenceAt(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd()).getBases());
-            String contig = e.attributes.get("seq");
-            if (sr.getReadNegativeStrandFlag()) {
-                contig = SequenceUtils.reverseComplement(contig);
-            }
-
-            int kmerSize = e.attributes.get("seq").length() - e.attributes.get("kmerOrigin").length() + 1;
-            String kmerOrigin = e.attributes.get("kmerOrigin");
-            if (sr.getReadNegativeStrandFlag()) {
-                kmerOrigin = SequenceUtils.reverse(kmerOrigin);
-            }
-
-            StringBuilder psb = new StringBuilder(StringUtil.repeatCharNTimes(' ', refSequence.length() + 10));
-            StringBuilder rsb = new StringBuilder(refSequence);
-            StringBuilder asb = new StringBuilder();
-            StringBuilder csb = new StringBuilder(contig);
-            StringBuilder ksb = new StringBuilder(kmerOrigin);
-            ksb.append(StringUtil.repeatCharNTimes(' ', kmerSize));
-
-            for (int i = 0; i < refSequence.length(); i += 20) {
-                String pos = String.valueOf(i);
-                psb.replace(i, i + pos.length(), pos);
-            }
-
-            int rpos = 0, cpos = 0;
-            if (sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.S) || sr.getCigar().getCigarElement(0).getOperator().equals(CigarOperator.H)) {
-                csb.delete(0, sr.getCigar().getCigarElement(0).getLength());
-                ksb.delete(0, sr.getCigar().getCigarElement(0).getLength());
-
-                cpos += sr.getCigar().getCigarElement(0).getLength();
-            }
-
-            if (sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getOperator().equals(CigarOperator.H)) {
-                int hclength = sr.getCigar().getCigarElement(sr.getCigar().numCigarElements() - 1).getLength();
-                //ksb.delete(ksb.length() - hclength - 1, ksb.length());
-            }
-
-            List<PutativeVariant> pvs = new ArrayList<PutativeVariant>();
-            int pos = 0;
-            for (CigarElement ce : sr.getCigar().getCigarElements()) {
-                if (!ce.getOperator().equals(CigarOperator.S) && !ce.getOperator().equals(CigarOperator.H)) {
-                    if (ce.getOperator().equals(CigarOperator.M)) {
-                        for (int i = 0; i < ce.getLength(); i++) {
-                            if (rsb.charAt(pos + i) == csb.charAt(pos + i)) {
-                                asb.append('|');
-                            } else {
-                                asb.append(' ');
-
-                                String refAllele = String.valueOf(refSequence.charAt(rpos + i));
-                                String altAllele = String.valueOf(contig.charAt(cpos + i));
-
-                                PutativeVariant pv = new PutativeVariant();
-                                pv.refAllele = refAllele;
-                                pv.refPos = rpos + i;
-                                pv.altAllele = altAllele;
-                                pv.altPos = cpos + i;
-                                pv.pt = PutativeVariantType.SNP;
-                                pv.plausibleAlleles = new LinkedHashSet<String>();
-                                pv.plausibleAlleles.add(altAllele);
-                                pv.contigName = sr.getReadName();
-                                pv.contig = contig;
-
-                                pvs.add(pv);
-                            }
+                        for (int q = qpos + i - 1; q >= 0; q--) {
+                            if (ko.charAt(q) == '.') { novelKmersLeft++; }
+                            else { break; }
                         }
 
-                        rpos += ce.getLength();
-                        cpos += ce.getLength();
-                    } else if (ce.getOperator().equals(CigarOperator.I)) {
-                        asb.append('v');
-                        asb.append(StringUtil.repeatCharNTimes(' ', ce.getLength() - 1));
+                        for (int q = qpos + i + 1; q < query.length(); q++) {
+                            if (ko.charAt(q) == '.') { novelKmersRight++; }
+                            else { break; }
+                        }
 
-                        rsb.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
-                        psb.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                        VariantContext vc = (new VariantContextBuilder())
+                                .chr(qseq.getName())
+                                .start(qpos + i)
+                                .stop(qpos + i)
+                                .alleles(targetAllele, queryAllele)
+                                .attribute("novelKmersContained", novelKmersContained)
+                                .attribute("novelKmersLeft", novelKmersLeft)
+                                .attribute("novelKmersRight", novelKmersRight)
+                                .attribute("chr" + refIndex, alignment.getReferenceName())
+                                .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos + i)
+                                .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos + i)
+                                .make();
 
-                        //String prevBase = String.valueOf(contig.charAt(cpos - 1));
-                        String altAllele = contig.substring(cpos, cpos + ce.getLength());
+                        vcs.add(vc);
+                    }
+                }
 
-                        PutativeVariant pv = new PutativeVariant();
-                        pv.refAllele = "";
-                        pv.refPos = rpos;
-                        pv.altAllele = altAllele;
-                        pv.altPos = cpos;
-                        pv.pt = PutativeVariantType.INS;
-                        pv.plausibleAlleles = new LinkedHashSet<String>();
-                        pv.plausibleAlleles.add(altAllele);
-                        pv.contigName = sr.getReadName();
-                        pv.contig = contig;
+                pos += ce.getLength();
+                tpos += ce.getLength();
+                qpos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.I)) {
+                String targetAllele = target.substring(pos - 1, pos);
+                String queryAllele = query.substring(pos - 1, pos + ce.getLength());
 
-                        pvs.add(pv);
+                int novelKmersContained = 0;
+                int novelKmersLeft = 0;
+                int novelKmersRight = 0;
 
-                        cpos += ce.getLength();
-                    } else if (ce.getOperator().equals(CigarOperator.D)) {
-                        asb.append('^');
-                        asb.append(StringUtil.repeatCharNTimes(' ', ce.getLength() - 1));
+                for (int q = qpos; q < qpos + ce.getLength(); q++) {
+                    if (ko.charAt(q) == '.') { novelKmersContained++; }
+                }
 
-                        //String prevBase = String.valueOf(refSequence.charAt(rpos - 1));
-                        String refAllele = refSequence.substring(rpos, rpos + ce.getLength());
+                for (int q = qpos - 1; q >= 0; q--) {
+                    if (ko.charAt(q) == '.') { novelKmersLeft++; }
+                    else { break; }
+                }
 
-                        PutativeVariant pv = new PutativeVariant();
-                        pv.refAllele = refAllele;
-                        pv.refPos = rpos;
-                        pv.altAllele = "";
-                        pv.altPos = cpos;
-                        pv.pt = PutativeVariantType.DEL;
-                        pv.plausibleAlleles = new LinkedHashSet<String>();
-                        pv.plausibleAlleles.add(refAllele);
-                        pv.contigName = sr.getReadName();
-                        pv.contig = contig;
+                for (int q = qpos + ce.getLength() + 1; q < query.length(); q++) {
+                    if (ko.charAt(q) == '.') { novelKmersRight++; }
+                    else { break; }
+                }
 
-                        for (int i = 0; i < refAllele.length(); i++) {
-                            if (rpos + i + 1 < refSequence.length() && rpos + i + 1 + ce.getLength() < refSequence.length() && cpos + i < contig.length() && refAllele.charAt(i) == contig.charAt(cpos + i)) {
-                                String plausibleAllele = refSequence.substring(rpos + i + 1, rpos + i + 1 + ce.getLength());
-                                pv.plausibleAlleles.add(plausibleAllele);
-                            } else {
+                VariantContext vc = (new VariantContextBuilder())
+                        .chr(qseq.getName())
+                        .start(qpos)
+                        .stop(qpos)
+                        .alleles(targetAllele, queryAllele)
+                        .attribute("novelKmersContained", novelKmersContained)
+                        .attribute("novelKmersLeft", novelKmersLeft)
+                        .attribute("novelKmersRight", novelKmersRight)
+                        .attribute("chr" + refIndex, alignment.getReferenceName())
+                        .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos)
+                        .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos)
+                        .make();
+
+                vcs.add(vc);
+
+                target.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
+                pos += ce.getLength();
+                qpos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.D)) {
+                String targetAllele = target.substring(pos - 1, pos + ce.getLength());
+                String queryAllele = query.substring(pos - 1, pos);
+
+                int novelKmersContained = 0;
+                int novelKmersLeft = 0;
+                int novelKmersRight = 0;
+
+                /*
+                for (int q = qpos; q < qpos + ce.getLength(); q++) {
+                    if (ko.charAt(q) == '.') { novelKmersContained++; }
+                }
+                */
+
+                for (int q = qpos - 1; q >= 0; q--) {
+                    if (ko.charAt(q) == '.') { novelKmersLeft++; }
+                    else { break; }
+                }
+
+                for (int q = qpos + ce.getLength() + 1; q < query.length(); q++) {
+                    if (ko.charAt(q) == '.') { novelKmersRight++; }
+                    else { break; }
+                }
+
+                VariantContext vc = (new VariantContextBuilder())
+                        .chr(qseq.getName())
+                        .start(qpos)
+                        .stop(qpos + ce.getLength())
+                        .alleles(targetAllele, queryAllele)
+                        .attribute("novelKmersContained", novelKmersContained)
+                        .attribute("novelKmersLeft", novelKmersLeft)
+                        .attribute("novelKmersRight", novelKmersRight)
+                        .attribute("chr" + refIndex, alignment.getReferenceName())
+                        .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos)
+                        .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos)
+                        .make();
+
+                vcs.add(vc);
+
+                query.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
+                ko.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
+                pos += ce.getLength();
+                tpos += ce.getLength();
+            }
+        }
+
+        return vcs;
+    }
+
+    private Set<VariantContext> callInversions2(ReferenceSequence qseq, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs) {
+        Map<Integer, VariantContext> vcMap = new TreeMap<Integer, VariantContext>();
+        for (VariantContext vc : vcs) {
+            vcMap.put(vc.getStart(), vc);
+        }
+
+        StringBuilder target = getTarget(alignment, ref);
+        StringBuilder query = getQuery(qseq, alignment);
+
+        int[] tToQ = new int[target.length()];
+        int[] qToT = new int[query.length()];
+
+        int pos = 0, qpos = 0, tpos = 0;
+        for (CigarElement ce : getCigar(alignment)) {
+            if (ce.getOperator().equals(CigarOperator.M)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    tToQ[tpos + i] = qpos + i;
+                    qToT[qpos + i] = tpos + i;
+                }
+
+                pos += ce.getLength();
+                qpos += ce.getLength();
+                tpos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.I)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    qToT[qpos + i] = -1;
+                }
+
+                pos += ce.getLength();
+                qpos += ce.getLength();
+            } else if (ce.getOperator().equals(CigarOperator.D)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    tToQ[tpos + i] = -1;
+                }
+
+                pos += ce.getLength();
+                tpos += ce.getLength();
+            }
+        }
+
+        for (int tStart = 0; tStart < target.length() - kmerSize; tStart++) {
+            String tFw = target.substring(tStart, tStart + kmerSize);
+            String tRc = SequenceUtils.reverseComplement(tFw);
+
+            for (int qEnd = query.length() - 1; qEnd >= kmerSize; qEnd--) {
+                String qFw = query.substring(qEnd - kmerSize, qEnd);
+
+                if (tRc.equals(qFw)) {
+                    int tEnd = qToT[qEnd];
+                    int qStart = tToQ[tStart];
+
+                    if (qEnd - qStart >= 10 && tEnd - tStart >= 10 && qStart > 0 && qEnd > 0 && tStart > 0 && tEnd > 0) {
+                        String targetCandidateFw = target.substring(tStart, tEnd);
+                        String targetCandidateRc = SequenceUtils.reverseComplement(targetCandidateFw);
+
+                        String queryCandidate = query.substring(qStart, qEnd);
+
+                        if (targetCandidateRc.equals(queryCandidate) && !targetCandidateFw.equals(queryCandidate)) {
+                            Set<Integer> variantPositions = new TreeSet<Integer>();
+                            for (int q = qStart; q <= qEnd; q++) {
+                                if (vcMap.containsKey(q)) {
+                                    variantPositions.add(q);
+                                }
+                            }
+
+                            if (variantPositions.size() > 0) {
+                                for (int variantPosition : variantPositions) {
+                                    vcMap.remove(variantPosition);
+                                }
+
+                                VariantContext vc = (new VariantContextBuilder())
+                                        .chr(alignment.getReadName())
+                                        .start(qStart)
+                                        .stop(qEnd - 1)
+                                        .alleles(targetCandidateFw, queryCandidate)
+                                        .make();
+
+                                vcMap.put(qStart, vc);
+
+                                tStart = tEnd;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return new HashSet<VariantContext>(vcMap.values());
+    }
+
+    private Set<VariantContext> callInversions(ReferenceSequence qseq, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs) {
+        Map<Integer, VariantContext> vcMap = new TreeMap<Integer, VariantContext>();
+        for (VariantContext vc : vcs) {
+            vcMap.put(vc.getStart(), vc);
+        }
+
+        StringBuilder target = getTarget(alignment, ref);
+        StringBuilder query = getQuery(qseq, alignment);
+
+        Map<String, Set<Integer>> qKmers = new HashMap<String, Set<Integer>>();
+
+        String qStr = new String(qseq.getBases());
+        for (int i = qStr.length() - kmerSize; i >= 0; i--) {
+            String kmer = qStr.substring(i, i + kmerSize);
+
+            if (!qKmers.containsKey(kmer)) {
+                qKmers.put(kmer, new TreeSet<Integer>(new Comparator<Integer>() {
+                    @Override
+                    public int compare(Integer o1, Integer o2) {
+                        return o1 < o2 ? 1 : -1;
+                    }
+                }));
+            }
+            qKmers.get(kmer).add(i + kmerSize - 1);
+        }
+
+        for (int tStart = 0; tStart <= target.length() - kmerSize; tStart++) {
+            String tKmer = SequenceUtils.reverseComplement(target.substring(tStart, tStart + kmerSize));
+
+            if (qKmers.containsKey(tKmer)) {
+                for (int qEnd : qKmers.get(tKmer)) {
+                    int tEnd = tStart + 1;
+                    int qStart = qEnd - 1;
+
+                    while (tEnd < target.length() && qStart >= 0 && target.charAt(tEnd) == SequenceUtils.complement(qStr.charAt(qStart))) {
+                        tEnd++;
+                        qStart--;
+                    }
+
+                    if (tStart - kmerSize >= 0 && tEnd + kmerSize < target.length() && qStart - kmerSize >= 0 && qEnd + kmerSize < qStr.length()) {
+                        String tLeftFlank = target.substring(tStart - kmerSize, tStart);
+                        String tRightFlank = target.substring(tEnd, tEnd + kmerSize);
+
+                        String qLeftFlank = qStr.substring(qStart - kmerSize + 1, qStart + 1);
+                        String qRightFlank = qStr.substring(qEnd + 1, qEnd + kmerSize + 1);
+
+                        String targetCandidateFw = target.substring(tStart, tEnd);
+                        String targetCandidateRc = SequenceUtils.reverseComplement(target.substring(tStart, tEnd));
+                        String queryCandidate = qStr.substring(qStart + 1, qEnd + 1);
+
+                        if (tLeftFlank.equals(qLeftFlank) && tRightFlank.equals(qRightFlank) && queryCandidate.length() >= 10 && targetCandidateRc.equals(queryCandidate) && !targetCandidateFw.equals(queryCandidate)) {
+                            Set<Integer> variantPositions = new TreeSet<Integer>();
+                            for (int q = qStart; q <= qEnd; q++) {
+                                if (vcMap.containsKey(q)) {
+                                    variantPositions.add(q);
+                                }
+                            }
+
+                            if (variantPositions.size() > 0) {
+                                for (int variantPosition : variantPositions) {
+                                    vcMap.remove(variantPosition);
+                                }
+
+                                VariantContext vc = (new VariantContextBuilder())
+                                        .chr(alignment.getReadName())
+                                        .start(qStart)
+                                        .stop(qEnd - 1)
+                                        .alleles(targetCandidateFw, queryCandidate)
+                                        .make();
+
+                                vcMap.put(qStart, vc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return new HashSet<VariantContext>(vcMap.values());
+    }
+
+    private Set<VariantContext> refine(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs) {
+        if (vcs.size() > 0) {
+            vcs = callInversions(qseq, alignment, ref, 10, vcs);
+        }
+
+        return vcs;
+    }
+
+    private Set<VariantContext> filter(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs, int window, int minCount) {
+        StringBuilder target = getTarget(alignment, ref);
+        StringBuilder query = getQuery(qseq, alignment);
+
+        Map<Integer, VariantContext> vcMap = new TreeMap<Integer, VariantContext>();
+        for (VariantContext vc : vcs) {
+            int pos = vc.getStart();
+            vcMap.put(pos, vc);
+        }
+
+        Set<Integer> variantPositions = new TreeSet<Integer>();
+
+        int firstVariantPos = query.length();
+        int lastVariantPos = -1;
+
+        for (int pos : vcMap.keySet()) {
+            if (pos < firstVariantPos) { firstVariantPos = pos; }
+            if (pos > lastVariantPos) { lastVariantPos = pos; }
+        }
+
+        if (firstVariantPos <= window) {
+            int endOfLastVariant = -1;
+            Set<Integer> varPosLeft = new TreeSet<Integer>();
+            for (int pos = 0; pos < query.length(); pos++) {
+                if (vcMap.containsKey(pos)) {
+                    int startOfThisVariant = vcMap.get(pos).getStart();
+                    int endOfThisVariant = vcMap.get(pos).getEnd();
+
+                    if (endOfLastVariant == -1 || startOfThisVariant - endOfLastVariant <= window) {
+                        endOfLastVariant = endOfThisVariant;
+
+                        varPosLeft.add(pos);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if (varPosLeft.size() > minCount) {
+                variantPositions.addAll(varPosLeft);
+            }
+        }
+
+        if (lastVariantPos >= target.length() - window) {
+            int startOfLastVariant = -1;
+            Set<Integer> varPosRight = new TreeSet<Integer>();
+            for (int pos = query.length() - 1; pos > query.length(); pos++) {
+                if (vcMap.containsKey(pos)) {
+                    int startOfThisVariant = vcMap.get(pos).getStart();
+                    int endOfThisVariant = vcMap.get(pos).getEnd();
+
+                    if (startOfLastVariant == -1 || startOfLastVariant - endOfThisVariant <= window) {
+                        startOfLastVariant = startOfThisVariant;
+
+                        varPosRight.add(pos);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if (varPosRight.size() > minCount) {
+                variantPositions.addAll(varPosRight);
+            }
+        }
+
+        for (int variantPosition : variantPositions) {
+            VariantContext vc = new VariantContextBuilder(vcMap.get(variantPosition))
+                    .filter("PARTIAL")
+                    .make();
+
+            vcMap.put(variantPosition, vc);
+        }
+
+        return new HashSet<VariantContext>(vcMap.values());
+    }
+
+    private boolean canContainNovelKmers(VariantContext vc) {
+        return vc.isSNP() || vc.isMNP() || vc.isSimpleInsertion();
+    }
+
+    private Set<VariantContext> markDenovos(Set<VariantContext> vcs0, Set<VariantContext> vcs1) {
+        Set<VariantContext> vcsFinal = new HashSet<VariantContext>();
+
+        Map<Interval, Set<VariantContext>> vcIntervalMap = new HashMap<Interval, Set<VariantContext>>();
+
+        for (VariantContext vc : vcs0) {
+            Interval interval = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
+            if (!vcIntervalMap.containsKey(interval)) {
+                vcIntervalMap.put(interval, new HashSet<VariantContext>());
+            }
+
+            vcIntervalMap.get(interval).add(vc);
+        }
+
+        for (VariantContext vc : vcs1) {
+            Interval interval = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
+            if (!vcIntervalMap.containsKey(interval)) {
+                vcIntervalMap.put(interval, new HashSet<VariantContext>());
+            }
+
+            vcIntervalMap.get(interval).add(vc);
+        }
+
+        for (Interval interval : vcIntervalMap.keySet()) {
+            Set<VariantContext> vcs = vcIntervalMap.get(interval);
+            if (vcs.size() == 2) {
+                VariantContext vca = vcs.iterator().next();
+                VariantContext vcb = vcs.iterator().next();
+
+                Map<String, Object> attrs = new HashMap<String, Object>();
+                attrs.putAll(vca.getAttributes());
+                attrs.putAll(vcb.getAttributes());
+
+                VariantContext vcFinal = (new VariantContextBuilder(vca))
+                        .attributes(attrs)
+                        .attribute("DENOVO", true)
+                        .make();
+
+                vcsFinal.add(vcFinal);
+            } else {
+                for (VariantContext vc : vcIntervalMap.get(interval)) {
+                    int novelKmersContained = vc.getAttributeAsInt("novelKmersContained", 0);
+                    int novelKmersLeft = vc.getAttributeAsInt("novelKmersLeft", 0);
+                    int novelKmersRight = vc.getAttributeAsInt("novelKmersRight", 0);
+
+                    boolean isDeNovo;
+
+                    if (canContainNovelKmers(vc)) {
+                        isDeNovo = novelKmersContained > 0 && (novelKmersLeft > 0 || novelKmersRight > 0);
+                    } else {
+                        isDeNovo = novelKmersLeft > 0 && novelKmersRight > 0;
+                    }
+
+                    VariantContext vcFinal = (new VariantContextBuilder(vc))
+                            .attribute("DENOVO", isDeNovo)
+                            .make();
+
+                    vcsFinal.add(vcFinal);
+                }
+            }
+        }
+
+        return vcsFinal;
+    }
+
+    private Set<VariantContext> annotateVariants(Set<VariantContext> vcsFinal) {
+        Set<VariantContext> vcsFinalSorted = new TreeSet<VariantContext>(new Comparator<VariantContext>() {
+            @Override
+            public int compare(VariantContext o1, VariantContext o2) {
+                return o1.getStart() < o2.getStart() ? -1 : 1;
+            }
+        });
+        vcsFinalSorted.addAll(vcsFinal);
+
+        List<VariantContext> vcsOrdered = new ArrayList<VariantContext>(vcsFinalSorted);
+
+        Set<VariantContext> vcsFinalAnnotated = new HashSet<VariantContext>();
+        for (int i = 0; i < vcsOrdered.size(); i++) {
+            VariantContext vcLeft = i > 0 ? vcsOrdered.get(i-1) : null;
+            VariantContext vcCenter = vcsOrdered.get(i);
+            VariantContext vcRight = i < vcsOrdered.size() - 1 ? vcsOrdered.get(i+1) : null;
+
+            int distanceToLeftVariant = Integer.MAX_VALUE;
+            int distanceToRightVariant = Integer.MAX_VALUE;
+
+            if (vcLeft != null) {
+                distanceToLeftVariant = vcCenter.getStart() - vcLeft.getEnd();
+            }
+
+            if (vcRight != null) {
+                distanceToRightVariant = vcRight.getStart() - vcCenter.getEnd();
+            }
+
+            VariantContext vcCenterMod = (new VariantContextBuilder(vcCenter))
+                    .attribute("distanceToLeftVariant", distanceToLeftVariant)
+                    .attribute("distanceToRightVariant", distanceToRightVariant)
+                    .make();
+
+            vcsFinalAnnotated.add(vcCenterMod);
+        }
+
+        return vcsFinalAnnotated;
+    }
+
+    private Set<VariantContext> filterVariants(Set<VariantContext> vcsFinal) {
+        Set<VariantContext> vcsFinalFiltered = new HashSet<VariantContext>();
+        for (VariantContext vc : vcsFinal) {
+            int distanceToLeftVariant = vc.getAttributeAsInt("distanceToLeftVariant", Integer.MAX_VALUE);
+            int distanceToRightVariant = vc.getAttributeAsInt("distanceToRightVariant", Integer.MAX_VALUE);
+
+            VariantContext vcFiltered = vc;
+            if (vc.isSNP() && (distanceToLeftVariant < 47 || distanceToRightVariant < 47)) {
+                vcFiltered = (new VariantContextBuilder(vc))
+                        .filter("PROXIMITY")
+                        .make();
+            }
+
+            vcsFinalFiltered.add(vcFiltered);
+        }
+
+        return vcsFinalFiltered;
+    }
+
+    private Set<VariantContext> classifyVariants(Set<VariantContext> vcsFinal, String seq) {
+        Set<VariantContext> classifiedVCs = new HashSet<VariantContext>();
+
+        for (VariantContext vc : vcsFinal) {
+            if (vc.isIndel()) {
+                String allele = vc.isSimpleInsertion() ? vc.getAlternateAllele(0).getBaseString() : vc.getReference().getBaseString();
+                allele = allele.substring(1, allele.length());
+
+                String finalRepeatingUnit = allele;
+                int finalRepeatUnitLength = allele.length();
+
+                for (int repeatUnitLength = allele.length() - 1; repeatUnitLength >= 1; repeatUnitLength--) {
+                    if (allele.length() % repeatUnitLength == 0) {
+                        String repeatingUnit = allele.substring(0, repeatUnitLength);
+
+                        boolean repeatIsComplete = true;
+                        for (int j = 0; j < allele.length(); j += repeatUnitLength) {
+                            if (!allele.substring(j, j + repeatUnitLength).equals(repeatingUnit)) {
+                                repeatIsComplete = false;
                                 break;
                             }
                         }
 
-                        pvs.add(pv);
-
-                        csb.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
-                        ksb.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
-
-                        rpos += ce.getLength();
-                    }
-
-                    pos += ce.getLength();
-                }
-            }
-
-            /*
-            for (PutativeVariant tv : pvs) {
-                String refAllele = refSequence.substring(tv.refPos, tv.refPos + tv.refAllele.length());
-                String altAllele = contig.substring(tv.altPos, tv.altPos + tv.altAllele.length());
-
-                if (!tv.refAllele.equals(refAllele)) {
-                    log.info("Ref allele wrong");
-                }
-
-                if (!tv.altAllele.equals(altAllele)) {
-                    log.info("Alt allele wrong");
-                }
-            }
-            */
-
-            log.debug("  {}", psb.toString());
-            log.debug("  {}", rsb.toString());
-            log.debug("  {}", asb.toString());
-            log.debug("  {}", csb.toString());
-            log.debug("  {}", ksb.toString());
-
-            IntervalTreeMap<Integer> inversions = new IntervalTreeMap<Integer>();
-            for (int i = 0; i < pvs.size(); i++) {
-                for (int j = pvs.size() - 1; j > i; j--) {
-                    PutativeVariant pvi = pvs.get(i);
-                    PutativeVariant pvj = pvs.get(j);
-
-                    if (isComplementaryMutationType(pvi, pvj) && isComplementaryAllele(pvi, pvj)) {
-                        String putativeInversion = SequenceUtils.reverseComplement(refSequence.substring(pvi.refPos + pvi.refAllele.length(), pvj.refPos));
-
-                        if (contig.contains(putativeInversion)) {
-                            Interval inversion = new Interval(e.attributes.get("contigName"), i, j);
-
-                            if (!inversions.containsContained(inversion) && !inversions.containsOverlapping(inversion)) {
-                                inversions.put(inversion, null);
-                            }
-
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (inversions.size() > 0) {
-                for (Interval inversion : inversions.keySet()) {
-                    PutativeVariant pvi = pvs.get(inversion.getStart());
-                    PutativeVariant pvj = pvs.get(inversion.getEnd());
-
-                    // shrink
-                    int refStart = pvi.refPos;
-                    int refEnd = pvj.refPos + pvj.refAllele.length();
-                    int altStart = pvi.altPos;
-                    int altEnd = pvj.altPos + pvj.altAllele.length();
-                    boolean found = false;
-                    do {
-                        String refAlleleR = SequenceUtils.reverseComplement(refSequence.substring(refStart + 1, refEnd));
-                        String refAlleleL = SequenceUtils.reverseComplement(refSequence.substring(refStart, refEnd - 1));
-
-                        if (contig.contains(refAlleleR)) {
-                            refStart = refStart + 1;
-                            altStart = altStart + 1;
-                            found = true;
-                        } else if (contig.contains(refAlleleL)) {
-                            refEnd = refEnd - 1;
-                            altEnd = altEnd - 1;
-                            found = true;
-                        } else {
-                            refStart = refStart + 1;
-                            refEnd = refEnd - 1;
-                            altStart = altStart + 1;
-                            altEnd = altEnd - 1;
-                        }
-                    } while (!found);
-
-                    // grow right
-                    int rightShift = 0;
-                    boolean keepGoing = true;
-                    do {
-                        String refAlleleR = (refEnd + rightShift < refSequence.length()) ? SequenceUtils.reverseComplement(refSequence.substring(refStart, refEnd + rightShift)) : null;
-
-                        if (refAlleleR != null && contig.contains(refAlleleR)) {
-                            refEnd = refEnd + rightShift;
-                            altEnd = altEnd + rightShift;
-                            rightShift++;
-                        } else {
-                            keepGoing = false;
-                        }
-                    } while (keepGoing);
-
-                    int leftShift = 0;
-                    keepGoing = true;
-
-                    do {
-                        String refAlleleL = (refStart - leftShift >= 0) ? SequenceUtils.reverseComplement(refSequence.substring(refStart - leftShift, refEnd)) : null;
-
-                        if (refAlleleL != null && contig.contains(refAlleleL)) {
-                            refStart = refStart - leftShift;
-                            altStart = altStart - leftShift;
-                            leftShift++;
-                        } else {
-                            keepGoing = false;
-                        }
-                    } while (keepGoing);
-
-                    String refAllele = refSequence.substring(refStart, refEnd);
-                    String altAllele = contig.substring(altStart, altEnd);
-
-                    for (int i = inversion.getStart(); i <= inversion.getEnd(); i++) {
-                        pvs.get(i).isFilteredOut = true;
-                    }
-
-                    PutativeVariant pv = new PutativeVariant();
-                    pv.refAllele = refAllele;
-                    pv.refPos = refStart;
-                    pv.altAllele = altAllele;
-                    pv.altPos = altStart;
-                    pv.pt = PutativeVariantType.INV;
-                    pv.contigName = sr.getReadName();
-                    pv.contig = contig;
-
-                    pvs.add(pv);
-                }
-            }
-
-            for (int i = 0; i < pvs.size(); i++) {
-                if (!pvs.get(i).isFilteredOut && pvs.get(i).pt != PutativeVariantType.SNP && pvs.get(i).pt != PutativeVariantType.INV) {
-                    String allele = (pvs.get(i).pt == PutativeVariantType.DEL) ? pvs.get(i).refAllele : pvs.get(i).altAllele;
-
-                    String finalRepeatingUnit = allele;
-                    int finalRepeatUnitLength = allele.length();
-
-                    for (int repeatUnitLength = allele.length() - 1; repeatUnitLength >= 1; repeatUnitLength--) {
-                        if (allele.length() % repeatUnitLength == 0) {
-                            String repeatingUnit = allele.substring(0, repeatUnitLength);
-
-                            boolean repeatIsComplete = true;
-                            for (int j = 0; j < allele.length(); j += repeatUnitLength) {
-                                if (!allele.substring(j, j + repeatUnitLength).equals(repeatingUnit)) {
-                                    repeatIsComplete = false;
-                                    break;
-                                }
-                            }
-
-                            if (repeatIsComplete) {
-                                if (repeatUnitLength < finalRepeatUnitLength) {
-                                    finalRepeatingUnit = repeatingUnit;
-                                    finalRepeatUnitLength = repeatUnitLength;
-                                }
+                        if (repeatIsComplete) {
+                            if (repeatUnitLength < finalRepeatUnitLength) {
+                                finalRepeatingUnit = repeatingUnit;
+                                finalRepeatUnitLength = repeatUnitLength;
                             }
                         }
                     }
-
-                    int prevBasesStart1 = pvs.get(i).refPos - finalRepeatUnitLength;
-                    int prevBasesEnd1 = pvs.get(i).refPos;
-                    String prevBases1 = (prevBasesStart1 > 0) ? refSequence.substring(prevBasesStart1, prevBasesEnd1) : null;
-
-                    int nextBasesStart1 = pvs.get(i).refPos + allele.length();
-                    int nextBasesEnd1 = pvs.get(i).refPos + allele.length() + finalRepeatUnitLength;
-                    String nextBases1 = (nextBasesEnd1 < refSequence.length()) ? refSequence.substring(nextBasesStart1, nextBasesEnd1) : null;
-
-                    boolean matchesExistingStr = prevBases1 != null && nextBases1 != null && (finalRepeatingUnit.equals(prevBases1) || finalRepeatingUnit.equals(nextBases1));
-
-                    if (!finalRepeatingUnit.isEmpty() && matchesExistingStr && finalRepeatUnitLength >= 3) {
-                        pvs.get(i).pt = pvs.get(i).pt == PutativeVariantType.DEL ? PutativeVariantType.STR_CON : PutativeVariantType.STR_EXP;
-                    }
-                }
-            }
-
-            for (int i = 0; i < pvs.size(); i++) {
-                if (!pvs.get(i).isFilteredOut && pvs.get(i).pt == PutativeVariantType.INS) {
-                    String allele = pvs.get(i).altAllele;
-
-                    int prevBasesStart1 = pvs.get(i).refPos - allele.length();
-                    int prevBasesEnd1 = pvs.get(i).refPos;
-
-                    int nextBasesStart1 = pvs.get(i).refPos;
-                    int nextBasesEnd1 = pvs.get(i).refPos + allele.length();
-
-                    String prevBases = prevBasesStart1 >= 0 ? refSequence.substring(prevBasesStart1, prevBasesEnd1) : null;
-                    String nextBases = nextBasesEnd1 < refSequence.length() ? refSequence.substring(nextBasesStart1, nextBasesEnd1) : null;
-
-                    if (allele.length() >= 10 && (allele.equals(prevBases) || allele.equals(nextBases))) {
-                        pvs.get(i).pt = PutativeVariantType.TD;
-                    }
-                }
-            }
-
-            for (int i = 0; i < pvs.size(); i++) {
-                for (int j = 0; j < pvs.get(i).altAllele.length(); j++) {
-                    int kopos = pvs.get(i).altPos + j;
-
-                    if (kopos < kmerOrigin.length() && kmerOrigin.charAt(kopos) == '.') {
-                        pvs.get(i).numContainedNovelKmers++;
-                    }
                 }
 
-                for (int leftpos = pvs.get(i).altPos - 1; leftpos >= 0; leftpos--) {
-                    if (leftpos >= 0 && leftpos < kmerOrigin.length() && kmerOrigin.charAt(leftpos) == '.') {
-                        pvs.get(i).numFlankingNovelKmers++;
+                String prevBases = (vc.getStart() - finalRepeatUnitLength >= 0) ? seq.substring(vc.getStart() - finalRepeatUnitLength + 1, vc.getStart() + 1) : "";
+                String nextBases = (vc.getEnd() + vc.getAlternateAllele(0).length() + finalRepeatUnitLength < seq.length()) ? seq.substring(vc.getStart() + allele.length(), vc.getStart() + allele.length() + finalRepeatUnitLength) : "";
+
+                //int numRepeats = (finalRepeatUnitLength > 0) ? allele.length() / finalRepeatUnitLength : 0;
+
+                String event = null;
+                if (finalRepeatingUnit.equals(prevBases) || finalRepeatingUnit.equals(nextBases)) {
+                    if (vc.isSimpleInsertion()) {
+                        if (allele.length() >= 10) {
+                            event = "TD";
+                        } else {
+                            event = "STR_EXP";
+                        }
                     } else {
-                        break;
+                        event = "STR_CON";
                     }
-                }
 
-                for (int rightpos = pvs.get(i).altPos + pvs.get(i).altAllele.length(); rightpos < kmerOrigin.length(); rightpos++) {
-                    if (rightpos >= 0 && rightpos < kmerOrigin.length() && kmerOrigin.charAt(rightpos) == '.') {
-                        pvs.get(i).numFlankingNovelKmers++;
+                    VariantContext classifiedVC = (new VariantContextBuilder(vc))
+                            .attribute("event", event)
+                            .attribute("repUnit", finalRepeatingUnit)
+                            .make();
+
+                    classifiedVCs.add(classifiedVC);
+                } else {
+                    if (vc.isSimpleInsertion()) {
+                        event = "INS";
                     } else {
-                        break;
+                        event = "DEL";
                     }
+
+                    VariantContext classifiedVC = (new VariantContextBuilder(vc))
+                            .attribute("event", event)
+                            .make();
+
+                    classifiedVCs.add(classifiedVC);
                 }
+            } else if (vc.isSNP()) {
+                VariantContext classifiedVC = (new VariantContextBuilder(vc))
+                        .attribute("event", "SNP")
+                        .make();
 
-                pvs.get(i).psb = psb;
-                pvs.get(i).rsb = rsb;
-                pvs.get(i).asb = asb;
-                pvs.get(i).csb = csb;
-                pvs.get(i).ksb = ksb;
-                pvs.get(i).sr  = sr;
-            }
+                classifiedVCs.add(classifiedVC);
+            } else if (vc.isMNP()) {
+                VariantContext classifiedVC = (new VariantContextBuilder(vc))
+                        .attribute("event", "INV")
+                        .make();
 
-            for (int i = 0; i < pvs.size(); i++) {
-                if (!pvs.get(i).isFilteredOut) {
-                    log.debug("  variant: {}", pvs.get(i));
-
-                    goodVariants.put(pvs.get(i).altPos, pvs.get(i));
-                }
-            }
-
-            List<Integer> variantPositions = new ArrayList<Integer>(goodVariants.keySet());
-            Collections.sort(variantPositions);
-
-            for (int i = 0; i < variantPositions.size(); i++) {
-                int i0 = i - 1;
-                int i1 = i + 1;
-
-                int pos0 = (i0 >= 0) ? variantPositions.get(i0) : -1;
-                int posT = variantPositions.get(i);
-                int pos1 = (i1 < variantPositions.size()) ? variantPositions.get(i1) : -1;
-
-                if (goodVariants.containsKey(pos0)) {
-                    goodVariants.get(posT).distanceFromVariantLeft = goodVariants.get(posT).altPos - goodVariants.get(pos0).altPos;
-                }
-
-                if (goodVariants.containsKey(pos1)) {
-                    goodVariants.get(posT).distanceFromVariantRight = goodVariants.get(pos1).altPos - goodVariants.get(posT).altPos;
-                }
-
-                goodVariants.get(posT).refSequence = refSequence;
-            }
-
-            log.debug("");
-
-            for (PutativeVariant tv : goodVariants.values()) {
-                String refAllele = refSequence.substring(tv.refPos, tv.refPos + tv.refAllele.length());
-                String altAllele = contig.substring(tv.altPos, tv.altPos + tv.altAllele.length());
-
-                if (!tv.refAllele.equals(refAllele)) {
-                    throw new IndianaException("Alleles don't match");
-                }
-
-                if (!tv.altAllele.equals(altAllele)) {
-                    throw new IndianaException("Alleles don't match");
-                }
-            }
-
-            if (sr.getReadNegativeStrandFlag()) {
-                goodVariants = flipVariants(refSequence, e.attributes.get("seq"), goodVariants);
-
-                for (PutativeVariant tv : goodVariants.values()) {
-                    String altAllele = e.attributes.get("seq").substring(tv.altPos, tv.altPos + tv.altAllele.length());
-
-                    if (!tv.altAllele.equals(altAllele)) {
-                        throw new IndianaException("Alleles don't match");
-                    }
-                }
+                classifiedVCs.add(classifiedVC);
             }
         }
 
-        return goodVariants;
-    }
-
-    private Map<Integer, PutativeVariant> callDeNovoVariants(Entry e) {
-        Map<Integer, PutativeVariant> dn = new TreeMap<Integer, PutativeVariant>();
-
-        Map<Integer, PutativeVariant> v0 = getVariants(e, 0);
-        Map<Integer, PutativeVariant> v1 = getVariants(e, 1);
-
-        Set<Integer> indices = new TreeSet<Integer>();
-        indices.addAll(v0.keySet());
-        indices.addAll(v1.keySet());
-
-        for (int index : indices) {
-            if (v0.containsKey(index) && v1.containsKey(index)) {
-                if (v0.get(index).pt == PutativeVariantType.SNP) {
-                    if (v0.get(index).numContainedNovelKmers > 0 &&
-                        v0.get(index).altAllele.equals(v1.get(index).altAllele) &&
-                        v0.get(index).distanceFromVariantLeft > 50 &&
-                        v0.get(index).distanceFromVariantRight > 50
-                    ) {
-                        dn.put(index, v0.get(index));
-                    } else {
-                        //v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                        //dn.put(index, v0.get(index));
-                    }
-                } else {
-                    dn.put(index, v0.get(index));
-                }
-            } else if (v0.containsKey(index) && !v1.containsKey(index) && (v0.get(index).numContainedNovelKmers > 0 || v0.get(index).numFlankingNovelKmers > 0)) {
-                if (v0.get(index).pt == PutativeVariantType.SNP) {
-                    //v0.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                    //dn.put(index, v0.get(index));
-                } else {
-                    dn.put(index, v0.get(index));
-                }
-            } else if (!v0.containsKey(index) && v1.containsKey(index) && (v1.get(index).numContainedNovelKmers > 0 || v1.get(index).numFlankingNovelKmers > 0)) {
-                if (v1.get(index).pt == PutativeVariantType.SNP) {
-                    //v1.get(index).pt = PutativeVariantType.UNCLASSIFIED;
-                    //dn.put(index, v1.get(index));
-                } else {
-                    dn.put(index, v1.get(index));
-                }
-            }
-        }
-
-        return dn;
-    }
-
-    private boolean fuzzyEquals(PutativeVariant v, Map<String, String> ke) {
-        String vRefAllele = v.refAllele;
-        String vAltAllele = v.altAllele;
-        String kRefAllele = ke.get("refAllele");
-        String kAltAllele = ke.get("altAllele");
-        int vPos = v.altPos;
-        int kPos = Integer.valueOf(ke.get("variantStart"));
-        boolean samePos = Math.abs(vPos - kPos) < 2 || (kPos + 1 + vAltAllele.length() < v.contig.length() && v.contig.substring(kPos + 1, kPos + 1 + vAltAllele.length()).equals(vAltAllele));
-
-        boolean found = false;
-
-        if (ke.get("event").equals("SNP") || ke.get("event").equals("INV")) {
-            found = vRefAllele.equals(kRefAllele) && vAltAllele.equals(kAltAllele);
-        } else if (ke.get("event").equals("INS") || ke.get("event").equals("STR_EXP") || ke.get("event").equals("TD")) {
-            found = vAltAllele.equals(kAltAllele) || vAltAllele.equals(kAltAllele.substring(1, kAltAllele.length())) || vAltAllele.equals(kAltAllele.substring(0, kAltAllele.length() - 1));
-        } else if (ke.get("event").equals("DEL") || ke.get("event").equals("STR_CON")) {
-            found = vRefAllele.equals(kRefAllele) || vRefAllele.equals(kRefAllele.substring(1, kRefAllele.length())) || vRefAllele.equals(kRefAllele.substring(0, kRefAllele.length() - 1));
-        }
-
-        if (found && !samePos) {
-            //log.info("Huh?");
-        }
-
-        return found;
+        return classifiedVCs;
     }
 
     @Override
     public void execute() {
-        Map<String, Entry> entries = loadEntries();
+        log.info("Loading known events...");
         Map<String, Set<Map<String, String>>> knownEvents = loadExistingEvents();
-
-        Map<PutativeVariantType, Integer> counts = new TreeMap<PutativeVariantType, Integer>();
-        Map<String, Set<String>> found = new TreeMap<String, Set<String>>();
-        Map<String, Set<String>> total = new TreeMap<String, Set<String>>();
-
-        Map<String, String> foundClasses = new TreeMap<String, String>();
-        Map<String, String> realClasses = new TreeMap<String, String>();
-
+        int numEvents = 0;
         for (String contigName : knownEvents.keySet()) {
-            for (Map<String, String> ke : knownEvents.get(contigName)) {
-                String id = ke.get("id");
-                String event = ke.get("event");
-
-                if (!found.containsKey(event)) { found.put(event, new HashSet<String>()); }
-                if (!total.containsKey(event)) { total.put(event, new HashSet<String>()); }
-
-                total.get(event).add(id);
-
-                realClasses.put(id, event);
-            }
+            numEvents += knownEvents.get(contigName).size();
         }
+        log.info("  {} contigs with {} known events", knownEvents.size(), numEvents);
 
-        LastzAligner la = new LastzAligner();
+        log.info("Loading alignments...");
+        Map<String, Set<SAMRecord>> align0 = loadBamRecords(BAM0);
+        Map<String, Set<SAMRecord>> align1 = loadBamRecords(BAM1);
+        log.info("  ref0: {}", align0.size());
+        log.info("  ref1: {}", align1.size());
 
-        for (String contigName : entries.keySet()) {
-            Entry e = entries.get(contigName);
+        log.info("Calling variants...");
+        int multipleAlignments0 = 0;
+        int multipleAlignments1 = 0;
+        DataTable dt = new DataTable("recall", "recall");
+        dt.addColumns("event", "known", "called");
 
-            if (e.sr0.getMappingQuality() > 0 && e.sr1.getMappingQuality() > 0) {
-                Set<Map<String, String>> kes = (knownEvents.containsKey(contigName)) ? knownEvents.get(contigName) : null;
-                Map<Integer, PutativeVariant> vs = callDeNovoVariants(e);
+        TableReader tr = new TableReader(METRICS);
+        int numContigsProcessed = 0;
+        for (Map<String, String> te : tr) {
+            if (numContigsProcessed % (tr.size()/10) == 0) {
+                log.info("  {}/{}", numContigsProcessed, tr.size());
+            }
+            numContigsProcessed++;
 
-                ReferenceSequence rseq = new ReferenceSequence(contigName, 0, e.attributes.get("seq").getBytes());
+            String contigName = te.get("contigName");
+            String seq = te.get("seq");
+            String kmerOrigin = te.get("kmerOrigin");
+            ReferenceSequence qseq = new ReferenceSequence(contigName, 0, seq.getBytes());
 
-                /*
-                if (!knownEvents.containsKey(contigName) && vs.size() > 0) {
-                    vs.values().iterator().next().showAlignment(System.out);
+            Set<VariantContext> vcs0 = new HashSet<VariantContext>();
+            Set<VariantContext> vcs1 = new HashSet<VariantContext>();
 
-                    la.align(rseq, new File("/Users/kiran/ngs/references/plasmodium/falciparum/3D7/PlasmoDB-9.0/PlasmoDB-9.0_Pfalciparum3D7_Genome.fasta"), "maf-");
-                    la.align(rseq, new File("pseudo.hb3.fasta"), "maf-");
+            if (align0.containsKey(contigName) && align0.get(contigName).size() == 1) {
+                SAMRecord alignment = align0.get(contigName).iterator().next();
 
-                    log.info("Hello!");
-                }
-                */
-
-                boolean sawEvent = false;
-                for (PutativeVariant v : vs.values()) {
-                    if (knownEvents.containsKey(contigName)) {
-                        for (Map<String, String> ke : kes) {
-                            if (fuzzyEquals(v, ke)) {
-                                String id = ke.get("id");
-                                String event = ke.get("event");
-
-                                found.get(event).add(id);
-
-                                foundClasses.put(id, v.pt.toString());
-                            }
-                        }
-                    }
-
-                    if (!counts.containsKey(v.pt)) {
-                        counts.put(v.pt, 0);
-                    } else {
-                        counts.put(v.pt, counts.get(v.pt) + 1);
-                    }
-
-                    if (v.pt == PutativeVariantType.UNCLASSIFIED) {
-                        sawEvent = true;
-                    }
-                }
-
-                //callDeNovoVariants(e);
-
-                if (SHOW && sawEvent) {
-                    PutativeVariant v = vs.values().iterator().next();
-
-                    log.info("{}", v.sr.getSAMString().trim());
-                    log.info("{}", v.psb.toString());
-                    log.info("{}", v.rsb.toString());
-                    log.info("{}", v.asb.toString());
-                    log.info("{}", v.csb.toString());
-                    log.info("{}", v.ksb.toString());
-
-                    for (PutativeVariant v1 : vs.values()) {
-                        log.info("{}", v1);
-                    }
-
-                    log.info("");
+                if (!alignment.getReadUnmappedFlag()) {
+                    //align(qseq, kmerOrigin, alignment, REF0);
+                    vcs0 = call(qseq, kmerOrigin, alignment, REF0, 0);
+                    vcs0 = refine(qseq, kmerOrigin, alignment, REF0, vcs0);
+                    vcs0 = filter(qseq, kmerOrigin, alignment, REF0, vcs0, 10, 5);
+                    log.debug("");
                 }
             }
-        }
 
-        log.info(" counts {}", Joiner.on("; ").withKeyValueSeparator("=").join(counts));
+            if (align1.containsKey(contigName) && align1.get(contigName).size() == 1) {
+                SAMRecord alignment = align1.get(contigName).iterator().next();
 
-        log.info("  found");
-        for (String event : found.keySet()) {
-            log.info("    {} {}/{}", event, found.get(event).size(), total.get(event).size());
-        }
-
-        DataTable confusion = new DataTable("confusion", "confusion matrix");
-        confusion.addColumns("real", "found", "count");
-        for (String id : realClasses.keySet()) {
-            if (realClasses.containsKey(id) && foundClasses.containsKey(id)) {
-                String realEvent = realClasses.get(id);
-                String foundEvent = foundClasses.get(id);
-
-                String pk = realEvent + "." + foundEvent;
-                confusion.set(pk, "real", realEvent);
-                confusion.set(pk, "found", foundEvent);
-                confusion.increment(pk, "count");
+                if (!alignment.getReadUnmappedFlag()) {
+                    //align(qseq, kmerOrigin, alignment, REF1);
+                    vcs1 = call(qseq, kmerOrigin, alignment, REF1, 1);
+                    vcs1 = refine(qseq, kmerOrigin, alignment, REF1, vcs1);
+                    vcs1 = filter(qseq, kmerOrigin, alignment, REF1, vcs1, 10, 5);
+                    log.debug("");
+                }
             }
+
+            Set<VariantContext> vcsFinal = markDenovos(vcs0, vcs1);
+            vcsFinal = annotateVariants(vcsFinal);
+            vcsFinal = filterVariants(vcsFinal);
+            vcsFinal = classifyVariants(vcsFinal, seq);
+
+            int numKnownDeNovos = knownEvents.containsKey(contigName) ? knownEvents.get(contigName).size() : 0;
+            log.debug("known denovo variants: {}", numKnownDeNovos);
+            if (knownEvents.containsKey(contigName)) {
+                Map<Integer, Map<String, String>> sortedKnowns = new TreeMap<Integer, Map<String, String>>();
+                for (Map<String, String> ke : knownEvents.get(contigName)) {
+                    int variantStart = Integer.valueOf(ke.get("variantStart"));
+                    sortedKnowns.put(variantStart, ke);
+                }
+                for (int variantStart : sortedKnowns.keySet()) {
+                    Map<String, String> ke = sortedKnowns.get(variantStart);
+                    ke.remove("flank1");
+                    ke.remove("flank2");
+                    ke.remove("matchedSeq");
+
+                    log.debug("  {}", Joiner.on(" ").withKeyValueSeparator("=").join(ke));
+
+                    dt.set(ke.get("event"), "event", ke.get("event"));
+                    dt.increment(ke.get("event"), "known");
+                }
+            }
+
+            int numDeNovos = 0;
+            for (VariantContext vc : vcsFinal) {
+                if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
+                    numDeNovos++;
+                }
+            }
+
+            log.debug("called denovo variants: {} out of {} total", numDeNovos, vcsFinal.size());
+            Set<VariantContext> vcsFinalSorted = new TreeSet<VariantContext>(new Comparator<VariantContext>() {
+                @Override
+                public int compare(VariantContext o1, VariantContext o2) {
+                    return o1.getStart() < o2.getStart() ? -1 : 1;
+                }
+            });
+            vcsFinalSorted.addAll(vcsFinal);
+
+            for (VariantContext vc : vcsFinalSorted) {
+                if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
+                    String event = vc.getAttributeAsString("event", "unknown");
+
+                    dt.set(event, "event", event);
+                    dt.increment(event, "called");
+                }
+            }
+
+            log.debug("-----");
         }
 
-        log.info("  confusion\n{}", confusion);
+        log.debug("  {}/{} contigs with multiple alignments", multipleAlignments0, tr.size());
+        log.debug("  {}/{} contigs with multiple alignments", multipleAlignments1, tr.size());
+
+        log.info("\n{}", dt);
     }
 }
