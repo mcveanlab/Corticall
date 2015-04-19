@@ -48,6 +48,10 @@ public class CallDeNovoVariants extends Module {
             TableReader tr = new TableReader(KNOWN_TABLE);
 
             for (Map<String, String> te : tr) {
+                te.remove("flank1");
+                te.remove("flank2");
+                te.remove("matchedSeq");
+
                 if (te.get("variantFound").equals("TRUE")) {
                     String contig1 = te.get("contig1");
 
@@ -703,16 +707,20 @@ public class CallDeNovoVariants extends Module {
 
                 //int numRepeats = (finalRepeatUnitLength > 0) ? allele.length() / finalRepeatUnitLength : 0;
 
-                String event = null;
+                String event = "unknown";
                 if (finalRepeatingUnit.equals(prevBases) || finalRepeatingUnit.equals(nextBases)) {
                     if (vc.isSimpleInsertion()) {
                         if (allele.length() >= 10) {
                             event = "TD";
-                        } else {
+                        } else if (allele.length() >= 2 && allele.length() <= 5) {
                             event = "STR_EXP";
+                        } else {
+                            event = "INS";
                         }
-                    } else {
+                    } else if (allele.length() >= 2 && allele.length() <= 5) {
                         event = "STR_CON";
+                    } else {
+                        event = "DEL";
                     }
 
                     VariantContext classifiedVC = (new VariantContextBuilder(vc))
@@ -814,10 +822,10 @@ public class CallDeNovoVariants extends Module {
                 }
             }
 
-            Set<VariantContext> vcsFinal = markDenovos(vcs0, vcs1);
-            vcsFinal = annotateVariants(vcsFinal);
-            vcsFinal = filterVariants(vcsFinal);
-            vcsFinal = classifyVariants(vcsFinal, seq);
+            Set<VariantContext> vcsMarked = markDenovos(vcs0, vcs1);
+            Set<VariantContext> vcsAnnotated = annotateVariants(vcsMarked);
+            Set<VariantContext> vcsFiltered = filterVariants(vcsAnnotated);
+            Set<VariantContext> vcsFinal = classifyVariants(vcsFiltered, seq);
 
             int numKnownDeNovos = knownEvents.containsKey(contigName) ? knownEvents.get(contigName).size() : 0;
             log.debug("known denovo variants: {}", numKnownDeNovos);
@@ -829,9 +837,6 @@ public class CallDeNovoVariants extends Module {
                 }
                 for (int variantStart : sortedKnowns.keySet()) {
                     Map<String, String> ke = sortedKnowns.get(variantStart);
-                    ke.remove("flank1");
-                    ke.remove("flank2");
-                    ke.remove("matchedSeq");
 
                     log.debug("  {}", Joiner.on(" ").withKeyValueSeparator("=").join(ke));
 
@@ -875,6 +880,7 @@ public class CallDeNovoVariants extends Module {
             }
 
             log.debug("filtered out variants: {} out of {} total", vcsFinal.size() - numDeNovos, vcsFinal.size());
+            /*
             for (VariantContext vc : vcsFinalSorted) {
                 if (!vc.getAttributeAsBoolean("DENOVO", false) || !vc.isNotFiltered()) {
                     String event = vc.getAttributeAsString("event", "unknown");
@@ -891,6 +897,11 @@ public class CallDeNovoVariants extends Module {
                             vc
                     );
                 }
+            }
+            */
+
+            if (numDeNovos > 0) {
+                //log.info("  {} {} {}", contigName, numDeNovos, numKnownDeNovos);
             }
 
             log.debug("-----");
