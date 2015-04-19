@@ -114,7 +114,7 @@ public class CallDeNovoVariants extends Module {
     private StringBuilder getQueryPositionTrack(ReferenceSequence qseq, SAMRecord alignment) {
         StringBuilder qpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', qseq.length()));
 
-        for (int i = 0; i < qseq.length(); i += 10) {
+        for (int i = 0; i < qseq.length(); i += 20) {
             String posString = String.valueOf(i);
             qpos.replace(i, i + posString.length(), posString);
         }
@@ -186,7 +186,8 @@ public class CallDeNovoVariants extends Module {
         StringBuilder tpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
         //StringBuilder qpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
 
-        for (int i = 0; i < target.length(); i += 10) {
+        for (int i = 0; i < target.length(); i += 20) {
+            //String posString = String.valueOf(alignment.getAlignmentStart() + i);
             String posString = String.valueOf(i);
             tpos.replace(i, i + posString.length(), posString);
             //qpos.replace(i, i + posString.length(), posString);
@@ -215,13 +216,13 @@ public class CallDeNovoVariants extends Module {
             }
         }
 
-        log.info("{} {}:{}-{} {} {}", qseq.getName(), alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd(), alignment.getReadNegativeStrandFlag() ? "-" : "+", getCigarString(alignment));
-        log.info("{}", tpos);
-        log.info("{}", target);
-        log.info("{}", matches);
-        log.info("{}", query);
-        log.info("{}", ko);
-        log.info("{}", qpos);
+        log.debug("{} {}:{}-{} {} {}", qseq.getName(), alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd(), alignment.getReadNegativeStrandFlag() ? "-" : "+", getCigarString(alignment));
+        log.debug("{}", tpos);
+        log.debug("{}", target);
+        log.debug("{}", matches);
+        log.debug("{}", query);
+        log.debug("{}", ko);
+        log.debug("{}", qpos);
     }
 
     private Set<VariantContext> call(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, int refIndex) {
@@ -231,24 +232,29 @@ public class CallDeNovoVariants extends Module {
 
         Set<VariantContext> vcs = new HashSet<VariantContext>();
 
+        List<CigarElement> ces = getCigar(alignment);
         int pos = 0, tpos = 0, qpos = 0;
-        for (CigarElement ce : getCigar(alignment)) {
+        if (ces.get(0).getOperator().equals(CigarOperator.S) || ces.get(0).getOperator().equals(CigarOperator.H)) {
+            qpos = ces.get(0).getLength();
+        }
+
+        for (CigarElement ce : ces) {
             if (ce.getOperator().equals(CigarOperator.M)) {
                 for (int i = 0; i < ce.getLength(); i++) {
                     if (query.charAt(pos + i) != target.charAt(pos + i)) {
                         String targetAllele = String.valueOf(target.charAt(pos + i));
                         String queryAllele = String.valueOf(query.charAt(pos + i));
 
-                        int novelKmersContained = ko.charAt(qpos + i) == '.' ? 1 : 0;
+                        int novelKmersContained = ko.charAt(pos + i) == '.' ? 1 : 0;
                         int novelKmersLeft = 0;
                         int novelKmersRight = 0;
 
-                        for (int q = qpos + i - 1; q >= 0; q--) {
+                        for (int q = pos + i - 1; q >= 0; q--) {
                             if (ko.charAt(q) == '.') { novelKmersLeft++; }
                             else { break; }
                         }
 
-                        for (int q = qpos + i + 1; q < query.length(); q++) {
+                        for (int q = pos + i + 1; q < query.length(); q++) {
                             if (ko.charAt(q) == '.') { novelKmersRight++; }
                             else { break; }
                         }
@@ -281,25 +287,27 @@ public class CallDeNovoVariants extends Module {
                 int novelKmersLeft = 0;
                 int novelKmersRight = 0;
 
-                for (int q = qpos; q < qpos + ce.getLength(); q++) {
+                for (int q = pos - 1; q < pos + ce.getLength(); q++) {
                     if (ko.charAt(q) == '.') { novelKmersContained++; }
                 }
 
-                for (int q = qpos - 1; q >= 0; q--) {
+                for (int q = pos - 2; q >= 0; q--) {
                     if (ko.charAt(q) == '.') { novelKmersLeft++; }
                     else { break; }
                 }
 
-                for (int q = qpos + ce.getLength() + 1; q < query.length(); q++) {
+                for (int q = pos + ce.getLength(); q < query.length(); q++) {
                     if (ko.charAt(q) == '.') { novelKmersRight++; }
                     else { break; }
                 }
 
                 VariantContext vc = (new VariantContextBuilder())
                         .chr(qseq.getName())
-                        .start(qpos)
-                        .stop(qpos)
+                        .start(qpos - 1)
+                        .stop(qpos - 1)
                         .alleles(targetAllele, queryAllele)
+                        //.stop(qpos - 1 + ce.getLength())
+                        //.alleles(queryAllele, targetAllele)
                         .attribute("novelKmersContained", novelKmersContained)
                         .attribute("novelKmersLeft", novelKmersLeft)
                         .attribute("novelKmersRight", novelKmersRight)
@@ -317,31 +325,27 @@ public class CallDeNovoVariants extends Module {
                 String targetAllele = target.substring(pos - 1, pos + ce.getLength());
                 String queryAllele = query.substring(pos - 1, pos);
 
-                int novelKmersContained = 0;
+                int novelKmersContained = ko.charAt(pos - 1) == '.' ? 1 : 0;
                 int novelKmersLeft = 0;
                 int novelKmersRight = 0;
 
-                /*
-                for (int q = qpos; q < qpos + ce.getLength(); q++) {
-                    if (ko.charAt(q) == '.') { novelKmersContained++; }
-                }
-                */
-
-                for (int q = qpos - 1; q >= 0; q--) {
+                for (int q = pos - 2; q >= 0; q--) {
                     if (ko.charAt(q) == '.') { novelKmersLeft++; }
                     else { break; }
                 }
 
-                for (int q = qpos + ce.getLength() + 1; q < query.length(); q++) {
+                for (int q = pos + ce.getLength() + 1; q < query.length(); q++) {
                     if (ko.charAt(q) == '.') { novelKmersRight++; }
                     else { break; }
                 }
 
                 VariantContext vc = (new VariantContextBuilder())
                         .chr(qseq.getName())
-                        .start(qpos)
-                        .stop(qpos + ce.getLength())
+                        .start(qpos - 1)
+                        .stop(qpos - 1 + ce.getLength())
                         .alleles(targetAllele, queryAllele)
+                        //.stop(qpos - 1)
+                        //.alleles(queryAllele, targetAllele)
                         .attribute("novelKmersContained", novelKmersContained)
                         .attribute("novelKmersLeft", novelKmersLeft)
                         .attribute("novelKmersRight", novelKmersRight)
@@ -360,96 +364,6 @@ public class CallDeNovoVariants extends Module {
         }
 
         return vcs;
-    }
-
-    private Set<VariantContext> callInversions2(ReferenceSequence qseq, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs) {
-        Map<Integer, VariantContext> vcMap = new TreeMap<Integer, VariantContext>();
-        for (VariantContext vc : vcs) {
-            vcMap.put(vc.getStart(), vc);
-        }
-
-        StringBuilder target = getTarget(alignment, ref);
-        StringBuilder query = getQuery(qseq, alignment);
-
-        int[] tToQ = new int[target.length()];
-        int[] qToT = new int[query.length()];
-
-        int pos = 0, qpos = 0, tpos = 0;
-        for (CigarElement ce : getCigar(alignment)) {
-            if (ce.getOperator().equals(CigarOperator.M)) {
-                for (int i = 0; i < ce.getLength(); i++) {
-                    tToQ[tpos + i] = qpos + i;
-                    qToT[qpos + i] = tpos + i;
-                }
-
-                pos += ce.getLength();
-                qpos += ce.getLength();
-                tpos += ce.getLength();
-            } else if (ce.getOperator().equals(CigarOperator.I)) {
-                for (int i = 0; i < ce.getLength(); i++) {
-                    qToT[qpos + i] = -1;
-                }
-
-                pos += ce.getLength();
-                qpos += ce.getLength();
-            } else if (ce.getOperator().equals(CigarOperator.D)) {
-                for (int i = 0; i < ce.getLength(); i++) {
-                    tToQ[tpos + i] = -1;
-                }
-
-                pos += ce.getLength();
-                tpos += ce.getLength();
-            }
-        }
-
-        for (int tStart = 0; tStart < target.length() - kmerSize; tStart++) {
-            String tFw = target.substring(tStart, tStart + kmerSize);
-            String tRc = SequenceUtils.reverseComplement(tFw);
-
-            for (int qEnd = query.length() - 1; qEnd >= kmerSize; qEnd--) {
-                String qFw = query.substring(qEnd - kmerSize, qEnd);
-
-                if (tRc.equals(qFw)) {
-                    int tEnd = qToT[qEnd];
-                    int qStart = tToQ[tStart];
-
-                    if (qEnd - qStart >= 10 && tEnd - tStart >= 10 && qStart > 0 && qEnd > 0 && tStart > 0 && tEnd > 0) {
-                        String targetCandidateFw = target.substring(tStart, tEnd);
-                        String targetCandidateRc = SequenceUtils.reverseComplement(targetCandidateFw);
-
-                        String queryCandidate = query.substring(qStart, qEnd);
-
-                        if (targetCandidateRc.equals(queryCandidate) && !targetCandidateFw.equals(queryCandidate)) {
-                            Set<Integer> variantPositions = new TreeSet<Integer>();
-                            for (int q = qStart; q <= qEnd; q++) {
-                                if (vcMap.containsKey(q)) {
-                                    variantPositions.add(q);
-                                }
-                            }
-
-                            if (variantPositions.size() > 0) {
-                                for (int variantPosition : variantPositions) {
-                                    vcMap.remove(variantPosition);
-                                }
-
-                                VariantContext vc = (new VariantContextBuilder())
-                                        .chr(alignment.getReadName())
-                                        .start(qStart)
-                                        .stop(qEnd - 1)
-                                        .alleles(targetCandidateFw, queryCandidate)
-                                        .make();
-
-                                vcMap.put(qStart, vc);
-
-                                tStart = tEnd;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return new HashSet<VariantContext>(vcMap.values());
     }
 
     private Set<VariantContext> callInversions(ReferenceSequence qseq, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs) {
@@ -551,6 +465,13 @@ public class CallDeNovoVariants extends Module {
             vcMap.put(pos, vc);
         }
 
+        List<CigarElement> ces = getCigar(alignment);
+        CigarElement ceFirst = ces.get(0);
+        int offsetLeft = (ceFirst.getOperator().equals(CigarOperator.S) || ceFirst.getOperator().equals(CigarOperator.H)) ? ceFirst.getLength() : 0;
+
+        CigarElement ceLast = ces.get(ces.size() - 1);
+        int offsetRight = (ceLast.getOperator().equals(CigarOperator.S) || ceLast.getOperator().equals(CigarOperator.H)) ? ceLast.getLength() : 0;
+
         Set<Integer> variantPositions = new TreeSet<Integer>();
 
         int firstVariantPos = query.length();
@@ -561,7 +482,7 @@ public class CallDeNovoVariants extends Module {
             if (pos > lastVariantPos) { lastVariantPos = pos; }
         }
 
-        if (firstVariantPos <= window) {
+        if (firstVariantPos <= window + offsetLeft) {
             int endOfLastVariant = -1;
             Set<Integer> varPosLeft = new TreeSet<Integer>();
             for (int pos = 0; pos < query.length(); pos++) {
@@ -584,7 +505,7 @@ public class CallDeNovoVariants extends Module {
             }
         }
 
-        if (lastVariantPos >= target.length() - window) {
+        if (lastVariantPos >= target.length() - window - offsetRight) {
             int startOfLastVariant = -1;
             Set<Integer> varPosRight = new TreeSet<Integer>();
             for (int pos = query.length() - 1; pos > query.length(); pos++) {
@@ -873,7 +794,7 @@ public class CallDeNovoVariants extends Module {
                 SAMRecord alignment = align0.get(contigName).iterator().next();
 
                 if (!alignment.getReadUnmappedFlag()) {
-                    //align(qseq, kmerOrigin, alignment, REF0);
+                    align(qseq, kmerOrigin, alignment, REF0);
                     vcs0 = call(qseq, kmerOrigin, alignment, REF0, 0);
                     vcs0 = refine(qseq, kmerOrigin, alignment, REF0, vcs0);
                     vcs0 = filter(qseq, kmerOrigin, alignment, REF0, vcs0, 10, 5);
@@ -885,7 +806,7 @@ public class CallDeNovoVariants extends Module {
                 SAMRecord alignment = align1.get(contigName).iterator().next();
 
                 if (!alignment.getReadUnmappedFlag()) {
-                    //align(qseq, kmerOrigin, alignment, REF1);
+                    align(qseq, kmerOrigin, alignment, REF1);
                     vcs1 = call(qseq, kmerOrigin, alignment, REF1, 1);
                     vcs1 = refine(qseq, kmerOrigin, alignment, REF1, vcs1);
                     vcs1 = filter(qseq, kmerOrigin, alignment, REF1, vcs1, 10, 5);
@@ -941,6 +862,34 @@ public class CallDeNovoVariants extends Module {
 
                     dt.set(event, "event", event);
                     dt.increment(event, "called");
+
+                    log.debug("  id=noname event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
+                            vc.getAttributeAsString("event", "unknown"),
+                            vc.getType(),
+                            vc.getAlternateAllele(0).length(),
+                            vc.getStart(),
+                            vc.getEnd(),
+                            vc
+                    );
+                }
+            }
+
+            log.debug("filtered out variants: {} out of {} total", vcsFinal.size() - numDeNovos, vcsFinal.size());
+            for (VariantContext vc : vcsFinalSorted) {
+                if (!vc.getAttributeAsBoolean("DENOVO", false) || !vc.isNotFiltered()) {
+                    String event = vc.getAttributeAsString("event", "unknown");
+
+                    dt.set(event, "event", event);
+                    dt.increment(event, "called");
+
+                    log.debug("  id=badone event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
+                            vc.getAttributeAsString("event", "unknown"),
+                            vc.getType(),
+                            vc.getAlternateAllele(0).length(),
+                            vc.getStart(),
+                            vc.getEnd(),
+                            vc
+                    );
                 }
             }
 
