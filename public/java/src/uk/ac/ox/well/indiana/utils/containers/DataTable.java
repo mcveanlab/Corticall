@@ -100,18 +100,49 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
     @Override
     public String toString() {
+        Map<String, Integer> columnWidths = new HashMap<String, Integer>();
+        for (String primaryKey : data.keySet()) {
+            for (String columnName : columnNames) {
+                String field = String.valueOf(get(primaryKey, columnName));
+
+                if (!columnWidths.containsKey(field)) {
+                    columnWidths.put(columnName, columnName.length());
+                } else {
+                    int oldLength = columnWidths.get(field);
+
+                    if (field.length() > oldLength) {
+                        columnWidths.put(columnName, field.length());
+                    }
+                }
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
-        sb.append(tableName).append("\t").append(Joiner.on("\t").join(columnNames)).append("\n");
+        //sb.append(tableName).append("\t").append(Joiner.on("\t").join(columnNames)).append("\n");
+
+        sb.append(tableName);
+        for (String columnName : columnNames) {
+            int fieldWidth = columnWidths.get(columnName) + 2;
+            sb.append("  ");
+            sb.append(String.format("%-" + fieldWidth + "s", columnName));
+        }
+        sb.append("\n");
 
         for (String primaryKey : data.keySet()) {
             List<String> fields = new ArrayList<String>();
             fields.add(tableName);
 
             for (String columnName : columnNames) {
-                fields.add(String.valueOf(get(primaryKey, columnName)));
+                String field = String.valueOf(get(primaryKey, columnName));
+                int fieldWidth = columnWidths.get(columnName) + 2;
+
+                fields.add(String.format("%-" + fieldWidth + "s", field));
+
+                //fields.add(String.valueOf(get(primaryKey, columnName)));
             }
 
-            sb.append(Joiner.on("\t").join(fields)).append("\n");
+            //sb.append(Joiner.on("\t").join(fields)).append("\n");
+            sb.append(Joiner.on("  ").join(fields)).append("\n");
         }
 
         sb.append("\n");
