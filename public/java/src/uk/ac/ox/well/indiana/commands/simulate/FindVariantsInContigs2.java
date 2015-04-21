@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
@@ -16,6 +17,7 @@ import htsjdk.variant.vcf.VCFHeaderLine;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -40,6 +42,9 @@ public class FindVariantsInContigs2 extends Module {
 
         TableReader tr = new TableReader(BED, new String[] { "chr", "start", "stop", "attrs" });
 
+        Map<String, Boolean> variantWasSeen = new HashMap<String, Boolean>();
+        Map<String, Map<String, Object>> variantInfo = new HashMap<String, Map<String, Object>>();
+
         log.info("Loading variation intervals...");
         for (Map<String, String> te : tr) {
             String chr = te.get("chr");
@@ -59,6 +64,9 @@ public class FindVariantsInContigs2 extends Module {
             Interval variantInterval = new Interval(chr, start, stop);
 
             knownVariants.put(variantInterval, attrs);
+
+            variantWasSeen.put((String) attrs.get("id"), false);
+            variantInfo.put((String) attrs.get("id"), attrs);
         }
         log.info("  {} intervals", knownVariants.size());
 
@@ -84,8 +92,11 @@ public class FindVariantsInContigs2 extends Module {
 
                 log.debug("{} {}:{}-{}", contig.getReadName(), contig.getReferenceName(), contig.getAlignmentStart(), contig.getAlignmentEnd());
                 for (Map<String, Object> b : bs) {
+                    String id  = (String) b.get("id");
                     String ref = (String) b.get("ref");
                     String alt = (String) b.get("alt");
+
+                    variantWasSeen.put(id, true);
 
                     if (alt != null) {
                         int bStart = (Integer) b.get("start");
@@ -105,10 +116,12 @@ public class FindVariantsInContigs2 extends Module {
 
                         VariantContext newVC;
 
+                        /*
                         b.remove("ref");
                         b.remove("alt");
                         b.remove("left");
                         b.remove("right");
+                        */
 
                         if (contig.getReadNegativeStrandFlag()) {
                             newVC = (new VariantContextBuilder())
@@ -178,5 +191,26 @@ public class FindVariantsInContigs2 extends Module {
 
         log.info("  complete={}/{}, incomplete={}/{}, total={}/{}", numComplete, numTotal, numIncomplete, numTotal, (numComplete + numIncomplete), numTotal);
         log.info("  match={} mismatch={}", allelesMatch, allelesMismatch);
+
+        DataTable foundStats = new DataTable("foundStats", "found stats");
+        foundStats.addColumns("type", "found", "missed");
+
+        int numMissed = 0;
+        for (String id : variantWasSeen.keySet()) {
+            String type = (String) variantInfo.get(id).get("denovo");
+            foundStats.set(type, "type", type);
+
+            if (!variantWasSeen.get(id)) {
+                log.info("  missed: {}", Joiner.on(", ").withKeyValueSeparator("=").join(variantInfo.get(id)));
+
+                foundStats.increment(type, "missed");
+            } else {
+                foundStats.increment(type, "found");
+            }
+        }
+
+        log.info("  missed={}", numMissed);
+
+        log.info("\n{}", foundStats);
     }
 }
