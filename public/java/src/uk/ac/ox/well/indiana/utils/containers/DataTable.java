@@ -105,14 +105,14 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
             for (String columnName : columnNames) {
                 String field = String.valueOf(get(primaryKey, columnName));
 
-                if (!columnWidths.containsKey(field)) {
+                if (!columnWidths.containsKey(columnName)) {
                     columnWidths.put(columnName, columnName.length());
-                } else {
-                    int oldLength = columnWidths.get(field);
+                }
 
-                    if (field.length() > oldLength) {
-                        columnWidths.put(columnName, field.length());
-                    }
+                int oldLength = columnWidths.get(columnName);
+
+                if (field.length() > oldLength) {
+                    columnWidths.put(columnName, field.length());
                 }
             }
         }
