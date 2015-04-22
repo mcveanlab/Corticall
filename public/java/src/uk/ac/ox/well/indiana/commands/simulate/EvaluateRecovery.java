@@ -117,7 +117,7 @@ public class EvaluateRecovery extends Module {
         Map<String, IntervalTreeMap<VariantContext>> eval = new HashMap<String, IntervalTreeMap<VariantContext>>();
 
         DataTable recoveryStats = new DataTable("recoveryStats", "recoveryStats");
-        recoveryStats.addColumns("type", "tp", "fp", "tn", "fn", "fn1", "fn2", "total1", "total2", "sens", "spec", "fdr");
+        recoveryStats.addColumns("type", "tp", "fp", "tn", "fn", "fn1", "fn2", "total1", "total2", "sens", "spec", "fpr", "fdr");
         recoveryStats.set("contig", "type", "contig");
         //recoveryStats.set("GC", "type", "GC");
 
@@ -233,7 +233,7 @@ public class EvaluateRecovery extends Module {
 
         for (String pk : recoveryStats.getPrimaryKeys()) {
             float fn = ((Long) recoveryStats.get(pk, "fn1") + (Long) recoveryStats.get(pk, "fn2"));
-            recoveryStats.set(pk, "fn", fn);
+            recoveryStats.set(pk, "fn", (int) fn);
 
             float tp = (Long) recoveryStats.get(pk, "tp");
             float fp = (Long) recoveryStats.get(pk, "fp");
@@ -241,10 +241,12 @@ public class EvaluateRecovery extends Module {
 
             float sens = tp / (tp + fn);
             float spec = tn / (tn + fp);
+            float fpr  = fp / (fp + tn);
             float fdr  = fp / (tp + fp);
 
             recoveryStats.set(pk, "sens", sens);
             recoveryStats.set(pk, "spec", spec);
+            recoveryStats.set(pk, "fpr",  fpr);
             recoveryStats.set(pk, "fdr",  fdr);
         }
 
