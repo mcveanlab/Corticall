@@ -34,6 +34,9 @@ public class SimChild extends Module {
     @Argument(fullName="strMap", shortName="m", doc="STR map")
     public File STRS;
 
+    @Argument(fullName="maskWindow", shortName="w", doc="Mask window")
+    public Integer MASK_WINDOW = 2;
+
     @Output
     public File out;
 
@@ -158,7 +161,7 @@ public class SimChild extends Module {
     }
 
     private void addToMask(String chr, int pos, int length) {
-        Interval interval = new Interval(chr, pos - 2, pos + length + 2);
+        Interval interval = new Interval(chr, pos - MASK_WINDOW, pos + length + MASK_WINDOW);
 
         mask.put(interval, null);
     }
