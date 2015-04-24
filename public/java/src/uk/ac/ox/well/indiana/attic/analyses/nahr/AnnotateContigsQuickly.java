@@ -35,7 +35,7 @@ public class AnnotateContigsQuickly extends Module {
     @Output
     public PrintStream out;
 
-    @Output(fullName="novelKmerList", shortName="kout", doc="List of kmers considered novel")
+    @Output(fullName="novelKmerList", shortName="ko", doc="List of kmers considered novel")
     public PrintStream kout;
 
     private class KmerInfo {
