@@ -122,8 +122,8 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
         sb.append(tableName);
         for (String columnName : columnNames) {
-            int fieldWidth = columnWidths.get(columnName) + 2;
-            sb.append("  ");
+            int fieldWidth = columnWidths.get(columnName);
+            sb.append(" ");
             sb.append(String.format("%-" + fieldWidth + "s", columnName));
         }
         sb.append("\n");
@@ -134,7 +134,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
             for (String columnName : columnNames) {
                 String field = String.valueOf(get(primaryKey, columnName));
-                int fieldWidth = columnWidths.get(columnName) + 2;
+                int fieldWidth = columnWidths.get(columnName);
 
                 fields.add(String.format("%-" + fieldWidth + "s", field));
 
@@ -142,7 +142,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
             }
 
             //sb.append(Joiner.on("\t").join(fields)).append("\n");
-            sb.append(Joiner.on("  ").join(fields)).append("\n");
+            sb.append(Joiner.on(" ").join(fields)).append("\n");
         }
 
         sb.append("\n");
