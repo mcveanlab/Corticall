@@ -1,22 +1,24 @@
 package uk.ac.ox.well.indiana.commands.simulate;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.CigarElement;
-import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.*;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
-import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
-import org.apache.commons.math3.util.Pair;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -26,8 +28,8 @@ public class CallDeNovoVariants extends Module {
     @Argument(fullName="metrics", shortName="m", doc="Annotated contigs")
     public File METRICS;
 
-    @Argument(fullName="knownTable", shortName="k", doc="Table of known events", required=false)
-    public File KNOWN_TABLE;
+    @Argument(fullName="knowns", shortName="k", doc="Table of known events", required=false)
+    public VCFFileReader KNOWNS;
 
     @Argument(fullName="ref0", shortName="r0", doc="Reference for parent 0")
     public IndexedFastaSequenceFile REF0;
@@ -41,27 +43,85 @@ public class CallDeNovoVariants extends Module {
     @Argument(fullName="bam1", shortName="b1", doc="BAM for parent 1")
     public SAMFileReader BAM1;
 
-    private Map<String, Set<Map<String, String>>> loadExistingEvents() {
-        Map<String, Set<Map<String, String>>> knownVariants = new HashMap<String, Set<Map<String, String>>>();
+    @Argument(fullName="proximityThreshold", shortName="t", doc="Proximity threshold variant filter")
+    public Integer PROXIMITY_THRESHOLD = 47;
 
-        if (KNOWN_TABLE != null) {
-            TableReader tr = new TableReader(KNOWN_TABLE);
+    @Argument(fullName="novelKmerVariantMap", shortName="n", doc="Novel kmer variant map")
+    public File NOVEL_KMER_VARIANT_MAP;
 
-            for (Map<String, String> te : tr) {
-                te.remove("flank1");
-                te.remove("flank2");
-                te.remove("matchedSeq");
+    @Output
+    public File out;
 
-                if (te.get("variantFound").equals("TRUE")) {
-                    String contig1 = te.get("contig1");
+    private class VariantInfo {
+        private String variantId;
+        private String vclass;
+        private String vchr;
+        private int vstart;
+        private int vstop;
 
-                    if (!knownVariants.containsKey(contig1)) {
-                        knownVariants.put(contig1, new HashSet<Map<String, String>>());
-                    }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
 
-                    knownVariants.get(contig1).add(te);
-                }
+            VariantInfo that = (VariantInfo) o;
+
+            if (vstart != that.vstart) return false;
+            if (vstop != that.vstop) return false;
+            if (variantId != null ? !variantId.equals(that.variantId) : that.variantId != null) return false;
+            if (vchr != null ? !vchr.equals(that.vchr) : that.vchr != null) return false;
+            if (vclass != null ? !vclass.equals(that.vclass) : that.vclass != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = variantId != null ? variantId.hashCode() : 0;
+            result = 31 * result + (vclass != null ? vclass.hashCode() : 0);
+            result = 31 * result + (vchr != null ? vchr.hashCode() : 0);
+            result = 31 * result + vstart;
+            result = 31 * result + vstop;
+            return result;
+        }
+    }
+
+    private Set<String> weird = new HashSet<String>();
+
+    private Map<CortexKmer, Set<VariantInfo>> loadNovelKmerVariantMap() {
+        TableReader tr = new TableReader(NOVEL_KMER_VARIANT_MAP);
+
+        Map<CortexKmer, Set<VariantInfo>> vis = new HashMap<CortexKmer, Set<VariantInfo>>();
+        for (Map<String, String> te : tr) {
+            CortexKmer ck = new CortexKmer(te.get("kmer"));
+
+            VariantInfo vi = new VariantInfo();
+            vi.variantId = te.get("variantId");
+            vi.vclass = te.get("vclass");
+            vi.vchr = te.get("vchr");
+            vi.vstart = Integer.valueOf(te.get("vstart"));
+            vi.vstop = Integer.valueOf(te.get("vstop"));
+
+            //vis.put(ck, vi);
+
+            if (!vis.containsKey(ck)) {
+                vis.put(ck, new HashSet<VariantInfo>());
             }
+            vis.get(ck).add(vi);
+        }
+
+        return vis;
+    }
+
+    private Map<String, Set<VariantContext>> loadExistingEvents() {
+        Map<String, Set<VariantContext>> knownVariants = new HashMap<String, Set<VariantContext>>();
+
+        for (VariantContext vc : KNOWNS) {
+            if (!knownVariants.containsKey(vc.getChr())) {
+                knownVariants.put(vc.getChr(), new HashSet<VariantContext>());
+            }
+
+            knownVariants.get(vc.getChr()).add(vc);
         }
 
         return knownVariants;
@@ -179,7 +239,7 @@ public class CallDeNovoVariants extends Module {
         return cigarString.toString();
     }
 
-    private void align(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref) {
+    private int[] align(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref) {
         StringBuilder target = getTarget(alignment, ref);
         StringBuilder query = getQuery(qseq, alignment);
         StringBuilder ko = getKmerOrigin(qseq, kmerOrigin, alignment);
@@ -190,6 +250,14 @@ public class CallDeNovoVariants extends Module {
         StringBuilder tpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
         //StringBuilder qpos = new StringBuilder(StringUtil.repeatCharNTimes(' ', target.length() > query.length() ? target.length() : query.length()));
 
+        String qss = new String(qseq.getBases());
+        String tss = target.toString();
+
+        int[] posarray = new int[qseq.length()];
+        for (int i = 0; i < posarray.length; i++) {
+            posarray[i] = -1;
+        }
+
         for (int i = 0; i < target.length(); i += 20) {
             //String posString = String.valueOf(alignment.getAlignmentStart() + i);
             String posString = String.valueOf(i);
@@ -197,26 +265,45 @@ public class CallDeNovoVariants extends Module {
             //qpos.replace(i, i + posString.length(), posString);
         }
 
-        int pos = 0;
+        List<CigarElement> ces = getCigar(alignment);
+        int pos = 0, qp = 0, tp = 0;
+        if (ces.get(0).getOperator().equals(CigarOperator.S) || ces.get(0).getOperator().equals(CigarOperator.H)) {
+            qp = ces.get(0).getLength();
+        }
+
         for (CigarElement ce : getCigar(alignment)) {
             if (ce.getOperator().equals(CigarOperator.M)) {
                 for (int i = 0; i < ce.getLength(); i++) {
+                    posarray[qp + i] = tp + i;
+
                     if (target.charAt(i + pos) == query.charAt(i + pos)) {
                         matches.setCharAt(i + pos, '|');
                     }
                 }
 
                 pos += ce.getLength();
+                tp += ce.getLength();
+                qp += ce.getLength();
             } else if (ce.getOperator().equals(CigarOperator.I)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    posarray[qp + i] = tp;
+                }
+
                 target.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
                 tpos.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
                 matches.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
                 pos += ce.getLength();
+                qp += ce.getLength();
             } else if (ce.getOperator().equals(CigarOperator.D)) {
+                for (int i = 0; i < ce.getLength(); i++) {
+                    posarray[qp] = tp + i;
+                }
+
                 query.insert(pos, StringUtil.repeatCharNTimes('-', ce.getLength()));
                 qpos.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
                 ko.insert(pos, StringUtil.repeatCharNTimes(' ', ce.getLength()));
                 pos += ce.getLength();
+                tp += ce.getLength();
             }
         }
 
@@ -227,6 +314,20 @@ public class CallDeNovoVariants extends Module {
         log.debug("{}", query);
         log.debug("{}", ko);
         log.debug("{}", qpos);
+
+        StringBuilder sa = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < qss.length(); i++) {
+            if (posarray[i] != -1) {
+                sa.append(tss.charAt(posarray[i]));
+                sb.append(qss.charAt(i));
+            }
+        }
+
+        log.debug("{}", sa);
+        log.debug("{}", sb);
+
+        return posarray;
     }
 
     private Set<VariantContext> call(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, int refIndex) {
@@ -284,24 +385,32 @@ public class CallDeNovoVariants extends Module {
                 tpos += ce.getLength();
                 qpos += ce.getLength();
             } else if (ce.getOperator().equals(CigarOperator.I)) {
-                String targetAllele = target.substring(pos - 1, pos);
-                String queryAllele = query.substring(pos - 1, pos + ce.getLength());
+                String prevBase = "N";
+                String targetAllele, queryAllele;
+
+                if (pos > 0) {
+                    targetAllele = target.substring(pos - 1, pos);
+                    queryAllele = query.substring(pos - 1, pos + ce.getLength());
+                } else {
+                    targetAllele = prevBase;
+                    queryAllele = prevBase + query.substring(pos, pos + ce.getLength());
+                }
 
                 int novelKmersContained = 0;
                 int novelKmersLeft = 0;
                 int novelKmersRight = 0;
 
                 for (int q = pos - 1; q < pos + ce.getLength(); q++) {
-                    if (ko.charAt(q) == '.') { novelKmersContained++; }
+                    if (q >= 0 && ko.charAt(q) == '.') { novelKmersContained++; }
                 }
 
                 for (int q = pos - 2; q >= 0; q--) {
-                    if (ko.charAt(q) == '.') { novelKmersLeft++; }
+                    if (q >= 0 && ko.charAt(q) == '.') { novelKmersLeft++; }
                     else { break; }
                 }
 
                 for (int q = pos + ce.getLength(); q < query.length(); q++) {
-                    if (ko.charAt(q) == '.') { novelKmersRight++; }
+                    if (q >= 0 && ko.charAt(q) == '.') { novelKmersRight++; }
                     else { break; }
                 }
 
@@ -326,20 +435,28 @@ public class CallDeNovoVariants extends Module {
                 pos += ce.getLength();
                 qpos += ce.getLength();
             } else if (ce.getOperator().equals(CigarOperator.D)) {
-                String targetAllele = target.substring(pos - 1, pos + ce.getLength());
-                String queryAllele = query.substring(pos - 1, pos);
+                String prevBase = "N";
 
-                int novelKmersContained = ko.charAt(pos - 1) == '.' ? 1 : 0;
+                String targetAllele, queryAllele;
+                if (pos > 0) {
+                    targetAllele = target.substring(pos - 1, pos + ce.getLength());
+                    queryAllele = query.substring(pos - 1, pos);
+                } else {
+                    targetAllele = prevBase + target.substring(pos, pos + ce.getLength());
+                    queryAllele = prevBase;
+                }
+
+                int novelKmersContained = (pos > 0 && ko.charAt(pos - 1) == '.') ? 1 : 0;
                 int novelKmersLeft = 0;
                 int novelKmersRight = 0;
 
                 for (int q = pos - 2; q >= 0; q--) {
-                    if (ko.charAt(q) == '.') { novelKmersLeft++; }
+                    if (q >= 0 && ko.charAt(q) == '.') { novelKmersLeft++; }
                     else { break; }
                 }
 
                 for (int q = pos + ce.getLength() + 1; q < query.length(); q++) {
-                    if (ko.charAt(q) == '.') { novelKmersRight++; }
+                    if (q >= 0 && ko.charAt(q) == '.') { novelKmersRight++; }
                     else { break; }
                 }
 
@@ -370,7 +487,7 @@ public class CallDeNovoVariants extends Module {
         return vcs;
     }
 
-    private Set<VariantContext> callInversions(ReferenceSequence qseq, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs) {
+    private Set<VariantContext> callInversions(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, int kmerSize, Set<VariantContext> vcs, int refIndex) {
         Map<Integer, VariantContext> vcMap = new TreeMap<Integer, VariantContext>();
         for (VariantContext vc : vcs) {
             vcMap.put(vc.getStart(), vc);
@@ -378,6 +495,7 @@ public class CallDeNovoVariants extends Module {
 
         StringBuilder target = getTarget(alignment, ref);
         StringBuilder query = getQuery(qseq, alignment);
+        StringBuilder ko = getKmerOrigin(qseq, kmerOrigin, alignment);
 
         Map<String, Set<Integer>> qKmers = new HashMap<String, Set<Integer>>();
 
@@ -433,11 +551,33 @@ public class CallDeNovoVariants extends Module {
                                     vcMap.remove(variantPosition);
                                 }
 
+                                int novelKmersContained = 0, novelKmersLeft = 0, novelKmersRight = 0;
+
+                                for (int q = qStart; q < qEnd; q++) {
+                                    if (q >= 0 && q < kmerOrigin.length() && kmerOrigin.charAt(q) == '.') { novelKmersContained++; }
+                                }
+
+                                for (int q = qStart - 1; q >= 0; q--) {
+                                    if (q >= 0 && q < kmerOrigin.length() && kmerOrigin.charAt(q) == '.') { novelKmersLeft++; }
+                                    else { break; }
+                                }
+
+                                for (int q = qEnd; q < query.length(); q++) {
+                                    if (q >= 0 && q < kmerOrigin.length() && kmerOrigin.charAt(q) == '.') { novelKmersRight++; }
+                                    else { break; }
+                                }
+
                                 VariantContext vc = (new VariantContextBuilder())
                                         .chr(alignment.getReadName())
                                         .start(qStart)
                                         .stop(qEnd - 1)
                                         .alleles(targetCandidateFw, queryCandidate)
+                                        .attribute("novelKmersContained", novelKmersContained)
+                                        .attribute("novelKmersLeft", novelKmersLeft)
+                                        .attribute("novelKmersRight", novelKmersRight)
+                                        .attribute("chr" + refIndex, alignment.getReferenceName())
+                                        .attribute("start" + refIndex, alignment.getAlignmentStart() + tStart)
+                                        .attribute("end" + refIndex, alignment.getAlignmentStart() + tEnd)
                                         .make();
 
                                 vcMap.put(qStart, vc);
@@ -451,9 +591,9 @@ public class CallDeNovoVariants extends Module {
         return new HashSet<VariantContext>(vcMap.values());
     }
 
-    private Set<VariantContext> refine(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs) {
+    private Set<VariantContext> refine(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs, int refIndex) {
         if (vcs.size() > 0) {
-            vcs = callInversions(qseq, alignment, ref, 10, vcs);
+            vcs = callInversions(qseq, kmerOrigin, alignment, ref, 10, vcs, refIndex);
         }
 
         return vcs;
@@ -572,41 +712,26 @@ public class CallDeNovoVariants extends Module {
 
         for (Interval interval : vcIntervalMap.keySet()) {
             Set<VariantContext> vcs = vcIntervalMap.get(interval);
-            if (vcs.size() == 2) {
-                VariantContext vca = vcs.iterator().next();
-                VariantContext vcb = vcs.iterator().next();
 
-                Map<String, Object> attrs = new HashMap<String, Object>();
+            Map<String, Object> attrs = new HashMap<String, Object>();
+            for (VariantContext vca : vcs) {
                 attrs.putAll(vca.getAttributes());
-                attrs.putAll(vcb.getAttributes());
-
-                VariantContext vcFinal = (new VariantContextBuilder(vca))
-                        .attributes(attrs)
-                        .attribute("DENOVO", true)
-                        .make();
-
-                vcsFinal.add(vcFinal);
-            } else {
-                for (VariantContext vc : vcIntervalMap.get(interval)) {
-                    int novelKmersContained = vc.getAttributeAsInt("novelKmersContained", 0);
-                    int novelKmersLeft = vc.getAttributeAsInt("novelKmersLeft", 0);
-                    int novelKmersRight = vc.getAttributeAsInt("novelKmersRight", 0);
-
-                    boolean isDeNovo;
-
-                    if (canContainNovelKmers(vc)) {
-                        isDeNovo = novelKmersContained > 0 && (novelKmersLeft > 0 || novelKmersRight > 0);
-                    } else {
-                        isDeNovo = novelKmersLeft > 0 && novelKmersRight > 0;
-                    }
-
-                    VariantContext vcFinal = (new VariantContextBuilder(vc))
-                            .attribute("DENOVO", isDeNovo)
-                            .make();
-
-                    vcsFinal.add(vcFinal);
-                }
             }
+
+            VariantContext vc = vcs.iterator().next();
+
+            int novelKmersContained = vc.getAttributeAsInt("novelKmersContained", 0);
+            int novelKmersLeft = vc.getAttributeAsInt("novelKmersLeft", 0);
+            int novelKmersRight = vc.getAttributeAsInt("novelKmersRight", 0);
+
+            boolean isDeNovo = novelKmersContained > 0 && (novelKmersLeft > 0 || novelKmersRight > 0);
+
+            VariantContext vcFinal = (new VariantContextBuilder(vc))
+                    .attributes(attrs)
+                    .attribute("DENOVO", isDeNovo)
+                    .make();
+
+            vcsFinal.add(vcFinal);
         }
 
         return vcsFinal;
@@ -651,14 +776,14 @@ public class CallDeNovoVariants extends Module {
         return vcsFinalAnnotated;
     }
 
-    private Set<VariantContext> filterVariants(Set<VariantContext> vcsFinal) {
+    private Set<VariantContext> filterVariants(Set<VariantContext> vcsFinal, int proximityThreshold) {
         Set<VariantContext> vcsFinalFiltered = new HashSet<VariantContext>();
         for (VariantContext vc : vcsFinal) {
             int distanceToLeftVariant = vc.getAttributeAsInt("distanceToLeftVariant", Integer.MAX_VALUE);
             int distanceToRightVariant = vc.getAttributeAsInt("distanceToRightVariant", Integer.MAX_VALUE);
 
             VariantContext vcFiltered = vc;
-            if (vc.isSNP() && (distanceToLeftVariant < 47 || distanceToRightVariant < 47)) {
+            if ((distanceToLeftVariant < proximityThreshold || distanceToRightVariant < proximityThreshold)) {
                 vcFiltered = (new VariantContextBuilder(vc))
                         .filter("PROXIMITY")
                         .make();
@@ -760,10 +885,89 @@ public class CallDeNovoVariants extends Module {
         return classifiedVCs;
     }
 
+    private Set<VariantContext> verifyVariants(Set<VariantContext> vcsFinal, String seq, String contigName, SAMRecord a0, SAMRecord a1, int[] p0, int[] p1) {
+        Set<VariantContext> classifiedVCs = new HashSet<VariantContext>();
+
+        String t0 = a0 == null ? null : getTarget(a0, REF0).toString();
+        String t1 = a1 == null ? null : getTarget(a1, REF1).toString();
+
+        for (VariantContext vc : vcsFinal) {
+            if (t0 != null && t1 != null && vc.isSNP() && vc.getAttributeAsBoolean("DENOVO", false) && ((vc.hasAttribute("chr0") && !vc.hasAttribute("chr1")) || (!vc.hasAttribute("chr0") && vc.hasAttribute("chr1")))) {
+                int start = vc.getStart();
+
+                int p0start = p0[start];
+                String coAllele0 = "";
+                if (p0start >= 0) {
+                    //coAllele0 = String.valueOf(t0.charAt(p0start));
+                    coAllele0 = t0.substring(p0start, p0start + vc.getReference().length());
+                }
+
+                int p1start = p1[start];
+                String coAllele1 = "";
+                if (p1start >= 0) {
+                    //coAllele1 = String.valueOf(t1.charAt(p1start));
+                    coAllele1 = t1.substring(p1start, p1start + vc.getReference().length());
+                }
+
+//              log.info("{} {} {} {} {}", start, vc.getReference(), vc.getAlternateAllele(0), coAllele0, coAllele1);
+//              log.info("{}", coAllele0.equals(coAllele1));
+//              log.info("--");
+
+                if (!coAllele0.equals(coAllele1)) {
+                    vc = (new VariantContextBuilder(vc))
+                            .filter("INCONSISTENT")
+                            .make();
+
+                    classifiedVCs.add(vc);
+                }
+            } else {
+                classifiedVCs.add(vc);
+            }
+        }
+
+        return classifiedVCs;
+    }
+
+    private SAMSequenceDictionary buildSAMSequenceDictionary() {
+        TableReader tr = new TableReader(METRICS);
+
+        List<SAMSequenceRecord> ssrs = new ArrayList<SAMSequenceRecord>();
+        for (Map<String, String> te : tr) {
+            String contigName = te.get("contigName");
+            String contig = te.get("seq");
+            int contigLength = contig.length();
+
+            SAMSequenceRecord ssr = new SAMSequenceRecord(contigName, contigLength);
+            ssrs.add(ssr);
+
+        }
+
+        return new SAMSequenceDictionary(ssrs);
+    }
+
+    private Set<VariantInfo> getRelevantVariants(Map<CortexKmer, Set<VariantInfo>> vis, ReferenceSequence qseq, String kmerOrigin) {
+        String seq = new String(qseq.getBases());
+
+        int kmerSize = seq.length() - kmerOrigin.length() + 1;
+
+        Set<VariantInfo> relevantVariants = new HashSet<VariantInfo>();
+        for (int i = 0; i < kmerOrigin.length(); i++) {
+            if (kmerOrigin.charAt(i) == '.') {
+                CortexKmer ck = new CortexKmer(seq.substring(i, i + kmerSize));
+
+                if (vis.containsKey(ck)) {
+                    relevantVariants.addAll(vis.get(ck));
+                }
+            }
+        }
+
+        return relevantVariants;
+    }
+
     @Override
     public void execute() {
         log.info("Loading known events...");
-        Map<String, Set<Map<String, String>>> knownEvents = loadExistingEvents();
+        Map<String, Set<VariantContext>> knownEvents = loadExistingEvents();
         int numEvents = 0;
         for (String contigName : knownEvents.keySet()) {
             numEvents += knownEvents.get(contigName).size();
@@ -777,139 +981,230 @@ public class CallDeNovoVariants extends Module {
         log.info("  ref1: {}", align1.size());
 
         log.info("Calling variants...");
-        int multipleAlignments0 = 0;
-        int multipleAlignments1 = 0;
+        Map<String, VariantContext> variants = new HashMap<String, VariantContext>();
+
+        log.info("Loading debugging info...");
+        Map<CortexKmer, Set<VariantInfo>> vis = loadNovelKmerVariantMap();
+        LineReader lr = new LineReader(new File("contigs.weird.txt"));
+        while (lr.hasNext()) {
+            String l = lr.getNextRecord();
+
+            weird.add(l);
+        }
+
         DataTable dt = new DataTable("recall", "recall");
-        dt.addColumns("event", "known", "called");
+        dt.addColumns("event", "known", "called", "filtered");
+
+        DataTable dt2 = new DataTable("recall", "recall");
+        dt2.addColumns("event", "known", "called", "filtered");
+
+        VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
+        vcwb.setOutputFile(out);
+        vcwb.unsetOption(Options.INDEX_ON_THE_FLY);
+        vcwb.setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+        VariantContextWriter vcw = vcwb.build();
+
+        Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
+        VCFHeader header = new VCFHeader(headerLines);
+        header.setSequenceDictionary(buildSAMSequenceDictionary());
+
+        vcw.writeHeader(header);
 
         TableReader tr = new TableReader(METRICS);
-        int numContigsProcessed = 0;
+        int numContigsSeen = 0, numContigsProcessed = 0;
         for (Map<String, String> te : tr) {
-            if (numContigsProcessed % (tr.size()/10) == 0) {
-                log.info("  {}/{}", numContigsProcessed, tr.size());
+            if (numContigsSeen % (tr.size()/10) == 0) {
+                log.info("  {}/{} ({})", numContigsSeen, tr.size(), numContigsProcessed);
             }
-            numContigsProcessed++;
+            numContigsSeen++;
+
+            //if (numContigsProcessed > 300) { break; }
 
             String contigName = te.get("contigName");
+            int numNovelKmers = Integer.valueOf(te.get("refNovel"));
             String seq = te.get("seq");
             String kmerOrigin = te.get("kmerOrigin");
             ReferenceSequence qseq = new ReferenceSequence(contigName, 0, seq.getBytes());
 
-            Set<VariantContext> vcs0 = new HashSet<VariantContext>();
-            Set<VariantContext> vcs1 = new HashSet<VariantContext>();
-
-            if (align0.containsKey(contigName) && align0.get(contigName).size() == 1) {
-                SAMRecord alignment = align0.get(contigName).iterator().next();
-
-                if (!alignment.getReadUnmappedFlag()) {
-                    align(qseq, kmerOrigin, alignment, REF0);
-                    vcs0 = call(qseq, kmerOrigin, alignment, REF0, 0);
-                    vcs0 = refine(qseq, kmerOrigin, alignment, REF0, vcs0);
-                    vcs0 = filter(qseq, kmerOrigin, alignment, REF0, vcs0, 10, 5);
-                    log.debug("");
-                }
-            }
-
-            if (align1.containsKey(contigName) && align1.get(contigName).size() == 1) {
-                SAMRecord alignment = align1.get(contigName).iterator().next();
-
-                if (!alignment.getReadUnmappedFlag()) {
-                    align(qseq, kmerOrigin, alignment, REF1);
-                    vcs1 = call(qseq, kmerOrigin, alignment, REF1, 1);
-                    vcs1 = refine(qseq, kmerOrigin, alignment, REF1, vcs1);
-                    vcs1 = filter(qseq, kmerOrigin, alignment, REF1, vcs1, 10, 5);
-                    log.debug("");
-                }
-            }
-
-            Set<VariantContext> vcsMarked = markDenovos(vcs0, vcs1);
-            Set<VariantContext> vcsAnnotated = annotateVariants(vcsMarked);
-            Set<VariantContext> vcsFiltered = filterVariants(vcsAnnotated);
-            Set<VariantContext> vcsFinal = classifyVariants(vcsFiltered, seq);
-
-            int numKnownDeNovos = knownEvents.containsKey(contigName) ? knownEvents.get(contigName).size() : 0;
-            log.debug("known denovo variants: {}", numKnownDeNovos);
+            int numKnownDeNovos = 0, numKnownCompleteDenovos = 0;
             if (knownEvents.containsKey(contigName)) {
-                Map<Integer, Map<String, String>> sortedKnowns = new TreeMap<Integer, Map<String, String>>();
-                for (Map<String, String> ke : knownEvents.get(contigName)) {
-                    int variantStart = Integer.valueOf(ke.get("variantStart"));
+                Map<Integer, VariantContext> sortedKnowns = new TreeMap<Integer, VariantContext>();
+                for (VariantContext ke : knownEvents.get(contigName)) {
+                    int variantStart = ke.getStart();
                     sortedKnowns.put(variantStart, ke);
+
+                    if (ke.isNotFiltered() && !ke.getAttributeAsString("denovo", "unknown").equals("unknown")) {
+                        numKnownDeNovos++;
+
+                        if (ke.getAttributeAsBoolean("isComplete", false)) {
+                            numKnownCompleteDenovos++;
+                        }
+                    }
                 }
+                log.debug("known denovo variants: {}, complete: {}", numKnownDeNovos, numKnownCompleteDenovos);
                 for (int variantStart : sortedKnowns.keySet()) {
-                    Map<String, String> ke = sortedKnowns.get(variantStart);
+                    VariantContext ke = sortedKnowns.get(variantStart);
 
-                    log.debug("  {}", Joiner.on(" ").withKeyValueSeparator("=").join(ke));
+                    if (ke.isNotFiltered() && !ke.getAttributeAsString("denovo", "unknown").equals("unknown") && ke.getAttributeAsBoolean("isComplete", false)) {
+                        log.debug("  {}", ke);
+                    }
 
-                    dt.set(ke.get("event"), "event", ke.get("event"));
-                    dt.increment(ke.get("event"), "known");
+                    dt.set(ke.getAttributeAsString("event", "unknown"), "event", ke.getAttributeAsString("event", "unknown"));
+                    dt.increment(ke.getAttributeAsString("event", "unknown"), "known");
+
+                    dt2.set(ke.getAttributeAsString("event", "unknown"), "event", ke.getAttributeAsString("event", "unknown"));
+                    dt2.increment(ke.getAttributeAsString("event", "unknown"), "known");
                 }
             }
 
-            int numDeNovos = 0;
-            for (VariantContext vc : vcsFinal) {
-                if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
-                    numDeNovos++;
+            if (numNovelKmers > 0) {
+                numContigsProcessed++;
+
+                Set<VariantContext> vcs0 = new HashSet<VariantContext>();
+                Set<VariantContext> vcs1 = new HashSet<VariantContext>();
+
+                SAMRecord a0 = null, a1 = null;
+                int[] p0 = null, p1 = null;
+                if (align0.containsKey(contigName) && align0.get(contigName).size() == 1) {
+                    a0 = align0.get(contigName).iterator().next();
+
+                    if (!a0.getReadUnmappedFlag() && a0.getReadLength() >= 47) {
+                        p0 = align(qseq, kmerOrigin, a0, REF0);
+                        vcs0 = call(qseq, kmerOrigin, a0, REF0, 0);
+                        vcs0 = refine(qseq, kmerOrigin, a0, REF0, vcs0, 0);
+                        vcs0 = filter(qseq, kmerOrigin, a0, REF0, vcs0, 10, 5);
+                        log.debug("");
+                    }
+
                 }
-            }
 
-            log.debug("called denovo variants: {} out of {} total", numDeNovos, vcsFinal.size());
-            Set<VariantContext> vcsFinalSorted = new TreeSet<VariantContext>(new Comparator<VariantContext>() {
-                @Override
-                public int compare(VariantContext o1, VariantContext o2) {
-                    return o1.getStart() < o2.getStart() ? -1 : 1;
+                if (align1.containsKey(contigName) && align1.get(contigName).size() == 1) {
+                    a1 = align1.get(contigName).iterator().next();
+
+                    if (!a1.getReadUnmappedFlag() && a1.getReadLength() >= 47) {
+                        p1 = align(qseq, kmerOrigin, a1, REF1);
+                        vcs1 = call(qseq, kmerOrigin, a1, REF1, 1);
+                        vcs1 = refine(qseq, kmerOrigin, a1, REF1, vcs1, 1);
+                        vcs1 = filter(qseq, kmerOrigin, a1, REF1, vcs1, 10, 5);
+                        log.debug("");
+                    }
                 }
-            });
-            vcsFinalSorted.addAll(vcsFinal);
 
-            for (VariantContext vc : vcsFinalSorted) {
-                if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
-                    String event = vc.getAttributeAsString("event", "unknown");
+                Set<VariantContext> vcsMarked = markDenovos(vcs0, vcs1);
+                Set<VariantContext> vcsAnnotated = annotateVariants(vcsMarked);
+                Set<VariantContext> vcsFiltered = filterVariants(vcsAnnotated, PROXIMITY_THRESHOLD);
+                Set<VariantContext> vcsClassified = classifyVariants(vcsFiltered, seq);
+                Set<VariantContext> vcsFinal = verifyVariants(vcsClassified, seq, contigName, a0, a1, p0, p1);
 
-                    dt.set(event, "event", event);
-                    dt.increment(event, "called");
+                int numDeNovos = 0;
+                for (VariantContext vc : vcsFinal) {
+                    if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
+                        numDeNovos++;
+                    }
+                }
 
-                    log.debug("  id=noname event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
-                            vc.getAttributeAsString("event", "unknown"),
-                            vc.getType(),
-                            vc.getAlternateAllele(0).length(),
-                            vc.getStart(),
-                            vc.getEnd(),
-                            vc
+                log.debug("called denovo variants: {} out of {} total", numDeNovos, vcsFinal.size());
+                Set<VariantContext> vcsFinalSorted = new TreeSet<VariantContext>(new Comparator<VariantContext>() {
+                    @Override
+                    public int compare(VariantContext o1, VariantContext o2) {
+                        return o1.getStart() < o2.getStart() ? -1 : 1;
+                    }
+                });
+                vcsFinalSorted.addAll(vcsFinal);
+
+                for (VariantContext vc : vcsFinalSorted) {
+                    vcw.add(vc);
+
+                    if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
+                        String event = vc.getAttributeAsString("event", "unknown");
+                        dt.set(event, "event", event);
+                        dt.increment(event, "called");
+
+                        log.debug("  id=noname event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
+                                vc.getAttributeAsString("event", "unknown"),
+                                vc.getType(),
+                                vc.getAlternateAllele(0).length(),
+                                vc.getStart(),
+                                vc.getEnd(),
+                                vc
+                        );
+                    }
+                }
+
+                log.debug("filtered out variants: {} out of {} total", vcsFinal.size() - numDeNovos, vcsFinal.size());
+                for (VariantContext vc : vcsFinalSorted) {
+                    if (!vc.getAttributeAsBoolean("DENOVO", false) || !vc.isNotFiltered()) {
+                        String event = vc.getAttributeAsString("event", "unknown");
+                        dt.set(event, "event", event);
+                        dt.increment(event, "filtered");
+
+                        log.debug("  id={} event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
+                                Joiner.on(",").join(vc.getFilters()),
+                                vc.getAttributeAsString("event", "unknown"),
+                                vc.getType(),
+                                vc.getAlternateAllele(0).length(),
+                                vc.getStart(),
+                                vc.getEnd(),
+                                vc
+                        );
+                    }
+                }
+
+                if (numDeNovos > 0) {
+                    log.debug("  {} {} {}", contigName, numDeNovos, numKnownDeNovos);
+                }
+
+                for (VariantContext vc : vcsFinalSorted) {
+                    String id = String.format("%s:%d-%d;%s:%d-%d",
+                            vc.getAttributeAsString("chr0", "none"), vc.getAttributeAsInt("start0", 0), vc.getAttributeAsInt("end0", 0),
+                            vc.getAttributeAsString("chr1", "none"), vc.getAttributeAsInt("start1", 0), vc.getAttributeAsInt("end1", 0)
                     );
+
+                    variants.put(id, vc);
                 }
-            }
 
-            log.debug("filtered out variants: {} out of {} total", vcsFinal.size() - numDeNovos, vcsFinal.size());
-            /*
-            for (VariantContext vc : vcsFinalSorted) {
-                if (!vc.getAttributeAsBoolean("DENOVO", false) || !vc.isNotFiltered()) {
-                    String event = vc.getAttributeAsString("event", "unknown");
-
-                    dt.set(event, "event", event);
-                    dt.increment(event, "called");
-
-                    log.debug("  id=badone event={} type={} length={} variantFound=TRUE matchedPos=irrelevant variantStart={} variantEnd={} vc={}",
-                            vc.getAttributeAsString("event", "unknown"),
-                            vc.getType(),
-                            vc.getAlternateAllele(0).length(),
-                            vc.getStart(),
-                            vc.getEnd(),
-                            vc
-                    );
+                Set<VariantInfo> relevantVariants = getRelevantVariants(vis, qseq, kmerOrigin);
+                log.debug("variant sources of novel kmers: {}", relevantVariants.size());
+                for (VariantInfo vi : relevantVariants) {
+                    for (Set<VariantContext> vcs : knownEvents.values()) {
+                        for (VariantContext vc : vcs) {
+                            if (vc.getAttributeAsString("id", "unknown").equals(vi.variantId)) {
+                                log.debug("  {} {}", Joiner.on(",").join(vc.getFilters()), vc);
+                            }
+                        }
+                    }
                 }
-            }
-            */
 
-            if (numDeNovos > 0) {
-                //log.info("  {} {} {}", contigName, numDeNovos, numKnownDeNovos);
+                log.debug("-----");
+                getRelevantVariants(vis, qseq, kmerOrigin);
             }
-
-            log.debug("-----");
         }
 
-        log.debug("  {}/{} contigs with multiple alignments", multipleAlignments0, tr.size());
-        log.debug("  {}/{} contigs with multiple alignments", multipleAlignments1, tr.size());
+        for (String id : variants.keySet()) {
+            VariantContext vc = variants.get(id);
+
+            String event = vc.getAttributeAsString("event", "unknown");
+
+            dt2.set(event, "event", event);
+            if (vc.getAttributeAsBoolean("DENOVO", false) && vc.isNotFiltered()) {
+                dt2.increment(event, "called");
+            } else {
+                dt2.increment(event, "filtered");
+            }
+        }
 
         log.info("\n{}", dt);
+        log.info("");
+        log.info("\n{}", dt2);
+
+        /*
+        for (String id : variants.keySet()) {
+            VariantContext vc = variants.get(id);
+
+            vcw.add(vc);
+        }
+        */
+
+        vcw.close();
     }
 }
