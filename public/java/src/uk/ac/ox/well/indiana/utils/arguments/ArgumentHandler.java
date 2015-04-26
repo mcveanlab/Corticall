@@ -295,7 +295,7 @@ public class ArgumentHandler {
                 return new PrintStream(bos, false);
             } else if (type.equals(SAMFileReader.class)) {
                 SAMFileReader sfr = new SAMFileReader(new File(value));
-                sfr.setValidationStringency(ValidationStringency.LENIENT);
+                sfr.setValidationStringency(ValidationStringency.SILENT);
 
                 return sfr;
             } else if (type.equals(FastqReader.class)) {
