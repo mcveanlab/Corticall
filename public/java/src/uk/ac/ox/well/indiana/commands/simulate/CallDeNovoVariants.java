@@ -49,7 +49,7 @@ public class CallDeNovoVariants extends Module {
     @Argument(fullName="novelKmerVariantMap", shortName="n", doc="Novel kmer variant map")
     public File NOVEL_KMER_VARIANT_MAP;
 
-    @Argument(fullName="weirdIn", shortName="w", doc="Weird places to examine more closely")
+    @Argument(fullName="weirdIn", shortName="w", doc="Weird places to examine more closely", required=false)
     public File WEIRD_IN;
 
     @Output
@@ -1005,11 +1005,13 @@ public class CallDeNovoVariants extends Module {
 
         log.info("Loading debugging info...");
         Map<CortexKmer, Set<VariantInfo>> vis = loadNovelKmerVariantMap();
-        LineReader lr = new LineReader(WEIRD_IN);
-        while (lr.hasNext()) {
-            String l = lr.getNextRecord();
+        if (WEIRD_IN != null) {
+            LineReader lr = new LineReader(WEIRD_IN);
+            while (lr.hasNext()) {
+                String l = lr.getNextRecord();
 
-            weird.add(l);
+                weird.add(l);
+            }
         }
 
         DataTable dt = new DataTable("recall", "recall");
