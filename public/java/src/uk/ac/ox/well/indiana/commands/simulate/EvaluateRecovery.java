@@ -437,7 +437,7 @@ public class EvaluateRecovery extends Module {
 
             float tp = (Long) recoveryStats.get(pk, "tp");
             float fp = (Long) recoveryStats.get(pk, "fp");
-            float tn = recoveryStats.has(pk) ? (Long) recoveryStats.get(pk, "tn") : 0l;
+            float tn = recoveryStats.has(pk, "tn") ? (Long) recoveryStats.get(pk, "tn") : 0l;
 
             float sens = tp / (tp + fn);
             float spec = tn / (tn + fp);
