@@ -82,20 +82,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
     }
 
     public void write(PrintStream out) {
-        out.println(tableName + "\t" + Joiner.on("\t").join(columnNames));
-
-        for (String primaryKey : data.keySet()) {
-            List<String> fields = new ArrayList<String>();
-            fields.add(tableName);
-
-            for (String columnName : columnNames) {
-                fields.add(String.valueOf(get(primaryKey, columnName)));
-            }
-
-            out.println(Joiner.on("\t").join(fields));
-        }
-
-        out.println();
+        out.println(this.toString());
     }
 
     @Override
