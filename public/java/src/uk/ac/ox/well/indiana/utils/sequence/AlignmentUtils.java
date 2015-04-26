@@ -126,4 +126,18 @@ public class AlignmentUtils {
 
         return deletionSizes;
     }
+
+    public static List<CigarElement> getForwardCigar(SAMRecord alignment) {
+        List<CigarElement> ces = new ArrayList<CigarElement>();
+
+        if (alignment.getReadNegativeStrandFlag()) {
+            for (int i = alignment.getCigar().numCigarElements() - 1; i >= 0; i--) {
+                ces.add(alignment.getCigar().getCigarElement(i));
+            }
+        } else {
+            ces = alignment.getCigar().getCigarElements();
+        }
+
+        return ces;
+    }
 }
