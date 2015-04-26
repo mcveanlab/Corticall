@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.commands.simulate;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
@@ -11,14 +10,12 @@ import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.VCFFileReader;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -35,6 +32,9 @@ public class FindVariantsInContigs2 extends Module {
 
     @Output
     public File out;
+
+    @Output(fullName="sout", shortName="so", doc="Stats out")
+    public PrintStream sout;
 
     @Override
     public void execute() {
@@ -115,13 +115,6 @@ public class FindVariantsInContigs2 extends Module {
                         numTotal++;
 
                         VariantContext newVC;
-
-                        /*
-                        b.remove("ref");
-                        b.remove("alt");
-                        b.remove("left");
-                        b.remove("right");
-                        */
 
                         if (contig.getReadNegativeStrandFlag()) {
                             newVC = (new VariantContextBuilder())
@@ -204,6 +197,7 @@ public class FindVariantsInContigs2 extends Module {
                 log.info("  missed: {}", Joiner.on(", ").withKeyValueSeparator("=").join(variantInfo.get(id)));
 
                 foundStats.increment(type, "missed");
+                numMissed++;
             } else {
                 foundStats.increment(type, "found");
             }
