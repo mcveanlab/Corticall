@@ -9,6 +9,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
+import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.AlignmentUtils;
@@ -151,6 +152,8 @@ public class EvaluateRecovery extends Module {
 
     @Override
     public void execute() {
+        DataTables report = new DataTables();
+
         log.info("Loading debugging info...");
         Map<CortexKmer, Set<VariantInfo>> vis = loadNovelKmerVariantMap();
 
@@ -171,6 +174,7 @@ public class EvaluateRecovery extends Module {
 
         DataTable knownStats = new DataTable("knownStats", "known stats");
         knownStats.addColumns("type", "complete", "partial", "total");
+        report.addTable(knownStats);
 
         for (VariantContext vc : TRUTH) {
             String type = vc.getAttributeAsString("denovo", "unknown");
@@ -226,6 +230,7 @@ public class EvaluateRecovery extends Module {
 
         DataTable callStats = new DataTable("callStats", "call stats");
         callStats.addColumns("type", "complete", "partial", "rejected", "total");
+        report.addTable(callStats);
 
         for (VariantContext vc : EVAL) {
             if (vc.getAttributeAsBoolean("DENOVO", false)) {
@@ -246,15 +251,12 @@ public class EvaluateRecovery extends Module {
             }
         }
 
-        log.info("\n{}", callStats);
-
         Set<String> allIds = new HashSet<String>();
         allIds.addAll(ids);
         allIds.addAll(filteredVariants);
 
         log.info("  loaded {} records for {} variants ({} more filtered) for {} total (some ids will appear both filtered and unfiltered)", recordsLoaded, ids.size(), filteredVariants.size(), allIds.size());
         log.info("  {} contigs with complete variants, {} with incomplete variants, total of {} contigs with variants", contigsWithCompleteVariants.size(), contigsWithIncompleteVariants.size(), contigsWithVariants.size());
-        log.info("\n{}", knownStats);
 
         log.info("Loading eval dataset...");
 
@@ -265,6 +267,7 @@ public class EvaluateRecovery extends Module {
         }
 
         DataTable recoveryStats = new DataTable("recoveryStats", "recoveryStats");
+        report.addTable(recoveryStats);
         recoveryStats.addColumns("type", "tp", "fp", "tn", "fn", "sens", "spec", "fpr", "fdr", "fn1", "fn2", "total1", "total2");
         recoveryStats.set("contig", "type", "contig");
         recoveryStats.set("contig", "tp", 0l);
@@ -274,9 +277,15 @@ public class EvaluateRecovery extends Module {
         recoveryStats.set("contig", "fn1", 0l);
         recoveryStats.set("contig", "fn2", 0l);
 
+        Set<VariantContext> fpSNPs = new HashSet<VariantContext>();
+        Set<VariantContext> fpINSs = new HashSet<VariantContext>();
+
         for (VariantContext vc : EVAL) {
             if (vc.getAttributeAsBoolean("DENOVO", false)) {
                 Interval interval = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
+                if (!vc.isSNP()) {
+                    interval = new Interval(vc.getChr(), vc.getStart() - 5, vc.getEnd() + 5);
+                }
                 String event = vc.getAttributeAsString("event", "unknown");
 
                 if (event != null && !event.equals("GC")) {
@@ -299,6 +308,9 @@ public class EvaluateRecovery extends Module {
                             recoveryStats.increment(event, "fp");
 
                             if (vc.isSNP()) {
+                                fpSNPs.add(vc);
+                            } else if (vc.isSimpleInsertion()) {
+                                fpINSs.add(vc);
                                 wout.println(vc.getChr());
                             }
                         }
@@ -438,10 +450,9 @@ public class EvaluateRecovery extends Module {
             recoveryStats.set(pk, "fdr",  String.format("%.2f", fdr));
         }
 
-        log.info("\n{}", recoveryStats);
-
         DataTable fn2stats = new DataTable("contig_fn2", "contig_fn2");
         fn2stats.addColumn("total");
+        report.addTable(fn2stats);
 
         for (String contigName : fn2Contigs) {
             ContigAlignment ca = alignedContigs.get(contigName);
@@ -576,6 +587,7 @@ public class EvaluateRecovery extends Module {
 
         DataTable fn1stats = new DataTable("contig_fn1", "contig_fn1");
         fn1stats.addColumn("total");
+        report.addTable(fn1stats);
 
         for (String contigName : fn1Contigs) {
             boolean proximity = false, partial = false;
@@ -611,6 +623,7 @@ public class EvaluateRecovery extends Module {
 
         DataTable fpstats = new DataTable("contig_fp", "contig_fp");
         fpstats.addColumn("total");
+        report.addTable(fpstats);
 
         Map<CortexKmer, Integer> kmerMultiplicity = new HashMap<CortexKmer, Integer>();
         TableReader tr2 = new TableReader("test.txt", new String[] { "kmer", "cov" });
@@ -674,10 +687,48 @@ public class EvaluateRecovery extends Module {
             fpstats.increment("stats", "total");
         }
 
-        log.info("\n{}", fn2stats);
-        log.info("\n{}", fn1stats);
-        log.info("\n{}", fpstats);
+        DataTable snpFpStats = new DataTable("snp_fp", "snp_fp");
+        snpFpStats.addColumn("total");
+        report.addTable(snpFpStats);
 
-        out.println("--");
+        for (VariantContext vc : fpSNPs) {
+            int clength = annotatedContigs.get(vc.getChr()).get("seq").length();
+
+            if (vc.getStart() < 5 || vc.getEnd() > clength - 5) {
+                snpFpStats.increment("stats", "edge_of_contig");
+            } else {
+                snpFpStats.increment("stats", "else");
+            }
+
+            snpFpStats.increment("stats", "total");
+        }
+
+        DataTable insFpStats = new DataTable("ins_fp", "ins_fp");
+        insFpStats.addColumn("total");
+        report.addTable(insFpStats);
+
+        for (int i = 0; i < 65; i++) {
+            insFpStats.addColumn("a_" + i);
+        }
+
+        for (VariantContext vc : fpINSs) {
+            boolean isAlignmentIssue = false;
+            int distanceToKnownVariant = Integer.MAX_VALUE;
+            if (truth.containsKey(vc.getChr())) {
+                for (VariantContext t : truth.get(vc.getChr()).values()) {
+                    int distance = Math.abs(vc.getStart() - t.getStart());
+
+                    if (distance < distanceToKnownVariant) {
+                        distanceToKnownVariant = distance;
+                    }
+                }
+            }
+
+
+            insFpStats.increment("stats", "a_" + distanceToKnownVariant);
+            insFpStats.increment("stats", "total");
+        }
+
+        report.write(out);
     }
 }
