@@ -49,6 +49,9 @@ public class CallDeNovoVariants extends Module {
     @Argument(fullName="novelKmerVariantMap", shortName="n", doc="Novel kmer variant map")
     public File NOVEL_KMER_VARIANT_MAP;
 
+    @Argument(fullName="weirdIn", shortName="w", doc="Weird places to examine more closely")
+    public File WEIRD_IN;
+
     @Output
     public File out;
 
@@ -364,6 +367,8 @@ public class CallDeNovoVariants extends Module {
                             else { break; }
                         }
 
+                        int distanceToEdge = (i < query.length() - i - 1) ? i : query.length() - i - 1;
+
                         VariantContext vc = (new VariantContextBuilder())
                                 .chr(qseq.getName())
                                 .start(qpos + i)
@@ -372,6 +377,7 @@ public class CallDeNovoVariants extends Module {
                                 .attribute("novelKmersContained", novelKmersContained)
                                 .attribute("novelKmersLeft", novelKmersLeft)
                                 .attribute("novelKmersRight", novelKmersRight)
+                                .attribute("distanceToEdge", distanceToEdge)
                                 .attribute("chr" + refIndex, alignment.getReferenceName())
                                 .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos + i)
                                 .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos + i)
@@ -414,6 +420,8 @@ public class CallDeNovoVariants extends Module {
                     else { break; }
                 }
 
+                int distanceToEdge = (qpos - 1 < query.length() - (qpos - 1) - 1) ? qpos - 1 : query.length() - (qpos - 1) - 1;
+
                 VariantContext vc = (new VariantContextBuilder())
                         .chr(qseq.getName())
                         .start(qpos - 1)
@@ -424,6 +432,7 @@ public class CallDeNovoVariants extends Module {
                         .attribute("novelKmersContained", novelKmersContained)
                         .attribute("novelKmersLeft", novelKmersLeft)
                         .attribute("novelKmersRight", novelKmersRight)
+                        .attribute("distanceToEdge", distanceToEdge)
                         .attribute("chr" + refIndex, alignment.getReferenceName())
                         .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos)
                         .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos)
@@ -460,6 +469,8 @@ public class CallDeNovoVariants extends Module {
                     else { break; }
                 }
 
+                int distanceToEdge = (qpos - 1 < query.length() - (qpos - 1 + ce.getLength()) - 1) ? qpos - 1 : query.length() - (qpos - 1 + ce.getLength()) - 1;
+
                 VariantContext vc = (new VariantContextBuilder())
                         .chr(qseq.getName())
                         .start(qpos - 1)
@@ -470,6 +481,7 @@ public class CallDeNovoVariants extends Module {
                         .attribute("novelKmersContained", novelKmersContained)
                         .attribute("novelKmersLeft", novelKmersLeft)
                         .attribute("novelKmersRight", novelKmersRight)
+                        .attribute("distanceToEdge", distanceToEdge)
                         .attribute("chr" + refIndex, alignment.getReferenceName())
                         .attribute("start" + refIndex, alignment.getAlignmentStart() + tpos)
                         .attribute("end" + refIndex, alignment.getAlignmentStart() + tpos)
@@ -567,6 +579,8 @@ public class CallDeNovoVariants extends Module {
                                     else { break; }
                                 }
 
+                                int distanceToEdge = (qStart < query.length() - (qEnd - 1) - 1) ? qStart : query.length() - (qEnd - 1) - 1;
+
                                 VariantContext vc = (new VariantContextBuilder())
                                         .chr(alignment.getReadName())
                                         .start(qStart)
@@ -575,6 +589,7 @@ public class CallDeNovoVariants extends Module {
                                         .attribute("novelKmersContained", novelKmersContained)
                                         .attribute("novelKmersLeft", novelKmersLeft)
                                         .attribute("novelKmersRight", novelKmersRight)
+                                        .attribute("distanceToEdge", distanceToEdge)
                                         .attribute("chr" + refIndex, alignment.getReferenceName())
                                         .attribute("start" + refIndex, alignment.getAlignmentStart() + tStart)
                                         .attribute("end" + refIndex, alignment.getAlignmentStart() + tEnd)
@@ -781,11 +796,16 @@ public class CallDeNovoVariants extends Module {
         for (VariantContext vc : vcsFinal) {
             int distanceToLeftVariant = vc.getAttributeAsInt("distanceToLeftVariant", Integer.MAX_VALUE);
             int distanceToRightVariant = vc.getAttributeAsInt("distanceToRightVariant", Integer.MAX_VALUE);
+            int distanceToEdge = vc.getAttributeAsInt("distanceToEdge", Integer.MAX_VALUE);
 
             VariantContext vcFiltered = vc;
             if ((distanceToLeftVariant < proximityThreshold || distanceToRightVariant < proximityThreshold)) {
                 vcFiltered = (new VariantContextBuilder(vc))
                         .filter("PROXIMITY")
+                        .make();
+            } else if (distanceToEdge <= 5 && vc.isSNP()) {
+                vcFiltered = (new VariantContextBuilder(vc))
+                        .filter("EDGE")
                         .make();
             }
 
@@ -985,7 +1005,7 @@ public class CallDeNovoVariants extends Module {
 
         log.info("Loading debugging info...");
         Map<CortexKmer, Set<VariantInfo>> vis = loadNovelKmerVariantMap();
-        LineReader lr = new LineReader(new File("contigs.weird.txt"));
+        LineReader lr = new LineReader(WEIRD_IN);
         while (lr.hasNext()) {
             String l = lr.getNextRecord();
 
