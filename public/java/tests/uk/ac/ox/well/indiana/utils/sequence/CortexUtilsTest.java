@@ -13,7 +13,7 @@ public class CortexUtilsTest {
     @Test
     public void testKmersInLink() {
         CortexGraph cg = new CortexGraph("testdata/PG0051-C.ERR019061.chr1.infer.sorted.ctx");
-        CortexLinksMap ctp = new CortexLinksMap("testdata/PG0051-C.ERR019061.chr1.pe.ctp");
+        CortexLinksMap ctp = new CortexLinksMap("testdata/PG0051-C.ERR019061.chr1.se.ctp");
 
         for (CortexKmer ock : ctp.keySet()) {
             for (int rc = 0; rc <= 1; rc++) {

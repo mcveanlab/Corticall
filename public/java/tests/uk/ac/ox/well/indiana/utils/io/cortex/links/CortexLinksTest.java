@@ -73,7 +73,7 @@ public class CortexLinksTest {
 
     @Test
     public void testParseRecordWithExtendedInfo() {
-        CortexLinks ctp = new CortexLinks("testdata/PG0051-C.ERR019061.chr1.pe.ctp");
+        CortexLinks ctp = new CortexLinks("testdata/PG0051-C.ERR019061.chr1.se.ctp");
 
         for (CortexLinksRecord clr : ctp) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
