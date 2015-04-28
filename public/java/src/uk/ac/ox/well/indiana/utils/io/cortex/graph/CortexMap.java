@@ -69,7 +69,7 @@ public class CortexMap implements Map<CortexKmer, CortexRecord> {
                 System.arraycopy(cr.getCoverages(), 0, coverages, crold.getCoverages().length, cr.getCoverages().length);
                 System.arraycopy(cr.getEdges(),     0, edges,     crold.getEdges().length,     cr.getEdges().length);
 
-                put(kmer, new CortexRecord(cr.getKmer(), coverages, edges, cr.getKmerSize(), cr.getKmerBits()));
+                put(kmer, new CortexRecord(cr.getBinaryKmer(), coverages, edges, cr.getKmerSize(), cr.getKmerBits()));
             }
 
             if (this.log != null && i % (cortexGraph.getNumRecords() / 5) == 0) {

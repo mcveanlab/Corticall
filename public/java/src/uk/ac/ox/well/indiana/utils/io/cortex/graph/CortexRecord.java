@@ -1,23 +1,23 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
 public class CortexRecord implements Comparable<CortexRecord> {
     private int kmerSize, kmerBits;
-    private long[] kmer;
+    private long[] binaryKmer;
     private int[] coverages;
     private byte[] edges;
 
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
-        this.kmer = new long[binaryKmer.length];
+        this.binaryKmer = new long[binaryKmer.length];
         this.coverages = new int[coverages.length];
         this.edges = new byte[edges.length];
 
-        this.kmer = Arrays.copyOf(binaryKmer, binaryKmer.length);
+        this.binaryKmer = Arrays.copyOf(binaryKmer, binaryKmer.length);
         this.coverages = Arrays.copyOf(coverages, coverages.length);
         this.edges = Arrays.copyOf(edges, edges.length);
 
@@ -25,58 +25,12 @@ public class CortexRecord implements Comparable<CortexRecord> {
         this.kmerBits = kmerBits;
     }
 
-    private byte binaryNucleotideToChar(long nucleotide) {
-        switch ((int) nucleotide) {
-            case 0: return 'A';
-            case 1: return 'C';
-            case 2: return 'G';
-            case 3: return 'T';
-            default:
-                throw new RuntimeException("Nucleotide '" + nucleotide + "' is not a valid binary nucleotide");
-        }
-    }
-
-    private byte[] decodeBinaryKmer() {
-        byte[] rawKmer = new byte[kmerSize];
-
-        long[] binaryKmer = Arrays.copyOf(kmer, kmer.length);
-
-        for (int i = 0; i < binaryKmer.length; i++) {
-            binaryKmer[i] = reverse(binaryKmer[i]);
-        }
-
-        for (int i = kmerSize - 1; i >= 0; i--) {
-            rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
-
-            shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
-        }
-
-        return rawKmer;
-    }
-
-    private void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {
-        for(int i = bitfields - 1; i > 0; i--) {
-            binaryKmer[i] >>>= 2;
-            binaryKmer[i] |= (binaryKmer[i-1] << 62); // & 0x3
-        }
-        binaryKmer[0] >>>= 2;
-    }
-
-    private long reverse(long x) {
-        ByteBuffer bbuf = ByteBuffer.allocate(8);
-        bbuf.order(ByteOrder.BIG_ENDIAN);
-        bbuf.putLong(x);
-        bbuf.order(ByteOrder.LITTLE_ENDIAN);
-
-        return bbuf.getLong(0);
-    }
-
     public int getKmerSize() { return kmerSize; }
     public int getKmerBits() { return kmerBits; }
     public int getNumColors() { return coverages.length; }
 
-    public long[] getKmer() { return this.kmer; }
-    public byte[] getKmerAsBytes() { return decodeBinaryKmer(); }
+    public long[] getBinaryKmer() { return this.binaryKmer; }
+    public byte[] getKmerAsBytes() { return CortexUtils.decodeBinaryKmer(binaryKmer, kmerSize, kmerBits); }
     public CortexKmer getCortexKmer() { return new CortexKmer(getKmerAsBytes(), true); }
     public String getKmerAsString() { return getCortexKmer().getKmerAsString(); }
 
@@ -147,14 +101,14 @@ public class CortexRecord implements Comparable<CortexRecord> {
     }
 
     public int hashCode() {
-        return Arrays.hashCode(kmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
+        return Arrays.hashCode(binaryKmer) - Arrays.hashCode(coverages) + Arrays.hashCode(edges);
     }
 
     public boolean equals(Object o) {
         if (o instanceof CortexRecord) {
             CortexRecord o1 = ((CortexRecord) o);
 
-            return (Arrays.equals(kmer, o1.kmer) && Arrays.equals(coverages, o1.coverages) && Arrays.equals(edges, o1.edges));
+            return (Arrays.equals(binaryKmer, o1.binaryKmer) && Arrays.equals(coverages, o1.coverages) && Arrays.equals(edges, o1.edges));
         }
 
         return false;
