@@ -362,7 +362,7 @@ public class GraphContext extends Module {
                 DataFrame<String, String, Integer> hv = new DataFrame<String, String, Integer>(0);
 
                 for (int q = 0; q <= contig.length() - cg.getKmerSize(); q++) {
-                    //String sk = cv.getKmer();
+                    //String sk = cv.getBinaryKmer();
                     String sk = contig.substring(q, q + cg.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
 

@@ -1862,7 +1862,7 @@ public class server extends Module {
             links.put(graphName, new HashMap<CortexKmer, CortexLinksRecord>());
 
             for (CortexLinksRecord cpr : cp) {
-                links.get(graphName).put(cpr.getKmer(), cpr);
+                links.get(graphName).put(cpr.getBinaryKmer(), cpr);
             }
         }
 
