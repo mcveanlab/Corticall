@@ -66,6 +66,7 @@ public class PrintNovelKmers extends Module {
             numKmers++;
 
             if (isNovel(GRAPH, cr, samplesToConsider)) {
+                out.println(">kmer_" + numNovelKmers);
                 out.println(cr.getKmerAsString());
 
                 numNovelKmers++;
