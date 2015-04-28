@@ -105,7 +105,7 @@ public class CortexGraphWriter {
 
         bb.order(ByteOrder.BIG_ENDIAN);
 
-        long[] binaryKmer = record.getKmer();
+        long[] binaryKmer = record.getBinaryKmer();
         for (int i = 0; i < header.getKmerBits(); i++) {
             bb.putLong(binaryKmer[i]);
         }

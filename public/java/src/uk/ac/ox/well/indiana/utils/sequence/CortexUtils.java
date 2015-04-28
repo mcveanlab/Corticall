@@ -13,6 +13,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 
 /**
@@ -350,4 +352,52 @@ public class CortexUtils {
 
         return hv;
     }
+
+    public static byte binaryNucleotideToChar(long nucleotide) {
+        switch ((int) nucleotide) {
+            case 0: return 'A';
+            case 1: return 'C';
+            case 2: return 'G';
+            case 3: return 'T';
+            default:
+                throw new RuntimeException("Nucleotide '" + nucleotide + "' is not a valid binary nucleotide");
+        }
+    }
+
+    public static byte[] decodeBinaryKmer(long[] kmer, int kmerSize, int kmerBits) {
+        byte[] rawKmer = new byte[kmerSize];
+
+        long[] binaryKmer = Arrays.copyOf(kmer, kmer.length);
+
+        for (int i = 0; i < binaryKmer.length; i++) {
+            binaryKmer[i] = reverse(binaryKmer[i]);
+        }
+
+        for (int i = kmerSize - 1; i >= 0; i--) {
+            rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
+
+            shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
+        }
+
+        return rawKmer;
+    }
+
+    public static void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {
+        for(int i = bitfields - 1; i > 0; i--) {
+            binaryKmer[i] >>>= 2;
+            binaryKmer[i] |= (binaryKmer[i-1] << 62); // & 0x3
+        }
+        binaryKmer[0] >>>= 2;
+    }
+
+    public static long reverse(long x) {
+        ByteBuffer bbuf = ByteBuffer.allocate(8);
+        bbuf.order(ByteOrder.BIG_ENDIAN);
+        bbuf.putLong(x);
+        bbuf.order(ByteOrder.LITTLE_ENDIAN);
+
+        return bbuf.getLong(0);
+    }
+
+    //public static long[] encodeBinaryKmer(byte[] kmer) { }
 }
