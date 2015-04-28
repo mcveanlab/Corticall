@@ -16,8 +16,8 @@ public class PrintNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="samplesToConsider", shortName="s", doc="Samples to consider (regex)")
-    public ArrayList<String> SAMPLE_REGEX;
+    @Argument(fullName="samplesToConsider", shortName="s", doc="Samples to consider")
+    public ArrayList<String> SAMPLES;
 
     @Output
     public PrintStream out;
@@ -44,9 +44,9 @@ public class PrintNovelKmers extends Module {
     @Override
     public void execute() {
         Set<String> samplesToConsider = new HashSet<String>();
-        for (String regex : SAMPLE_REGEX) {
+        for (String sample : SAMPLES) {
             for (CortexColor cc : GRAPH.getColors()) {
-                if (cc.getSampleName().matches(regex)) {
+                if (cc.getSampleName().contains(sample)) {
                     samplesToConsider.add(cc.getSampleName());
                 }
             }
