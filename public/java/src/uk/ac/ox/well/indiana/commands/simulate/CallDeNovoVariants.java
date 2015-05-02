@@ -614,6 +614,49 @@ public class CallDeNovoVariants extends Module {
         return vcs;
     }
 
+    private Set<VariantContext> shift(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs, int refIndex, int[] p) {
+        String t = alignment == null ? null : getTarget(alignment, ref).toString();
+        String q = new String(qseq.getBases());
+
+        Set<VariantContext> vcsShifted = new HashSet<VariantContext>();
+        for (VariantContext vc : vcs) {
+            if (vc.isIndel() || vc.isMNP()) {
+                int pstart = p[vc.getStart()];
+
+                String r = vc.getReference().getBaseString();
+                String a = vc.getAlternateAllele(0).getBaseString();
+                String prevBase = String.valueOf(t.charAt(pstart));
+                String nextBase = (a.length() > r.length()) ? String.valueOf(a.charAt(a.length() - 1)) : String.valueOf(r.charAt(r.length() - 1));
+
+                while (prevBase.equals(nextBase)) {
+                    String newr = t.substring(pstart - 1, pstart - 1 + r.length());
+                    String newa = q.substring(vc.getStart() - 1, vc.getStart() - 1 + a.length());
+
+                    if (newr.equals(newa)) {
+                        break;
+                    } else {
+                        vc = (new VariantContextBuilder(vc))
+                                .start(vc.getStart() - 1)
+                                .stop(vc.getEnd() - 1)
+                                .alleles(newr, newa)
+                                .make();
+
+                        pstart = p[vc.getStart()];
+
+                        r = vc.getReference().getBaseString();
+                        a = vc.getAlternateAllele(0).getBaseString();
+                        prevBase = String.valueOf(t.charAt(pstart));
+                        nextBase = (a.length() > r.length()) ? String.valueOf(a.charAt(a.length() - 1)) : String.valueOf(r.charAt(r.length() - 1));
+                    }
+                }
+            }
+
+            vcsShifted.add(vc);
+        }
+
+        return vcsShifted;
+    }
+
     private Set<VariantContext> filter(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs, int window, int minCount) {
         StringBuilder target = getTarget(alignment, ref);
         StringBuilder query = getQuery(qseq, alignment);
@@ -1094,6 +1137,7 @@ public class CallDeNovoVariants extends Module {
                         p0 = align(qseq, kmerOrigin, a0, REF0);
                         vcs0 = call(qseq, kmerOrigin, a0, REF0, 0);
                         vcs0 = refine(qseq, kmerOrigin, a0, REF0, vcs0, 0);
+                        vcs0 = shift(qseq, kmerOrigin, a0, REF0, vcs0, 0, p0);
                         vcs0 = filter(qseq, kmerOrigin, a0, REF0, vcs0, 10, 5);
                         log.debug("");
                     }
@@ -1107,6 +1151,7 @@ public class CallDeNovoVariants extends Module {
                         p1 = align(qseq, kmerOrigin, a1, REF1);
                         vcs1 = call(qseq, kmerOrigin, a1, REF1, 1);
                         vcs1 = refine(qseq, kmerOrigin, a1, REF1, vcs1, 1);
+                        vcs1 = shift(qseq, kmerOrigin, a1, REF1, vcs1, 1, p1);
                         vcs1 = filter(qseq, kmerOrigin, a1, REF1, vcs1, 10, 5);
                         log.debug("");
                     }

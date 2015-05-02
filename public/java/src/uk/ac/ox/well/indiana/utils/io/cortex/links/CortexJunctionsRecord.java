@@ -56,6 +56,7 @@ public class CortexJunctionsRecord {
     }
 
     public boolean isForward() { return isFw; }
+    public boolean isFlipped() { return !isFw; }
     public int getNumKmers() { return numKmers; }
     public int getNumJunctions() { return numJunctions; }
     public int[] getCoverages() { return coverages; }

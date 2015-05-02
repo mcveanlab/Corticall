@@ -32,11 +32,11 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
         loadTable(fileToRead, null, null);
     }
 
-    public TableReader(String fileToRead, String[] header) {
+    public TableReader(String fileToRead, String... header) {
         loadTable(new File(fileToRead), header, null);
     }
 
-    public TableReader(File fileToRead, String[] header) {
+    public TableReader(File fileToRead, String... header) {
         loadTable(fileToRead, header, null);
     }
 
@@ -48,11 +48,9 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
         loadTable(fileToRead, null, log);
     }
 
-    public TableReader(String fileToRead, String[] header, Logger log) {
-        loadTable(new File(fileToRead), header, log);
-    }
+    public TableReader(String fileToRead, Logger log, String... header) { loadTable(new File(fileToRead), header, log); }
 
-    public TableReader(File fileToRead, String[] header, Logger log) {
+    public TableReader(File fileToRead, Logger log, String... header) {
         loadTable(fileToRead, header, log);
     }
 
@@ -105,6 +103,15 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
         } else {
             mappedRecordBuffer.position(0);
         }
+    }
+
+    public Map<String, String> getRecord(int lineNumber) {
+        nextRecordIndex = lineNumber;
+        return next();
+    }
+
+    public int getNumRecords() {
+        return lineBreakPositions.size();
     }
 
     @Override

@@ -38,7 +38,7 @@ public class CortexUtilsTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void decodeBinaryKmer() {
         CortexGraph cg = new CortexGraph("testdata/PG0051-C.ERR019061.chr1.infer.sorted.ctx");
 

@@ -95,6 +95,7 @@ public class ClipOverlappingContigs extends Module {
                         //log.debug("{}", overlapAmount);
 
                         int overlapUsed = 0;
+                        int alignmentShift = 0;
                         List<CigarElement> oldCigarList = thisContig.getCigar().getCigarElements();
                         List<CigarElement> newCigarList = new ArrayList<CigarElement>();
                         for (int i = 0; i < oldCigarList.size(); i++) {
@@ -118,25 +119,29 @@ public class ClipOverlappingContigs extends Module {
                                 } else if (co.equals(CigarOperator.I)) {
                                     newCigarList.add(new CigarElement(ce.getLength(), CigarOperator.S));
                                     overlapUsed += ce.getLength();
+
+                                    alignmentShift -= ce.getLength();
                                 } else if (co.equals(CigarOperator.D)) {
                                     // do nothing?
+                                    alignmentShift += ce.getLength();
                                 }
                             } else {
                                 newCigarList.add(ce);
                             }
                         }
 
-                        Cigar cigar = new Cigar(newCigarList);
+                        //Cigar cigar = new Cigar(newCigarList);
                         Cigar newCigar = getNonRedundantCigar(newCigarList);
 
                         thisContig.setCigar(newCigar);
-                        thisContig.setAlignmentStart(thisContig.getAlignmentStart() + overlapAmount);
+                        thisContig.setAlignmentStart(thisContig.getAlignmentStart() + overlapAmount + alignmentShift);
 
                         //log.debug("{} {} {} {}", lastContig.getCigarString(), thisContig.getCigarString(), cigar, getCigarString(newCigar));
                         //log.debug("-----");
 
                         numAlignmentsChanged++;
                     } else if (isContained(lastContig, thisContig)) {
+                        thisContig.setMappingQuality(0);
                         thisContig.setReadUnmappedFlag(true);
 
                         numAlignmentsRemoved++;

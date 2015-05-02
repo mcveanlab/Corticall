@@ -279,6 +279,7 @@ public class EvaluateRecovery extends Module {
 
         Set<VariantContext> fpSNPs = new HashSet<VariantContext>();
         Set<VariantContext> fpINSs = new HashSet<VariantContext>();
+        Set<VariantContext> fn1INSs = new HashSet<VariantContext>();
 
         for (VariantContext vc : EVAL) {
             if (vc.getAttributeAsBoolean("DENOVO", false)) {
@@ -311,7 +312,6 @@ public class EvaluateRecovery extends Module {
                                 fpSNPs.add(vc);
                             } else if (vc.isSimpleInsertion()) {
                                 fpINSs.add(vc);
-                                wout.println(vc.getChr());
                             }
                         }
                     } else {
@@ -330,6 +330,18 @@ public class EvaluateRecovery extends Module {
 
                         if (!isFn) {
                             recoveryStats.increment(event, "tn");
+                        } else {
+                            if (event.equals("INS") || event.equals("DEL") || event.equals("INV")) {
+                                fn1INSs.add(vc);
+
+                                if (event.equals("INS")) {
+                                    //wout.println(vc.getChr());
+                                }
+//                            } else if (event.equals("DEL")) {
+//                                fn1DELs.add(vc);
+//                            } else if (event.equals("INV")) {
+//                                fn1INVs.add(vc);
+                            }
                         }
                     }
 
@@ -432,11 +444,15 @@ public class EvaluateRecovery extends Module {
         }
 
         for (String pk : recoveryStats.getPrimaryKeys()) {
-            float fn = ((Long) recoveryStats.get(pk, "fn1") + (Long) recoveryStats.get(pk, "fn2"));
+            long fn1 = recoveryStats.has(pk, "fn1") ? (Long) recoveryStats.get(pk, "fn1") : 0l;
+            long fn2 = recoveryStats.has(pk, "fn2") ? (Long) recoveryStats.get(pk, "fn2") : 0l;
+
+            //float fn = ((Long) recoveryStats.get(pk, "fn1") + (Long) recoveryStats.get(pk, "fn2"));
+            float fn = fn1 + fn2;
             recoveryStats.set(pk, "fn", (int) fn);
 
             float tp = (Long) recoveryStats.get(pk, "tp");
-            float fp = (Long) recoveryStats.get(pk, "fp");
+            float fp = recoveryStats.has(pk, "fp") ? (Long) recoveryStats.get(pk, "fp") : 0l;
             float tn = recoveryStats.has(pk, "tn") ? (Long) recoveryStats.get(pk, "tn") : 0l;
 
             float sens = tp / (tp + fn);
@@ -707,12 +723,11 @@ public class EvaluateRecovery extends Module {
         insFpStats.addColumn("total");
         report.addTable(insFpStats);
 
-        for (int i = 0; i < 65; i++) {
+        for (int i = 0; i < 10; i++) {
             insFpStats.addColumn("a_" + i);
         }
 
         for (VariantContext vc : fpINSs) {
-            boolean isAlignmentIssue = false;
             int distanceToKnownVariant = Integer.MAX_VALUE;
             if (truth.containsKey(vc.getChr())) {
                 for (VariantContext t : truth.get(vc.getChr()).values()) {
@@ -725,9 +740,65 @@ public class EvaluateRecovery extends Module {
             }
 
 
-            insFpStats.increment("stats", "a_" + distanceToKnownVariant);
+            if (distanceToKnownVariant < 10) {
+                insFpStats.increment("stats", "a_" + distanceToKnownVariant);
+            } else {
+                insFpStats.increment("stats", "a_ge10");
+            }
             insFpStats.increment("stats", "total");
         }
+
+        DataTable insFn1Stats = new DataTable("ins_fn1", "ins_fn1");
+        insFn1Stats.addColumn("total");
+        report.addTable(insFn1Stats);
+
+        for (VariantContext vc : fn1INSs) {
+            boolean inconsistentAlignment = false;
+            boolean inconsistentDescription = false;
+            if (vc.getFilters().contains("PROXIMITY") && truth.containsKey(vc.getChr())) {
+                Interval interval = new Interval(vc.getChr(), vc.getStart() - 5, vc.getEnd() + vc.getAlternateAllele(0).length() + 5);
+
+                IntervalTreeMap<VariantContext> tmap = truth.get(vc.getChr());
+
+                VariantContext complementaryVC = null;
+                if (tmap.containsOverlapping(interval)) {
+                    for (VariantContext tc : tmap.getOverlapping(interval)) {
+                        if (!tc.equals(vc) && tc.getAttributeAsString("denovo", "unknown").equals(vc.getAttributeAsString("event", "unknown"))) {
+                            complementaryVC = tc;
+                        }
+                    }
+                }
+
+                if (complementaryVC != null && !vc.equals(complementaryVC) &&
+                        ((Math.abs(vc.getAlternateAllele(0).length() - complementaryVC.getAlternateAllele(0).length()) < 3) ||
+                         (Math.abs(vc.getAlternateAllele(0).length() - complementaryVC.getReference().length()) < 3))
+                    ) {
+                    inconsistentAlignment = true;
+                } else {
+                    if (eval.get(vc.getChr()).containsContained(interval) && eval.get(vc.getChr()).getContained(interval).size() > 3) {
+                        inconsistentDescription = true;
+                    }
+                }
+            }
+
+            if (inconsistentAlignment) {
+                insFn1Stats.increment("stats", "inconsistentAlignment");
+                wout.println(vc.getChr());
+            } else if (inconsistentDescription) {
+                insFn1Stats.increment("stats", "inconsistentDescription");
+            } else {
+                insFn1Stats.increment("stats", "else");
+                //log.info("{} {}", vc.getChr(), vc);
+            }
+
+            insFn1Stats.increment("stats", "total");
+        }
+
+        /*
+        DataTable delFnStats = new DataTable("del_fn", "del_fn");
+        delFnStats.addColumn("total");
+        report.addTable(delFnStats);
+        */
 
         report.write(out);
     }

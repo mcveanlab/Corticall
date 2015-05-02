@@ -45,9 +45,7 @@ public class CortexKmer implements CharSequence, Comparable<CortexKmer> {
         return getSubKmer(start, end - start);
     }
 
-    public boolean isFlipped() {
-        return isFlippedFromSuppliedOrientation;
-    }
+    public boolean isFlipped() { return isFlippedFromSuppliedOrientation; }
 
     public byte[] getKmerAsBytes() {
         return kmer;

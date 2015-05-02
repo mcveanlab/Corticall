@@ -172,7 +172,7 @@ public class IncorporateVariantsIntoGenome extends Module {
 
         vcw.writeHeader(header);
 
-        int with = 0, without = 0, variantNum  = 0;
+        int with = 0, without = 0, variantNum = 0;
         for (VariantContext vc : VCF) {
             variantNum++;
 

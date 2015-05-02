@@ -26,7 +26,7 @@ public class print extends Module {
     @Override
     public void execute() {
         if (HEADER_ONLY) {
-            out.println(GRAPH.getHeader());
+            out.println(GRAPH);
         } else {
             if (RECORDS != null && !RECORDS.isEmpty()) {
                 for (String kmer : RECORDS) {
