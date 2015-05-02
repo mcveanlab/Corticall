@@ -34,14 +34,18 @@ public class CortexUtils {
      * @return      the next kmer (in the orientation of the given kmer)
      */
     public static String getNextKmer(CortexGraph cg, String kmer) {
+        return getNextKmer(cg, kmer, 0);
+    }
+
+    public static String getNextKmer(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
 
         if (cr != null) {
-            Collection<String> outEdges = cr.getOutEdgesAsStrings(0);
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
 
             if (ck.isFlipped()) {
-                outEdges = cr.getInEdgesComplementAsStrings(0);
+                outEdges = cr.getInEdgesComplementAsStrings(color);
             }
 
             if (outEdges.size() == 1) {
@@ -62,15 +66,19 @@ public class CortexUtils {
      * @return      the next kmers (in the orientation of the given kmer)
      */
     public static Set<String> getNextKmers(CortexGraph cg, String kmer) {
+        return getNextKmers(cg, kmer, 0);
+    }
+
+    public static Set<String> getNextKmers(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
         Set<String> nextKmers = new HashSet<String>();
 
         if (cr != null) {
-            Collection<String> outEdges = cr.getOutEdgesAsStrings(0);
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
 
             if (ck.isFlipped()) {
-                outEdges = cr.getInEdgesComplementAsStrings(0);
+                outEdges = cr.getInEdgesComplementAsStrings(color);
             }
 
 
@@ -90,14 +98,18 @@ public class CortexUtils {
      * @return      the preivous kmer (in the orientation of the given kmer)
      */
     public static String getPrevKmer(CortexGraph cg, String kmer) {
+        return getPrevKmer(cg, kmer, 0);
+    }
+
+    public static String getPrevKmer(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
 
         if (cr != null) {
-            Collection<String> inEdges = cr.getInEdgesAsStrings(0);
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
 
             if (ck.isFlipped()) {
-                inEdges = cr.getOutEdgesComplementAsStrings(0);
+                inEdges = cr.getOutEdgesComplementAsStrings(color);
             }
 
             if (inEdges.size() == 1) {
@@ -118,15 +130,19 @@ public class CortexUtils {
      * @return      the preivous kmers (in the orientation of the given kmer)
      */
     public static Set<String> getPrevKmers(CortexGraph cg, String kmer) {
+        return getPrevKmers(cg, kmer, 0);
+    }
+
+    public static Set<String> getPrevKmers(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
         Set<String> prevKmers = new HashSet<String>();
 
         if (cr != null) {
-            Collection<String> inEdges = cr.getInEdgesAsStrings(0);
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
 
             if (ck.isFlipped()) {
-                inEdges = cr.getOutEdgesComplementAsStrings(0);
+                inEdges = cr.getOutEdgesComplementAsStrings(color);
             }
 
             for (String inEdge : inEdges) {
