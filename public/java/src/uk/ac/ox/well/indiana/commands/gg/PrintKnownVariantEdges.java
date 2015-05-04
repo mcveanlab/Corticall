@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.StringUtil;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -32,14 +33,16 @@ public class PrintKnownVariantEdges extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference genome")
     public IndexedFastaSequenceFile REF;
 
+    @Argument(fullName="bed", shortName="b", doc="Bed file")
+    public File BED;
+
+    /*
     @Argument(fullName="ref0", shortName="r0", doc="Reference genome for parent 0")
     public MultiIndexedFastaSequenceFile REF0;
 
     @Argument(fullName="ref1", shortName="r1", doc="Reference genome for parent 1")
     public MultiIndexedFastaSequenceFile REF1;
-
-    @Argument(fullName="bed", shortName="b", doc="Bed file")
-    public File BED;
+    */
 
     @Argument(fullName="graph", shortName="g", doc="Graph (sorted)")
     public CortexGraph GRAPH;
@@ -217,6 +220,23 @@ public class PrintKnownVariantEdges extends Module {
         return alleles;
     }
 
+    private Set<String> walkRef(MultiIndexedFastaSequenceFile ref, String from, String to) {
+        Interval fromInterval = ref.find(from);
+        Interval toInterval = ref.find(to);
+
+        Interval leftInterval  = fromInterval.getStart() < toInterval.getStart() ? fromInterval : toInterval;
+        Interval rightInterval = fromInterval.getStart() < toInterval.getStart() ? toInterval   : fromInterval;
+
+        Set<String> alleles = new HashSet<String>();
+        if (fromInterval.getSequence().equals(toInterval.getSequence())) {
+            String seq = new String(ref.getSubsequenceAt(leftInterval.getSequence(), leftInterval.getStart(), rightInterval.getEnd()).getBases());
+
+            alleles.add(seq);
+        }
+
+        return alleles;
+    }
+
     @Override
     public void execute() {
         Set<CortexKmer> novelKmers = loadNovelKmers();
@@ -227,6 +247,7 @@ public class PrintKnownVariantEdges extends Module {
         TableReader tr = new TableReader(BED, "chr", "start", "stop", "info");
 
         Map<String, Integer> eventTypes = new HashMap<String, Integer>();
+        int count = 0, full = 0;
         for (Map<String, String> te : tr) {
             String chr = te.get("chr");
             int start = Integer.valueOf(te.get("start")) + 1;
@@ -240,8 +261,10 @@ public class PrintKnownVariantEdges extends Module {
                 String seq = new String(REF.getSubsequenceAt(chr, start, stop).getBases());
                 String alt = infoMap.get("alt");
 
-                int contextStart = (start - 100 >= 1) ? start - 100 : 1;
-                int contextEnd = stop + 100 < REF.getSequence(chr).length() ? stop + 100 : REF.getSequence(chr).length() - 1;
+                int window = 200;
+
+                int contextStart = (start - window >= 1) ? start - window : 1;
+                int contextEnd = stop + window < REF.getSequence(chr).length() ? stop + window : REF.getSequence(chr).length() - 1;
                 String context = new String(REF.getSubsequenceAt(chr, contextStart, contextEnd).getBases());
                 StringBuilder novelty = new StringBuilder();
                 StringBuilder edgesOut = new StringBuilder(StringUtil.repeatCharNTimes(' ', contextEnd - contextStart + kmerSize));
@@ -271,6 +294,47 @@ public class PrintKnownVariantEdges extends Module {
                     }
                 }
 
+                Interval leftInterval0 = null, leftInterval1 = null, rightInterval0 = null, rightInterval1 = null;
+
+                for (int i = 0; i < window - kmerSize; i++) {
+                    String kmer = context.substring(i, i + kmerSize);
+
+                    if (leftInterval0 == null) {
+                        Interval i0 = REF0.find(kmer);
+                        if (i0 != null) {
+                            leftInterval0 = i0;
+                        }
+                    }
+
+                    if (leftInterval1 == null) {
+                        Interval i1 = REF1.find(kmer);
+                        if (i1 != null) {
+                            leftInterval1 = i1;
+                        }
+                    }
+                }
+
+                for (int i = context.length() - kmerSize; i > context.length() - window; i--) {
+                    String kmer = context.substring(i, i + kmerSize);
+
+                    if (leftInterval0 != null && rightInterval0 == null) {
+                        Interval i0 = REF0.find(kmer);
+                        if (i0 != null && i0.getSequence().equals(leftInterval0.getSequence())) {
+                            rightInterval0 = i0;
+                        }
+                    }
+
+                    if (leftInterval1 != null && rightInterval1 == null) {
+                        Interval i1 = REF1.find(kmer);
+                        if (i1 != null && i1.getSequence().equals(leftInterval1.getSequence())) {
+                            rightInterval1 = i1;
+                        }
+                    }
+                }
+
+                //String seq0 = (leftInterval0 == null || rightInterval0 == null) ? "" : new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), leftInterval0.getStart(), rightInterval0.getEnd()).getBases());
+                //String seq1 = (leftInterval1 == null || rightInterval1 == null) ? "" : new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), leftInterval1.getStart(), rightInterval1.getEnd()).getBases());
+
                 int leftFlankStart = start - kmerSize;
                 int leftFlankEnd = start - 1;
                 String leftFlank = new String(REF.getSubsequenceAt(chr, leftFlankStart, leftFlankEnd).getBases());
@@ -281,6 +345,29 @@ public class PrintKnownVariantEdges extends Module {
 
                 List<String> reconstructionKmers = new ArrayList<String>();
 
+                String seq0 = "";
+                if (leftInterval0 != null && rightInterval0 != null) {
+                    if (leftInterval0.getStart() < rightInterval0.getStart()) {
+                        seq0 = new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), leftInterval0.getStart(), rightInterval0.getEnd()).getBases());
+                    } else {
+                        seq0 = new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), rightInterval0.getStart(), leftInterval0.getEnd()).getBases());
+                    }
+                }
+
+                if (seq0.equals("")) {
+                    //walk(GRAPH, linksMap, 1, l)
+                }
+
+                String seq1 = "";
+                if (leftInterval1 != null && rightInterval1 != null) {
+                    if (leftInterval1.getStart() < rightInterval1.getStart()) {
+                        seq1 = new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), leftInterval1.getStart(), rightInterval1.getEnd()).getBases());
+                    } else {
+                        seq1 = new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), rightInterval1.getStart(), leftInterval1.getEnd()).getBases());
+                    }
+                }
+
+                /*
                 String thisKmer = leftFlank;
                 while (thisKmer != null) {
                     String nextKmer = CortexUtils.getNextKmer(GRAPH, thisKmer);
@@ -300,57 +387,63 @@ public class PrintKnownVariantEdges extends Module {
                     }
                 }
 
-                Set<String> trialFlanks;
+                Set<String> trialFlanks = new HashSet<String>(Arrays.asList(leftFlank));
                 String commonLeftFlankRef0 = leftFlank;
-                do {
+                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)).getCoverage(1) != 1) {
                     trialFlanks = CortexUtils.getPrevKmers(GRAPH, commonLeftFlankRef0, 0);
 
                     if (trialFlanks.size() == 1) {
                         commonLeftFlankRef0 = trialFlanks.iterator().next();
                     }
-                } while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)).getCoverage(1) == 0);
+                }
 
+                trialFlanks = new HashSet<String>(Arrays.asList(rightFlank));
                 String commonRightFlankRef0 = rightFlank;
-                do {
+                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)).getCoverage(1) != 1) {
                     trialFlanks = CortexUtils.getNextKmers(GRAPH, commonRightFlankRef0, 0);
 
                     if (trialFlanks.size() == 1) {
                         commonRightFlankRef0 = trialFlanks.iterator().next();
                     }
-                } while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)).getCoverage(1) == 0);
+                }
 
+                trialFlanks = new HashSet<String>(Arrays.asList(leftFlank));
                 String commonLeftFlankRef1 = leftFlank;
-                do {
+                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)).getCoverage(2) != 1) {
                     trialFlanks = CortexUtils.getPrevKmers(GRAPH, commonLeftFlankRef0, 0);
 
                     if (trialFlanks.size() == 1) {
                         commonLeftFlankRef1 = trialFlanks.iterator().next();
                     }
-                } while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)).getCoverage(2) == 0);
+                }
 
+                trialFlanks = new HashSet<String>(Arrays.asList(rightFlank));
                 String commonRightFlankRef1 = rightFlank;
-                do {
+                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)).getCoverage(2) != 1) {
                     trialFlanks = CortexUtils.getNextKmers(GRAPH, commonRightFlankRef1, 0);
 
                     if (trialFlanks.size() == 1) {
                         commonRightFlankRef1 = trialFlanks.iterator().next();
                     }
-                } while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)).getCoverage(2) == 0);
+                }
+                */
 
+                log.debug("event: {}",   eventType);
+                log.debug("  seq: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), seq);
+                log.debug("  alt: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), alt);
+                log.debug("  out: {}{}", StringUtil.repeatCharNTimes(' ', kmerSize), edgesOut);
+                log.debug("  con: {}",   context);
+                log.debug("   in: {}",   edgesIn);
+                log.debug("  nov: {}",   novelty);
+                log.debug("   s0: {}",   seq0);
+                log.debug("   s1: {}",   seq1);
 
-                log.info("event: {}",   eventType);
-                log.info("  seq: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), seq);
-                log.info("  alt: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), alt);
-                log.info("  out: {}{}", StringUtil.repeatCharNTimes(' ', kmerSize), edgesOut);
-                log.info("  con: {}",   context);
-                log.info("   in: {}",   edgesIn);
-                log.info("  nov: {}",   novelty);
-                log.info("   lf: {}{}", StringUtil.repeatCharNTimes(' ', leftFlankStart - contextStart), leftFlank);
-                log.info("   rf: {}{}", StringUtil.repeatCharNTimes(' ', rightFlankStart - contextStart), rightFlank);
-                log.info("  lf0: {} {}", commonLeftFlankRef0, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)));
-                log.info("  lf1: {} {}", commonLeftFlankRef1, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)));
-                log.info("  rf0: {} {}", commonRightFlankRef0, GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)));
-                log.info("  rf1: {} {}", commonRightFlankRef1, GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)));
+//                log.info("   lf: {}{}", StringUtil.repeatCharNTimes(' ', leftFlankStart - contextStart), leftFlank);
+//                log.info("   rf: {}{}", StringUtil.repeatCharNTimes(' ', rightFlankStart - contextStart), rightFlank);
+//                log.info("  lf0: {} {}", commonLeftFlankRef0, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)));
+//                log.info("  lf1: {} {}", commonLeftFlankRef1, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)));
+//                log.info("  rf0: {} {}", commonRightFlankRef0, GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)));
+//                log.info("  rf1: {} {}", commonRightFlankRef1, GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)));
 
                 /*
                 DirectedGraph<String, Link> g = new DefaultDirectedGraph<String, Link>(Link.class);
@@ -383,7 +476,7 @@ public class PrintKnownVariantEdges extends Module {
 
                             linkSeq = sb.toString();
 
-                            if (linkSeq.contains(leftFlank) && linkSeq.contains(rightFlank)) {
+                            if (linkSeq.contains(leftFlank) || linkSeq.contains(rightFlank)) {
                                 log.info("  lnk: {}{}", StringUtil.repeatCharNTimes(' ', padding), sb);
                             }
                         }
@@ -391,10 +484,11 @@ public class PrintKnownVariantEdges extends Module {
                 }
                 */
 
+                /*
                 Set<String> childAlleles0 = walk(GRAPH, linksMap, 0, commonLeftFlankRef0, commonRightFlankRef0);
-                Set<String> ref0Alleles = walk(GRAPH, linksMap, 1, commonLeftFlankRef0, commonRightFlankRef0);
+                Set<String> ref0Alleles = walkRef(REF0, commonLeftFlankRef0, commonRightFlankRef0);
                 Set<String> childAlleles1 = walk(GRAPH, linksMap, 0, commonLeftFlankRef1, commonRightFlankRef1);
-                Set<String> ref1Alleles = walk(GRAPH, linksMap, 2, commonLeftFlankRef1, commonRightFlankRef1);
+                Set<String> ref1Alleles = walkRef(REF1, commonLeftFlankRef1, commonRightFlankRef1);
 
                 log.info("child: {}", Joiner.on(", ").join(childAlleles0));
                 log.info(" ref0: {}", Joiner.on(", ").join(ref0Alleles));
@@ -402,6 +496,13 @@ public class PrintKnownVariantEdges extends Module {
                 log.info(" ref1: {}", Joiner.on(", ").join(ref1Alleles));
 
                 log.info("--");
+                */
+                count++;
+                if (!seq0.equals("") && !seq1.equals("")) {
+                    full++;
+                }
+
+                log.info("{} {} {}:{}-{} {}", count, full, chr, start, stop, eventType);
             }
         }
 
