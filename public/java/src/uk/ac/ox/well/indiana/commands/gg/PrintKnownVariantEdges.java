@@ -26,6 +26,7 @@ import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -36,28 +37,32 @@ public class PrintKnownVariantEdges extends Module {
     @Argument(fullName="bed", shortName="b", doc="Bed file")
     public File BED;
 
-    /*
-    @Argument(fullName="ref0", shortName="r0", doc="Reference genome for parent 0")
-    public MultiIndexedFastaSequenceFile REF0;
-
-    @Argument(fullName="ref1", shortName="r1", doc="Reference genome for parent 1")
-    public MultiIndexedFastaSequenceFile REF1;
-    */
-
     @Argument(fullName="graph", shortName="g", doc="Graph (sorted)")
     public CortexGraph GRAPH;
 
     @Argument(fullName="links", shortName="l", doc="Graph links")
-    public File LINKS;
+    public ArrayList<File> LINKS;
 
     @Argument(fullName="novelKmers", shortName="n", doc="Novel kmers")
     public FastaSequenceFile NOVEL_KMERS;
 
     @Output
-    public PrintStream out;
+    public File out;
 
     private class Link extends DefaultEdge {
-        int coverage = 0;
+        public Map<Integer, Integer> covMap = new HashMap<Integer, Integer>();
+
+        public Link() {
+            covMap.put(-1, 1);
+        }
+
+        public void addCoverage(int color, int coverage) {
+            if (!covMap.containsKey(color)) {
+                covMap.put(color, 0);
+            }
+
+            covMap.put(color, covMap.get(color) + coverage);
+        }
     }
 
     private Map<String, String> parseInfoField(String info) {
@@ -84,21 +89,48 @@ public class PrintKnownVariantEdges extends Module {
         return novelKmers;
     }
 
-    private void printGraph(DirectedGraph<String, Link> g, PrintStream o) {
-        o.println("digraph G {");
+    private void printGraph(DirectedGraph<String, Link> g, File f, String leftFlank, String rightFlank) {
+        try {
+            PrintStream o = new PrintStream(f);
 
-        for (String v : g.vertexSet()) {
-            o.println("    \"" + v + "\";");
+            o.println("digraph G {");
+            o.println("    graph [fontname = \"Courier\"];");
+            o.println("    node [fontname = \"Courier\"];");
+            o.println("    edge [fontname = \"Courier\"];");
+
+            for (String v : g.vertexSet()) {
+                if (v.equals(leftFlank) || v.equals(rightFlank)) {
+                    o.println("    \"" + v + "\" [style=\"filled\" fillcolor=\"red\"];");
+                } else {
+                    o.println("    \"" + v + "\";");
+                }
+            }
+
+            Map<Integer, String> colorMap = new HashMap<Integer, String>();
+            colorMap.put(-1, "black");
+            colorMap.put(0,  "red");
+            colorMap.put(1,  "green");
+            colorMap.put(2,  "blue");
+
+            for (Link e : g.edgeSet()) {
+                String s = g.getEdgeSource(e);
+                String t = g.getEdgeTarget(e);
+
+                Link l = g.getEdge(s, t);
+
+                for (Integer color : l.covMap.keySet()) {
+                    int cov = l.covMap.get(color);
+                    String col = colorMap.get(color);
+                    o.println("    \"" + s + "\" -> \"" + t + "\" [ penwidth=" + Math.log10(cov + 1) + " color=\"" + col + "\" ];");
+                }
+            }
+
+            o.println("}");
+
+            o.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
-
-        for (Link e : g.edgeSet()) {
-            String s = g.getEdgeSource(e);
-            String t = g.getEdgeTarget(e);
-
-            o.println("    \"" + s + "\" -> \"" + t + "\" [ penwidth=" + Math.log10(e.coverage + 1) + " ];");
-        }
-
-        o.println("}");
     }
 
     private Set<String> walk(CortexGraph cg, CortexLinksMap linksMap, int color, String from, String to) {
@@ -220,29 +252,17 @@ public class PrintKnownVariantEdges extends Module {
         return alleles;
     }
 
-    private Set<String> walkRef(MultiIndexedFastaSequenceFile ref, String from, String to) {
-        Interval fromInterval = ref.find(from);
-        Interval toInterval = ref.find(to);
-
-        Interval leftInterval  = fromInterval.getStart() < toInterval.getStart() ? fromInterval : toInterval;
-        Interval rightInterval = fromInterval.getStart() < toInterval.getStart() ? toInterval   : fromInterval;
-
-        Set<String> alleles = new HashSet<String>();
-        if (fromInterval.getSequence().equals(toInterval.getSequence())) {
-            String seq = new String(ref.getSubsequenceAt(leftInterval.getSequence(), leftInterval.getStart(), rightInterval.getEnd()).getBases());
-
-            alleles.add(seq);
-        }
-
-        return alleles;
-    }
-
     @Override
     public void execute() {
         Set<CortexKmer> novelKmers = loadNovelKmers();
         int kmerSize = novelKmers.iterator().next().length();
 
-        CortexLinksMap linksMap = new CortexLinksMap(LINKS);
+        //CortexLinksMap linksMap = new CortexLinksMap(LINKS);
+        Map<String, CortexLinksMap> linksMap = new HashMap<String, CortexLinksMap>();
+        for (File ctp : LINKS) {
+            CortexLinksMap clm = new CortexLinksMap(ctp);
+            linksMap.put(clm.getCortexLinks().getColor(0).getSampleName(), clm);
+        }
 
         TableReader tr = new TableReader(BED, "chr", "start", "stop", "info");
 
@@ -261,7 +281,8 @@ public class PrintKnownVariantEdges extends Module {
                 String seq = new String(REF.getSubsequenceAt(chr, start, stop).getBases());
                 String alt = infoMap.get("alt");
 
-                int window = 200;
+                // Display
+                int window = 100;
 
                 int contextStart = (start - window >= 1) ? start - window : 1;
                 int contextEnd = stop + window < REF.getSequence(chr).length() ? stop + window : REF.getSequence(chr).length() - 1;
@@ -269,6 +290,8 @@ public class PrintKnownVariantEdges extends Module {
                 StringBuilder novelty = new StringBuilder();
                 StringBuilder edgesOut = new StringBuilder(StringUtil.repeatCharNTimes(' ', contextEnd - contextStart + kmerSize));
                 StringBuilder edgesIn = new StringBuilder(StringUtil.repeatCharNTimes(' ', contextEnd - contextStart + kmerSize));
+                String leftFlank = new String(REF.getSubsequenceAt(chr, start - kmerSize, start - 1).getBases());
+                String rightFlank = new String(REF.getSubsequenceAt(chr, stop + 1, stop + kmerSize).getBases());
 
                 for (int i = 0; i <= context.length() - kmerSize; i++) {
                     CortexKmer kmer = new CortexKmer(context.substring(i, i + kmerSize));
@@ -294,215 +317,140 @@ public class PrintKnownVariantEdges extends Module {
                     }
                 }
 
-                Interval leftInterval0 = null, leftInterval1 = null, rightInterval0 = null, rightInterval1 = null;
-
-                for (int i = 0; i < window - kmerSize; i++) {
-                    String kmer = context.substring(i, i + kmerSize);
-
-                    if (leftInterval0 == null) {
-                        Interval i0 = REF0.find(kmer);
-                        if (i0 != null) {
-                            leftInterval0 = i0;
-                        }
-                    }
-
-                    if (leftInterval1 == null) {
-                        Interval i1 = REF1.find(kmer);
-                        if (i1 != null) {
-                            leftInterval1 = i1;
-                        }
-                    }
-                }
-
-                for (int i = context.length() - kmerSize; i > context.length() - window; i--) {
-                    String kmer = context.substring(i, i + kmerSize);
-
-                    if (leftInterval0 != null && rightInterval0 == null) {
-                        Interval i0 = REF0.find(kmer);
-                        if (i0 != null && i0.getSequence().equals(leftInterval0.getSequence())) {
-                            rightInterval0 = i0;
-                        }
-                    }
-
-                    if (leftInterval1 != null && rightInterval1 == null) {
-                        Interval i1 = REF1.find(kmer);
-                        if (i1 != null && i1.getSequence().equals(leftInterval1.getSequence())) {
-                            rightInterval1 = i1;
-                        }
-                    }
-                }
-
-                //String seq0 = (leftInterval0 == null || rightInterval0 == null) ? "" : new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), leftInterval0.getStart(), rightInterval0.getEnd()).getBases());
-                //String seq1 = (leftInterval1 == null || rightInterval1 == null) ? "" : new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), leftInterval1.getStart(), rightInterval1.getEnd()).getBases());
-
-                int leftFlankStart = start - kmerSize;
-                int leftFlankEnd = start - 1;
-                String leftFlank = new String(REF.getSubsequenceAt(chr, leftFlankStart, leftFlankEnd).getBases());
-
-                int rightFlankStart = stop + 1;
-                int rightFlankEnd = stop + kmerSize;
-                String rightFlank = new String(REF.getSubsequenceAt(chr, rightFlankStart, rightFlankEnd).getBases());
-
-                List<String> reconstructionKmers = new ArrayList<String>();
-
-                String seq0 = "";
-                if (leftInterval0 != null && rightInterval0 != null) {
-                    if (leftInterval0.getStart() < rightInterval0.getStart()) {
-                        seq0 = new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), leftInterval0.getStart(), rightInterval0.getEnd()).getBases());
-                    } else {
-                        seq0 = new String(REF0.getSubsequenceAt(leftInterval0.getSequence(), rightInterval0.getStart(), leftInterval0.getEnd()).getBases());
-                    }
-                }
-
-                if (seq0.equals("")) {
-                    //walk(GRAPH, linksMap, 1, l)
-                }
-
-                String seq1 = "";
-                if (leftInterval1 != null && rightInterval1 != null) {
-                    if (leftInterval1.getStart() < rightInterval1.getStart()) {
-                        seq1 = new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), leftInterval1.getStart(), rightInterval1.getEnd()).getBases());
-                    } else {
-                        seq1 = new String(REF1.getSubsequenceAt(leftInterval1.getSequence(), rightInterval1.getStart(), leftInterval1.getEnd()).getBases());
-                    }
-                }
-
-                /*
-                String thisKmer = leftFlank;
-                while (thisKmer != null) {
-                    String nextKmer = CortexUtils.getNextKmer(GRAPH, thisKmer);
-
-                    if (nextKmer != null) {
-                        reconstructionKmers.add(nextKmer);
-                    }
-
-                    thisKmer = nextKmer;
-                }
-
-                StringBuilder reconstruction = new StringBuilder();
-
-                if (reconstructionKmers.size() >= 2) {
-                    for (int i = 0; i < reconstructionKmers.size(); i++) {
-                        reconstruction.append(reconstructionKmers.get(i).charAt(kmerSize - 1));
-                    }
-                }
-
-                Set<String> trialFlanks = new HashSet<String>(Arrays.asList(leftFlank));
-                String commonLeftFlankRef0 = leftFlank;
-                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)).getCoverage(1) != 1) {
-                    trialFlanks = CortexUtils.getPrevKmers(GRAPH, commonLeftFlankRef0, 0);
-
-                    if (trialFlanks.size() == 1) {
-                        commonLeftFlankRef0 = trialFlanks.iterator().next();
-                    }
-                }
-
-                trialFlanks = new HashSet<String>(Arrays.asList(rightFlank));
-                String commonRightFlankRef0 = rightFlank;
-                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)).getCoverage(1) != 1) {
-                    trialFlanks = CortexUtils.getNextKmers(GRAPH, commonRightFlankRef0, 0);
-
-                    if (trialFlanks.size() == 1) {
-                        commonRightFlankRef0 = trialFlanks.iterator().next();
-                    }
-                }
-
-                trialFlanks = new HashSet<String>(Arrays.asList(leftFlank));
-                String commonLeftFlankRef1 = leftFlank;
-                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)).getCoverage(2) != 1) {
-                    trialFlanks = CortexUtils.getPrevKmers(GRAPH, commonLeftFlankRef0, 0);
-
-                    if (trialFlanks.size() == 1) {
-                        commonLeftFlankRef1 = trialFlanks.iterator().next();
-                    }
-                }
-
-                trialFlanks = new HashSet<String>(Arrays.asList(rightFlank));
-                String commonRightFlankRef1 = rightFlank;
-                while (trialFlanks.size() == 1 && GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)).getCoverage(2) != 1) {
-                    trialFlanks = CortexUtils.getNextKmers(GRAPH, commonRightFlankRef1, 0);
-
-                    if (trialFlanks.size() == 1) {
-                        commonRightFlankRef1 = trialFlanks.iterator().next();
-                    }
-                }
-                */
-
-                log.debug("event: {}",   eventType);
-                log.debug("  seq: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), seq);
-                log.debug("  alt: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), alt);
-                log.debug("  out: {}{}", StringUtil.repeatCharNTimes(' ', kmerSize), edgesOut);
-                log.debug("  con: {}",   context);
-                log.debug("   in: {}",   edgesIn);
-                log.debug("  nov: {}",   novelty);
-                log.debug("   s0: {}",   seq0);
-                log.debug("   s1: {}",   seq1);
-
-//                log.info("   lf: {}{}", StringUtil.repeatCharNTimes(' ', leftFlankStart - contextStart), leftFlank);
-//                log.info("   rf: {}{}", StringUtil.repeatCharNTimes(' ', rightFlankStart - contextStart), rightFlank);
-//                log.info("  lf0: {} {}", commonLeftFlankRef0, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef0)));
-//                log.info("  lf1: {} {}", commonLeftFlankRef1, GRAPH.findRecord(new CortexKmer(commonLeftFlankRef1)));
-//                log.info("  rf0: {} {}", commonRightFlankRef0, GRAPH.findRecord(new CortexKmer(commonRightFlankRef0)));
-//                log.info("  rf1: {} {}", commonRightFlankRef1, GRAPH.findRecord(new CortexKmer(commonRightFlankRef1)));
-
-                /*
                 DirectedGraph<String, Link> g = new DefaultDirectedGraph<String, Link>(Link.class);
 
-                for (int i = 0; i <= context.length() - kmerSize; i++) {
-                    String tk = context.substring(i, i + kmerSize);
+                // Build child's sequence context
+                StringBuilder childSequenceLeft = null;
+                Set<String> thisKmer = new HashSet<String>(Arrays.asList(leftFlank));
+                String lk = null;
+                while (thisKmer.size() == 1) {
+                    String tk = thisKmer.iterator().next();
+
+                    if (childSequenceLeft == null) { childSequenceLeft = new StringBuilder(tk); }
+                    else { childSequenceLeft.insert(0, tk.charAt(0)); }
+
                     g.addVertex(tk);
-                    if (i < context.length() - kmerSize) {
-                        String nk = context.substring(i + 1, i + 1 + kmerSize);
-                        g.addVertex(nk);
-                        g.addEdge(tk, nk, new Link());
-                    }
+                    if (lk != null) { g.addEdge(tk, lk, new Link()); }
+                    lk = tk;
 
-                    CortexKmer kmer = new CortexKmer(context.substring(i, i + kmerSize));
-                    if (linksMap.containsKey(kmer)) {
-                        for (CortexJunctionsRecord cjr : linksMap.get(kmer).getJunctions()) {
-                            String linkSeq = cjr.getSeq();
-                            int padding = i;
+                    thisKmer = CortexUtils.getPrevKmers(GRAPH, tk, 0);
+                }
+                for (String tk1 : thisKmer) {
+                    g.addVertex(tk1);
+                    if (lk != null) { g.addEdge(tk1, lk, new Link()); }
+                }
+                printGraph(g, out, leftFlank, rightFlank);
 
-                            if (kmer.isFlipped() != cjr.isFlipped()) {
-                                linkSeq = SequenceUtils.reverseComplement(linkSeq);
-                                padding = i - linkSeq.length() + kmerSize;
-                            }
+                thisKmer = new HashSet<String>(Arrays.asList(leftFlank));
+                lk = null;
+                while (thisKmer.size() == 1) {
+                    String tk = thisKmer.iterator().next();
 
-                            StringBuilder sb = new StringBuilder(linkSeq);
-                            if (padding < 0) {
-                                sb.delete(0, -padding);
-                                padding = 0;
-                            }
+                    if (childSequenceLeft == null) { childSequenceLeft = new StringBuilder(tk); }
+                    else { childSequenceLeft.append(tk.charAt(tk.length() - 1)); }
 
-                            linkSeq = sb.toString();
+                    g.addVertex(tk);
+                    if (lk != null) { g.addEdge(lk, tk, new Link()); }
+                    lk = tk;
 
-                            if (linkSeq.contains(leftFlank) || linkSeq.contains(rightFlank)) {
-                                log.info("  lnk: {}{}", StringUtil.repeatCharNTimes(' ', padding), sb);
+                    thisKmer = CortexUtils.getNextKmers(GRAPH, tk, 0);
+                }
+                for (String tk1 : thisKmer) {
+                    g.addVertex(tk1);
+                    if (lk != null) { g.addEdge(lk, tk1, new Link()); }
+                }
+                printGraph(g, out, leftFlank, rightFlank);
+
+                StringBuilder childSequenceRight = null;
+                thisKmer = new HashSet<String>(Arrays.asList(rightFlank));
+                lk = null;
+                while (thisKmer.size() == 1) {
+                    String tk = thisKmer.iterator().next();
+
+                    if (childSequenceRight == null) { childSequenceRight = new StringBuilder(tk); }
+                    else { childSequenceRight.insert(0, tk.charAt(0)); }
+
+                    g.addVertex(tk);
+                    if (lk != null) { g.addEdge(tk, lk, new Link()); }
+                    lk = tk;
+
+                    thisKmer = CortexUtils.getPrevKmers(GRAPH, tk, 0);
+                }
+                for (String tk1 : thisKmer) {
+                    g.addVertex(tk1);
+                    if (lk != null) { g.addEdge(tk1, lk, new Link()); }
+                }
+                printGraph(g, out, leftFlank, rightFlank);
+
+                thisKmer = new HashSet<String>(Arrays.asList(rightFlank));
+                lk = null;
+                while (thisKmer.size() == 1) {
+                    String tk = thisKmer.iterator().next();
+
+                    if (childSequenceRight == null) { childSequenceRight = new StringBuilder(tk); }
+                    else { childSequenceRight.append(tk.charAt(tk.length() - 1)); }
+
+                    g.addVertex(tk);
+                    if (lk != null) { g.addEdge(lk, tk, new Link()); }
+                    lk = tk;
+
+                    thisKmer = CortexUtils.getNextKmers(GRAPH, tk, 0);
+                }
+                for (String tk1 : thisKmer) {
+                    g.addVertex(tk1);
+                    if (lk != null) { g.addEdge(lk, tk1, new Link()); }
+                }
+                printGraph(g, out, leftFlank, rightFlank);
+
+                for (int c = 0; c <= 2; c++) {
+                    log.debug("event: {}",   eventType);
+                    log.debug("  seq: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), seq);
+                    log.debug("  alt: {}{}", StringUtil.repeatCharNTimes(' ', start - contextStart), alt);
+                    log.debug("  out: {}{}", StringUtil.repeatCharNTimes(' ', kmerSize), edgesOut);
+                    log.debug("  con: {}",   context);
+                    log.debug("   in: {}",   edgesIn);
+                    log.debug("  nov: {}",   novelty);
+                    log.debug("   lf: {}{}", StringUtil.repeatCharNTimes(' ', start - kmerSize - contextStart), leftFlank);
+                    log.debug("   rf: {}{}", StringUtil.repeatCharNTimes(' ', stop + 1 - contextStart), rightFlank);
+                    log.debug("     : {}",   childSequenceLeft);
+                    log.debug("     : {}",   childSequenceRight);
+
+                    Set<String> vertices = new HashSet<String>(g.vertexSet());
+
+                    for (String sk : vertices) {
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        if (linksMap.get(GRAPH.getColor(c).getSampleName()).containsKey(ck)) {
+                            for (CortexJunctionsRecord cjr : linksMap.get(GRAPH.getColor(c).getSampleName()).get(ck).getJunctions()) {
+                                String linkSeq = cjr.getSeq();
+
+                                if (ck.isFlipped() != cjr.isFlipped()) {
+                                    linkSeq = SequenceUtils.reverseComplement(linkSeq);
+                                }
+
+                                if (linkSeq.contains(leftFlank) || linkSeq.contains(rightFlank)) {
+                                    for (int q = 0; q < linkSeq.length() - kmerSize; q++) {
+                                        String tk = linkSeq.substring(q, q + kmerSize);
+                                        String nk = linkSeq.substring(q + 1, q + 1 + kmerSize);
+                                        g.addVertex(tk);
+                                        g.addVertex(nk);
+
+                                        if (!g.containsEdge(tk, nk)) {
+                                            g.addEdge(tk, nk, new Link());
+                                        } else {
+                                            g.getEdge(tk, nk).addCoverage(c, cjr.getCoverage(0));
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                }
-                */
-
-                /*
-                Set<String> childAlleles0 = walk(GRAPH, linksMap, 0, commonLeftFlankRef0, commonRightFlankRef0);
-                Set<String> ref0Alleles = walkRef(REF0, commonLeftFlankRef0, commonRightFlankRef0);
-                Set<String> childAlleles1 = walk(GRAPH, linksMap, 0, commonLeftFlankRef1, commonRightFlankRef1);
-                Set<String> ref1Alleles = walkRef(REF1, commonLeftFlankRef1, commonRightFlankRef1);
-
-                log.info("child: {}", Joiner.on(", ").join(childAlleles0));
-                log.info(" ref0: {}", Joiner.on(", ").join(ref0Alleles));
-                log.info("child: {}", Joiner.on(", ").join(childAlleles1));
-                log.info(" ref1: {}", Joiner.on(", ").join(ref1Alleles));
-
-                log.info("--");
-                */
-                count++;
-                if (!seq0.equals("") && !seq1.equals("")) {
-                    full++;
                 }
 
                 log.info("{} {} {}:{}-{} {}", count, full, chr, start, stop, eventType);
+
+                printGraph(g, out, leftFlank, rightFlank);
+                break;
             }
         }
 
