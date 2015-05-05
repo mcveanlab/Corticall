@@ -46,7 +46,7 @@ public class CallDeNovoVariants extends Module {
     @Argument(fullName="proximityThreshold", shortName="t", doc="Proximity threshold variant filter")
     public Integer PROXIMITY_THRESHOLD = 47;
 
-    @Argument(fullName="novelKmerVariantMap", shortName="n", doc="Novel kmer variant map")
+    @Argument(fullName="novelKmerVariantMap", shortName="n", doc="Novel kmer variant map", required=false)
     public File NOVEL_KMER_VARIANT_MAP;
 
     @Argument(fullName="weirdIn", shortName="w", doc="Weird places to examine more closely", required=false)
@@ -1047,7 +1047,10 @@ public class CallDeNovoVariants extends Module {
         Map<String, VariantContext> variants = new HashMap<String, VariantContext>();
 
         log.info("Loading debugging info...");
-        Map<CortexKmer, Set<VariantInfo>> vis = loadNovelKmerVariantMap();
+        Map<CortexKmer, Set<VariantInfo>> vis = null;
+        if (NOVEL_KMER_VARIANT_MAP != null) {
+            vis = loadNovelKmerVariantMap();
+        }
         if (WEIRD_IN != null) {
             LineReader lr = new LineReader(WEIRD_IN);
             while (lr.hasNext()) {
@@ -1230,20 +1233,21 @@ public class CallDeNovoVariants extends Module {
                     variants.put(id, vc);
                 }
 
-                Set<VariantInfo> relevantVariants = getRelevantVariants(vis, qseq, kmerOrigin);
-                log.debug("variant sources of novel kmers: {}", relevantVariants.size());
-                for (VariantInfo vi : relevantVariants) {
-                    for (Set<VariantContext> vcs : knownEvents.values()) {
-                        for (VariantContext vc : vcs) {
-                            if (vc.getAttributeAsString("id", "unknown").equals(vi.variantId)) {
-                                log.debug("  {} {}", Joiner.on(",").join(vc.getFilters()), vc);
+                if (vis != null) {
+                    Set<VariantInfo> relevantVariants = getRelevantVariants(vis, qseq, kmerOrigin);
+                    log.debug("variant sources of novel kmers: {}", relevantVariants.size());
+                    for (VariantInfo vi : relevantVariants) {
+                        for (Set<VariantContext> vcs : knownEvents.values()) {
+                            for (VariantContext vc : vcs) {
+                                if (vc.getAttributeAsString("id", "unknown").equals(vi.variantId)) {
+                                    log.debug("  {} {}", Joiner.on(",").join(vc.getFilters()), vc);
+                                }
                             }
                         }
                     }
                 }
 
                 log.debug("-----");
-                getRelevantVariants(vis, qseq, kmerOrigin);
             }
         }
 
