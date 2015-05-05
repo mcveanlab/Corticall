@@ -221,14 +221,18 @@ public class CallDeNovoVariants extends Module {
     }
 
     private StringBuilder getTarget(SAMRecord alignment, IndexedFastaSequenceFile ref) {
-        ReferenceSequence tseq = ref.getSubsequenceAt(alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd());
-        StringBuilder target = new StringBuilder(new String(tseq.getBases()));
+        //if (!alignment.getReadUnmappedFlag()) {
+            ReferenceSequence tseq = ref.getSubsequenceAt(alignment.getReferenceName(), alignment.getAlignmentStart(), alignment.getAlignmentEnd());
+            StringBuilder target = new StringBuilder(new String(tseq.getBases()));
 
-        if (alignment.getReadNegativeStrandFlag()) {
-            target = new StringBuilder(SequenceUtils.reverseComplement(target.toString()));
-        }
+            if (alignment.getReadNegativeStrandFlag()) {
+                target = new StringBuilder(SequenceUtils.reverseComplement(target.toString()));
+            }
 
-        return target;
+            return target;
+        //}
+
+        //return new StringBuilder();
     }
 
     private String getCigarString(SAMRecord alignment) {
@@ -951,8 +955,8 @@ public class CallDeNovoVariants extends Module {
     private Set<VariantContext> verifyVariants(Set<VariantContext> vcsFinal, String seq, String contigName, SAMRecord a0, SAMRecord a1, int[] p0, int[] p1) {
         Set<VariantContext> classifiedVCs = new HashSet<VariantContext>();
 
-        String t0 = a0 == null ? null : getTarget(a0, REF0).toString();
-        String t1 = a1 == null ? null : getTarget(a1, REF1).toString();
+        String t0 = (a0 == null || a0.getReadUnmappedFlag()) ? null : getTarget(a0, REF0).toString();
+        String t1 = (a1 == null || a1.getReadUnmappedFlag()) ? null : getTarget(a1, REF1).toString();
 
         for (VariantContext vc : vcsFinal) {
             if (t0 != null && t1 != null && vc.isSNP() && vc.getAttributeAsBoolean("DENOVO", false) && ((vc.hasAttribute("chr0") && !vc.hasAttribute("chr1")) || (!vc.hasAttribute("chr0") && vc.hasAttribute("chr1")))) {
