@@ -1267,9 +1267,9 @@ public class CallDeNovoVariants extends Module {
             }
         }
 
-        log.info("\n{}", dt);
-        log.info("");
-        log.info("\n{}", dt2);
+        //log.info("\n{}", dt);
+        //log.info("");
+        //log.info("\n{}", dt2);
 
         /*
         for (String id : variants.keySet()) {
