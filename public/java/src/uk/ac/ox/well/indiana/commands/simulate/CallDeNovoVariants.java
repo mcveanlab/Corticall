@@ -1030,10 +1030,13 @@ public class CallDeNovoVariants extends Module {
     @Override
     public void execute() {
         log.info("Loading known events...");
-        Map<String, Set<VariantContext>> knownEvents = loadExistingEvents();
+        Map<String, Set<VariantContext>> knownEvents = new HashMap<String, Set<VariantContext>>();
         int numEvents = 0;
-        for (String contigName : knownEvents.keySet()) {
-            numEvents += knownEvents.get(contigName).size();
+        if (KNOWNS != null) {
+            knownEvents = loadExistingEvents();
+            for (String contigName : knownEvents.keySet()) {
+                numEvents += knownEvents.get(contigName).size();
+            }
         }
         log.info("  {} contigs with {} known events", knownEvents.size(), numEvents);
 
