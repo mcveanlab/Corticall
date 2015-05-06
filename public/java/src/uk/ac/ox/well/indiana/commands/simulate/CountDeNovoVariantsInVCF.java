@@ -34,7 +34,7 @@ public class CountDeNovoVariantsInVCF extends Module {
             Genotype g1 = vc.getGenotype(s1);
 
             Allele a0 = g0.getAllele(0);
-            Allele a1 = g1.getAllele(1);
+            Allele a1 = g1.getAllele(0);
 
             for (Genotype g : vc.getGenotypes()) {
                 if (!g.getSampleName().equals(s0) && !g.getSampleName().equals(s1)) {
