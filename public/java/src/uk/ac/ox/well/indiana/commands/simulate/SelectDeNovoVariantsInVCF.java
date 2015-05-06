@@ -74,7 +74,8 @@ public class SelectDeNovoVariantsInVCF extends Module {
 
                     if (!a0.equals(a) && !a1.equals(a)) {
                         dt.set(g.getSampleName(), "sample", g.getSampleName());
-                        dt.increment(g.getSampleName(), "denovo");
+                        dt.increment(g.getSampleName(), vc.getType().name());
+                        //dt.increment(g.getSampleName(), "denovo");
 
                         hasDeNovoVariants = true;
                         samplesWithDeNovoVariants.add(g.getSampleName());
