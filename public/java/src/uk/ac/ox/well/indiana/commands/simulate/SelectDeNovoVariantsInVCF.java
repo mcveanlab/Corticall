@@ -49,6 +49,7 @@ public class SelectDeNovoVariantsInVCF extends Module {
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
         vcwb.setOutputFile(out);
         vcwb.unsetOption(Options.INDEX_ON_THE_FLY);
+        vcwb.setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         VariantContextWriter vcw = vcwb.build();
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
