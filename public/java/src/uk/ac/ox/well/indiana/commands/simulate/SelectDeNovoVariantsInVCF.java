@@ -63,7 +63,7 @@ public class SelectDeNovoVariantsInVCF extends Module {
             Set<String> samplesWithDeNovoVariants = new TreeSet<String>();
 
             for (Genotype g : vc.getGenotypes()) {
-                if (!g.getSampleName().equals(s0) && !g.getSampleName().equals(s1)) {
+                if (!g.getSampleName().contains(s0) && !g.getSampleName().contains(s1)) {
                     Allele a = g.getAllele(0);
 
                     if (!a0.equals(a) && !a1.equals(a)) {
