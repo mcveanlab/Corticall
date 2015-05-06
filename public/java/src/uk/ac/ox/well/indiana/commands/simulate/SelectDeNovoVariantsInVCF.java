@@ -39,6 +39,11 @@ public class SelectDeNovoVariantsInVCF extends Module {
         String s0 = PARENTS.get(0);
         String s1 = PARENTS.get(1);
 
+        for (String s : VCF.getFileHeader().getGenotypeSamples()) {
+            if (s.contains(s0)) { s0 = s; }
+            if (s.contains(s1)) { s1 = s; }
+        }
+
         DataTable dt = new DataTable("denovo", "denovo count");
 
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
