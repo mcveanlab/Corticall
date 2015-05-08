@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.cram.structure.Container;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -56,6 +57,10 @@ public class PrintKnownVariantEdges extends Module {
             covMap.put(-1, 1);
         }
 
+        public Link(int color, int coverage) {
+            addCoverage(color, coverage);
+        }
+
         public void addCoverage(int color, int coverage) {
             if (!covMap.containsKey(color)) {
                 covMap.put(color, 0);
@@ -63,6 +68,54 @@ public class PrintKnownVariantEdges extends Module {
 
             covMap.put(color, covMap.get(color) + coverage);
         }
+
+        public boolean hasEdgeInColor(int color) {
+            return (covMap.containsKey(color) && covMap.get(color) > 0);
+        }
+    }
+
+    private int inDegreeOfColor(DirectedGraph<String, Link> g, String kmer, int color) {
+        int inDegree = 0;
+
+        for (Link e : g.incomingEdgesOf(kmer)) {
+            if (e.hasEdgeInColor(color)) { inDegree++; }
+        }
+
+        return inDegree;
+    }
+
+    private int outDegreeOfColor(DirectedGraph<String, Link> g, String kmer, int color) {
+        int outDegree = 0;
+
+        for (Link e : g.outgoingEdgesOf(kmer)) {
+            if (e.hasEdgeInColor(color)) { outDegree++; }
+        }
+
+        return outDegree;
+    }
+
+    private Set<Link> incomingEdgesOf(DirectedGraph<String, Link> g, String kmer, int color) {
+        Set<Link> edges = new HashSet<Link>();
+
+        for (Link e : g.incomingEdgesOf(kmer)) {
+            if (e.hasEdgeInColor(color)) {
+                edges.add(e);
+            }
+        }
+
+        return edges;
+    }
+
+    private Set<Link> outgoingEdgesOf(DirectedGraph<String, Link> g, String kmer, int color) {
+        Set<Link> edges = new HashSet<Link>();
+
+        for (Link e : g.outgoingEdgesOf(kmer)) {
+            if (e.hasEdgeInColor(color)) {
+                edges.add(e);
+            }
+        }
+
+        return edges;
     }
 
     private Map<String, String> parseInfoField(String info) {
@@ -89,7 +142,7 @@ public class PrintKnownVariantEdges extends Module {
         return novelKmers;
     }
 
-    private void printGraph(DirectedGraph<String, Link> g, File f, String leftFlank, String rightFlank) {
+    private void printGraph(DirectedGraph<String, Link> g, File f, String leftFlank, String rightFlank, Set<CortexKmer> novelKmers) {
         try {
             PrintStream o = new PrintStream(f);
 
@@ -99,10 +152,13 @@ public class PrintKnownVariantEdges extends Module {
             o.println("    edge [fontname = \"Courier\"];");
 
             for (String v : g.vertexSet()) {
+                CortexKmer ck = new CortexKmer(v);
+                String fontColor = novelKmers.contains(ck) ? "red" : "black";
+
                 if (v.equals(leftFlank) || v.equals(rightFlank)) {
-                    o.println("    \"" + v + "\" [style=\"filled\" fillcolor=\"red\"];");
+                    o.println("    \"" + v + "\" [ style=\"filled\" fillcolor=\"red\" fontcolor=\"" + fontColor + "\" ];");
                 } else {
-                    o.println("    \"" + v + "\";");
+                    o.println("    \"" + v + "\" [ fontcolor=\"" + fontColor + "\" ];");
                 }
             }
 
@@ -121,6 +177,7 @@ public class PrintKnownVariantEdges extends Module {
                 for (Integer color : l.covMap.keySet()) {
                     int cov = l.covMap.get(color);
                     String col = colorMap.get(color);
+                    //o.println("    \"" + s + "\" -> \"" + t + "\" [ penwidth=" + Math.log10(cov + 1) + " color=\"" + col + "\" label=\"" + cov + "\" ];");
                     o.println("    \"" + s + "\" -> \"" + t + "\" [ penwidth=" + Math.log10(cov + 1) + " color=\"" + col + "\" ];");
                 }
             }
@@ -133,123 +190,159 @@ public class PrintKnownVariantEdges extends Module {
         }
     }
 
-    private Set<String> walk(CortexGraph cg, CortexLinksMap linksMap, int color, String from, String to) {
-        Set<String> reconstructionKmers = new HashSet<String>();
-        StringBuilder reconstructionFwd = new StringBuilder();
-        StringBuilder reconstructionRev = new StringBuilder();
+    private Set<String> callFromGraph(DirectedGraph<String, Link> g, String leftFlank, String rightFlank, Set<CortexKmer> novelKmers) {
+        Set<CortexKmer> novelKmersInSubGraph = new HashSet<CortexKmer>();
 
-        reconstructionKmers.add(from);
-        reconstructionKmers.add(to);
-
-        String thisKmer = from;
-        reconstructionFwd.append(thisKmer);
-        while (thisKmer != null) {
-            Collection<String> kmers = CortexUtils.getPrevKmers(cg, thisKmer, color);
-
-            if (kmers.size() == 1) {
-                String tKmer = kmers.iterator().next();
-
-                reconstructionKmers.add(tKmer);
-                reconstructionFwd.insert(0, tKmer.charAt(0));
-
-                thisKmer = tKmer;
-            } else {
-                for (String tKmer : kmers) { reconstructionKmers.add(tKmer); }
-                thisKmer = null;
+        for (String kmer : g.vertexSet()) {
+            CortexKmer ck = new CortexKmer(kmer);
+            if (novelKmers.contains(ck)) {
+                novelKmersInSubGraph.add(ck);
             }
         }
 
-        thisKmer = from;
-        while (thisKmer != null) {
-            Collection<String> kmers = CortexUtils.getNextKmers(cg, thisKmer, color);
+        for (CortexKmer ck : novelKmersInSubGraph) {
+            String skFw = ck.getKmerAsString();
+            String skRc = SequenceUtils.reverseComplement(skFw);
 
-            if (kmers.size() == 1) {
-                String tKmer = kmers.iterator().next();
+            String sk = null;
+            if (g.containsVertex(skFw)) {
+                sk = skFw;
+            } else if (g.containsVertex(skRc)) {
+                sk = skRc;
+            }
 
-                reconstructionKmers.add(tKmer);
-                reconstructionFwd.append(tKmer.charAt(tKmer.length() - 1));
+            if (sk != null) {
+                Set<String> alleles = new HashSet<String>();
 
-                thisKmer = tKmer;
-            } else {
-                for (String tKmer : kmers) { reconstructionKmers.add(tKmer); }
-                thisKmer = null;
+                List<String> stretch = new ArrayList<String>();
+                stretch.add(sk);
+
+                String tk = sk;
+                while (!tk.equals(leftFlank) && inDegreeOfColor(g, tk, 0) == 1) {
+                    Link e = incomingEdgesOf(g, tk, 0).iterator().next();
+                    tk = g.getEdgeSource(e);
+
+                    stretch.add(0, tk);
+                }
+
+                tk = sk;
+                while (!tk.equals(rightFlank) && outDegreeOfColor(g, tk, 0) == 1) {
+                    Link e = outgoingEdgesOf(g, tk, 0).iterator().next();
+                    tk = g.getEdgeTarget(e);
+
+                    stretch.add(tk);
+                }
+
+                StringBuilder ab = new StringBuilder();
+                for (String kmer : stretch) {
+                    ab.append(kmer.charAt(kmer.length() - 1));
+                }
+
+                alleles.add(ab.toString());
+
+                if (leftFlank.equals(stretch.get(0)) && rightFlank.equals(stretch.get(stretch.size() - 1))) {
+                    List<String> kmerStretch = new ArrayList<String>();
+                    kmerStretch.add(leftFlank);
+
+                    String fk = leftFlank;
+                    while (!fk.equals(rightFlank) && (outDegreeOfColor(g, fk, 1) == 1 || outDegreeOfColor(g, fk, 2) == 1)) {
+                        Link e1 = outDegreeOfColor(g, fk, 1) == 1 ? outgoingEdgesOf(g, fk, 1).iterator().next() : null;
+                        Link e2 = outDegreeOfColor(g, fk, 2) == 1 ? outgoingEdgesOf(g, fk, 2).iterator().next() : null;
+
+                        Link e = (e1 != null) ? e1 : e2;
+
+                        fk = g.getEdgeTarget(e);
+                        kmerStretch.add(fk);
+                    }
+
+                    StringBuilder pb = new StringBuilder();
+                    for (String kmer : kmerStretch) {
+                        pb.append(kmer.charAt(kmer.length() - 1));
+                    }
+
+                    alleles.add(pb.toString());
+
+                    return alleles;
+                }
             }
         }
 
-        thisKmer = to;
-        reconstructionRev.append(thisKmer);
-        while (thisKmer != null) {
-            Collection<String> kmers = CortexUtils.getPrevKmers(cg, thisKmer, color);
+        return new HashSet<String>();
 
-            if (kmers.size() == 1) {
-                String tKmer = kmers.iterator().next();
+        /*
+        for (CortexKmer ck : novelKmersInSubGraph) {
+            if (!usedNovelKmers.contains(ck)) {
+                String skFw = ck.getKmerAsString();
+                String skRc = SequenceUtils.reverseComplement(skFw);
 
-                reconstructionKmers.add(tKmer);
-                reconstructionRev.insert(0, tKmer.charAt(0));
+                String sk = null;
+                if (g.containsVertex(skFw)) {
+                    sk = skFw;
+                } else if (g.containsVertex(skRc)) {
+                    sk = skRc;
+                }
 
-                thisKmer = tKmer;
-            } else {
-                for (String tKmer : kmers) { reconstructionKmers.add(tKmer); }
-                thisKmer = null;
-            }
-        }
+                if (sk != null) {
+                    List<String> novelKmerStretch = new ArrayList<String>();
+                    novelKmerStretch.add(sk);
 
-        thisKmer = to;
-        while (thisKmer != null) {
-            Collection<String> kmers = CortexUtils.getNextKmers(cg, thisKmer, color);
+                    String pk = sk;
+                    while (inDegreeOfColor(g, pk, 0) == 1 && (inDegreeOfColor(g, pk, 1) == 0 && inDegreeOfColor(g, pk, 2) == 0)) {
+                        Link e = incomingEdgesOf(g, pk, 0).iterator().next();
 
-            if (kmers.size() == 1) {
-                String tKmer = kmers.iterator().next();
+                        pk = g.getEdgeSource(e);
+                        novelKmerStretch.add(0, pk);
 
-                reconstructionKmers.add(tKmer);
-                reconstructionRev.append(tKmer.charAt(tKmer.length() - 1));
+                        if (outDegreeOfColor(g, pk, 0) != 1) { break; }
+                    }
 
-                thisKmer = tKmer;
-            } else {
-                for (String tKmer : kmers) { reconstructionKmers.add(tKmer); }
-                thisKmer = null;
-            }
-        }
+                    String nk = sk;
+                    while (outDegreeOfColor(g, nk, 0) == 1 && (outDegreeOfColor(g, nk, 1) == 0 && outDegreeOfColor(g, nk, 2) == 0)) {
+                        Link e = outgoingEdgesOf(g, nk, 0).iterator().next();
 
-        Set<String> alleles = new HashSet<String>();
-        if (linksMap.getCortexLinks().hasColor(color)) {
-            for (String reconstructionKmerFw : reconstructionKmers) {
-                CortexKmer kmer = new CortexKmer(reconstructionKmerFw);
-                if (linksMap.containsKey(kmer)) {
-                    for (CortexJunctionsRecord cjr : linksMap.get(kmer).getJunctions()) {
-                        String reconstruction = cjr.getSeq();
+                        nk = g.getEdgeTarget(e);
+                        novelKmerStretch.add(nk);
 
-                        if (kmer.isFlipped() != cjr.isFlipped()) {
-                            reconstruction = SequenceUtils.reverseComplement(reconstruction);
+                        if (inDegreeOfColor(g, nk, 0) != 1) { break; }
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    for (String kmer : novelKmerStretch) {
+                        usedNovelKmers.add(new CortexKmer(kmer));
+
+                        sb.append(kmer.charAt(kmer.length() - 1));
+                    }
+
+                    if (sb.length() > 0) {
+                        alleles.add(sb.toString());
+                    }
+
+                    //String leftFlank = novelKmerStretch.get(0);
+                    //String rightFlank = novelKmerStretch.get(novelKmerStretch.size() - 1);
+
+                    for (int c = 1; c <= 2; c++) {
+                        List<String> kmerStretch = new ArrayList<String>();
+                        kmerStretch.add(leftFlank);
+
+                        String tk = leftFlank;
+                        while (!tk.equals(rightFlank) && outDegreeOfColor(g, tk, c) == 1) {
+                            Link e = outgoingEdgesOf(g, tk, c).iterator().next();
+
+                            tk = g.getEdgeTarget(e);
+                            kmerStretch.add(tk);
                         }
 
-                        if (reconstruction.contains(from) && reconstruction.contains(to)) {
-                            int fromIndex = reconstruction.indexOf(from) + from.length();
-                            int toIndex = reconstruction.lastIndexOf(to);
-
-                            String allele = reconstruction.substring(fromIndex, toIndex);
-                            alleles.add(allele);
+                        StringBuilder pb = new StringBuilder();
+                        for (String kmer : kmerStretch) {
+                            pb.append(kmer.charAt(kmer.length() - 1));
                         }
+
+                        alleles.add(pb.toString());
                     }
                 }
             }
-        } else {
-            Set<String> reconstructions = new HashSet<String>();
-            reconstructions.add(reconstructionFwd.toString());
-            reconstructions.add(reconstructionRev.toString());
-
-            for (String reconstruction : reconstructions) {
-                if (reconstruction.contains(from) && reconstruction.contains(to)) {
-                    int fromIndex = reconstruction.indexOf(from) + from.length();
-                    int toIndex = reconstruction.lastIndexOf(to);
-
-                    String allele = reconstruction.substring(fromIndex, toIndex);
-                    alleles.add(allele);
-                }
-            }
         }
-
-        return alleles;
+        */
     }
 
     @Override
@@ -257,7 +350,6 @@ public class PrintKnownVariantEdges extends Module {
         Set<CortexKmer> novelKmers = loadNovelKmers();
         int kmerSize = novelKmers.iterator().next().length();
 
-        //CortexLinksMap linksMap = new CortexLinksMap(LINKS);
         Map<String, CortexLinksMap> linksMap = new HashMap<String, CortexLinksMap>();
         for (File ctp : LINKS) {
             CortexLinksMap clm = new CortexLinksMap(ctp);
@@ -290,8 +382,12 @@ public class PrintKnownVariantEdges extends Module {
                 StringBuilder novelty = new StringBuilder();
                 StringBuilder edgesOut = new StringBuilder(StringUtil.repeatCharNTimes(' ', contextEnd - contextStart + kmerSize));
                 StringBuilder edgesIn = new StringBuilder(StringUtil.repeatCharNTimes(' ', contextEnd - contextStart + kmerSize));
+
                 String leftFlank = new String(REF.getSubsequenceAt(chr, start - kmerSize, start - 1).getBases());
                 String rightFlank = new String(REF.getSubsequenceAt(chr, stop + 1, stop + kmerSize).getBases());
+
+                //String leftFlank = new String(REF.getSubsequenceAt(chr, start - 1, start - 1 + kmerSize - 1).getBases());
+                //String rightFlank = new String(REF.getSubsequenceAt(chr, stop + 1 - kmerSize, stop).getBases());
 
                 for (int i = 0; i <= context.length() - kmerSize; i++) {
                     CortexKmer kmer = new CortexKmer(context.substring(i, i + kmerSize));
@@ -339,7 +435,7 @@ public class PrintKnownVariantEdges extends Module {
                     g.addVertex(tk1);
                     if (lk != null) { g.addEdge(tk1, lk, new Link()); }
                 }
-                printGraph(g, out, leftFlank, rightFlank);
+                //printGraph(g, out, leftFlank, rightFlank, novelKmers);
 
                 thisKmer = new HashSet<String>(Arrays.asList(leftFlank));
                 lk = null;
@@ -359,7 +455,7 @@ public class PrintKnownVariantEdges extends Module {
                     g.addVertex(tk1);
                     if (lk != null) { g.addEdge(lk, tk1, new Link()); }
                 }
-                printGraph(g, out, leftFlank, rightFlank);
+                //printGraph(g, out, leftFlank, rightFlank, novelKmers);
 
                 StringBuilder childSequenceRight = null;
                 thisKmer = new HashSet<String>(Arrays.asList(rightFlank));
@@ -380,7 +476,7 @@ public class PrintKnownVariantEdges extends Module {
                     g.addVertex(tk1);
                     if (lk != null) { g.addEdge(tk1, lk, new Link()); }
                 }
-                printGraph(g, out, leftFlank, rightFlank);
+                //printGraph(g, out, leftFlank, rightFlank, novelKmers);
 
                 thisKmer = new HashSet<String>(Arrays.asList(rightFlank));
                 lk = null;
@@ -400,7 +496,14 @@ public class PrintKnownVariantEdges extends Module {
                     g.addVertex(tk1);
                     if (lk != null) { g.addEdge(lk, tk1, new Link()); }
                 }
-                printGraph(g, out, leftFlank, rightFlank);
+
+                printGraph(g, out, leftFlank, rightFlank, novelKmers);
+
+                for (String gk : g.vertexSet()) {
+                    if (gk.length() != kmerSize) {
+                        log.info("1 {}: {}", gk, gk.length());
+                    }
+                }
 
                 for (int c = 0; c <= 2; c++) {
                     log.debug("event: {}",   eventType);
@@ -412,6 +515,8 @@ public class PrintKnownVariantEdges extends Module {
                     log.debug("  nov: {}",   novelty);
                     log.debug("   lf: {}{}", StringUtil.repeatCharNTimes(' ', start - kmerSize - contextStart), leftFlank);
                     log.debug("   rf: {}{}", StringUtil.repeatCharNTimes(' ', stop + 1 - contextStart), rightFlank);
+                    //log.debug("   lf: {}{}", StringUtil.repeatCharNTimes(' ', start - 1 - contextStart), leftFlank);
+                    //log.debug("   rf: {}{}", StringUtil.repeatCharNTimes(' ', stop + 1 - kmerSize - contextStart), rightFlank);
                     log.debug("     : {}",   childSequenceLeft);
                     log.debug("     : {}",   childSequenceRight);
 
@@ -419,27 +524,49 @@ public class PrintKnownVariantEdges extends Module {
 
                     for (String sk : vertices) {
                         CortexKmer ck = new CortexKmer(sk);
+                        String sampleName = GRAPH.getColor(c).getSampleName();
 
-                        if (linksMap.get(GRAPH.getColor(c).getSampleName()).containsKey(ck)) {
-                            for (CortexJunctionsRecord cjr : linksMap.get(GRAPH.getColor(c).getSampleName()).get(ck).getJunctions()) {
+                        if (linksMap.get(sampleName).containsKey(ck)) {
+                            for (CortexJunctionsRecord cjr : linksMap.get(sampleName).get(ck).getJunctions()) {
                                 String linkSeq = cjr.getSeq();
 
                                 if (ck.isFlipped() != cjr.isFlipped()) {
                                     linkSeq = SequenceUtils.reverseComplement(linkSeq);
                                 }
 
-                                if (linkSeq.contains(leftFlank) || linkSeq.contains(rightFlank)) {
+                                //if (linkSeq.contains(leftFlank) || linkSeq.contains(rightFlank)) {
+                                if (linkSeq.contains(alt)) {
+                                    Map<String, Integer> kmerTotalCount = new HashMap<String, Integer>();
+
+                                    int[] indices = new int[linkSeq.length() - kmerSize + 1];
+                                    for (int q = 0; q <= linkSeq.length() - kmerSize; q++) {
+                                        String tk = linkSeq.substring(q, q + kmerSize);
+
+                                        ContainerUtils.increment(kmerTotalCount, tk);
+                                        indices[q] = kmerTotalCount.get(tk);
+                                    }
+
                                     for (int q = 0; q < linkSeq.length() - kmerSize; q++) {
                                         String tk = linkSeq.substring(q, q + kmerSize);
                                         String nk = linkSeq.substring(q + 1, q + 1 + kmerSize);
-                                        g.addVertex(tk);
-                                        g.addVertex(nk);
 
-                                        if (!g.containsEdge(tk, nk)) {
-                                            g.addEdge(tk, nk, new Link());
+                                        int tkIndex = indices[q];
+                                        int nkIndex = indices[q + 1];
+
+                                        String tki = tk + (tkIndex == 1 ? "" : "." + tkIndex);
+                                        String nki = nk + (nkIndex == 1 ? "" : "." + nkIndex);
+
+                                        g.addVertex(tki);
+                                        g.addVertex(nki);
+
+                                        if (!g.containsEdge(tki, nki)) {
+                                            g.addEdge(tki, nki, new Link(c, cjr.getCoverage(0)));
                                         } else {
-                                            g.getEdge(tk, nk).addCoverage(c, cjr.getCoverage(0));
+                                            g.getEdge(tki, nki).addCoverage(c, cjr.getCoverage(0));
                                         }
+
+                                        //printGraph(g, out, leftFlank, rightFlank, novelKmers);
+                                        //log.info("");
                                     }
                                 }
                             }
@@ -447,10 +574,31 @@ public class PrintKnownVariantEdges extends Module {
                     }
                 }
 
+                for (String gk : g.vertexSet()) {
+                    if (gk.length() != kmerSize) {
+                        log.info("2 {}: {}", gk, gk.length());
+                    }
+                }
+
+                String foundLeftFlank = context.substring(100, 100 + kmerSize);
+                while (inDegreeOfColor(g, foundLeftFlank, 0) == 1 && (outDegreeOfColor(g, foundLeftFlank, 1) == 0 || outDegreeOfColor(g, foundLeftFlank, 2) == 0)) {
+                    Link e = incomingEdgesOf(g, foundLeftFlank, 0).iterator().next();
+                    foundLeftFlank = g.getEdgeSource(e);
+                }
+
+                String foundRightFlank = context.substring(context.length() - 101, context.length() - 101 + kmerSize);
+                while (outDegreeOfColor(g, foundRightFlank, 0) == 1 && (inDegreeOfColor(g, foundRightFlank, 1) == 0 || inDegreeOfColor(g, foundRightFlank, 2) == 0)) {
+                    Link e = outgoingEdgesOf(g, foundRightFlank, 0).iterator().next();
+                    foundRightFlank = g.getEdgeTarget(e);
+                }
+
+                printGraph(g, out, foundLeftFlank, foundRightFlank, novelKmers);
+                Set<String> alleles = callFromGraph(g, foundLeftFlank, foundRightFlank, novelKmers);
+
+                log.info("Allele: {}", Joiner.on(", ").join(alleles));
                 log.info("{} {} {}:{}-{} {}", count, full, chr, start, stop, eventType);
 
-                printGraph(g, out, leftFlank, rightFlank);
-                break;
+                //break;
             }
         }
 
