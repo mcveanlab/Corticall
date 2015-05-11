@@ -641,6 +641,7 @@ public class EvaluateRecovery extends Module {
         fpstats.addColumn("total");
         report.addTable(fpstats);
 
+        /*
         Map<CortexKmer, Integer> kmerMultiplicity = new HashMap<CortexKmer, Integer>();
         TableReader tr2 = new TableReader("test.txt", new String[] { "kmer", "cov" });
         for (Map<String, String> te2 : tr2) {
@@ -648,6 +649,7 @@ public class EvaluateRecovery extends Module {
             int cov = Integer.valueOf(te2.get("cov"));
             kmerMultiplicity.put(ck, cov);
         }
+        */
 
         for (String contigName : fpContigs) {
             Map<String, String> te = annotatedContigs.get(contigName);
@@ -672,9 +674,9 @@ public class EvaluateRecovery extends Module {
                         }
 
                         numNovelKmers++;
-                        if (kmerMultiplicity.containsKey(ck) && kmerMultiplicity.get(ck) > 1) {
-                            numNonUniqueKmers++;
-                        }
+                        //if (kmerMultiplicity.containsKey(ck) && kmerMultiplicity.get(ck) > 1) {
+                            //numNonUniqueKmers++;
+                        //}
                     }
                 }
 
