@@ -44,7 +44,14 @@ public class ConditionalKmerCoverageDistribution extends Module {
     public void execute() {
         Map<Integer, Map<String, Integer>> covCounts = new TreeMap<Integer, Map<String, Integer>>();
 
+        log.info("Processing graph...");
+        int numRecords = 0;
         for (CortexRecord cr : GRAPH) {
+            if (numRecords % (GRAPH.getNumRecords() / 10) == 0) {
+                log.info("  {}/{} records", numRecords, GRAPH.getNumRecords());
+            }
+            numRecords++;
+
             int cov    = cr.getCoverage(0);
             int cov_p1 = cr.getCoverage(1);
             int cov_p2 = cr.getCoverage(2);
