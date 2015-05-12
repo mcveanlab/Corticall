@@ -52,7 +52,9 @@ public class EmitNovelKmers extends Module {
 
         int numRecords = 0, numNovelRecords = 0;
         for (CortexRecord cr : GRAPH) {
-            log.info("  {}/{} records ({} novel)", numRecords, GRAPH.getNumRecords(), numNovelRecords);
+            if (numRecords % (GRAPH.getNumRecords() / 10) == 0) {
+                log.info("  {}/{} records ({} novel)", numRecords, GRAPH.getNumRecords(), numNovelRecords);
+            }
 
             int cov    = cr.getCoverage(0);
             int cov_p1 = cr.getCoverage(1);
