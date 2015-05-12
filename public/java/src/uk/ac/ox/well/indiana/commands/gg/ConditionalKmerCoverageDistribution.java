@@ -71,7 +71,7 @@ public class ConditionalKmerCoverageDistribution extends Module {
             }
         }
 
-        out.println(Joiner.on("\t").join("", "10", "01", "11", "00"));
+        out.println(Joiner.on("\t").join("cov", "10", "01", "11", "00"));
 
         for (Integer cov : covCounts.keySet()) {
             int count_p1 = getElement(covCounts, cov, "10");
