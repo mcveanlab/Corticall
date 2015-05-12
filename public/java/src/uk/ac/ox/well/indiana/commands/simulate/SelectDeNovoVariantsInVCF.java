@@ -59,36 +59,38 @@ public class SelectDeNovoVariantsInVCF extends Module {
         vcw.writeHeader(header);
 
         for (VariantContext vc : VCF) {
-            Genotype g0 = vc.getGenotype(s0);
-            Genotype g1 = vc.getGenotype(s1);
+            if (!vc.isFiltered()) {
+                Genotype g0 = vc.getGenotype(s0);
+                Genotype g1 = vc.getGenotype(s1);
 
-            Allele a0 = g0.getAllele(0);
-            Allele a1 = g1.getAllele(0);
+                Allele a0 = g0.getAllele(0);
+                Allele a1 = g1.getAllele(0);
 
-            boolean hasDeNovoVariants = false;
-            Set<String> samplesWithDeNovoVariants = new TreeSet<String>();
+                boolean hasDeNovoVariants = false;
+                Set<String> samplesWithDeNovoVariants = new TreeSet<String>();
 
-            for (Genotype g : vc.getGenotypes()) {
-                if (!g.getSampleName().contains(s0) && !g.getSampleName().contains(s1)) {
-                    Allele a = g.getAllele(0);
+                for (Genotype g : vc.getGenotypes()) {
+                    if (!g.getSampleName().contains(s0) && !g.getSampleName().contains(s1)) {
+                        Allele a = g.getAllele(0);
 
-                    if (!a0.equals(a) && !a1.equals(a)) {
-                        dt.set(g.getSampleName(), "sample", g.getSampleName());
-                        dt.increment(g.getSampleName(), vc.getType().name());
-                        //dt.increment(g.getSampleName(), "denovo");
+                        if (!a0.equals(a) && !a1.equals(a)) {
+                            dt.set(g.getSampleName(), "sample", g.getSampleName());
+                            dt.increment(g.getSampleName(), vc.getType().name());
+                            //dt.increment(g.getSampleName(), "denovo");
 
-                        hasDeNovoVariants = true;
-                        samplesWithDeNovoVariants.add(g.getSampleName());
+                            hasDeNovoVariants = true;
+                            samplesWithDeNovoVariants.add(g.getSampleName());
+                        }
                     }
                 }
-            }
 
-            if (hasDeNovoVariants) {
-                VariantContext newvc = (new VariantContextBuilder(vc))
-                        .attribute("SAMPLES_WITH_DENOVOS", Joiner.on(",").join(samplesWithDeNovoVariants))
-                        .make();
+                if (hasDeNovoVariants) {
+                    VariantContext newvc = (new VariantContextBuilder(vc))
+                            .attribute("SAMPLES_WITH_DENOVOS", Joiner.on(",").join(samplesWithDeNovoVariants))
+                            .make();
 
-                vcw.add(newvc);
+                    vcw.add(newvc);
+                }
             }
         }
 
