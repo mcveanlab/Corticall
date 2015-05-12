@@ -3,6 +3,16 @@ package uk.ac.ox.well.indiana.utils.math;
 public class MoreMathUtils {
     private MoreMathUtils() {}
 
+    public static int max(int... values) {
+        int max = Integer.MIN_VALUE;
+
+        for (int tmp : values) {
+            max = max < tmp ? tmp : max;
+        }
+
+        return max;
+    }
+
     public static double max(double... values) {
         double max = Double.NEGATIVE_INFINITY;
 
