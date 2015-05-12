@@ -53,6 +53,7 @@ public class SelectDeNovoVariantsInVCF extends Module {
         VariantContextWriter vcw = vcwb.build();
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>(VCF.getFileHeader().getInfoHeaderLines());
+        headerLines.addAll(VCF.getFileHeader().getFormatHeaderLines());
         headerLines.add(new VCFInfoHeaderLine("SAMPLES_WITH_DENOVOS", 1, VCFHeaderLineType.String, "Comma-separated list of samples with de novo variants"));
         VCFHeader header = new VCFHeader(headerLines);
 
