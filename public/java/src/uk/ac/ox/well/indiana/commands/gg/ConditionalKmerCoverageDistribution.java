@@ -71,13 +71,13 @@ public class ConditionalKmerCoverageDistribution extends Module {
             }
         }
 
-        out.println(Joiner.on("\t").join("", "1000", "0100", "0010", "0001"));
+        out.println(Joiner.on("\t").join("", "10", "01", "11", "00"));
 
         for (Integer cov : covCounts.keySet()) {
-            int count_p1 = getElement(covCounts, cov, "1000");
-            int count_p2 = getElement(covCounts, cov, "0100");
-            int count_r1 = getElement(covCounts, cov, "0010");
-            int count_r2 = getElement(covCounts, cov, "0001");
+            int count_p1 = getElement(covCounts, cov, "10");
+            int count_p2 = getElement(covCounts, cov, "01");
+            int count_r1 = getElement(covCounts, cov, "11");
+            int count_r2 = getElement(covCounts, cov, "00");
 
             out.println(Joiner.on("\t").join(cov, count_p1, count_p2, count_r1, count_r2));
         }
