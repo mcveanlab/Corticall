@@ -58,14 +58,16 @@ public class ConditionalKmerCoverageDistribution extends Module {
             int cov_r1 = cr.getCoverage(3);
             int cov_r2 = cr.getCoverage(4);
 
-            if        (cov_p1 >  0 && cov_p2 == 0 && cov_r1 == 0 && cov_r2 == 0) {
-                incrementElement(covCounts, cov, "1000");
-            } else if (cov_p1 == 0 && cov_p2 >  0 && cov_r1 == 0 && cov_r2 == 0) {
-                incrementElement(covCounts, cov, "0100");
-            } else if (cov_p1 == 0 && cov_p2 == 0 && cov_r1 >  0 && cov_r2 == 0) {
-                incrementElement(covCounts, cov, "0010");
-            } else if (cov_p1 == 0 && cov_p2 == 0 && cov_r1 == 0 && cov_r2 >  0) {
-                incrementElement(covCounts, cov, "0001");
+            if (cov_r1 == 0 && cov_r2 == 0) {
+                if        (cov_p1 >  0 && cov_p2 == 0) {
+                    incrementElement(covCounts, cov, "10");
+                } else if (cov_p1 == 0 && cov_p2 >  0) {
+                    incrementElement(covCounts, cov, "01");
+                } else if (cov_p1 >  0 && cov_p2 >  0) {
+                    incrementElement(covCounts, cov, "11");
+                } else if (cov_p1 == 0 && cov_p2 == 0) {
+                    incrementElement(covCounts, cov, "00");
+                }
             }
         }
 
