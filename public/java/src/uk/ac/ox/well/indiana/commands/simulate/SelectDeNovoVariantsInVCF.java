@@ -60,7 +60,8 @@ public class SelectDeNovoVariantsInVCF extends Module {
         */
 
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder()
-                .setOutputFile(out);
+                .setOutputFile(out)
+                .setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary());
 
         VariantContextWriter vcw = vcwb.build();
 
