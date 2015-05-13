@@ -46,6 +46,7 @@ public class SelectDeNovoVariantsInVCF extends Module {
 
         DataTable dt = new DataTable("denovo", "denovo count");
 
+        /*
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
         vcwb.setOutputFile(out);
         vcwb.unsetOption(Options.INDEX_ON_THE_FLY);
@@ -56,6 +57,15 @@ public class SelectDeNovoVariantsInVCF extends Module {
         headerLines.addAll(VCF.getFileHeader().getFormatHeaderLines());
         headerLines.add(new VCFInfoHeaderLine("SAMPLES_WITH_DENOVOS", 1, VCFHeaderLineType.String, "Comma-separated list of samples with de novo variants"));
         VCFHeader header = new VCFHeader(headerLines);
+        */
+
+        VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder()
+                .setOutputFile(out);
+
+        VariantContextWriter vcw = vcwb.build();
+
+        VCFHeader header = VCF.getFileHeader();
+        header.addMetaDataLine(new VCFInfoHeaderLine("SAMPLES_WITH_DENOVOS", 1, VCFHeaderLineType.String, "Comma-separated list of samples with de novo variants"));
 
         vcw.writeHeader(header);
 
