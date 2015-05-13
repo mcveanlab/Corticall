@@ -104,6 +104,17 @@ public class MapVariantsToNovelKmers extends Module {
             }
         }
 
+        for (CortexKmer ck : novelKmers) {
+            Map<String, String> twe = new LinkedHashMap<String, String>();
+            twe.put("kmer", ck.getKmerAsString());
+            twe.put("variantId", "NA");
+            twe.put("vclass", "NA");
+            twe.put("vchr", "NA");
+            twe.put("vstart", "NA");
+            twe.put("vstop", "NA");
+            tw.addEntry(twe);
+        }
+
         log.info("  {} novel kmers unassigned to variants", novelKmers.size());
     }
 }
