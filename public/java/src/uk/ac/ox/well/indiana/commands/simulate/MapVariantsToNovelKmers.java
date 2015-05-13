@@ -99,11 +99,11 @@ public class MapVariantsToNovelKmers extends Module {
                     twe.put("vstop", String.valueOf(stop));
                     tw.addEntry(twe);
 
-                    //novelKmers.remove(ck);
+                    novelKmers.remove(ck);
                 }
             }
         }
 
-        //log.info("  {} novel kmers unassigned to variants", novelKmers.size());
+        log.info("  {} novel kmers unassigned to variants", novelKmers.size());
     }
 }
