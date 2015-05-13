@@ -100,6 +100,17 @@ public class IncorporateVariantsIntoGenome extends Module {
                         String nahr = vc.getAttributeAsString("NAHR", "unknown");
                         Integer gcindex = vc.getAttributeAsInt("GCINDEX", 0);
 
+                        if (vc.hasAttribute("SAMPLES_WITH_DENOVOS")) {
+                            String[] swd = vc.getAttributeAsString("SAMPLES_WITH_DENOVOS", "unknown").split(",");
+                            String vcfSampleName = VCF.getFileHeader().getSampleNamesInOrder().get(0);
+                            for (String s : swd) {
+                                if (vcfSampleName.equals(s)) {
+                                    denovo = vc.getType().name();
+                                    id = String.format("%s:%d-%d", vc.getChr(), vc.getStart(), vc.getEnd());
+                                }
+                            }
+                        }
+
                         if (!attributes.containsKey(id)) {
                             attributes.put(id, new HashMap<String, String>());
                         }
