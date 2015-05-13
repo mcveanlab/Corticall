@@ -106,7 +106,6 @@ public class IncorporateVariantsIntoGenome extends Module {
                             for (String s : swd) {
                                 if (vcfSampleName.equals(s.replaceAll("\\s+", ""))) {
                                     denovo = vc.getType().name();
-                                    id = String.format("%s:%d-%d", vc.getChr(), vc.getStart(), vc.getEnd());
                                     break;
                                 }
                             }

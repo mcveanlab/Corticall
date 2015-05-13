@@ -54,9 +54,11 @@ public class AnnotateDeNovoVariantsInVCF extends Module {
 
         VCFHeader header = VCF.getFileHeader();
         header.addMetaDataLine(new VCFInfoHeaderLine("SAMPLES_WITH_DENOVOS", 1, VCFHeaderLineType.String, "Comma-separated list of samples with de novo variants"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("SIMID", 1, VCFHeaderLineType.String, "The ID of the simulated variant"));
 
         vcw.writeHeader(header);
 
+        int vindex = 0;
         for (VariantContext vc : VCF) {
             if (!vc.isFiltered()) {
                 Genotype g0 = vc.getGenotype(s0);
@@ -75,7 +77,6 @@ public class AnnotateDeNovoVariantsInVCF extends Module {
                         if (a.isCalled() && a0.isCalled() && a1.isCalled() && a.isNonReference() && !a0.equals(a) && !a1.equals(a)) {
                             dt.set(g.getSampleName(), "sample", g.getSampleName());
                             dt.increment(g.getSampleName(), vc.getType().name());
-                            //dt.increment(g.getSampleName(), "denovo");
 
                             hasDeNovoVariants = true;
                             samplesWithDeNovoVariants.add(g.getSampleName());
@@ -88,13 +89,17 @@ public class AnnotateDeNovoVariantsInVCF extends Module {
                             .attribute("SAMPLES_WITH_DENOVOS", Joiner.on(",").join(samplesWithDeNovoVariants))
                             .make();
 
-                    //vcw.add(newvc);
-
                     vc = newvc;
                 }
             }
 
-            vcw.add(vc);
+            VariantContext newvc = (new VariantContextBuilder(vc))
+                    .attribute("SIMID", "real" + vindex)
+                    .make();
+
+            vcw.add(newvc);
+
+            vindex++;
         }
 
         vcw.close();
