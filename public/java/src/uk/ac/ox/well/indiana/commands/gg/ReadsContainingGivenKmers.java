@@ -32,7 +32,14 @@ public class ReadsContainingGivenKmers extends Module {
                 .setCreateIndex(true)
                 .makeBAMWriter(BAM.getFileHeader(), true, out);
 
+        log.info("Looking for {} kmers in reads...", KMER_LIST.size());
+        int numReads = 0, numReadsFound = 0;
         for (SAMRecord read : BAM) {
+            if (numReads % 1000000 == 0) {
+                log.info("  {} reads seen, {} reads with novel kmers", numReads, numReadsFound);
+            }
+            numReads++;
+
             String readSeq = read.getReadString();
 
             for (int i = 0; i <= readSeq.length() - kmerSize; i++) {
@@ -40,9 +47,13 @@ public class ReadsContainingGivenKmers extends Module {
 
                 if (KMER_LIST.contains(ck)) {
                     sfw.addAlignment(read);
+
+                    numReadsFound++;
                 }
             }
         }
+
+        log.info("  {} reads seen, {} reads with novel kmers", numReads, numReadsFound);
 
         sfw.close();
     }
