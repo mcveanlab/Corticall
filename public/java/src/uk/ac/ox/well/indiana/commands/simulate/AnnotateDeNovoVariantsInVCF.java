@@ -76,6 +76,7 @@ public class AnnotateDeNovoVariantsInVCF extends Module {
 
                         if (a.isCalled() && a0.isCalled() && a1.isCalled() && a.isNonReference() && !a0.equals(a) && !a1.equals(a)) {
                             dt.set(g.getSampleName(), "sample", g.getSampleName());
+                            dt.set(g.getSampleName(), "isFilteredOut", vc.isFiltered());
                             dt.increment(g.getSampleName(), vc.getType().name());
 
                             hasDeNovoVariants = true;
