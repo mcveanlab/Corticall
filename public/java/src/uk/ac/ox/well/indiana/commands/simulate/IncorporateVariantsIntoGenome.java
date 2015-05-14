@@ -24,6 +24,9 @@ public class IncorporateVariantsIntoGenome extends Module {
     @Argument(fullName="vcf", shortName="v", doc="VCF")
     public VCFFileReader VCF;
 
+    @Argument(fullName="includeFiltered", shortName="f", doc="Include variants that had been filtered out")
+    public Boolean INCLUDE_FILTERED = false;
+
     @Output
     public PrintStream out;
 
@@ -45,18 +48,20 @@ public class IncorporateVariantsIntoGenome extends Module {
 
         log.info("Loading variants...");
         for (VariantContext vc : VCF) {
-            String chr = vc.getChr();
-            int start = vc.getStart();
+            if (INCLUDE_FILTERED || !vc.isFiltered()) {
+                String chr = vc.getChr();
+                int start = vc.getStart();
 
-            if (!variants.containsKey(chr)) {
-                variants.put(chr, new HashMap<Integer, Set<VariantContext>>());
+                if (!variants.containsKey(chr)) {
+                    variants.put(chr, new HashMap<Integer, Set<VariantContext>>());
+                }
+
+                if (!variants.get(chr).containsKey(start)) {
+                    variants.get(chr).put(start - 1, new HashSet<VariantContext>());
+                }
+
+                variants.get(chr).get(start - 1).add(vc);
             }
-
-            if (!variants.get(chr).containsKey(start)) {
-                variants.get(chr).put(start - 1, new HashSet<VariantContext>());
-            }
-
-            variants.get(chr).get(start - 1).add(vc);
         }
 
         Map<String, Map<String, String>> attributes = new HashMap<String, Map<String, String>>();
