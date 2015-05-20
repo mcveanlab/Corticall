@@ -29,7 +29,7 @@ public class EmitNovelKmers extends Module {
 
         if (THRESHOLD_FILE != null) {
             LineReader lr = new LineReader(THRESHOLD_FILE);
-            threshold = Integer.valueOf(lr.getNextRecord());
+            threshold = Integer.valueOf(lr.getNextRecord().trim());
         }
 
         log.info("Processing graph...");
