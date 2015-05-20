@@ -27,7 +27,13 @@ public class KmerCoverageDistribution extends Module {
     public void execute() {
         Map<Integer, Integer> kmerCoverageHist = new TreeMap<Integer, Integer>();
 
+        log.info("Processing records...");
+        int numRecords = 0;
         for (CortexRecord cr : GRAPH) {
+            if (numRecords % (GRAPH.getNumRecords() / 10) == 0) {
+                log.info("  {}/{} records", numRecords, GRAPH.getNumRecords());
+            }
+
             int cov = cr.getCoverage(COLOR);
 
             if (!kmerCoverageHist.containsKey(cov)) {
