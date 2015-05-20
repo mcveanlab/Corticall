@@ -16,14 +16,15 @@ public class EmitNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="thresholds", shortName="t", doc="Thresholds")
-    public File THRESHOLDS;
+    //@Argument(fullName="thresholds", shortName="t", doc="Thresholds")
+    //public File THRESHOLDS;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
+        /*
         log.info("Reading threshold information...");
 
         int p1Threshold = 0, p2Threshold = 0, bThreshold = 0;
@@ -45,6 +46,7 @@ public class EmitNovelKmers extends Module {
         int threshold = MoreMathUtils.max(p1Threshold, p2Threshold, bThreshold);
 
         log.info("  threshold: {} ({} {} {})", threshold, p1Threshold, p2Threshold, bThreshold);
+        */
 
         log.info("Processing graph...");
         CortexGraphWriter cgw = new CortexGraphWriter(out);
@@ -56,13 +58,18 @@ public class EmitNovelKmers extends Module {
                 log.info("  {}/{} records ({} novel)", numRecords, GRAPH.getNumRecords(), numNovelRecords);
             }
 
-            int cov    = cr.getCoverage(0);
-            int cov_p1 = cr.getCoverage(1);
-            int cov_p2 = cr.getCoverage(2);
-            int cov_r1 = cr.getCoverage(3);
-            int cov_r2 = cr.getCoverage(4);
+            int cov = cr.getCoverage(0);
 
-            if (cov > threshold && cov_p1 == 0 && cov_p2 == 0 && cov_r1 == 0 && cov_r2 == 0) {
+            boolean hasCoverageInOtherColors = false;
+            for (int c = 1; c < cr.getNumColors(); c++) {
+                if (cr.getCoverage(c) > 0) {
+                    hasCoverageInOtherColors = true;
+                    break;
+                }
+            }
+
+            //if (cov > threshold && !hasCoverageInOtherColors) {
+            if (cov > 0 && !hasCoverageInOtherColors) {
                 cgw.addRecord(cr);
                 numNovelRecords++;
             }
