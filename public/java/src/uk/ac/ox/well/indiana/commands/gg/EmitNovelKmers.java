@@ -7,6 +7,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 
 import java.io.File;
@@ -16,37 +17,20 @@ public class EmitNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    //@Argument(fullName="thresholds", shortName="t", doc="Thresholds")
-    //public File THRESHOLDS;
+    @Argument(fullName="threshold", shortName="t", doc="Threshold file", required=false)
+    public File THRESHOLD_FILE;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
-        /*
-        log.info("Reading threshold information...");
+        int threshold = 0;
 
-        int p1Threshold = 0, p2Threshold = 0, bThreshold = 0;
-
-        TableReader tr = new TableReader(THRESHOLDS);
-        for (Map<String, String> te : tr) {
-            String className = te.get("class");
-            int threshold = Integer.valueOf(te.get("threshold"));
-
-            if (className.equals("X10")) {
-                p1Threshold = threshold;
-            } else if (className.equals("X01")) {
-                p2Threshold = threshold;
-            } else if (className.equals("X11")) {
-                bThreshold = threshold;
-            }
+        if (THRESHOLD_FILE != null) {
+            LineReader lr = new LineReader(THRESHOLD_FILE);
+            threshold = Integer.valueOf(lr.getNextRecord());
         }
-
-        int threshold = MoreMathUtils.max(p1Threshold, p2Threshold, bThreshold);
-
-        log.info("  threshold: {} ({} {} {})", threshold, p1Threshold, p2Threshold, bThreshold);
-        */
 
         log.info("Processing graph...");
         CortexGraphWriter cgw = new CortexGraphWriter(out);
@@ -68,8 +52,7 @@ public class EmitNovelKmers extends Module {
                 }
             }
 
-            //if (cov > threshold && !hasCoverageInOtherColors) {
-            if (cov > 0 && !hasCoverageInOtherColors) {
+            if (cov > threshold && !hasCoverageInOtherColors) {
                 cgw.addRecord(cr);
                 numNovelRecords++;
             }
