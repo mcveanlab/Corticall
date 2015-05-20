@@ -33,6 +33,7 @@ public class KmerCoverageDistribution extends Module {
             if (numRecords % (GRAPH.getNumRecords() / 10) == 0) {
                 log.info("  {}/{} records", numRecords, GRAPH.getNumRecords());
             }
+            numRecords++;
 
             int cov = cr.getCoverage(COLOR);
 
