@@ -132,6 +132,8 @@ public class CortexGraphWriter {
     }
 
     public void close() {
+        if (fos == null) { initialize(); }
+
         try {
             channel.close();
             fos.close();
