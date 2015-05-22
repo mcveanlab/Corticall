@@ -38,7 +38,7 @@ public class EmitNovelKmers extends Module {
 
         int numRecords = 0, numNovelRecords = 0;
         for (CortexRecord cr : GRAPH) {
-            if (numRecords % (GRAPH.getNumRecords() / 10) == 0) {
+            if (GRAPH.getNumRecords() > 10 && numRecords % (GRAPH.getNumRecords() / 10) == 0) {
                 log.info("  {}/{} records ({} novel)", numRecords, GRAPH.getNumRecords(), numNovelRecords);
             }
 
