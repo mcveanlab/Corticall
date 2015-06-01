@@ -154,6 +154,37 @@ public class CortexUtils {
     }
 
     /**
+     * Given a kmer, walk left and right until we get to junctions on either end.
+     *
+     * @param cg    the multi-color graph
+     * @param kmer  the start kmer
+     * @param color the color to traverse
+     * @return      a string containing the results of the walk
+     */
+    public static String getSeededStretch(CortexGraph cg, String kmer, int color) {
+        String tk = kmer;
+        StringBuilder stretchBuilder = new StringBuilder(tk);
+
+        String pk;
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null) {
+            stretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
+
+            tk = pk;
+        }
+
+        tk = kmer;
+
+        String nk;
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null) {
+            stretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
+
+            tk = nk;
+        }
+
+        return stretchBuilder.toString();
+    }
+
+    /**
      * Flip the information in a links record to the opposite orientation
      *
      * @param clr  the Cortex links record
