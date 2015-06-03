@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.attic.analyses.ContigErrors;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -19,7 +20,7 @@ public class BasicAssemblyStats extends Module {
     public Integer LENGTH_MIN = 0;
 
     @Argument(fullName="reference", shortName="r", doc="Reference (FASTA)", required=false)
-    public FastaSequenceFile REFERENCE;
+    public IndexedFastaSequenceFile REFERENCE;
 
     @Output
     public PrintStream out;
