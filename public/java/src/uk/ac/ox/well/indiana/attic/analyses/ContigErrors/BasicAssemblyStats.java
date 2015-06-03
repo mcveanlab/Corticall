@@ -12,14 +12,14 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class BasicAssemblyStats extends Module {
-    @Argument(fullName="reference", shortName="r", doc="Reference (FASTA)", required=false)
-    public FastaSequenceFile REFERENCE;
-
     @Argument(fullName="contigs", shortName="c", doc="Contigs (FASTA)")
     public TreeMap<String, FastaSequenceFile> CONTIGS;
 
     @Argument(fullName="lengthMin", shortName="lmin", doc="Minimum contig length")
     public Integer LENGTH_MIN = 0;
+
+    @Argument(fullName="reference", shortName="r", doc="Reference (FASTA)", required=false)
+    public FastaSequenceFile REFERENCE;
 
     @Output
     public PrintStream out;
@@ -27,9 +27,11 @@ public class BasicAssemblyStats extends Module {
     private long getReferenceLength() {
         long totalLength = 0;
 
-        ReferenceSequence rseq;
-        while ((rseq = REFERENCE.nextSequence()) != null) {
-            totalLength += rseq.length();
+        if (REFERENCE != null) {
+            ReferenceSequence rseq;
+            while ((rseq = REFERENCE.nextSequence()) != null) {
+                totalLength += rseq.length();
+            }
         }
 
         return totalLength;
