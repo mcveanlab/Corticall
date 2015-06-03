@@ -12,6 +12,9 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class BasicAssemblyStats extends Module {
+    @Argument(fullName="reference", shortName="r", doc="Reference (FASTA)", required=false)
+    public FastaSequenceFile REFERENCE;
+
     @Argument(fullName="contigs", shortName="c", doc="Contigs (FASTA)")
     public TreeMap<String, FastaSequenceFile> CONTIGS;
 
@@ -20,6 +23,17 @@ public class BasicAssemblyStats extends Module {
 
     @Output
     public PrintStream out;
+
+    private long getReferenceLength() {
+        long totalLength = 0;
+
+        ReferenceSequence rseq;
+        while ((rseq = REFERENCE.nextSequence()) != null) {
+            totalLength += rseq.length();
+        }
+
+        return totalLength;
+    }
 
     @Override
     public void execute() {
@@ -48,6 +62,7 @@ public class BasicAssemblyStats extends Module {
             int maxLength = SequenceUtils.maxLength(seqs);
             float meanLength = SequenceUtils.meanLength(seqs);
             int n50 = SequenceUtils.computeN50Value(seqs);
+            int ng50 = (REFERENCE != null) ? SequenceUtils.computeNG50Value(seqs, getReferenceLength()) : 0;
 
             entry.put("id", id);
             entry.put("numContigs", String.valueOf(numContigs));
@@ -55,6 +70,7 @@ public class BasicAssemblyStats extends Module {
             entry.put("maxLength", String.valueOf(maxLength));
             entry.put("meanLength", String.format("%.2f", meanLength));
             entry.put("n50", String.valueOf(n50));
+            entry.put("ng50", String.valueOf(ng50));
             entry.put("totalSequence", String.valueOf(totalSequence));
 
             tw.addEntry(entry);

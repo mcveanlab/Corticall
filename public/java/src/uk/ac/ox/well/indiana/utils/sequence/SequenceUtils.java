@@ -352,6 +352,63 @@ public class SequenceUtils {
     }
 
     /**
+     * Private method to compute NG50 information
+     *
+     * @param sequences  the sequences to process
+     * @param lengthOrValue  if true, compute length; else, compute value
+     * @return  the NG50 length or value
+     */
+    private static int computeNG50Metric(Collection<? extends CharSequence> sequences, boolean lengthOrValue, long referenceGenomeSize) {
+        float totalLength = (float) referenceGenomeSize;
+
+        List<Integer> lengths = new ArrayList<Integer>();
+        for (CharSequence seq : sequences) {
+            lengths.add(seq.length());
+        }
+
+        Collections.sort(lengths, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return o2.compareTo(o1);
+            }
+        });
+
+        float ng50Length = 0;
+        float ng50Value = 0;
+
+        for (Integer length : lengths) {
+            ng50Length += length;
+            ng50Value = length;
+
+            if (ng50Length >= totalLength/2) {
+                break;
+            }
+        }
+
+        return lengthOrValue ? (int) ng50Length : (int) ng50Value;
+    }
+
+    /**
+     * Compute NG50 length
+     * @param sequences  the sequences to process
+     * @param referenceGenomeSize the length of the canonical reference genome
+     * @return  the NG50 length
+     */
+    public static int computeNG50Length(Collection<? extends CharSequence> sequences, long referenceGenomeSize) {
+        return computeNG50Metric(sequences, true, referenceGenomeSize);
+    }
+
+    /**
+     * Compute NG50 value (the longest length for which the collection of all contigs of that length or longer contains at least half of the total of the reference genome)
+     * @param sequences  the sequences to process
+     * @param referenceGenomeSize the length of the canonical reference genome
+     * @return  the NG50 value
+     */
+    public static int computeNG50Value(Collection<? extends CharSequence> sequences, long referenceGenomeSize) {
+        return computeNG50Metric(sequences, false, referenceGenomeSize);
+    }
+
+    /**
      * Compute the minimum length in a collection of sequences
      *
      * @param sequences  the sequences to process
