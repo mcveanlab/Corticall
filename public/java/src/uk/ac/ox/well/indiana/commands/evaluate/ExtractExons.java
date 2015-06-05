@@ -10,7 +10,7 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import java.io.PrintStream;
 
 public class ExtractExons extends Module {
-    @Argument(fullName="reference", shortName="ref", doc="Reference")
+    @Argument(fullName="reference", shortName="r", doc="Reference")
     public IndexedFastaSequenceFile REF;
 
     @Argument(fullName="gff", shortName="g", doc="GFF")
