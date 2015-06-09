@@ -190,7 +190,7 @@ public class PrintKnownVariantEdges extends Module {
 
             o.close();
 
-            ProcessExecutor.execute("dot -Tpdf -otestgraph.pdf testgraph.dot");
+            ProcessExecutor.execute("dot -Tpdf -o" + f.getAbsolutePath() + ".pdf" + " " + f.getAbsolutePath());
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -299,7 +299,7 @@ public class PrintKnownVariantEdges extends Module {
             String eventType = infoMap.get("denovo");
             ContainerUtils.increment(eventTypes, eventType);
 
-            if (eventType.equals("SNP")) {
+            if (!eventType.equals("RECOMB") && !eventType.equals("GC") && !eventType.equals("unknown")) {
                 String alt = infoMap.get("alt");
                 String seq = new String(REF.getSubsequenceAt(chr, start, stop).getBases());
 
@@ -332,246 +332,250 @@ public class PrintKnownVariantEdges extends Module {
                     if (g.outDegreeOf(kmer) == 0) { rightMostKmer = kmer; }
                 }
 
-                // Identify unbroken stretches of novel kmers
-                Set<String> novelStretches = new HashSet<String>();
-                StringBuilder novelStretch = null;
-                String tKmer = leftMostKmer;
+                if (leftMostKmer != null && rightMostKmer != null) {
+                    // Identify unbroken stretches of novel kmers
+                    Set<String> novelStretches = new HashSet<String>();
+                    StringBuilder novelStretch = null;
+                    String tKmer = leftMostKmer;
 
-                if (novelKmers.contains(new CortexKmer(tKmer))) {
-                    novelStretch = new StringBuilder(tKmer);
-                }
-
-                while (g.outDegreeOf(tKmer) == 1) {
-                    Link e = g.outgoingEdgesOf(tKmer).iterator().next();
-                    tKmer = g.getEdgeTarget(e);
-
-                    CortexKmer ck = new CortexKmer(tKmer);
-
-                    if (novelKmers.contains(ck)) {
-                        if (novelStretch == null) {
-                            novelStretch = new StringBuilder(tKmer);
-                        } else {
-                            novelStretch.append(tKmer.charAt(tKmer.length() - 1));
-                        }
-                    } else {
-                        if (novelStretch != null) {
-                            novelStretches.add(novelStretch.toString());
-                        }
-                        novelStretch = null;
-                    }
-                }
-
-                tKmer = rightMostKmer;
-
-                if (novelKmers.contains(new CortexKmer(tKmer))) {
-                    novelStretch = new StringBuilder(tKmer);
-                }
-
-                while (g.inDegreeOf(tKmer) == 1) {
-                    Link e = g.incomingEdgesOf(tKmer).iterator().next();
-                    tKmer = g.getEdgeSource(e);
-
-                    CortexKmer ck = new CortexKmer(tKmer);
-
-                    if (novelKmers.contains(ck)) {
-                        if (novelStretch == null) {
-                            novelStretch = new StringBuilder(tKmer);
-                        } else {
-                            novelStretch.insert(0, tKmer.charAt(0));
-                        }
-                    } else {
-                        if (novelStretch != null) {
-                            novelStretches.add(novelStretch.toString());
-                        }
-                        novelStretch = null;
-                    }
-                }
-
-                // Now, work backwards and forwards, expanding the child's local graph, stopping when we traverse a certain number of junctions
-                int junctionsCrossed = 0;
-                Set<String> leftKmers = new HashSet<String>(Arrays.asList(leftMostKmer));
-
-                while (leftKmers.size() > 0 && junctionsCrossed < 3) {
-                    Set<String> evenMoreLeftKmers = new HashSet<String>();
-
-                    for (String leftKmer : leftKmers) {
-                        Set<String> moreLeftKmers = CortexUtils.getPrevKmers(GRAPH, leftKmer);
-
-                        for (String moreLeftKmer : moreLeftKmers) {
-                            g.addVertex(moreLeftKmer);
-                            g.addEdge(moreLeftKmer, leftKmer, new Link(0, 1));
-
-                            evenMoreLeftKmers.add(moreLeftKmer);
-                        }
+                    if (novelKmers.contains(new CortexKmer(tKmer))) {
+                        novelStretch = new StringBuilder(tKmer);
                     }
 
-                    leftKmers = evenMoreLeftKmers;
-                    if (leftKmers.size() > 2) {
-                        junctionsCrossed++;
-                    }
-                }
+                    while (g.outDegreeOf(tKmer) == 1) {
+                        Link e = g.outgoingEdgesOf(tKmer).iterator().next();
+                        tKmer = g.getEdgeTarget(e);
 
-                junctionsCrossed = 0;
-                Set<String> rightKmers = new HashSet<String>(Arrays.asList(rightMostKmer));
+                        CortexKmer ck = new CortexKmer(tKmer);
 
-                while (rightKmers.size() > 0 && junctionsCrossed < 3) {
-                    Set<String> evenMoreRightKmers = new HashSet<String>();
-
-                    for (String rightKmer : rightKmers) {
-                        Set<String> moreRightKmers = CortexUtils.getNextKmers(GRAPH, rightKmer);
-
-                        for (String moreRightKmer : moreRightKmers) {
-                            g.addVertex(moreRightKmer);
-                            g.addEdge(rightKmer, moreRightKmer, new Link(0, 1));
-
-                            evenMoreRightKmers.add(moreRightKmer);
-                        }
-                    }
-
-                    rightKmers = evenMoreRightKmers;
-                    if (rightKmers.size() > 2) {
-                        junctionsCrossed++;
-                    }
-                }
-
-                // Now, add parent kmers to graph
-                Set<String> vertices = new HashSet<String>(g.vertexSet());
-                for (String kmer : vertices) {
-                    for (int c = 1; c <= 2; c++) {
-                        for (String prevKmer0 : CortexUtils.getPrevKmers(GRAPH, kmer, c)) {
-                            g.addVertex(prevKmer0);
-                            if (g.containsEdge(prevKmer0, kmer)) {
-                                g.getEdge(prevKmer0, kmer).addCoverage(c, 1);
+                        if (novelKmers.contains(ck)) {
+                            if (novelStretch == null) {
+                                novelStretch = new StringBuilder(tKmer);
                             } else {
-                                g.addEdge(prevKmer0, kmer, new Link(c, 1));
+                                novelStretch.append(tKmer.charAt(tKmer.length() - 1));
+                            }
+                        } else {
+                            if (novelStretch != null) {
+                                novelStretches.add(novelStretch.toString());
+                            }
+                            novelStretch = null;
+                        }
+                    }
+
+                    tKmer = rightMostKmer;
+
+                    if (novelKmers.contains(new CortexKmer(tKmer))) {
+                        novelStretch = new StringBuilder(tKmer);
+                    }
+
+                    while (g.inDegreeOf(tKmer) == 1) {
+                        Link e = g.incomingEdgesOf(tKmer).iterator().next();
+                        tKmer = g.getEdgeSource(e);
+
+                        CortexKmer ck = new CortexKmer(tKmer);
+
+                        if (novelKmers.contains(ck)) {
+                            if (novelStretch == null) {
+                                novelStretch = new StringBuilder(tKmer);
+                            } else {
+                                novelStretch.insert(0, tKmer.charAt(0));
+                            }
+                        } else {
+                            if (novelStretch != null) {
+                                novelStretches.add(novelStretch.toString());
+                            }
+                            novelStretch = null;
+                        }
+                    }
+
+                    // Now, work backwards and forwards, expanding the child's local graph, stopping when we traverse a certain number of junctions
+                    int junctionsCrossed = 0;
+                    Set<String> leftKmers = new HashSet<String>(Arrays.asList(leftMostKmer));
+
+                    while (leftKmers.size() > 0 && junctionsCrossed < 3) {
+                        Set<String> evenMoreLeftKmers = new HashSet<String>();
+
+                        for (String leftKmer : leftKmers) {
+                            Set<String> moreLeftKmers = CortexUtils.getPrevKmers(GRAPH, leftKmer);
+
+                            for (String moreLeftKmer : moreLeftKmers) {
+                                g.addVertex(moreLeftKmer);
+                                g.addEdge(moreLeftKmer, leftKmer, new Link(0, 1));
+
+                                evenMoreLeftKmers.add(moreLeftKmer);
                             }
                         }
 
-                        for (String nextKmer0 : CortexUtils.getNextKmers(GRAPH, kmer, c)) {
-                            g.addVertex(nextKmer0);
-                            if (g.containsEdge(kmer, nextKmer0)) {
-                                g.getEdge(kmer, nextKmer0).addCoverage(c, 1);
-                            } else {
-                                g.addEdge(kmer, nextKmer0, new Link(c, 1));
-                            }
+                        leftKmers = evenMoreLeftKmers;
+                        if (leftKmers.size() > 2) {
+                            junctionsCrossed++;
                         }
                     }
-                }
 
-                // When we find branches followed by a parent, but not the child, fill them out
-                for (int c = 1; c <= 2; c++) {
-                    Set<String> outKmers = new HashSet<String>();
+                    junctionsCrossed = 0;
+                    Set<String> rightKmers = new HashSet<String>(Arrays.asList(rightMostKmer));
+
+                    while (rightKmers.size() > 0 && junctionsCrossed < 3) {
+                        Set<String> evenMoreRightKmers = new HashSet<String>();
+
+                        for (String rightKmer : rightKmers) {
+                            Set<String> moreRightKmers = CortexUtils.getNextKmers(GRAPH, rightKmer);
+
+                            for (String moreRightKmer : moreRightKmers) {
+                                g.addVertex(moreRightKmer);
+                                g.addEdge(rightKmer, moreRightKmer, new Link(0, 1));
+
+                                evenMoreRightKmers.add(moreRightKmer);
+                            }
+                        }
+
+                        rightKmers = evenMoreRightKmers;
+                        if (rightKmers.size() > 2) {
+                            junctionsCrossed++;
+                        }
+                    }
+
+                    // Now, add parent kmers to graph
+                    Set<String> vertices = new HashSet<String>(g.vertexSet());
                     for (String kmer : vertices) {
-                        for (Link e : g.outgoingEdgesOf(kmer)) {
-                            if (!e.hasEdgeInColor(0) && e.hasEdgeInColor(c)) {
-                                outKmers.add(kmer);
-                            }
-                        }
-                    }
-
-                    for (String outKmer : outKmers) {
-                        Set<String> nextKmers = new HashSet<String>(Arrays.asList(outKmer));
-                        junctionsCrossed = 0;
-
-                        while (nextKmers.size() > 0 && junctionsCrossed < 3) {
-                            Set<String> evenMoreNextKmers = new HashSet<String>();
-
-                            for (String nextKmer0 : nextKmers) {
-                                Set<String> moreNextKmers = CortexUtils.getNextKmers(GRAPH, nextKmer0, c);
-
-                                for (String moreNextKmer : moreNextKmers) {
-                                    g.addVertex(moreNextKmer);
-                                    if (g.containsEdge(nextKmer0, moreNextKmer)) {
-                                        g.getEdge(nextKmer0, moreNextKmer).addCoverage(c, 1);
-                                    } else {
-                                        g.addEdge(nextKmer0, moreNextKmer, new Link(c, 1));
-                                    }
-
-                                    evenMoreNextKmers.add(moreNextKmer);
+                        for (int c = 1; c <= 2; c++) {
+                            for (String prevKmer0 : CortexUtils.getPrevKmers(GRAPH, kmer, c)) {
+                                g.addVertex(prevKmer0);
+                                if (g.containsEdge(prevKmer0, kmer)) {
+                                    g.getEdge(prevKmer0, kmer).addCoverage(c, 1);
+                                } else {
+                                    g.addEdge(prevKmer0, kmer, new Link(c, 1));
                                 }
                             }
 
-                            nextKmers = evenMoreNextKmers;
-                            if (nextKmers.size() > 2) {
-                                junctionsCrossed++;
+                            for (String nextKmer0 : CortexUtils.getNextKmers(GRAPH, kmer, c)) {
+                                g.addVertex(nextKmer0);
+                                if (g.containsEdge(kmer, nextKmer0)) {
+                                    g.getEdge(kmer, nextKmer0).addCoverage(c, 1);
+                                } else {
+                                    g.addEdge(kmer, nextKmer0, new Link(c, 1));
+                                }
                             }
                         }
                     }
-                }
 
-                // Work backwards and forwards from novel stretches, looking for the branching kmers
-                Set<String> leftFlankKmers = new HashSet<String>();
-                Set<String> rightFlankKmers = new HashSet<String>();
-                for (String novelStretchA : novelStretches) {
+                    // When we find branches followed by a parent, but not the child, fill them out
                     for (int c = 1; c <= 2; c++) {
-                        String leftKmer = novelStretchA.substring(0, kmerSize);
-
-                        if (inDegreeOfColor(g, leftKmer, 0) == 1) {
-                            do {
-                                Link e = incomingEdgesOf(g, leftKmer, 0).iterator().next();
-                                leftKmer = g.getEdgeSource(e);
-                            } while (inDegreeOfColor(g, leftKmer, 0) == 1 && outDegreeOfColor(g, leftKmer, c) != 1);
+                        Set<String> outKmers = new HashSet<String>();
+                        for (String kmer : vertices) {
+                            for (Link e : g.outgoingEdgesOf(kmer)) {
+                                if (!e.hasEdgeInColor(0) && e.hasEdgeInColor(c)) {
+                                    outKmers.add(kmer);
+                                }
+                            }
                         }
 
-                        leftFlankKmers.add(leftKmer);
+                        for (String outKmer : outKmers) {
+                            Set<String> nextKmers = new HashSet<String>(Arrays.asList(outKmer));
+                            junctionsCrossed = 0;
 
-                        String rightKmer = novelStretchA.substring(novelStretchA.length() - kmerSize, novelStretchA.length());
+                            while (nextKmers.size() > 0 && junctionsCrossed < 3) {
+                                Set<String> evenMoreNextKmers = new HashSet<String>();
 
-                        if (outDegreeOfColor(g, rightKmer, 0) == 1) {
-                            do {
-                                Link e = outgoingEdgesOf(g, rightKmer, 0).iterator().next();
-                                rightKmer = g.getEdgeTarget(e);
-                            } while (outDegreeOfColor(g, rightKmer, 0) == 1 && inDegreeOfColor(g, rightKmer, c) != 1);
-                        }
+                                for (String nextKmer0 : nextKmers) {
+                                    Set<String> moreNextKmers = CortexUtils.getNextKmers(GRAPH, nextKmer0, c);
 
-                        rightFlankKmers.add(rightKmer);
-
-                        if (outDegreeOfColor(g, leftKmer, 0) == 1 && outDegreeOfColor(g, leftKmer, c) == 1) {
-                            String nextChildKmer = g.getEdgeTarget(outgoingEdgesOf(g, leftKmer, 0).iterator().next());
-                            String nextParentKmer = g.getEdgeTarget(outgoingEdgesOf(g, leftKmer, c).iterator().next());
-
-                            if (!nextChildKmer.equals(nextParentKmer)) {
-                                StringBuilder childHaplotype = new StringBuilder(leftKmer);
-                                StringBuilder parentHaplotype = new StringBuilder(leftKmer);
-
-                                for (Integer c0 : Arrays.asList(0, c)) {
-                                    String tk = leftKmer;
-                                    while (outDegreeOfColor(g, tk, c0) == 1 && !tk.equals(rightKmer)) {
-                                        String nk = g.getEdgeTarget(outgoingEdgesOf(g, tk, c0).iterator().next());
-
-                                        if (c0 == 0) {
-                                            childHaplotype.append(nk.charAt(nk.length() - 1));
+                                    for (String moreNextKmer : moreNextKmers) {
+                                        g.addVertex(moreNextKmer);
+                                        if (g.containsEdge(nextKmer0, moreNextKmer)) {
+                                            g.getEdge(nextKmer0, moreNextKmer).addCoverage(c, 1);
                                         } else {
-                                            parentHaplotype.append(nk.charAt(nk.length() - 1));
+                                            g.addEdge(nextKmer0, moreNextKmer, new Link(c, 1));
                                         }
 
-                                        tk = nk;
+                                        evenMoreNextKmers.add(moreNextKmer);
                                     }
                                 }
 
-                                childHaplotype.delete(childHaplotype.length() - kmerSize, childHaplotype.length());
-                                childHaplotype.delete(0, kmerSize);
-
-                                parentHaplotype.delete(parentHaplotype.length() - kmerSize, parentHaplotype.length());
-                                parentHaplotype.delete(0, kmerSize);
-
-                                log.info(" child: {}", childHaplotype.toString());
-                                log.info("parent: {}", parentHaplotype.toString());
+                                nextKmers = evenMoreNextKmers;
+                                if (nextKmers.size() > 2) {
+                                    junctionsCrossed++;
+                                }
                             }
                         }
                     }
+
+                    // Work backwards and forwards from novel stretches, looking for the branching kmers
+                    Set<String> leftFlankKmers = new HashSet<String>();
+                    Set<String> rightFlankKmers = new HashSet<String>();
+                    for (String novelStretchA : novelStretches) {
+                        for (int c = 1; c <= 2; c++) {
+                            String leftKmer = novelStretchA.substring(0, kmerSize);
+
+                            if (inDegreeOfColor(g, leftKmer, 0) == 1) {
+                                do {
+                                    Link e = incomingEdgesOf(g, leftKmer, 0).iterator().next();
+                                    leftKmer = g.getEdgeSource(e);
+                                } while (inDegreeOfColor(g, leftKmer, 0) == 1 && outDegreeOfColor(g, leftKmer, c) != 1);
+                            }
+
+                            leftFlankKmers.add(leftKmer);
+
+                            String rightKmer = novelStretchA.substring(novelStretchA.length() - kmerSize, novelStretchA.length());
+
+                            if (outDegreeOfColor(g, rightKmer, 0) == 1) {
+                                do {
+                                    Link e = outgoingEdgesOf(g, rightKmer, 0).iterator().next();
+                                    rightKmer = g.getEdgeTarget(e);
+                                }
+                                while (outDegreeOfColor(g, rightKmer, 0) == 1 && inDegreeOfColor(g, rightKmer, c) != 1);
+                            }
+
+                            rightFlankKmers.add(rightKmer);
+
+                            if (outDegreeOfColor(g, leftKmer, 0) == 1 && outDegreeOfColor(g, leftKmer, c) == 1) {
+                                String nextChildKmer = g.getEdgeTarget(outgoingEdgesOf(g, leftKmer, 0).iterator().next());
+                                String nextParentKmer = g.getEdgeTarget(outgoingEdgesOf(g, leftKmer, c).iterator().next());
+
+                                if (!nextChildKmer.equals(nextParentKmer)) {
+                                    StringBuilder childHaplotype = new StringBuilder(leftKmer);
+                                    StringBuilder parentHaplotype = new StringBuilder(leftKmer);
+
+                                    for (Integer c0 : Arrays.asList(0, c)) {
+                                        String tk = leftKmer;
+                                        while (outDegreeOfColor(g, tk, c0) == 1 && !tk.equals(rightKmer)) {
+                                            String nk = g.getEdgeTarget(outgoingEdgesOf(g, tk, c0).iterator().next());
+
+                                            if (c0 == 0) {
+                                                childHaplotype.append(nk.charAt(nk.length() - 1));
+                                            } else {
+                                                parentHaplotype.append(nk.charAt(nk.length() - 1));
+                                            }
+
+                                            tk = nk;
+                                        }
+                                    }
+
+                                    childHaplotype.delete(childHaplotype.length() - kmerSize, childHaplotype.length());
+                                    childHaplotype.delete(0, kmerSize);
+
+                                    parentHaplotype.delete(parentHaplotype.length() - kmerSize, parentHaplotype.length());
+                                    parentHaplotype.delete(0, kmerSize);
+
+                                    log.info(" child: {}", childHaplotype.toString());
+                                    log.info("parent: {}", parentHaplotype.toString());
+                                }
+                            }
+                        }
+                    }
+
+                    // Get a set of kmers in the variant
+                    Set<CortexKmer> variantKmers = getVariantKmers(kmerSize, chr, start, stop);
+
+                    // Display
+                    display(novelKmers, kmerSize, chr, start, stop, eventType, seq, alt);
+
+                    //printGraph(g, out, leftFlankKmers, rightFlankKmers, variantKmers, novelKmers);
+                    printGraph(g, new File(out.getAbsolutePath() + "." + infoMap.get("id") + "_" + eventType + ".dot"), leftFlankKmers, rightFlankKmers, variantKmers, novelKmers);
+
+                    //log.info("\n{}", Joiner.on("\n").join(novelStretches));
+                    log.info("");
                 }
-
-                // Get a set of kmers in the variant
-                Set<CortexKmer> variantKmers = getVariantKmers(kmerSize, chr, start, stop);
-
-                // Display
-                display(novelKmers, kmerSize, chr, start, stop, eventType, seq, alt);
-
-                printGraph(g, out, leftFlankKmers, rightFlankKmers, variantKmers, novelKmers);
-
-                //log.info("\n{}", Joiner.on("\n").join(novelStretches));
-                log.info("");
             }
         }
     }
@@ -1031,7 +1035,7 @@ public class PrintKnownVariantEdges extends Module {
                 }
 
                 //printGraph(g, out, foundLeftFlank, foundRightFlank, novelKmers);
-                ProcessExecutor.execute("dot -Tpdf -otestgraph.pdf testgraph.dot");
+                //ProcessExecutor.execute("dot -Tpdf -otestgraph.pdf testgraph.dot");
 
                 Set<String> alleles = callFromGraph(g, foundLeftFlank, foundRightFlank, novelKmers);
 
