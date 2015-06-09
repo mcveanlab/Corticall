@@ -165,20 +165,25 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder(tk);
 
+        Set<String> usedKmers = new HashSet<String>();
+
         String pk;
-        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null) {
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null && !usedKmers.contains(pk)) {
             stretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
 
             tk = pk;
+            usedKmers.add(pk);
         }
 
         tk = kmer;
+        usedKmers.clear();
 
         String nk;
-        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null) {
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null && !usedKmers.contains(nk)) {
             stretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
 
             tk = nk;
+            usedKmers.add(nk);
         }
 
         return stretchBuilder.toString();
