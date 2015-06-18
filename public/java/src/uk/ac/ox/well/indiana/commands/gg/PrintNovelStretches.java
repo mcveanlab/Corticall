@@ -47,9 +47,9 @@ public class PrintNovelStretches extends Module {
                 }
 
                 log.info("Found {} bp stretch, used {}/{} novel kmers, {}/{} total",
-                        stretch.length(),
-                        novelKmersUsed, novelKmers.size(),
-                        totalNovelKmersUsed, novelKmers.size()
+                    stretch.length(),
+                    novelKmersUsed, novelKmers.size(),
+                    totalNovelKmersUsed, novelKmers.size()
                 );
 
                 out.println(">stretch_" + stretchNum + ".length_" + stretch.length());
