@@ -619,7 +619,7 @@ public class CallDeNovoVariants extends Module {
     }
 
     private Set<VariantContext> shift(ReferenceSequence qseq, String kmerOrigin, SAMRecord alignment, IndexedFastaSequenceFile ref, Set<VariantContext> vcs, int refIndex, int[] p) {
-        String t = alignment == null ? null : getTarget(alignment, ref).toString();
+        String t = alignment == null || alignment.getReadUnmappedFlag() ? null : getTarget(alignment, ref).toString();
         String q = new String(qseq.getBases());
 
         Set<VariantContext> vcsShifted = new HashSet<VariantContext>();

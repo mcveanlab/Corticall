@@ -8,6 +8,8 @@
 *.iml
 *.idea
 *.idx
+*.dot
+*.pdf
 scratch/
 dist/
 build/

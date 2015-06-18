@@ -1,9 +1,15 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
 import htsjdk.samtools.util.SequenceUtil;
+import htsjdk.samtools.util.StringUtil;
+import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import uk.ac.ox.well.indiana.Indiana;
+import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
+import uk.ac.ox.well.indiana.commands.gg.AnnotatedVertex;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -153,6 +159,40 @@ public class CortexUtils {
         return prevKmers;
     }
 
+    public static String getSeededStretchLeft(CortexGraph cg, String kmer, int color) {
+        String tk = kmer;
+        StringBuilder stretchBuilder = new StringBuilder();
+
+        Set<String> usedKmers = new HashSet<String>();
+
+        String pk;
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null && !usedKmers.contains(pk)) {
+            stretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
+
+            tk = pk;
+            usedKmers.add(pk);
+        }
+
+        return stretchBuilder.toString();
+    }
+
+    public static String getSeededStretchRight(CortexGraph cg, String kmer, int color) {
+        String tk = kmer;
+        StringBuilder stretchBuilder = new StringBuilder();
+
+        Set<String> usedKmers = new HashSet<String>();
+
+        String nk;
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null && !usedKmers.contains(nk)) {
+            stretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
+
+            tk = nk;
+            usedKmers.add(nk);
+        }
+
+        return stretchBuilder.toString();
+    }
+
     /**
      * Given a kmer, walk left and right until we get to junctions on either end.
      *
@@ -162,6 +202,7 @@ public class CortexUtils {
      * @return      a string containing the results of the walk
      */
     public static String getSeededStretch(CortexGraph cg, String kmer, int color) {
+        /*
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder(tk);
 
@@ -187,6 +228,141 @@ public class CortexUtils {
         }
 
         return stretchBuilder.toString();
+        */
+
+        return getSeededStretchLeft(cg, kmer, color) + kmer + getSeededStretchRight(cg, kmer, color);
+    }
+
+    private static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
+        CortexRecord cr = cg.findRecord(new CortexKmer(kmer));
+
+        if (cr == null) {
+            throw new IndianaException("Unable to test for novelty on a kmer that's not in the graph: '" + kmer + "'");
+        }
+
+        if (cr.getCoverage(color) == 0) {
+            return false;
+        }
+
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (c != color && cr.getCoverage(c) != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static String getNovelStretch(CortexGraph cg, String kmer, int color) {
+        String tk = kmer;
+        StringBuilder novelStretchBuilder = new StringBuilder(tk);
+
+        Set<String> usedKmers = new HashSet<String>();
+
+        String pk;
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null && isNovelKmer(cg, pk, color) && !usedKmers.contains(pk)) {
+            novelStretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
+
+            tk = pk;
+            usedKmers.add(pk);
+        }
+
+        tk = kmer;
+        usedKmers.clear();
+
+        String nk;
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null && isNovelKmer(cg, nk, color) && !usedKmers.contains(nk)) {
+            novelStretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
+
+            tk = nk;
+            usedKmers.add(nk);
+        }
+
+        return novelStretchBuilder.toString();
+    }
+
+    /**
+     * Given a kmer, extract the local subgraph by a depth-first search
+     *
+     * @param cg    the multi-color graph
+     * @param kmer  the start kmer
+     * @param color the color in which to begin the traversal
+     * @return      a subgraph containing the local context
+     */
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> getSeededSubgraph(CortexGraph cg, String kmer, int color) {
+        String stretch = CortexUtils.getSeededStretch(cg, kmer, color);
+
+        System.out.println(stretch.length() + " " + stretch);
+
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgall = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+
+        DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        for (int i = 0; i <= stretch.length() - cg.getKmerSize() - 1; i++) {
+            String sk0 = stretch.substring(i, i + cg.getKmerSize());
+            String sk1 = stretch.substring(i + 1, i + 1 + cg.getKmerSize());
+
+            sg0.addVertex(sk0);
+            sg0.addVertex(sk1);
+            sg0.addEdge(sk0, sk1);
+
+            AnnotatedVertex ak0 = new AnnotatedVertex(sk0);
+            AnnotatedVertex ak1 = new AnnotatedVertex(sk1);
+
+            sgall.addVertex(ak0);
+            sgall.addVertex(ak1);
+            sgall.addEdge(ak0, ak1, new AnnotatedEdge(true));
+        }
+
+        for (int c = 1; c <= 2; c++) {
+            DirectedGraph<String, DefaultEdge> sgc = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+
+            for (String sk : sg0.vertexSet()) {
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = cg.findRecord(ck);
+
+                if (cr != null && cr.getCoverage(c) > 0) {
+                    //AnnotatedVertex ak = new AnnotatedVertex(sk);
+                    sgc.addVertex(sk);
+
+                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk, c);
+
+                    Stack<Pair<String, String>> kmerStack = new Stack<Pair<String, String>>();
+                    for (String nextKmer : nextKmers) {
+                        kmerStack.push(new Pair<String, String>(sk, nextKmer));
+                    }
+
+                    while (!kmerStack.isEmpty()) {
+                        Pair<String, String> p = kmerStack.pop();
+
+                        sgc.addVertex(p.getFirst());
+                        sgc.addVertex(p.getSecond());
+                        sgc.addEdge(p.getFirst(), p.getSecond());
+
+                        CortexRecord crNext = cg.findRecord(new CortexKmer(p.getSecond()));
+                        nextKmers = CortexUtils.getNextKmers(cg, p.getSecond(), c);
+
+                        if (crNext.getCoverage(0) != 0) { // we've rejoined the child's graph!
+                            for (String nextKmer : nextKmers) {
+                                sgc.addVertex(nextKmer);
+                                sgc.addEdge(p.getSecond(), nextKmer);
+                            }
+                        } else {
+                            for (String nextKmer : nextKmers) {
+                                if (!sgc.containsVertex(nextKmer)) {
+                                    kmerStack.push(new Pair<String, String>(p.getSecond(), nextKmer));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Graphs.addGraph(sg0, sgc);
+        }
+
+        //return sg0;
+
+        return sgall;
     }
 
     /**
