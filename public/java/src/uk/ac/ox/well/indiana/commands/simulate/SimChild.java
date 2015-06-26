@@ -35,7 +35,22 @@ public class SimChild extends Module {
     public File STRS;
 
     @Argument(fullName="maskWindow", shortName="w", doc="Mask window")
-    public Integer MASK_WINDOW = 2;
+    public Integer MASK_WINDOW = 200;
+
+    @Argument(fullName="numSNPs", shortName="nsnp", doc="Number of SNPs to simulate")
+    public Integer NUM_SNPS = 1;
+
+    @Argument(fullName="numIndels", shortName="nindels", doc="Number of indels to simulate")
+    public Integer NUM_INDELS = 1;
+
+    @Argument(fullName="numSTRs", shortName="nstrs", doc="Number of STRs to simulate")
+    public Integer NUM_STRS = 1;
+
+    @Argument(fullName="numTDs", shortName="ntds", doc="Number of tandem duplications to simulate")
+    public Integer NUM_TDS = 1;
+
+    @Argument(fullName="maxLength", shortName="l", doc="Maximum length of variants")
+    public Integer MAX_LENGTH = 5;
 
     @Output
     public File out;
@@ -733,20 +748,20 @@ public class SimChild extends Module {
             }
         }
 
-        addDeNovoSNPs(vcs, 250, "child_" + SEED);
-        for (int i = 1; i <= 250; i++) {
-            addDeNovoInsertions(vcs, 10, "child_" + SEED, i);
-            addDeNovoDeletions(vcs,  10, "child_" + SEED, i);
-            addDeNovoInversions(vcs, 10, "child_" + SEED, i);
+        addDeNovoSNPs(vcs, NUM_SNPS, "child_" + SEED);
+        for (int i = 1; i <= MAX_LENGTH; i++) {
+            addDeNovoInsertions(vcs, NUM_INDELS, "child_" + SEED, i);
+            addDeNovoDeletions(vcs,  NUM_INDELS, "child_" + SEED, i);
+            addDeNovoInversions(vcs, NUM_INDELS, "child_" + SEED, i);
         }
 
         for (int strLength = 2; strLength <= 5; strLength++) {
-            addDeNovoStrExpansions(vcs, 10, "child_" + SEED, strLength, strMap);
-            addDeNovoStrContractions(vcs, 10, "child_" + SEED, strLength, strMap);
+            addDeNovoStrExpansions(vcs, NUM_STRS, "child_" + SEED, strLength, strMap);
+            addDeNovoStrContractions(vcs, NUM_STRS, "child_" + SEED, strLength, strMap);
         }
 
-        for (int tdLength = 10; tdLength <= 50; tdLength++) {
-            addDeNovoTandemDuplications(vcs, 10, "child_" + SEED, tdLength);
+        for (int tdLength = 10; tdLength <= 50; tdLength+=10) {
+            addDeNovoTandemDuplications(vcs, NUM_TDS, "child_" + SEED, tdLength);
         }
 
         int simid = 0;
