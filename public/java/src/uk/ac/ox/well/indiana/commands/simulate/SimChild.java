@@ -35,7 +35,7 @@ public class SimChild extends Module {
     public File STRS;
 
     @Argument(fullName="maskWindow", shortName="w", doc="Mask window")
-    public Integer MASK_WINDOW = 200;
+    public Integer MASK_WINDOW = 1000;
 
     @Argument(fullName="numSNPs", shortName="nsnp", doc="Number of SNPs to simulate")
     public Integer NUM_SNPS = 1;
