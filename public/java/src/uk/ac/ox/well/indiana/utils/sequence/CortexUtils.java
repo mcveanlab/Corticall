@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.util.SequenceUtil;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
@@ -10,6 +11,7 @@ import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
 import uk.ac.ox.well.indiana.commands.gg.AnnotatedVertex;
+import uk.ac.ox.well.indiana.commands.gg.TraversalStopper;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -19,6 +21,10 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -281,6 +287,160 @@ public class CortexUtils {
         return novelStretchBuilder.toString();
     }
 
+    private static boolean isNovelKmer(CortexRecord cr) {
+        int cov_c0 = cr.getCoverage(0);
+        int cov_sum = 0;
+
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            cov_sum += cr.getCoverage(c);
+        }
+
+        return cov_c0 > 0 && cov_c0 == cov_sum;
+    }
+
+    private static String formatAttributes(Map<String, Object> attrs) {
+        List<String> attrArray = new ArrayList<String>();
+
+        for (String attr : attrs.keySet()) {
+            String value = attrs.get(attr).toString();
+
+            attrArray.add(attr + "=\"" + value + "\"");
+        }
+
+        return Joiner.on(" ").join(attrArray);
+    }
+
+    private static void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g) {
+        try {
+            File f = new File("testgraph.dot");
+            //File p = new File("testgraph.png");
+            File p = new File("testgraph.pdf");
+
+            PrintStream o = new PrintStream(f);
+
+            String indent = "  ";
+
+            o.println("digraph G {");
+
+            for (AnnotatedVertex v : g.vertexSet()) {
+                Map<String, Object> attrs = new TreeMap<String, Object>();
+                //attrs.put("label", "");
+                attrs.put("fillcolor", v.isNovel() ? "red" : "white");
+                attrs.put("style", "filled");
+
+                o.println(indent + "\"" + v.getKmer() + "\" [ " + formatAttributes(attrs) + " ];");
+            }
+
+            String[] colors = new String[] { "red", "blue", "green" };
+
+            for (AnnotatedEdge e : g.edgeSet()) {
+                String s = g.getEdgeSource(e).getKmer();
+                String t = g.getEdgeTarget(e).getKmer();
+
+                for (int c = 0; c < 3; c++) {
+                    if (e.isPresent(c)) {
+                        Map<String, Object> attrs = new TreeMap<String, Object>();
+                        attrs.put("color", colors[c]);
+
+                        o.println(indent + "\"" + s + "\" -> \"" + t + "\" [ " + formatAttributes(attrs) + " ];");
+                    }
+                }
+            }
+
+            o.println("}");
+
+            o.close();
+
+            //System.out.println("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            //Runtime.getRuntime().exec("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+        } catch (FileNotFoundException e) {
+            throw new IndianaException("File not found", e);
+        } catch (IOException e) {
+            throw new IndianaException("IO exception", e);
+        }
+    }
+
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper stopper, boolean goForward) {
+        class StackEntry {
+            public String first;
+            public String second;
+            public int depth;
+
+            public StackEntry(String first, String second, int depth) {
+                this.first = first;
+                this.second = second;
+                this.depth = depth;
+            }
+
+            public String getFirst() { return first; }
+            public String getSecond() { return second; }
+            public int getDepth() { return depth; }
+        }
+
+        DirectedGraph<String, DefaultEdge> dfs = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+
+        Set<String> adjKmers = goForward ? CortexUtils.getNextKmers(cg, kmer, color) : CortexUtils.getPrevKmers(cg, kmer, color);
+
+        Stack<StackEntry> kmerStack = new Stack<StackEntry>();
+        for (String adjKmer : adjKmers) {
+            if (goForward) {
+                kmerStack.push(new StackEntry(kmer, adjKmer, 0));
+            } else {
+                kmerStack.push(new StackEntry(adjKmer, kmer, 0));
+            }
+        }
+
+        while (!kmerStack.isEmpty()) {
+            StackEntry p = kmerStack.pop();
+
+            String sk0 = p.getFirst();
+            String sk1 = p.getSecond();
+            int depth = p.getDepth();
+
+            dfs.addVertex(sk0);
+            dfs.addVertex(sk1);
+            dfs.addEdge(sk0, sk1);
+
+            CortexRecord crAdj = goForward ? cg.findRecord(new CortexKmer(sk1)) : cg.findRecord(new CortexKmer(sk0));
+            adjKmers = goForward ? CortexUtils.getNextKmers(cg, sk1, color) : CortexUtils.getPrevKmers(cg, sk0, color);
+            depth++;
+
+            if (!stopper.keepGoing(crAdj, sg0, depth)) {
+                for (String ska : adjKmers) {
+                    dfs.addVertex(ska);
+
+                    if (goForward) {
+                        dfs.addEdge(sk1, ska);
+                    } else {
+                        dfs.addEdge(ska, sk0);
+                    }
+                }
+            } else {
+                for (String ska : adjKmers) {
+                    if (!dfs.containsVertex(ska)) {
+                        if (goForward) {
+                            kmerStack.push(new StackEntry(p.getSecond(), ska, depth));
+                        } else {
+                            kmerStack.push(new StackEntry(ska, p.getFirst(), depth));
+                        }
+                    }
+                }
+            }
+        }
+
+        return dfs;
+    }
+
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper stopper) {
+        DirectedGraph<String, DefaultEdge> dfsf = dfs(cg, kmer, color, sg0, stopper, true);
+        DirectedGraph<String, DefaultEdge> dfsb = dfs(cg, kmer, color, sg0, stopper, false);
+
+        Graphs.addGraph(dfsf, dfsb);
+
+        return dfsf;
+    }
+
     /**
      * Given a kmer, extract the local subgraph by a depth-first search
      *
@@ -294,75 +454,155 @@ public class CortexUtils {
 
         System.out.println(stretch.length() + " " + stretch);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgall = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgc = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
         for (int i = 0; i <= stretch.length() - cg.getKmerSize() - 1; i++) {
             String sk0 = stretch.substring(i, i + cg.getKmerSize());
             String sk1 = stretch.substring(i + 1, i + 1 + cg.getKmerSize());
 
-            sg0.addVertex(sk0);
-            sg0.addVertex(sk1);
-            sg0.addEdge(sk0, sk1);
-
             AnnotatedVertex ak0 = new AnnotatedVertex(sk0);
             AnnotatedVertex ak1 = new AnnotatedVertex(sk1);
 
-            sgall.addVertex(ak0);
-            sgall.addVertex(ak1);
-            sgall.addEdge(ak0, ak1, new AnnotatedEdge(true));
+            CortexRecord cr0 = cg.findRecord(new CortexKmer(ak0.getKmer()));
+            CortexRecord cr1 = cg.findRecord(new CortexKmer(ak1.getKmer()));
+
+            if (isNovelKmer(cr0)) { ak0.setNovel(); }
+            if (isNovelKmer(cr1)) { ak1.setNovel(); }
+
+            sgc.addVertex(ak0);
+            sgc.addVertex(ak1);
+            sgc.addEdge(ak0, ak1, new AnnotatedEdge(true, false, false));
         }
 
-        for (int c = 1; c <= 2; c++) {
-            DirectedGraph<String, DefaultEdge> sgc = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        printGraph(sgc);
+        System.out.println("print");
 
-            for (String sk : sg0.vertexSet()) {
-                CortexKmer ck = new CortexKmer(sk);
+        Set<AnnotatedVertex> childVertices = new HashSet<AnnotatedVertex>(sgc.vertexSet());
+
+        for (int c = 1; c <= 2; c++) {
+            for (AnnotatedVertex ak : childVertices) {
+                CortexKmer ck = new CortexKmer(ak.getKmer());
                 CortexRecord cr = cg.findRecord(ck);
 
                 if (cr != null && cr.getCoverage(c) > 0) {
-                    //AnnotatedVertex ak = new AnnotatedVertex(sk);
-                    sgc.addVertex(sk);
-
-                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk, c);
+                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, ak.getKmer(), c);
 
                     Stack<Pair<String, String>> kmerStack = new Stack<Pair<String, String>>();
                     for (String nextKmer : nextKmers) {
-                        kmerStack.push(new Pair<String, String>(sk, nextKmer));
+                        kmerStack.push(new Pair<String, String>(ak.getKmer(), nextKmer));
                     }
 
                     while (!kmerStack.isEmpty()) {
                         Pair<String, String> p = kmerStack.pop();
 
-                        sgc.addVertex(p.getFirst());
-                        sgc.addVertex(p.getSecond());
-                        sgc.addEdge(p.getFirst(), p.getSecond());
+                        AnnotatedVertex ak0 = new AnnotatedVertex(p.getFirst());
+                        AnnotatedVertex ak1 = new AnnotatedVertex(p.getSecond());
 
-                        CortexRecord crNext = cg.findRecord(new CortexKmer(p.getSecond()));
-                        nextKmers = CortexUtils.getNextKmers(cg, p.getSecond(), c);
+                        if (!sgc.containsVertex(ak0)) {
+                            sgc.addVertex(ak0);
+                        }
+                        if (!sgc.containsVertex(ak1)) {
+                            sgc.addVertex(ak1);
+                        }
+
+                        if (!sgc.containsEdge(ak0, ak1)) {
+                            sgc.addEdge(ak0, ak1, new AnnotatedEdge());
+                        }
+
+                        sgc.getEdge(ak0, ak1).set(c, true);
+
+                        CortexRecord crNext = cg.findRecord(new CortexKmer(ak1.getKmer()));
+                        nextKmers = CortexUtils.getNextKmers(cg, crNext.getKmerAsString(), c);
 
                         if (crNext.getCoverage(0) != 0) { // we've rejoined the child's graph!
                             for (String nextKmer : nextKmers) {
-                                sgc.addVertex(nextKmer);
-                                sgc.addEdge(p.getSecond(), nextKmer);
+                                AnnotatedVertex akn = new AnnotatedVertex(nextKmer);
+
+                                if (!sgc.containsVertex(akn)) { sgc.addVertex(akn); }
+
+                                if (!sgc.containsEdge(ak1, akn)) {
+                                    sgc.addEdge(ak1, akn, new AnnotatedEdge());
+                                }
+
+                                sgc.getEdge(ak1, akn).set(c, true);
                             }
                         } else {
                             for (String nextKmer : nextKmers) {
-                                if (!sgc.containsVertex(nextKmer)) {
+                                AnnotatedVertex akn = new AnnotatedVertex(nextKmer);
+
+                                if (!sgc.containsVertex(akn)) {
                                     kmerStack.push(new Pair<String, String>(p.getSecond(), nextKmer));
                                 }
                             }
                         }
+
+                        printGraph(sgc);
+                        System.out.println("print");
                     }
                 }
-            }
 
-            Graphs.addGraph(sg0, sgc);
+                printGraph(sgc);
+                System.out.println("print");
+
+                if (cr != null && cr.getCoverage(c) > 0) {
+                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, ak.getKmer(), c);
+
+                    Stack<Pair<String, String>> kmerStack = new Stack<Pair<String, String>>();
+                    for (String prevKmer : prevKmers) {
+                        kmerStack.push(new Pair<String, String>(prevKmer, ak.getKmer()));
+                    }
+
+                    while (!kmerStack.isEmpty()) {
+                        Pair<String, String> p = kmerStack.pop();
+
+                        AnnotatedVertex ak0 = new AnnotatedVertex(p.getFirst());
+                        AnnotatedVertex ak1 = new AnnotatedVertex(p.getSecond());
+
+                        if (!sgc.containsVertex(ak0)) { sgc.addVertex(ak0); }
+                        if (!sgc.containsVertex(ak1)) { sgc.addVertex(ak1); }
+
+                        if (!sgc.containsEdge(ak0, ak1)) {
+                            sgc.addEdge(ak0, ak1, new AnnotatedEdge());
+                        }
+
+                        sgc.getEdge(ak0, ak1).set(c, true);
+
+                        CortexRecord crPrev = cg.findRecord(new CortexKmer(ak0.getKmer()));
+                        prevKmers = CortexUtils.getPrevKmers(cg, crPrev.getKmerAsString(), c);
+
+                        if (crPrev.getCoverage(0) != 0) { // we've rejoined the child's graph!
+                            for (String prevKmer : prevKmers) {
+                                AnnotatedVertex akp = new AnnotatedVertex(prevKmer);
+
+                                if (!sgc.containsVertex(akp)) { sgc.addVertex(akp); }
+
+                                if (!sgc.containsEdge(akp, ak0)) {
+                                    sgc.addEdge(akp, ak0, new AnnotatedEdge());
+                                }
+
+                                sgc.getEdge(akp, ak0).set(c, true);
+                            }
+                        } else {
+                            for (String prevKmer : prevKmers) {
+                                AnnotatedVertex akp = new AnnotatedVertex(prevKmer);
+
+                                if (!sgc.containsVertex(akp)) {
+                                    kmerStack.push(new Pair<String, String>(prevKmer, p.getFirst()));
+                                }
+                            }
+                        }
+
+                        printGraph(sgc);
+                        System.out.println("print");
+                    }
+                }
+
+                printGraph(sgc);
+                System.out.println("print");
+            }
         }
 
-        //return sg0;
-
-        return sgall;
+        return sgc;
     }
 
     /**

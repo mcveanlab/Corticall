@@ -10,6 +10,7 @@ public class AnnotatedVertex {
     public AnnotatedVertex(String kmer) { this.kmer = kmer; }
     public String getKmer() { return kmer; }
     public boolean isNovel() { return isNovel; }
+    public void setNovel() { isNovel = true; }
 
     @Override
     public boolean equals(Object o) {
