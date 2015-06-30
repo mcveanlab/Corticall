@@ -25,6 +25,9 @@ public class PrintNovelSubgraph extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
+    @Argument(fullName="graphRaw", shortName="gr", doc="Graph (raw)", required=false)
+    public CortexGraph GRAPH_RAW;
+
     @Argument(fullName="novelGraph", shortName="n", doc="Graph of novel kmers")
     public CortexGraph NOVEL;
 
@@ -46,7 +49,7 @@ public class PrintNovelSubgraph extends Module {
     public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int stretchNum) {
         try {
             File f = new File(out.getAbsolutePath() + ".stretch" + stretchNum + ".dot");
-            File p = new File(out.getAbsolutePath() + ".stretch" + stretchNum + ".pdf");
+            File p = new File(out.getAbsolutePath() + ".stretch" + stretchNum + ".png");
 
             PrintStream o = new PrintStream(f);
 
@@ -83,8 +86,8 @@ public class PrintNovelSubgraph extends Module {
 
             o.close();
 
-            log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-            Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            log.info("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            Runtime.getRuntime().exec("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
         } catch (FileNotFoundException e) {
             throw new IndianaException("File not found", e);
         } catch (IOException e) {
@@ -118,12 +121,12 @@ public class PrintNovelSubgraph extends Module {
 
             o.close();
 
-            log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-            Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            //log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            //Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
         } catch (FileNotFoundException e) {
             throw new IndianaException("File not found", e);
-        } catch (IOException e) {
-            throw new IndianaException("IO exception", e);
+//        } catch (IOException e) {
+//            throw new IndianaException("IO exception", e);
         }
     }
 
@@ -180,10 +183,15 @@ public class PrintNovelSubgraph extends Module {
                 for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
                     String kmer = stretch.substring(i, i + novelKmer.length());
 
-                    Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new TraversalStopper() {
+                    Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
                         @Override
-                        public boolean keepGoing(CortexRecord cr, DirectedGraph<String, DefaultEdge> sg0, int depth) {
-                            return (cr.getCoverage(1) == 0 || cr.getCoverage(2) == 0);
+                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                            return cr.getCoverage(1) != 0 || cr.getCoverage(2) != 0;
+                        }
+
+                        @Override
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                            return false;
                         }
                     }));
                 }
@@ -195,13 +203,18 @@ public class PrintNovelSubgraph extends Module {
                         DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
 
                         if (!sg.containsVertex(kmer)) {
-                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, new TraversalStopper() {
+                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, new AbstractTraversalStopper() {
                                 @Override
-                                public boolean keepGoing(CortexRecord cr, DirectedGraph<String, DefaultEdge> sg0, int depth) {
+                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
                                     String fw = cr.getKmerAsString();
                                     String rc = SequenceUtils.reverseComplement(fw);
 
-                                    return !sg0.containsVertex(fw) && !sg0.containsVertex(rc) && depth < 500;
+                                    return g.containsVertex(fw) || g.containsVertex(rc);
+                                }
+
+                                @Override
+                                public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                                    return depth >= 500;
                                 }
                             }));
                         }
