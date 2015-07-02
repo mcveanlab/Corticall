@@ -5,6 +5,8 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.EdgeReversedGraph;
+import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -95,41 +97,6 @@ public class PrintNovelSubgraph extends Module {
         }
     }
 
-    public void printGraph2(DirectedGraph<String, DefaultEdge> g, int stretchNum) {
-        try {
-            File f = new File(out.getAbsolutePath() + ".stretch" + stretchNum + ".dot");
-            File p = new File(out.getAbsolutePath() + ".stretch" + stretchNum + ".pdf");
-
-            PrintStream o = new PrintStream(f);
-
-            String indent = "  ";
-
-            o.println("digraph G {");
-
-            for (String v : g.vertexSet()) {
-                o.println(indent + "\"" + v + "\"");
-            }
-
-            for (DefaultEdge e : g.edgeSet()) {
-                String s = g.getEdgeSource(e);
-                String t = g.getEdgeTarget(e);
-
-                o.println(indent + "\"" + s + "\" -> \"" + t + "\"");
-            }
-
-            o.println("}");
-
-            o.close();
-
-            //log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-            //Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-        } catch (FileNotFoundException e) {
-            throw new IndianaException("File not found", e);
-//        } catch (IOException e) {
-//            throw new IndianaException("IO exception", e);
-        }
-    }
-
     private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<String, DefaultEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
         for (String v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v);
@@ -155,6 +122,60 @@ public class PrintNovelSubgraph extends Module {
         }
     }
 
+    private Set<AnnotatedVertex> getListOfVerticesToRemove(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfs) {
+        Set<AnnotatedVertex> toRemove = new HashSet<AnnotatedVertex>();
+
+        while (dfs.hasNext()) {
+            AnnotatedVertex v1 = dfs.next();
+
+            if (!v1.isNovel() && !toRemove.contains(v1)) {
+                Set<AnnotatedEdge> oes = a.outgoingEdgesOf(v1);
+
+                for (AnnotatedEdge oe : oes) {
+                    if (oe.isPresent(0) && (oe.isPresent(1) || oe.isPresent(2))) {
+                        AnnotatedVertex vt = a.getEdgeTarget(oe);
+
+                        DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> subdfs = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(a, vt);
+
+                        while (subdfs.hasNext()) {
+                            AnnotatedVertex vs = subdfs.next();
+
+                            toRemove.add(vs);
+                        }
+                    }
+                }
+            }
+        }
+
+        return toRemove;
+    }
+
+    private void trimGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> af) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> ar = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(af);
+
+        Set<AnnotatedVertex> toRemove = new HashSet<AnnotatedVertex>();
+
+        for (AnnotatedVertex av : af.vertexSet()) {
+            if (av.isNovel()) {
+                AnnotatedVertex v0 = av;
+
+                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsf = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(af, v0);
+                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsr = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(ar, v0);
+
+                Set<AnnotatedVertex> toRemoveFwd = getListOfVerticesToRemove(af, dfsf);
+                Set<AnnotatedVertex> toRemoveRev = getListOfVerticesToRemove(ar, dfsr);
+
+                log.info("  fwd: {}/{}", toRemoveFwd.size(), af.vertexSet().size());
+                log.info("  rev: {}/{}", toRemoveRev.size(), af.vertexSet().size());
+
+                toRemove.addAll(toRemoveFwd);
+                toRemove.addAll(toRemoveRev);
+            }
+        }
+
+        af.removeAllVertices(toRemove);
+    }
+
     @Override
     public void execute() {
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -169,8 +190,6 @@ public class PrintNovelSubgraph extends Module {
                 int novelKmersUsed = 0;
 
                 // do stuff
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-
                 DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
                 DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
                 DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
@@ -186,16 +205,18 @@ public class PrintNovelSubgraph extends Module {
                     Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
                         @Override
                         public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
-                            return cr.getCoverage(1) != 0 || cr.getCoverage(2) != 0;
+                            //return cr.getCoverage(1) != 0 || cr.getCoverage(2) != 0;
+                            return false;
                         }
 
                         @Override
-                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
-                            return false;
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                            return junctions >= maxJunctions;
                         }
                     }));
                 }
 
+                //
                 for (int c = 1; c <= 2; c++) {
                     log.info("    processing parent {} graph... ({} kmers)", c, sg0.vertexSet().size());
 
@@ -203,58 +224,45 @@ public class PrintNovelSubgraph extends Module {
                         DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
 
                         if (!sg.containsVertex(kmer)) {
-                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, new AbstractTraversalStopper() {
+                            TraversalStopper stopper = new AbstractTraversalStopper() {
                                 @Override
-                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
                                     String fw = cr.getKmerAsString();
                                     String rc = SequenceUtils.reverseComplement(fw);
 
-                                    return g.containsVertex(fw) || g.containsVertex(rc);
+                                    if (g.containsVertex(fw) || g.containsVertex(rc)) {
+                                        if (junctions < distanceToGoal) {
+                                            distanceToGoal = junctions;
+                                        }
+
+                                        return true;
+                                    }
+
+                                    return false;
                                 }
 
                                 @Override
-                                public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
-                                    return depth >= 500;
+                                public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                                    return junctions >= maxJunctions;
                                 }
-                            }));
+                            };
+
+                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
                         }
                     }
                 }
+                //
 
                 log.info("    combining graphs...");
+
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
                 addGraph(ag, sg0, 0, novelKmers);
                 addGraph(ag, sg1, 1, novelKmers);
                 addGraph(ag, sg2, 2, novelKmers);
 
-                Set<AnnotatedVertex> svs = new HashSet<AnnotatedVertex>(ag.vertexSet());
-                for (int c = 0; c <= 2; c++) {
-                    for (AnnotatedVertex sv : svs) {
-                        String sk = sv.getKmer();
-
-                        for (String nextKmer : CortexUtils.getNextKmers(GRAPH, sk, c)) {
-                            AnnotatedVertex nv = new AnnotatedVertex(nextKmer);
-
-                            ag.addVertex(nv);
-
-                            AnnotatedEdge e = ag.containsEdge(sv, nv) ? ag.getEdge(sv, nv) : new AnnotatedEdge();
-                            e.set(c, true);
-
-                            ag.addEdge(sv, nv, e);
-                        }
-
-                        for (String prevKmer : CortexUtils.getPrevKmers(GRAPH, sk, c)) {
-                            AnnotatedVertex pv = new AnnotatedVertex(prevKmer);
-
-                            ag.addVertex(pv);
-
-                            AnnotatedEdge e = ag.containsEdge(pv, sv) ? ag.getEdge(pv, sv) : new AnnotatedEdge();
-                            e.set(c, true);
-
-                            ag.addEdge(pv, sv, e);
-                        }
-                    }
-                }
+                log.info("    trimming graph...");
+                trimGraph(ag);
 
                 printGraph(ag, 100);
                 printGraph(ag, stretchNum);

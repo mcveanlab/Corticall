@@ -324,7 +324,7 @@ public class CortexUtils {
 
             for (AnnotatedVertex v : g.vertexSet()) {
                 Map<String, Object> attrs = new TreeMap<String, Object>();
-                //attrs.put("label", "");
+                attrs.put("label", "");
                 attrs.put("fillcolor", v.isNovel() ? "red" : "white");
                 attrs.put("style", "filled");
 
@@ -404,7 +404,6 @@ public class CortexUtils {
 
             CortexRecord crAdj = goForward ? cg.findRecord(new CortexKmer(sk1)) : cg.findRecord(new CortexKmer(sk0));
             adjKmers = goForward ? CortexUtils.getNextKmers(cg, sk1, color) : CortexUtils.getPrevKmers(cg, sk0, color);
-            depth++;
 
             if (!stopper.keepGoing(crAdj, sg0, depth)) {
                 for (String ska : adjKmers) {
@@ -417,6 +416,10 @@ public class CortexUtils {
                     }
                 }
             } else {
+                if (adjKmers.size() > 1) {
+                    depth++;
+                }
+
                 for (String ska : adjKmers) {
                     if (!dfs.containsVertex(ska)) {
                         if (goForward) {

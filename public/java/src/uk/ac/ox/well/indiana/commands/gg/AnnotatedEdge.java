@@ -6,6 +6,8 @@ package uk.ac.ox.well.indiana.commands.gg;
 public class AnnotatedEdge {
     private boolean[] isInColor = new boolean[10];
 
+    public AnnotatedEdge() {}
+
     public AnnotatedEdge(boolean... cs) {
         for (int c = 0; c < cs.length; c++) {
             set(c, cs[c]);
