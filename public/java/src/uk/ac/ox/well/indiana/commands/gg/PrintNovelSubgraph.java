@@ -239,23 +239,26 @@ public class PrintNovelSubgraph extends Module {
 
         return toRemove;
     }
-    private void simplifyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> simplifyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        Graphs.addGraph(b, a);
+
         AnnotatedVertex thisVertex;
         Set<AnnotatedVertex> usedStarts = new HashSet<AnnotatedVertex>();
 
         do {
             thisVertex = null;
 
-            Iterator<AnnotatedVertex> vertices = a.vertexSet().iterator();
+            Iterator<AnnotatedVertex> vertices = b.vertexSet().iterator();
 
             while (thisVertex == null && vertices.hasNext()) {
                 AnnotatedVertex tv = vertices.next();
 
                 if (!usedStarts.contains(tv)) {
-                    while (a.inDegreeOf(tv) == 1) {
-                        AnnotatedVertex pv = a.getEdgeSource(a.incomingEdgesOf(tv).iterator().next());
+                    while (b.inDegreeOf(tv) == 1) {
+                        AnnotatedVertex pv = b.getEdgeSource(b.incomingEdgesOf(tv).iterator().next());
 
-                        if (a.outDegreeOf(pv) == 1 && pv.isNovel() == tv.isNovel()) {
+                        if (b.outDegreeOf(pv) == 1 && pv.isNovel() == tv.isNovel()) {
                             tv = pv;
                         } else {
                             break;
@@ -269,40 +272,42 @@ public class PrintNovelSubgraph extends Module {
             if (thisVertex != null) {
                 usedStarts.add(thisVertex);
 
-                AnnotatedVertex nextVertex = a.outDegreeOf(thisVertex) == 0 ? null : a.getEdgeTarget(a.outgoingEdgesOf(thisVertex).iterator().next());
+                AnnotatedVertex nextVertex = b.outDegreeOf(thisVertex) == 0 ? null : b.getEdgeTarget(b.outgoingEdgesOf(thisVertex).iterator().next());
 
-                while (nextVertex != null && a.outDegreeOf(thisVertex) == 1 && a.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
+                while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
                     AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
 
-                    a.addVertex(sv);
+                    b.addVertex(sv);
 
                     Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
 
-                    for (AnnotatedEdge e : a.incomingEdgesOf(thisVertex)) {
-                        AnnotatedVertex pv = a.getEdgeSource(e);
+                    for (AnnotatedEdge e : b.incomingEdgesOf(thisVertex)) {
+                        AnnotatedVertex pv = b.getEdgeSource(e);
 
-                        a.addEdge(pv, sv, new AnnotatedEdge(e.getPresence()));
-
-                        edgesToRemove.add(e);
-                    }
-
-                    for (AnnotatedEdge e : a.outgoingEdgesOf(nextVertex)) {
-                        AnnotatedVertex nv = a.getEdgeTarget(e);
-
-                        a.addEdge(sv, nv, new AnnotatedEdge(e.getPresence()));
+                        b.addEdge(pv, sv, new AnnotatedEdge(e.getPresence()));
 
                         edgesToRemove.add(e);
                     }
 
-                    a.removeVertex(thisVertex);
-                    a.removeVertex(nextVertex);
-                    a.removeAllEdges(edgesToRemove);
+                    for (AnnotatedEdge e : b.outgoingEdgesOf(nextVertex)) {
+                        AnnotatedVertex nv = b.getEdgeTarget(e);
+
+                        b.addEdge(sv, nv, new AnnotatedEdge(e.getPresence()));
+
+                        edgesToRemove.add(e);
+                    }
+
+                    b.removeVertex(thisVertex);
+                    b.removeVertex(nextVertex);
+                    b.removeAllEdges(edgesToRemove);
 
                     thisVertex = sv;
-                    nextVertex = a.outDegreeOf(thisVertex) == 0 ? null : a.getEdgeTarget(a.outgoingEdgesOf(thisVertex).iterator().next());
+                    nextVertex = b.outDegreeOf(thisVertex) == 0 ? null : b.getEdgeTarget(b.outgoingEdgesOf(thisVertex).iterator().next());
                 }
             }
         } while (thisVertex != null);
+
+        return b;
     }
 
     private void trimGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> af) {
@@ -461,12 +466,14 @@ public class PrintNovelSubgraph extends Module {
                 log.info("    novelKmers: {}, totalNovelKmersUsed: {}, totalNovelKmers: {}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
                 log.info("    simplifying graph...");
-                simplifyGraph(ag);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = simplifyGraph(ag);
+                log.info("    - before: v: {} e: {}", ag.vertexSet().size(), ag.edgeSet().size());
+                log.info("    -  after: v: {} e: {}", sg.vertexSet().size(), sg.edgeSet().size());
 
                 for (VariantInfo vi : relevantVis) {
                     String prefix = String.format("stretch%s.%s.%s.%s.%d-%d", String.format("%04d", stretchNum), vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
 
-                    printGraph(ag, prefix + ".simplified", false, true);
+                    printGraph(sg, prefix + ".simplified", false, true);
                 }
 
                 stretchNum++;
