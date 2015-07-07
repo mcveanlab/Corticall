@@ -57,12 +57,37 @@ public class PrintNovelSubgraph extends Module {
                     ", vstop=" + vstop +
                     '}';
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            VariantInfo that = (VariantInfo) o;
+
+            if (vstart != that.vstart) return false;
+            if (vstop != that.vstop) return false;
+            if (variantId != null ? !variantId.equals(that.variantId) : that.variantId != null) return false;
+            if (vclass != null ? !vclass.equals(that.vclass) : that.vclass != null) return false;
+            return !(vchr != null ? !vchr.equals(that.vchr) : that.vchr != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = variantId != null ? variantId.hashCode() : 0;
+            result = 31 * result + (vclass != null ? vclass.hashCode() : 0);
+            result = 31 * result + (vchr != null ? vchr.hashCode() : 0);
+            result = 31 * result + vstart;
+            result = 31 * result + vstop;
+            return result;
+        }
     }
 
     private Map<CortexKmer, VariantInfo> loadNovelKmerMap() {
-        TableReader tr = new TableReader(NOVEL_KMER_MAP);
-
         Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
+
+        TableReader tr = new TableReader(NOVEL_KMER_MAP);
 
         for (Map<String, String> te : tr) {
             VariantInfo vi = new VariantInfo();
@@ -322,32 +347,69 @@ public class PrintNovelSubgraph extends Module {
         int stretchNum = 0;
         for (CortexKmer novelKmer : novelKmers.keySet()) {
             if (novelKmers.get(novelKmer)) {
-                VariantInfo vi = vis.get(novelKmer);
+                int novelKmersUsed = 0;
 
-                if (vi != null) {
-                    log.info("vi: {}", vi);
+                // do stuff
+                DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+                DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+                DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
 
-                    int novelKmersUsed = 0;
+                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0);
 
-                    // do stuff
-                    DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-                    DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-                    DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+                log.info("  stretch: {} ({})", stretchNum, stretch.length());
+                log.info("    processing child graph...");
 
-                    String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0);
+                /*
+                for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
+                    String kmer = stretch.substring(i, i + novelKmer.length());
 
-                    log.info("  stretch: {} ({})", stretchNum, stretch.length());
-                    log.info("    processing child graph...");
+                    if (!sg0.containsVertex(kmer)) {
+                        Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
+                            @Override
+                            public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                                //return cr.getCoverage(1) != 0 || cr.getCoverage(2) != 0;
+                                return false;
+                            }
 
-                    /*
-                    for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
-                        String kmer = stretch.substring(i, i + novelKmer.length());
+                            @Override
+                            public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                                return junctions >= maxJunctions;
+                            }
+                        }));
+                    }
+                }
+                */
 
-                        if (!sg0.containsVertex(kmer)) {
-                            Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
+                for (int i = 0; i <= stretch.length() - novelKmer.length() - 1; i++) {
+                    String k0 = stretch.substring(i, i + novelKmer.length());
+                    String k1 = stretch.substring(i + 1, i + 1 + novelKmer.length());
+
+                    sg0.addVertex(k0);
+                    sg0.addVertex(k1);
+                    sg0.addEdge(k0, k1);
+                }
+
+                for (int c = 1; c <= 2; c++) {
+                    log.info("    processing parent {} graph... ({} kmers)", c, sg0.vertexSet().size());
+
+                    for (String kmer : sg0.vertexSet()) {
+                        DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
+
+                        if (!sg.containsVertex(kmer)) {
+                            TraversalStopper stopper = new AbstractTraversalStopper() {
                                 @Override
-                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
-                                    //return cr.getCoverage(1) != 0 || cr.getCoverage(2) != 0;
+                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                                    String fw = cr.getKmerAsString();
+                                    String rc = SequenceUtils.reverseComplement(fw);
+
+                                    if (g.containsVertex(fw) || g.containsVertex(rc)) {
+                                        if (junctions < distanceToGoal) {
+                                            distanceToGoal = junctions;
+                                        }
+
+                                        return true;
+                                    }
+
                                     return false;
                                 }
 
@@ -355,94 +417,59 @@ public class PrintNovelSubgraph extends Module {
                                 public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
                                     return junctions >= maxJunctions;
                                 }
-                            }));
+                            };
+
+                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
                         }
                     }
-                    */
+                }
 
-                    for (int i = 0; i <= stretch.length() - novelKmer.length() - 1; i++) {
-                        String k0 = stretch.substring(i, i + novelKmer.length());
-                        String k1 = stretch.substring(i + 1, i + 1 + novelKmer.length());
+                log.info("    combining graphs...");
 
-                        sg0.addVertex(k0);
-                        sg0.addVertex(k1);
-                        sg0.addEdge(k0, k1);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+
+                addGraph(ag, sg0, 0, novelKmers);
+                addGraph(ag, sg1, 1, novelKmers);
+                addGraph(ag, sg2, 2, novelKmers);
+
+                //printGraph(ag, prefix);
+                //log.info("    trimming graph...");
+                //trimGraph(ag);
+                //printGraph(ag, prefix, false, false);
+
+                Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
+                for (AnnotatedVertex ak : ag.vertexSet()) {
+                    CortexKmer ck = new CortexKmer(ak.getKmer());
+
+                    if (ak.isNovel() && vis.containsKey(ck)) {
+                        VariantInfo vi = vis.get(novelKmer);
+
+                        relevantVis.add(vi);
                     }
+                }
 
-                    //
-                    for (int c = 1; c <= 2; c++) {
-                        log.info("    processing parent {} graph... ({} kmers)", c, sg0.vertexSet().size());
+                for (AnnotatedVertex ak : ag.vertexSet()) {
+                    CortexKmer ck = new CortexKmer(ak.getKmer());
 
-                        for (String kmer : sg0.vertexSet()) {
-                            DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
-
-                            if (!sg.containsVertex(kmer)) {
-                                TraversalStopper stopper = new AbstractTraversalStopper() {
-                                    @Override
-                                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                                        String fw = cr.getKmerAsString();
-                                        String rc = SequenceUtils.reverseComplement(fw);
-
-                                        if (g.containsVertex(fw) || g.containsVertex(rc)) {
-                                            if (junctions < distanceToGoal) {
-                                                distanceToGoal = junctions;
-                                            }
-
-                                            return true;
-                                        }
-
-                                        return false;
-                                    }
-
-                                    @Override
-                                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                                        return junctions >= maxJunctions;
-                                    }
-                                };
-
-                                Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
-                            }
-                        }
+                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
+                        totalNovelKmersUsed++;
+                        novelKmersUsed++;
+                        novelKmers.put(ck, false);
                     }
-                    //
+                }
 
-                    log.info("    combining graphs...");
+                log.info("    novelKmers: {}, totalNovelKmersUsed: {}, totalNovelKmers: {}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
-                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+                log.info("    simplifying graph...");
+                simplifyGraph(ag);
 
-                    addGraph(ag, sg0, 0, novelKmers);
-                    addGraph(ag, sg1, 1, novelKmers);
-                    addGraph(ag, sg2, 2, novelKmers);
-
-                    log.info("variantId={} vclass={} vchr={} vstart={} vstop={}", vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
-
-                    String prefix = String.format("%s.%s.%s.%d-%d", vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
-
-                    //printGraph(ag, prefix);
-                    //log.info("    trimming graph...");
-                    //trimGraph(ag);
-
-                    printGraph(ag, prefix, false, false);
-
-                    log.info("    simplifying graph...");
-                    simplifyGraph(ag);
+                for (VariantInfo vi : relevantVis) {
+                    String prefix = String.format("stretch%s.%s.%s.%s.%d-%d", String.format("%04d", stretchNum), vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
 
                     printGraph(ag, prefix + ".simplified", false, true);
-
-                    for (AnnotatedVertex ak : ag.vertexSet()) {
-                        CortexKmer ck = new CortexKmer(ak.getKmer());
-
-                        if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                            totalNovelKmersUsed++;
-                            novelKmersUsed++;
-                            novelKmers.put(ck, false);
-                        }
-                    }
-
-                    stretchNum++;
-
-                    //break;
                 }
+
+                stretchNum++;
             }
         }
 
