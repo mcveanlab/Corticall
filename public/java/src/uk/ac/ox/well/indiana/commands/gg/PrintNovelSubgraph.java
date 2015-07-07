@@ -105,12 +105,16 @@ public class PrintNovelSubgraph extends Module {
             String indent = "  ";
 
             o.println("digraph G {");
+            //node [margin=0 fontcolor=blue fontsize=32 width=0.5 shape=circle style=filled]
+
+            //o.println(indent + "node [ shape=box fontname=Arial style=filled ];");
+            o.println(indent + "node [ shape=box fontname=\"Courier New\" style=filled ];");
 
             for (AnnotatedVertex v : g.vertexSet()) {
                 Map<String, Object> attrs = new TreeMap<String, Object>();
                 //attrs.put("label", "");
+                //attrs.put("style", "filled");
                 attrs.put("fillcolor", v.isNovel() ? "red" : "white");
-                attrs.put("style", "filled");
 
                 o.println(indent + "\"" + v.getKmer() + "\" [ " + formatAttributes(attrs) + " ];");
             }
@@ -268,10 +272,10 @@ public class PrintNovelSubgraph extends Module {
                     thisVertex = sv;
                     nextVertex = a.outDegreeOf(thisVertex) == 0 ? null : a.getEdgeTarget(a.outgoingEdgesOf(thisVertex).iterator().next());
 
-                    log.info("sv: {}", sv);
+                    //log.info("sv: {}", sv);
                 }
 
-                log.info("Loop done");
+                //log.info("Loop done");
             }
         } while (thisVertex != null);
     }
@@ -497,8 +501,6 @@ public class PrintNovelSubgraph extends Module {
                     String prefix = String.format("%s.%s.%s.%d-%d", vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
 
                     //printGraph(ag, prefix);
-
-
                     //log.info("    trimming graph...");
                     //trimGraph(ag);
 
@@ -520,6 +522,8 @@ public class PrintNovelSubgraph extends Module {
                     }
 
                     stretchNum++;
+
+                    break;
                 }
             }
         }
