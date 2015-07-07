@@ -405,17 +405,7 @@ public class CortexUtils {
             CortexRecord crAdj = goForward ? cg.findRecord(new CortexKmer(sk1)) : cg.findRecord(new CortexKmer(sk0));
             adjKmers = goForward ? CortexUtils.getNextKmers(cg, sk1, color) : CortexUtils.getPrevKmers(cg, sk0, color);
 
-            if (!stopper.keepGoing(crAdj, sg0, depth)) {
-                for (String ska : adjKmers) {
-                    dfs.addVertex(ska);
-
-                    if (goForward) {
-                        dfs.addEdge(sk1, ska);
-                    } else {
-                        dfs.addEdge(ska, sk0);
-                    }
-                }
-            } else {
+            if (stopper.keepGoing(crAdj, sg0, depth)) {
                 if (adjKmers.size() > 1) {
                     depth++;
                 }
@@ -427,6 +417,16 @@ public class CortexUtils {
                         } else {
                             kmerStack.push(new StackEntry(ska, p.getFirst(), depth));
                         }
+                    }
+                }
+            } else {
+                for (String ska : adjKmers) {
+                    dfs.addVertex(ska);
+
+                    if (goForward) {
+                        dfs.addEdge(sk1, ska);
+                    } else {
+                        dfs.addEdge(ska, sk0);
                     }
                 }
             }
