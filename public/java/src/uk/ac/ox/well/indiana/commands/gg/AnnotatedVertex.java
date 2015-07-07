@@ -7,7 +7,16 @@ public class AnnotatedVertex {
     private String kmer;
     private boolean isNovel = false;
 
-    public AnnotatedVertex(String kmer) { this.kmer = kmer; }
+    public AnnotatedVertex(String kmer) {
+        this.kmer = kmer;
+        this.isNovel = false;
+    }
+
+    public AnnotatedVertex(String kmer, boolean novelty) {
+        this.kmer = kmer;
+        this.isNovel = novelty;
+    }
+
     public String getKmer() { return kmer; }
     public boolean isNovel() { return isNovel; }
     public void setNovel() { isNovel = true; }
@@ -19,11 +28,22 @@ public class AnnotatedVertex {
 
         AnnotatedVertex that = (AnnotatedVertex) o;
 
-        return kmer.equals(that.kmer);
+        if (isNovel != that.isNovel) return false;
+        return !(kmer != null ? !kmer.equals(that.kmer) : that.kmer != null);
     }
 
     @Override
     public int hashCode() {
-        return kmer.hashCode();
+        int result = kmer != null ? kmer.hashCode() : 0;
+        result = 31 * result + (isNovel ? 1 : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "AnnotatedVertex{" +
+                "kmer='" + kmer + '\'' +
+                ", isNovel=" + isNovel +
+                '}';
     }
 }

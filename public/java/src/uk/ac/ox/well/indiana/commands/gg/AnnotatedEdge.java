@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
+import java.util.Arrays;
+
 /**
  * Created by kiran on 18/06/2015.
  */
@@ -30,7 +32,7 @@ public class AnnotatedEdge {
         return isInColor[c];
     }
 
-    public boolean isAbsent(int c) {
-        return !isInColor[c];
-    }
+    public boolean isAbsent(int c) { return !isInColor[c]; }
+
+    public boolean[] getPresence() { return isInColor; }
 }
