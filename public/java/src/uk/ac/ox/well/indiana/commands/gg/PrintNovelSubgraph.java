@@ -95,26 +95,35 @@ public class PrintNovelSubgraph extends Module {
         return Joiner.on(" ").join(attrArray);
     }
 
-    public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix) {
+    public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix, boolean withText, boolean withPdf) {
         try {
             File f = new File(out.getAbsolutePath() + "." + prefix + ".dot");
-            File p = new File(out.getAbsolutePath() + "." + prefix + ".png");
+            File p = new File(out.getAbsolutePath() + "." + prefix + ".pdf");
 
             PrintStream o = new PrintStream(f);
 
             String indent = "  ";
 
             o.println("digraph G {");
-            //node [margin=0 fontcolor=blue fontsize=32 width=0.5 shape=circle style=filled]
 
-            //o.println(indent + "node [ shape=box fontname=Arial style=filled ];");
-            o.println(indent + "node [ shape=box fontname=\"Courier New\" style=filled ];");
+            if (withText) {
+                o.println(indent + "node [ shape=box fontname=\"Courier New\" style=filled fillcolor=white ];");
+            } else {
+                o.println(indent + "node [ shape=point style=filled fillcolor=white ];");
+            }
 
             for (AnnotatedVertex v : g.vertexSet()) {
                 Map<String, Object> attrs = new TreeMap<String, Object>();
-                //attrs.put("label", "");
-                //attrs.put("style", "filled");
-                attrs.put("fillcolor", v.isNovel() ? "red" : "white");
+
+                if (!withText) {
+                    attrs.put("label", "");
+                }
+
+                if (v.isNovel()) {
+                    attrs.put("color", "red");
+                    attrs.put("fillcolor", "red");
+                    attrs.put("shape", "circle");
+                }
 
                 o.println(indent + "\"" + v.getKmer() + "\" [ " + formatAttributes(attrs) + " ];");
             }
@@ -139,8 +148,10 @@ public class PrintNovelSubgraph extends Module {
 
             o.close();
 
-            log.info("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-            Runtime.getRuntime().exec("dot -Tpng -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            if (withPdf) {
+                log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+                Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+            }
         } catch (FileNotFoundException e) {
             throw new IndianaException("File not found", e);
         } catch (IOException e) {
@@ -235,13 +246,6 @@ public class PrintNovelSubgraph extends Module {
 
                 AnnotatedVertex nextVertex = a.outDegreeOf(thisVertex) == 0 ? null : a.getEdgeTarget(a.outgoingEdgesOf(thisVertex).iterator().next());
 
-                /*
-                if (nextVertex == null || a.outDegreeOf(thisVertex) != 1 || a.inDegreeOf(nextVertex) != 1 || thisVertex.isNovel() != nextVertex.isNovel()) {
-                    //thisVertex = null;
-                    break;
-                }
-                */
-
                 while (nextVertex != null && a.outDegreeOf(thisVertex) == 1 && a.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
                     AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
 
@@ -271,98 +275,10 @@ public class PrintNovelSubgraph extends Module {
 
                     thisVertex = sv;
                     nextVertex = a.outDegreeOf(thisVertex) == 0 ? null : a.getEdgeTarget(a.outgoingEdgesOf(thisVertex).iterator().next());
-
-                    //log.info("sv: {}", sv);
                 }
-
-                //log.info("Loop done");
             }
         } while (thisVertex != null);
     }
-
-    /*
-    private void simplifyGraph2(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        AnnotatedVertex startVertex;
-
-        do {
-            startVertex = null;
-            for (AnnotatedVertex av : a.vertexSet()) {
-                //if (a.inDegreeOf(av) != 1 && a.outDegreeOf(av) == 1 && a.getEdgeTarget(a.outgoingEdgesOf(av).iterator().next()).isNovel() == av.isNovel()) {
-                boolean prevKmersAreNovel = false, nextKmersAreNovel = false;
-
-                for (AnnotatedEdge e : a.incomingEdgesOf(av)) {
-                    AnnotatedVertex pv = a.getEdgeSource(e);
-
-                    if (pv.isNovel()) { prevKmersAreNovel = true; }
-                }
-
-                for (AnnotatedEdge e : a.outgoingEdgesOf(av)) {
-                    AnnotatedVertex nv = a.getEdgeTarget(e);
-
-                    if (nv.isNovel()) { nextKmersAreNovel = true; }
-                }
-
-                boolean startOfNovelty = !prevKmersAreNovel && nextKmersAreNovel;
-
-                //if (a.outDegreeOf(av) == 1 && (a.inDegreeOf(av) != 1 || startOfNovelty)) {
-                if (a.outDegreeOf(av) == 1 && a.inDegreeOf(av) != 1) {
-                    startVertex = av;
-                    break;
-                }
-            }
-
-            if (startVertex != null && a.containsVertex(startVertex)) {
-                Set<AnnotatedVertex> verticesBeingProcessed = new HashSet<AnnotatedVertex>();
-                Set<AnnotatedEdge> edgesBeingProcessed = new HashSet<AnnotatedEdge>();
-
-                StringBuilder supernode = new StringBuilder(startVertex.getKmer());
-
-                AnnotatedVertex v0 = startVertex;
-                Set<AnnotatedEdge> eps = a.incomingEdgesOf(v0);
-
-                while (a.outDegreeOf(v0) == 1 && v0.isNovel() == startVertex.isNovel()) {
-                    AnnotatedEdge ae = a.outgoingEdgesOf(v0).iterator().next();
-                    AnnotatedVertex vn = a.getEdgeTarget(ae);
-
-                    supernode.append(vn.getKmer().charAt(vn.getKmer().length() - 1));
-
-                    verticesBeingProcessed.add(v0);
-                    edgesBeingProcessed.add(ae);
-
-                    v0 = vn;
-                }
-
-                Set<AnnotatedEdge> ens = a.outgoingEdgesOf(v0);
-
-                AnnotatedVertex sv = new AnnotatedVertex(supernode.toString());
-                if (startVertex.isNovel()) {
-                    sv.setNovel();
-                }
-
-                a.addVertex(sv);
-
-                for (AnnotatedEdge e : eps) {
-                    AnnotatedVertex vs = a.getEdgeSource(e);
-                    //a.addEdge(vs, sv, e);
-
-                    a.addEdge(vs, sv, new AnnotatedEdge(e.getPresence()));
-                }
-
-                for (AnnotatedEdge e : ens) {
-                    AnnotatedVertex vt = a.getEdgeTarget(e);
-                    //a.addEdge(sv, vt, e);
-
-                    a.addEdge(sv, vt, new AnnotatedEdge(e.getPresence()));
-                }
-
-                a.removeAllVertices(verticesBeingProcessed);
-                a.removeAllEdges(edgesBeingProcessed);
-
-                //log.info("  {} {}", supernode.length(), verticesBeingProcessed.size());
-            }
-        } while (startVertex != null);
-    }
-    */
 
     private void trimGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> af) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ar = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(af);
@@ -408,7 +324,7 @@ public class PrintNovelSubgraph extends Module {
             if (novelKmers.get(novelKmer)) {
                 VariantInfo vi = vis.get(novelKmer);
 
-                if (vi != null && vi.vclass.equals("SNP")) {
+                if (vi != null) {
                     log.info("vi: {}", vi);
 
                     int novelKmersUsed = 0;
@@ -498,18 +414,20 @@ public class PrintNovelSubgraph extends Module {
                     addGraph(ag, sg1, 1, novelKmers);
                     addGraph(ag, sg2, 2, novelKmers);
 
+                    log.info("variantId={} vclass={} vchr={} vstart={} vstop={}", vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
+
                     String prefix = String.format("%s.%s.%s.%d-%d", vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
 
                     //printGraph(ag, prefix);
                     //log.info("    trimming graph...");
                     //trimGraph(ag);
 
-                    printGraph(ag, prefix);
+                    printGraph(ag, prefix, false, false);
 
                     log.info("    simplifying graph...");
                     simplifyGraph(ag);
 
-                    printGraph(ag, prefix + ".simplified");
+                    printGraph(ag, prefix + ".simplified", false, true);
 
                     for (AnnotatedVertex ak : ag.vertexSet()) {
                         CortexKmer ck = new CortexKmer(ak.getKmer());
@@ -523,7 +441,7 @@ public class PrintNovelSubgraph extends Module {
 
                     stretchNum++;
 
-                    break;
+                    //break;
                 }
             }
         }
