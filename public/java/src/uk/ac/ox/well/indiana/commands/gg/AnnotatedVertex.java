@@ -1,11 +1,13 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
-/**
- * Created by kiran on 18/06/2015.
- */
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
+
 public class AnnotatedVertex {
     private String kmer;
     private boolean isNovel = false;
+    private Set<String> flags = new TreeSet<String>();
 
     public AnnotatedVertex(String kmer) {
         this.kmer = kmer;
@@ -16,6 +18,13 @@ public class AnnotatedVertex {
         this.kmer = kmer;
         this.isNovel = novelty;
     }
+
+    public void setFlag(String flag) { flags.add(flag); }
+    public void unsetFlag(String flag) { flags.remove(flag); }
+    public boolean flagIsSet(String flag) { return flags.contains(flag); }
+
+    public Set<String> getFlags() { return flags; }
+    public void setFlags(Set<String> flags) { this.flags = flags; }
 
     public String getKmer() { return kmer; }
     public boolean isNovel() { return isNovel; }
