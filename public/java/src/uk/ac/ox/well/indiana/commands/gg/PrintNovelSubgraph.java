@@ -5,7 +5,9 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.DijkstraShortestPath;
+import org.jgrapht.alg.StrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
@@ -154,8 +156,8 @@ public class PrintNovelSubgraph extends Module {
                 }
 
                 if (v.flagIsSet("start") || v.flagIsSet("end")) {
-                    attrs.put("label", v.getKmer());
-                    attrs.put("fillcolor", "orange");
+                    //attrs.put("label", v.getKmer());
+                    attrs.put("fillcolor", v.flagIsSet("start") ? "orange" : "purple");
                     attrs.put("shape", "rect");
                 }
 
@@ -184,12 +186,12 @@ public class PrintNovelSubgraph extends Module {
 
             if (withPdf) {
                 //log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-                //Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
+                Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
             }
         } catch (FileNotFoundException e) {
             throw new IndianaException("File not found", e);
-        //} catch (IOException e) {
-        //    throw new IndianaException("IO exception", e);
+        } catch (IOException e) {
+            throw new IndianaException("IO exception", e);
         }
     }
 
@@ -276,6 +278,16 @@ public class PrintNovelSubgraph extends Module {
         AnnotatedVertex thisVertex;
         Set<AnnotatedVertex> usedStarts = new HashSet<AnnotatedVertex>();
 
+        Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
+        for (AnnotatedVertex av : b.vertexSet()) {
+            if (av.flagIsSet("start")) {
+                candidateStarts.add(av);
+            } else if (av.flagIsSet("end")) {
+                candidateEnds.add(av);
+            }
+        }
+
         do {
             thisVertex = null;
 
@@ -306,6 +318,7 @@ public class PrintNovelSubgraph extends Module {
 
                 while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
                     AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
+                    //sv.setFlags(thisVertex.getFlags());
 
                     b.addVertex(sv);
 
@@ -336,6 +349,20 @@ public class PrintNovelSubgraph extends Module {
                 }
             }
         } while (thisVertex != null);
+
+        for (AnnotatedVertex av : b.vertexSet()) {
+            for (AnnotatedVertex candidateStart : candidateStarts) {
+                if (av.getKmer().contains(candidateStart.getKmer())) {
+                    av.setFlag("start");
+                }
+            }
+
+            for (AnnotatedVertex candidateEnd : candidateEnds) {
+                if (av.getKmer().contains(candidateEnd.getKmer())) {
+                    av.setFlag("end");
+                }
+            }
+        }
 
         return b;
     }
@@ -380,15 +407,71 @@ public class PrintNovelSubgraph extends Module {
             sb.append(av.getKmer().charAt(av.getKmer().length() - 1));
         }
 
-        /*
-        while (a.outDegreeOf(tv) == 1 && !tv.equals(p.getEndVertex())) {
-            tv = a.getEdgeTarget(a.outgoingEdgesOf(tv).iterator().next());
+        return sb.toString();
+    }
 
-            sb.append(tv.getKmer().charAt(tv.getKmer().length() - 1));
+    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> trimGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, Set<AnnotatedVertex> candidateStarts, Set<AnnotatedVertex> candidateEnds) {
+        /*
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
+
+        for (AnnotatedVertex candidateStart : candidateStarts) {
+            Set<AnnotatedVertex> candidateVertices = new HashSet<AnnotatedVertex>(Graphs.predecessorListOf(b, candidateStart));
+
+            boolean goodToRemove = true;
+            for (AnnotatedVertex av : candidateVertices) {
+                if (av.isNovel()) {
+                    goodToRemove = false;
+                }
+            }
+
+            if (goodToRemove) {
+                verticesToRemove.addAll(candidateVertices);
+            }
         }
+
+        for (AnnotatedVertex candidateEnd : candidateEnds) {
+            Set<AnnotatedVertex> candidateVertices = new HashSet<AnnotatedVertex>(Graphs.successorListOf(b, candidateEnd));
+
+            boolean goodToRemove = true;
+            for (AnnotatedVertex av : candidateVertices) {
+                if (av.isNovel()) {
+                    goodToRemove = false;
+                }
+            }
+
+            if (goodToRemove) {
+                verticesToRemove.addAll(candidateVertices);
+            }
+        }
+
+        Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
+
+        for (AnnotatedVertex av : verticesToRemove) {
+            for (AnnotatedEdge ae : b.outgoingEdgesOf(av)) {
+                AnnotatedVertex nav = b.getEdgeTarget(ae);
+
+                if (verticesToRemove.contains(nav)) {
+                    edgesToRemove.add(ae);
+                }
+            }
+
+            for (AnnotatedEdge ae : b.incomingEdgesOf(av)) {
+                AnnotatedVertex pav = b.getEdgeSource(ae);
+
+                if (verticesToRemove.contains(pav)) {
+                    edgesToRemove.add(ae);
+                }
+            }
+        }
+
+        b.removeAllVertices(verticesToRemove);
+        b.removeAllEdges(edgesToRemove);
+
+        return b;
         */
 
-        return sb.toString();
+        return a;
     }
 
     private Pair<String, String> computeMinWeightPaths(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
@@ -396,105 +479,16 @@ public class PrintNovelSubgraph extends Module {
 
         log.info("    a={} {}, b={} {}", a.vertexSet().size(), a.edgeSet().size(), b.vertexSet().size(), b.edgeSet().size());
 
-        int kmerLength = novelKmers.keySet().iterator().next().length();
-
-        String fk = stretch.substring(1, kmerLength + 1);
-        AnnotatedVertex afk = new AnnotatedVertex(fk, novelKmers.containsKey(new CortexKmer(fk)));
-
-        String lk = stretch.substring(stretch.length() - kmerLength - 1, stretch.length() - 1);
-        AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
-
-        Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
-        DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsLk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(b, afk);
-        while (dfsLk.hasNext()) {
-            AnnotatedVertex av = dfsLk.next();
-
-            if (b.inDegreeOf(av) > 1) {
-                Set<AnnotatedEdge> aes = b.incomingEdgesOf(av);
-
-                boolean adjacentToNovelty = false;
-                AnnotatedEdge edgeToNovelty = null;
-
-                for (AnnotatedEdge ae : aes) {
-                    if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
-                        adjacentToNovelty = true;
-                        edgeToNovelty = ae;
-                    }
-                }
-
-                if (adjacentToNovelty) {
-                    for (AnnotatedEdge ae : aes) {
-                        if (!ae.equals(edgeToNovelty)) {
-                            if (ae.isPresent(color)) {
-                                candidateEnds.add(av);
-
-                                //av.setFlag("end");
-
-                                //
-                                for (AnnotatedVertex ava : b.vertexSet()) {
-                                    if (av.equals(ava)) {
-                                        ava.setFlag("end");
-                                    }
-                                }
-                                //
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> rag = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(b);
-        DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsFk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(rag, alk);
-        while (dfsFk.hasNext()) {
-            AnnotatedVertex av = dfsFk.next();
-
-            if (rag.inDegreeOf(av) > 1) {
-                Set<AnnotatedEdge> aes = rag.incomingEdgesOf(av);
-
-                boolean adjacentToNovelty = false;
-                AnnotatedEdge edgeToNovelty = null;
-
-                for (AnnotatedEdge ae : aes) {
-                    if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
-                        adjacentToNovelty = true;
-                        edgeToNovelty = ae;
-                    }
-                }
-
-                if (adjacentToNovelty) {
-                    for (AnnotatedEdge ae : aes) {
-                        if (!ae.equals(edgeToNovelty)) {
-                            if (ae.isPresent(color)) {
-                                candidateStarts.add(av);
-
-                                av.setFlag("start");
-
-                                //
-                                for (AnnotatedVertex ava : b.vertexSet()) {
-                                    if (av.equals(ava)) {
-                                        ava.setFlag("start");
-                                    }
-                                }
-                                //
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
+        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
+        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
-        printGraph(b, "monocolor.all", false, true);
-
-        //DirectedGraph<AnnotatedVertex, AnnotatedEdge> s0 = simplifyGraph(b0);
-        printGraph(b0, "monocolor." + 0, true, true);
-
-        //DirectedGraph<AnnotatedVertex, AnnotatedEdge> sc = simplifyGraph(bc);
-        printGraph(bc, "monocolor." + color, true, true);
+        printGraph(simplifyGraph(trimGraph(b, candidateStarts, candidateEnds)), "monocolor.all",      false, true);
+        printGraph(simplifyGraph(trimGraph(b0, candidateStarts, candidateEnds)), "monocolor." + 0,     false, true);
+        printGraph(simplifyGraph(trimGraph(bc, candidateStarts, candidateEnds)), "monocolor." + color, false, true);
 
         GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = computeMinWeightPath(b0, candidateEnds, candidateStarts);
         GraphPath<AnnotatedVertex, AnnotatedEdge> pc = computeMinWeightPath(bc, candidateEnds, candidateStarts);
@@ -528,6 +522,31 @@ public class PrintNovelSubgraph extends Module {
         //log.info("");
 
         return minWeightPath;
+    }
+
+    private boolean isConnected(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+
+        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
+        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
+        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
+
+        b = removeOtherColors(b, color);
+
+        ConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new ConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
+        //StrongConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new StrongConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
+
+        for (AnnotatedVertex candidateStart : candidateStarts) {
+            for (AnnotatedVertex candidateEnd : candidateEnds) {
+                if (ci.pathExists(candidateStart, candidateEnd)) {
+                    log.info("s: {}, e: {}", candidateStart, candidateEnd);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -642,6 +661,7 @@ public class PrintNovelSubgraph extends Module {
                 log.info("    novelKmers: {}, totalNovelKmersUsed: {}, totalNovelKmers: {}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
                 // Simplify the graph
+                /*
                 log.info("    simplifying graph...");
                 log.info("    - before: v: {} e: {}", ag.vertexSet().size(), ag.edgeSet().size());
 
@@ -654,25 +674,20 @@ public class PrintNovelSubgraph extends Module {
 
                     printGraph(sg, prefix + ".simplified", false, true);
                 }
+                */
 
-                // Now, explore to the left and right of the novel stretch and find some possible branching points
-                String fk = stretch.substring(1, novelKmer.length() + 1);
-                AnnotatedVertex afk = new AnnotatedVertex(fk, novelKmers.containsKey(new CortexKmer(fk)));
-
-                String lk = stretch.substring(stretch.length() - novelKmer.length() - 1, stretch.length() - 1);
-                AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
-
-                log.info("    fk: {} {} {}", fk, fk.length(), ag.containsVertex(afk));
-                log.info("    lk: {} {} {}", lk, lk.length(), ag.containsVertex(alk));
-
-                printGraph(removeOtherColors(sg, 0), "test", false, true);
-
+                // Now, find min-weight paths for each color vs child
+                boolean c1 = isConnected(ag, 1, stretch, novelKmers);
                 Pair<String, String> p1 = computeMinWeightPaths(ag, 1, stretch, novelKmers);
+
+                boolean c2 = isConnected(ag, 2, stretch, novelKmers);
                 Pair<String, String> p2 = computeMinWeightPaths(ag, 2, stretch, novelKmers);
 
                 log.info("    vis: {}", relevantVis);
+                log.info("     c1: {}", c1);
                 log.info("     n1: {} ({})", p1.getFirst(), p1.getFirst().length());
                 log.info("     p1: {} ({})", p1.getSecond(), p1.getSecond().length());
+                log.info("     c2: {}", c2);
                 log.info("     n2: {} ({})", p2.getFirst(), p2.getFirst().length());
                 log.info("     p2: {} ({})", p2.getSecond(), p2.getSecond().length());
 
@@ -684,5 +699,121 @@ public class PrintNovelSubgraph extends Module {
         }
 
         log.info("Num stretches: {}", stretchNum);
+    }
+
+    private class AnnotateStartsAndEnds {
+        private int color;
+        private String stretch;
+        private Map<CortexKmer, Boolean> novelKmers;
+        private DirectedGraph<AnnotatedVertex, AnnotatedEdge> b;
+        private Set<AnnotatedVertex> candidateEnds;
+        private Set<AnnotatedVertex> candidateStarts;
+
+        public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b) {
+            this.color = color;
+            this.stretch = stretch;
+            this.novelKmers = novelKmers;
+            this.b = b;
+        }
+
+        public Set<AnnotatedVertex> getCandidateEnds() {
+            return candidateEnds;
+        }
+
+        public Set<AnnotatedVertex> getCandidateStarts() {
+            return candidateStarts;
+        }
+
+        public AnnotateStartsAndEnds invoke() {
+            int kmerLength = novelKmers.keySet().iterator().next().length();
+
+            String fk = stretch.substring(1, kmerLength + 1);
+            AnnotatedVertex afk = new AnnotatedVertex(fk, novelKmers.containsKey(new CortexKmer(fk)));
+
+            String lk = stretch.substring(stretch.length() - kmerLength - 1, stretch.length() - 1);
+            AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
+
+            candidateEnds = new HashSet<AnnotatedVertex>();
+            DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsLk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(b, afk);
+            while (dfsLk.hasNext()) {
+                AnnotatedVertex av = dfsLk.next();
+
+                if (b.inDegreeOf(av) > 1) {
+                    Set<AnnotatedEdge> aes = b.incomingEdgesOf(av);
+
+                    boolean adjacentToNovelty = false;
+                    AnnotatedEdge edgeToNovelty = null;
+
+                    for (AnnotatedEdge ae : aes) {
+                        if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                            adjacentToNovelty = true;
+                            edgeToNovelty = ae;
+                        }
+                    }
+
+                    if (adjacentToNovelty) {
+                        for (AnnotatedEdge ae : aes) {
+                            if (!ae.equals(edgeToNovelty)) {
+                                if (ae.isPresent(color)) {
+                                    candidateEnds.add(av);
+
+                                    //av.setFlag("end");
+
+                                    //
+                                    for (AnnotatedVertex ava : b.vertexSet()) {
+                                        if (av.equals(ava)) {
+                                            ava.setFlag("end");
+                                        }
+                                    }
+                                    //
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            candidateStarts = new HashSet<AnnotatedVertex>();
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> rag = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(b);
+            DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsFk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(rag, alk);
+            while (dfsFk.hasNext()) {
+                AnnotatedVertex av = dfsFk.next();
+
+                if (rag.inDegreeOf(av) > 1) {
+                    Set<AnnotatedEdge> aes = rag.incomingEdgesOf(av);
+
+                    boolean adjacentToNovelty = false;
+                    AnnotatedEdge edgeToNovelty = null;
+
+                    for (AnnotatedEdge ae : aes) {
+                        if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                            adjacentToNovelty = true;
+                            edgeToNovelty = ae;
+                        }
+                    }
+
+                    if (adjacentToNovelty) {
+                        for (AnnotatedEdge ae : aes) {
+                            if (!ae.equals(edgeToNovelty)) {
+                                if (ae.isPresent(color)) {
+                                    candidateStarts.add(av);
+
+                                    //av.setFlag("start");
+
+                                    //
+                                    for (AnnotatedVertex ava : b.vertexSet()) {
+                                        if (av.equals(ava)) {
+                                            ava.setFlag("start");
+                                        }
+                                    }
+                                    //
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return this;
+        }
     }
 }
