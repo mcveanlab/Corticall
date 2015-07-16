@@ -30,6 +30,10 @@ public class AnnotatedVertex {
     public boolean isNovel() { return isNovel; }
     public void setNovel() { isNovel = true; }
 
+    public boolean isAnnotated() {
+        return isNovel || flags.size() > 0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
