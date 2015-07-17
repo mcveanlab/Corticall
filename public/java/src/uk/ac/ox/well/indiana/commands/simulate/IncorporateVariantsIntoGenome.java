@@ -222,14 +222,14 @@ public class IncorporateVariantsIntoGenome extends Module {
                 } else {
                     vcw.add(vc);
 
-                    log.info("Missing attributes: {}", vc);
+                    //log.info("Missing attributes: {}", vc);
 
                     without++;
                 }
             }
         }
 
-        log.info("  with={} without={}", with, without);
+        //log.info("  with={} without={}", with, without);
 
         vcw.close();
     }
