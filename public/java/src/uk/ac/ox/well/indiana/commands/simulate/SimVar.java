@@ -235,6 +235,7 @@ public class SimVar extends Module {
                                 .start(var1.getStart())
                                 .computeEndFromAlleles(Arrays.asList(oldVar1, newVar1), var1.getStart())
                                 .noID()
+                                .attribute("DENOVO", "NAHR")
                                 .attribute("NAHR", var1.getAttribute("ID") + "_" + var2.getAttribute("ID"))
                                 .alleles(Arrays.asList(oldVar1, newVar1))
                                 .genotypes(newVar1G)
@@ -252,6 +253,7 @@ public class SimVar extends Module {
                                 .start(var2.getStart())
                                 .computeEndFromAlleles(Arrays.asList(oldVar2, newVar2), var2.getStart())
                                 .noID()
+                                .attribute("DENOVO", "NAHR")
                                 .attribute("NAHR", var1.getAttribute("ID") + "_" + var2.getAttribute("ID"))
                                 .alleles(Arrays.asList(oldVar2, newVar2))
                                 .genotypes(newVar2G)
@@ -295,6 +297,7 @@ public class SimVar extends Module {
         header.setSequenceDictionary(REF.getSequenceDictionary());
         header.addMetaDataLine(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
         header.addMetaDataLine(new VCFInfoHeaderLine("NAHR", 1, VCFHeaderLineType.String, "Is a var recombination"));
+        header.addMetaDataLine(new VCFInfoHeaderLine("DENOVO", 1, VCFHeaderLineType.String, "The type of de novo event added"));
         header.addMetaDataLine(new VCFInfoHeaderLine("SIMID", 1, VCFHeaderLineType.String, "The ID of the simulated variant"));
 
         vcw.writeHeader(header);
