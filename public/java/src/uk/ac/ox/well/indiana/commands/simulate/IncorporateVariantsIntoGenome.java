@@ -184,6 +184,7 @@ public class IncorporateVariantsIntoGenome extends Module {
 
         VCFHeader header = new VCFHeader(VCFS.get(0).getFileHeader());
 
+        header.addMetaDataLine(new VCFInfoHeaderLine("NAHR", 1, VCFHeaderLineType.String, "Is a var recombination"));
         header.addMetaDataLine(new VCFInfoHeaderLine("flank_left", 1, VCFHeaderLineType.String, "The 5' flanking sequence"));
         header.addMetaDataLine(new VCFInfoHeaderLine("flank_right", 1, VCFHeaderLineType.String, "The 3' flanking sequence"));
         header.setSequenceDictionary(VCFS.get(0).getFileHeader().getSequenceDictionary());
