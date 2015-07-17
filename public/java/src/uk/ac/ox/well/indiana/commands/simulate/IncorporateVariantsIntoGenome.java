@@ -22,7 +22,7 @@ public class IncorporateVariantsIntoGenome extends Module {
     public FastaSequenceFile REF;
 
     @Argument(fullName="vcf", shortName="v", doc="VCF")
-    public VCFFileReader VCF;
+    public ArrayList<VCFFileReader> VCFS;
 
     @Argument(fullName="includeFiltered", shortName="f", doc="Include variants that had been filtered out")
     public Boolean INCLUDE_FILTERED = false;
@@ -47,20 +47,22 @@ public class IncorporateVariantsIntoGenome extends Module {
         Map<String, Map<Integer, Set<VariantContext>>> variants = new HashMap<String, Map<Integer, Set<VariantContext>>>();
 
         log.info("Loading variants...");
-        for (VariantContext vc : VCF) {
-            if (INCLUDE_FILTERED || !vc.isFiltered()) {
-                String chr = vc.getChr();
-                int start = vc.getStart();
+        for (VCFFileReader VCF : VCFS) {
+            for (VariantContext vc : VCF) {
+                if (INCLUDE_FILTERED || !vc.isFiltered()) {
+                    String chr = vc.getChr();
+                    int start = vc.getStart();
 
-                if (!variants.containsKey(chr)) {
-                    variants.put(chr, new HashMap<Integer, Set<VariantContext>>());
+                    if (!variants.containsKey(chr)) {
+                        variants.put(chr, new HashMap<Integer, Set<VariantContext>>());
+                    }
+
+                    if (!variants.get(chr).containsKey(start)) {
+                        variants.get(chr).put(start - 1, new HashSet<VariantContext>());
+                    }
+
+                    variants.get(chr).get(start - 1).add(vc);
                 }
-
-                if (!variants.get(chr).containsKey(start)) {
-                    variants.get(chr).put(start - 1, new HashSet<VariantContext>());
-                }
-
-                variants.get(chr).get(start - 1).add(vc);
             }
         }
 
@@ -107,7 +109,7 @@ public class IncorporateVariantsIntoGenome extends Module {
 
                         if (vc.hasAttribute("SAMPLES_WITH_DENOVOS")) {
                             String[] swd = vc.getAttributeAsString("SAMPLES_WITH_DENOVOS", "unknown").replaceAll("[\\[\\]]", "").replaceAll("\\s+", "").split(",");
-                            String vcfSampleName = VCF.getFileHeader().getSampleNamesInOrder().get(0);
+                            String vcfSampleName = VCFS.get(0).getFileHeader().getSampleNamesInOrder().get(0);
                             for (String s : swd) {
                                 if (vcfSampleName.equals(s.replaceAll("\\s+", ""))) {
                                     denovo = vc.getType().name();
@@ -177,51 +179,53 @@ public class IncorporateVariantsIntoGenome extends Module {
 
         VariantContextWriterBuilder vcwb = new VariantContextWriterBuilder();
         vcwb.setOutputFile(vout);
-        vcwb.setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary());
+        vcwb.setReferenceDictionary(VCFS.get(0).getFileHeader().getSequenceDictionary());
         VariantContextWriter vcw = vcwb.build();
 
-        VCFHeader header = new VCFHeader(VCF.getFileHeader());
+        VCFHeader header = new VCFHeader(VCFS.get(0).getFileHeader());
 
         header.addMetaDataLine(new VCFInfoHeaderLine("flank_left", 1, VCFHeaderLineType.String, "The 5' flanking sequence"));
         header.addMetaDataLine(new VCFInfoHeaderLine("flank_right", 1, VCFHeaderLineType.String, "The 3' flanking sequence"));
-        header.setSequenceDictionary(VCF.getFileHeader().getSequenceDictionary());
+        header.setSequenceDictionary(VCFS.get(0).getFileHeader().getSequenceDictionary());
 
         vcw.writeHeader(header);
 
         int with = 0, without = 0, variantNum = 0;
-        for (VariantContext vc : VCF) {
-            variantNum++;
+        for (VCFFileReader VCF : VCFS) {
+            for (VariantContext vc : VCF) {
+                variantNum++;
 
-            String id = vc.getAttributeAsString("SIMID", "unknown");
+                String id = vc.getAttributeAsString("SIMID", "unknown");
 
-            String end1id = String.format("@%s variant%d/1", id, variantNum);
-            String end2id = String.format("@%s variant%d/2", id, variantNum);
+                String end1id = String.format("@%s variant%d/1", id, variantNum);
+                String end2id = String.format("@%s variant%d/2", id, variantNum);
 
-            if (attributes.containsKey(id)) {
-                VariantContext newvc = (new VariantContextBuilder(vc))
-                        .attribute("flank_left", attributes.get(id).get("flank_left"))
-                        .attribute("flank_right", attributes.get(id).get("flank_right"))
-                        .make();
+                if (attributes.containsKey(id)) {
+                    VariantContext newvc = (new VariantContextBuilder(vc))
+                            .attribute("flank_left", attributes.get(id).get("flank_left"))
+                            .attribute("flank_right", attributes.get(id).get("flank_right"))
+                            .make();
 
-                vcw.add(newvc);
+                    vcw.add(newvc);
 
-                with++;
+                    with++;
 
-                f1out.println(end1id);
-                f1out.println(attributes.get(id).get("flank_left"));
-                f1out.println("+");
-                f1out.println(StringUtils.repeat("I", attributes.get(id).get("flank_left").length()));
+                    f1out.println(end1id);
+                    f1out.println(attributes.get(id).get("flank_left"));
+                    f1out.println("+");
+                    f1out.println(StringUtils.repeat("I", attributes.get(id).get("flank_left").length()));
 
-                f2out.println(end2id);
-                f2out.println(attributes.get(id).get("flank_right"));
-                f2out.println("+");
-                f2out.println(StringUtils.repeat("I", attributes.get(id).get("flank_right").length()));
-            } else {
-                vcw.add(vc);
+                    f2out.println(end2id);
+                    f2out.println(attributes.get(id).get("flank_right"));
+                    f2out.println("+");
+                    f2out.println(StringUtils.repeat("I", attributes.get(id).get("flank_right").length()));
+                } else {
+                    vcw.add(vc);
 
-                log.info("Missing attributes: {}", vc);
+                    log.info("Missing attributes: {}", vc);
 
-                without++;
+                    without++;
+                }
             }
         }
 
