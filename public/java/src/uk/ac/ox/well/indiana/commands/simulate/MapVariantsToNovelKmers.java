@@ -65,45 +65,61 @@ public class MapVariantsToNovelKmers extends Module {
         log.info("Assigning novel kmers to variants...");
         int kmerSize = novelKmers.iterator().next().getKmerAsBytes().length;
 
+        int numVariants = 0;
+        int numKmersAssigned = 0;
+
         TableWriter tw = new TableWriter(out);
 
-        TableReader tr = new TableReader(BED, new String[] {"chrom", "start", "stop", "info"});
+        TableReader tr = new TableReader(BED, "chrom", "start", "stop", "info");
         for (Map<String, String> te : tr) {
             Map<String, String> infoMap = parseInfoField(te.get("info"));
 
-            String chrom = te.get("chrom");
-            int start = Integer.valueOf(te.get("start")) + 1 - (kmerSize-1);
-            int stop  = Integer.valueOf(te.get("stop")) + 1 + (kmerSize-1);
+            if (infoMap.containsKey("denovo") && !infoMap.get("denovo").equals("unknown")) {
+                numVariants++;
 
-            if (start < 0) { start = 0; }
-            if (stop > REFERENCE.getSequence(chrom).length()) {
-                stop = REFERENCE.getSequence(chrom).length();
-            }
+                String chrom = te.get("chrom");
+                int start = Integer.valueOf(te.get("start")) + 1 - (2*kmerSize - 1);
+                int stop = Integer.valueOf(te.get("stop")) + 1 + (2*kmerSize - 1);
 
-            String seq = new String(REFERENCE.getSubsequenceAt(chrom, start, stop).getBases());
+                if (start < 0) {
+                    start = 0;
+                }
+                if (stop > REFERENCE.getSequence(chrom).length()) {
+                    stop = REFERENCE.getSequence(chrom).length();
+                }
 
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                CortexKmer ck = new CortexKmer(seq.substring(i, i + kmerSize));
+                String seq = new String(REFERENCE.getSubsequenceAt(chrom, start, stop).getBases());
 
-                if (novelKmers.contains(ck)) {
-                    String vclass = infoMap.get("denovo");
-                    if (!infoMap.get("nahr").equals("unknown")) { vclass = "NAHR"; }
-                    if (vclass.equals("unknown")) { vclass = "inherited_" + infoMap.get("type"); }
+                for (int i = 0; i <= seq.length() - kmerSize; i++) {
+                    CortexKmer ck = new CortexKmer(seq.substring(i, i + kmerSize));
 
-                    Map<String, String> twe = new LinkedHashMap<String, String>();
-                    twe.put("kmer", ck.getKmerAsString());
-                    twe.put("variantId", infoMap.get("id"));
-                    twe.put("vclass", vclass);
-                    twe.put("vchr", chrom);
-                    twe.put("vstart", String.valueOf(start));
-                    twe.put("vstop", String.valueOf(stop));
-                    tw.addEntry(twe);
+                    if (novelKmers.contains(ck)) {
+                        numKmersAssigned++;
 
-                    novelKmers.remove(ck);
+                        String vclass = infoMap.get("denovo");
+                        if (!infoMap.get("nahr").equals("unknown")) {
+                            vclass = "NAHR";
+                        }
+                        if (vclass.equals("unknown")) {
+                            vclass = "inherited_" + infoMap.get("type");
+                        }
+
+                        Map<String, String> twe = new LinkedHashMap<String, String>();
+                        twe.put("kmer", ck.getKmerAsString());
+                        twe.put("variantId", infoMap.get("id"));
+                        twe.put("vclass", vclass);
+                        twe.put("vchr", chrom);
+                        twe.put("vstart", String.valueOf(start));
+                        twe.put("vstop", String.valueOf(stop));
+                        tw.addEntry(twe);
+
+                        //novelKmers.remove(ck);
+                    }
                 }
             }
         }
 
+        /*
         for (CortexKmer ck : novelKmers) {
             Map<String, String> twe = new LinkedHashMap<String, String>();
             twe.put("kmer", ck.getKmerAsString());
@@ -114,7 +130,9 @@ public class MapVariantsToNovelKmers extends Module {
             twe.put("vstop", "NA");
             tw.addEntry(twe);
         }
+        */
 
-        log.info("  {} novel kmers unassigned to variants", novelKmers.size());
+        log.info("  {} novel kmers assigned to {} variants", numKmersAssigned, numVariants);
+        //log.info("  {} novel kmers unassigned to variants", novelKmers.size());
     }
 }
