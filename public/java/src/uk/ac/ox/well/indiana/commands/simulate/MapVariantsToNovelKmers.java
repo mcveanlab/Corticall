@@ -60,6 +60,7 @@ public class MapVariantsToNovelKmers extends Module {
     public void execute() {
         log.info("Loading novel kmers...");
         Set<CortexKmer> novelKmers = loadNovelKmers();
+        Set<CortexKmer> usedKmers = new HashSet<CortexKmer>();
         log.info("  {} novel kmers seen", novelKmers.size());
 
         log.info("Assigning novel kmers to variants...");
@@ -114,25 +115,14 @@ public class MapVariantsToNovelKmers extends Module {
                         tw.addEntry(twe);
 
                         //novelKmers.remove(ck);
+                        usedKmers.add(ck);
                     }
                 }
             }
         }
 
-        /*
-        for (CortexKmer ck : novelKmers) {
-            Map<String, String> twe = new LinkedHashMap<String, String>();
-            twe.put("kmer", ck.getKmerAsString());
-            twe.put("variantId", "NA");
-            twe.put("vclass", "NA");
-            twe.put("vchr", "NA");
-            twe.put("vstart", "NA");
-            twe.put("vstop", "NA");
-            tw.addEntry(twe);
-        }
-        */
-
         log.info("  {} novel kmers assigned to {} variants", numKmersAssigned, numVariants);
+        log.info("  {}/{} novel kmers used", usedKmers.size(), novelKmers.size());
         //log.info("  {} novel kmers unassigned to variants", novelKmers.size());
     }
 }
