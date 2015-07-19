@@ -130,10 +130,15 @@ public class PrintNovelStretches extends Module {
                 }
 
                 for (VariantInfo vi : vs) {
+                    Set<CortexKmer> entriesToRemove = new HashSet<CortexKmer>();
                     for (CortexKmer ck : vis.keySet()) {
                         if (vi.equals(vis.get(ck))) {
-                            vis.remove(ck);
+                            entriesToRemove.add(ck);
                         }
+                    }
+
+                    for (CortexKmer ck : entriesToRemove) {
+                        vis.remove(ck);
                     }
                 }
 
