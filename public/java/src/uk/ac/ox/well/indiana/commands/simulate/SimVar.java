@@ -302,6 +302,7 @@ public class SimVar extends Module {
 
         vcw.writeHeader(header);
 
+        String nahrId = null;
         int simid = 0;
         for (SAMSequenceRecord ssr : REF.getSequenceDictionary().getSequences()) {
             String chr = ssr.getSequenceName();
@@ -312,7 +313,13 @@ public class SimVar extends Module {
                                 .attribute("SIMID", "simvar" + simid)
                                 .make();
 
-                        vcw.add(newvc);
+                        if (nahrId == null) {
+                            nahrId = newvc.getAttributeAsString("NAHR", "unknown");
+                        }
+
+                        if (newvc.getAttributeAsString("NAHR", "unknown").equals(nahrId)) {
+                            vcw.add(newvc);
+                        }
 
                         simid++;
                     }
