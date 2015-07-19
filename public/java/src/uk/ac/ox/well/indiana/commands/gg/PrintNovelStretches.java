@@ -129,22 +129,35 @@ public class PrintNovelStretches extends Module {
                     }
                 }
 
+                for (VariantInfo vi : vs) {
+                    for (CortexKmer ck : vis.keySet()) {
+                        if (vi.equals(vis.get(ck))) {
+                            vis.remove(ck);
+                        }
+                    }
+                }
+
                 log.info("Found {} bp stretch, used {}/{} novel kmers, {}/{} total",
                     stretch.length(),
                     novelKmersUsed, novelKmers.size(),
                     totalNovelKmersUsed, novelKmers.size()
                 );
 
-                out.println(">stretch_" + stretchNum + ".length_" + stretch.length());
-                out.println(stretch);
-
-                log.info(">stretch_{}.length_{}", stretchNum, stretch.length());
                 for (VariantInfo vi : vs) {
                     log.info("\t{}", vi);
                 }
 
+                out.println(">stretch_" + stretchNum + ".length_" + stretch.length());
+                out.println(stretch);
+
                 stretchNum++;
             }
+        }
+
+        Set<VariantInfo> remainingVariants = new HashSet<VariantInfo>(vis.values());
+        log.info("Remaining variants: {}", remainingVariants.size());
+        for (VariantInfo vi : remainingVariants) {
+            log.info("  {}", vi);
         }
     }
 }
