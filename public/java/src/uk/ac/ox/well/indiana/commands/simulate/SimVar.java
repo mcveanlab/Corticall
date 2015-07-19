@@ -313,7 +313,7 @@ public class SimVar extends Module {
                                 .attribute("SIMID", "simvar" + simid)
                                 .make();
 
-                        if (nahrId == null && rng.nextBoolean()) {
+                        if (nahrId == null && !rng.nextBoolean()) {
                             nahrId = newvc.getAttributeAsString("NAHR", "unknown");
                         }
 
