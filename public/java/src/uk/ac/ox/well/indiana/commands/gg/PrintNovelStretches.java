@@ -106,6 +106,11 @@ public class PrintNovelStretches extends Module {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
         }
 
+        Map<VariantInfo, Boolean> seenVariants = new HashMap<VariantInfo, Boolean>();
+        for (VariantInfo vi : vis.values()) {
+            seenVariants.put(vi, false);
+        }
+
         int totalNovelKmersUsed = 0;
         int stretchNum = 0;
         for (CortexKmer novelKmer : novelKmers.keySet()) {
@@ -130,16 +135,7 @@ public class PrintNovelStretches extends Module {
                 }
 
                 for (VariantInfo vi : vs) {
-                    Set<CortexKmer> entriesToRemove = new HashSet<CortexKmer>();
-                    for (CortexKmer ck : vis.keySet()) {
-                        if (vi.equals(vis.get(ck))) {
-                            entriesToRemove.add(ck);
-                        }
-                    }
-
-                    for (CortexKmer ck : entriesToRemove) {
-                        vis.remove(ck);
-                    }
+                    seenVariants.put(vi, true);
                 }
 
                 log.info("Found {} bp stretch, used {}/{} novel kmers, {}/{} total",
@@ -159,10 +155,20 @@ public class PrintNovelStretches extends Module {
             }
         }
 
-        Set<VariantInfo> remainingVariants = new HashSet<VariantInfo>(vis.values());
-        log.info("Remaining variants: {}", remainingVariants.size());
-        for (VariantInfo vi : remainingVariants) {
-            log.info("  {}", vi);
+        int seen = 0, unseen = 0;
+        for (VariantInfo vi : seenVariants.keySet()) {
+            if (seenVariants.get(vi)) {
+                seen++;
+            } else {
+                unseen++;
+            }
+        }
+
+        log.info("Seen: {}, unseen: {}", seen, unseen);
+        for (VariantInfo vi : seenVariants.keySet()) {
+            if (!seenVariants.get(vi)) {
+                log.info("\t{}", vi);
+            }
         }
     }
 }
