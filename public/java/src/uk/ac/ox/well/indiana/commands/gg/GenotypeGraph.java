@@ -823,13 +823,13 @@ public class GenotypeGraph extends Module {
                     String ref = vc1.getReference().getBaseString();
                     String alt = vc1.getAlternateAllele(0).getBaseString();
 
-                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc1.getReference().length() && !te.get("knownRef").equals(vc1.getReference().getBaseString()) && !te.get("knownAlt").equals(vc1.getAlternateAllele(0).getBaseString())) {
+                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc1.getReference().length() && (!te.get("knownRef").equals(vc1.getReference().getBaseString()) || !te.get("knownAlt").equals(vc1.getAlternateAllele(0).getBaseString()))) {
                         int pos = vc1.getStart();
                         int refLength = vc1.getReference().length();
                         int altLength = vc1.getAlternateAllele(0).length();
                         boolean found = false;
 
-                        while (pos >= 0 && pos + refLength < p1.getFirst().length() && pos + altLength < p1.getSecond().length()) {
+                        while (pos >= 0 && pos + refLength < p1.getSecond().length() && pos + altLength < p1.getFirst().length()) {
                             String refFw = p1.getSecond().substring(pos, pos + refLength);
                             String refRc = SequenceUtils.reverseComplement(refFw);
 
@@ -854,7 +854,7 @@ public class GenotypeGraph extends Module {
                         if (!found) {
                             pos = vc1.getStart();
 
-                            while (pos >= 0 && pos + refLength < p1.getFirst().length() && pos + altLength < p1.getSecond().length()) {
+                            while (pos >= 0 && pos + refLength < p1.getSecond().length() && pos + altLength < p1.getFirst().length()) {
                                 String refFw = p1.getSecond().substring(pos, pos + refLength);
                                 String refRc = SequenceUtils.reverseComplement(refFw);
 
@@ -891,13 +891,13 @@ public class GenotypeGraph extends Module {
                     String ref = vc2.getReference().getBaseString();
                     String alt = vc2.getAlternateAllele(0).getBaseString();
 
-                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc2.getReference().length() && !te.get("knownRef").equals(vc2.getReference().getBaseString()) && !te.get("knownAlt").equals(vc2.getAlternateAllele(0).getBaseString())) {
+                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc2.getReference().length() && (!te.get("knownRef").equals(vc2.getReference().getBaseString()) || !te.get("knownAlt").equals(vc2.getAlternateAllele(0).getBaseString()))) {
                         int pos = vc2.getStart();
                         int refLength = vc2.getReference().length();
                         int altLength = vc2.getAlternateAllele(0).length();
                         boolean found = false;
 
-                        while (pos >= 0 && pos + refLength < p2.getFirst().length() && pos + altLength < p2.getSecond().length()) {
+                        while (pos >= 0 && pos + refLength < p2.getSecond().length() && pos + altLength < p2.getFirst().length()) {
                             String refFw = p2.getSecond().substring(pos, pos + vc2.getReference().length());
                             String refRc = SequenceUtils.reverseComplement(refFw);
 
