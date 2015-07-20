@@ -1,13 +1,14 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.DijkstraShortestPath;
-import org.jgrapht.alg.StrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
@@ -20,6 +21,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -29,7 +31,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
-public class PrintNovelSubgraph extends Module {
+public class GenotypeGraph extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -39,29 +41,33 @@ public class PrintNovelSubgraph extends Module {
     @Argument(fullName="novelGraph", shortName="n", doc="Graph of novel kmers")
     public CortexGraph NOVEL;
 
+    @Argument(fullName="bed", shortName="b", doc="Bed file describing variants")
+    public File BED;
+
     @Argument(fullName="novelKmerMap", shortName="m", doc="Novel kmer map")
     public File NOVEL_KMER_MAP;
 
+    @Output(fullName="gout", shortName="go", doc="Graph out")
+    public File gout;
+
     @Output
-    public File out;
+    public PrintStream out;
 
     private class VariantInfo {
         public String variantId;
-        public String vclass;
+
         public String vchr;
         public int vstart;
         public int vstop;
 
-        @Override
-        public String toString() {
-            return "VariantInfo{" +
-                    "variantId='" + variantId + '\'' +
-                    ", vclass='" + vclass + '\'' +
-                    ", vchr='" + vchr + '\'' +
-                    ", vstart=" + vstart +
-                    ", vstop=" + vstop +
-                    '}';
-        }
+        public String type;
+        public String denovo;
+        public String nahr;
+        public int gcindex;
+        public String ref;
+        public String alt;
+        public String leftFlank;
+        public String rightFlank;
 
         @Override
         public boolean equals(Object o) {
@@ -72,42 +78,95 @@ public class PrintNovelSubgraph extends Module {
 
             if (vstart != that.vstart) return false;
             if (vstop != that.vstop) return false;
+            if (gcindex != that.gcindex) return false;
             if (variantId != null ? !variantId.equals(that.variantId) : that.variantId != null) return false;
-            if (vclass != null ? !vclass.equals(that.vclass) : that.vclass != null) return false;
-            return !(vchr != null ? !vchr.equals(that.vchr) : that.vchr != null);
+            if (vchr != null ? !vchr.equals(that.vchr) : that.vchr != null) return false;
+            if (type != null ? !type.equals(that.type) : that.type != null) return false;
+            if (denovo != null ? !denovo.equals(that.denovo) : that.denovo != null) return false;
+            if (nahr != null ? !nahr.equals(that.nahr) : that.nahr != null) return false;
+            if (ref != null ? !ref.equals(that.ref) : that.ref != null) return false;
+            if (alt != null ? !alt.equals(that.alt) : that.alt != null) return false;
+            if (leftFlank != null ? !leftFlank.equals(that.leftFlank) : that.leftFlank != null) return false;
+            return !(rightFlank != null ? !rightFlank.equals(that.rightFlank) : that.rightFlank != null);
 
         }
 
         @Override
         public int hashCode() {
             int result = variantId != null ? variantId.hashCode() : 0;
-            result = 31 * result + (vclass != null ? vclass.hashCode() : 0);
             result = 31 * result + (vchr != null ? vchr.hashCode() : 0);
             result = 31 * result + vstart;
             result = 31 * result + vstop;
+            result = 31 * result + (type != null ? type.hashCode() : 0);
+            result = 31 * result + (denovo != null ? denovo.hashCode() : 0);
+            result = 31 * result + (nahr != null ? nahr.hashCode() : 0);
+            result = 31 * result + gcindex;
+            result = 31 * result + (ref != null ? ref.hashCode() : 0);
+            result = 31 * result + (alt != null ? alt.hashCode() : 0);
+            result = 31 * result + (leftFlank != null ? leftFlank.hashCode() : 0);
+            result = 31 * result + (rightFlank != null ? rightFlank.hashCode() : 0);
             return result;
+        }
+
+        @Override
+        public String toString() {
+            return "VariantInfo{" +
+                    "variantId='" + variantId + '\'' +
+                    ", vchr='" + vchr + '\'' +
+                    ", vstart=" + vstart +
+                    ", vstop=" + vstop +
+                    ", type='" + type + '\'' +
+                    ", denovo='" + denovo + '\'' +
+                    ", nahr='" + nahr + '\'' +
+                    ", gcindex=" + gcindex +
+                    ", ref='" + ref + '\'' +
+                    ", alt='" + alt + '\'' +
+                    ", leftFlank='" + leftFlank + '\'' +
+                    ", rightFlank='" + rightFlank + '\'' +
+                    '}';
         }
     }
 
     private Map<CortexKmer, VariantInfo> loadNovelKmerMap() {
+        Map<String, VariantInfo> allVariants = new HashMap<String, VariantInfo>();
+
+        TableReader bed = new TableReader(BED, "vchr", "vstart", "vstop", "info");
+
+        for (Map<String, String> be : bed) {
+            VariantInfo vi = new VariantInfo();
+
+            vi.vchr = be.get("vchr");
+            vi.vstart = Integer.valueOf(be.get("vstart"));
+            vi.vstop = Integer.valueOf(be.get("vstop"));
+
+            String[] kvpairs = be.get("info").split(";");
+            for (String kvpair : kvpairs) {
+                String[] kv = kvpair.split("=");
+
+                if (kv[0].equals("id")) { vi.variantId = kv[1]; }
+                if (kv[0].equals("type")) { vi.type = kv[1]; }
+                if (kv[0].equals("denovo")) { vi.denovo = kv[1]; }
+                if (kv[0].equals("nahr")) { vi.nahr = kv[1]; }
+                if (kv[0].equals("gcindex")) { vi.gcindex = Integer.valueOf(kv[1]); }
+                if (kv[0].equals("ref")) { vi.ref = kv[1]; }
+                if (kv[0].equals("alt")) { vi.alt = kv[1]; }
+                if (kv[0].equals("left")) { vi.leftFlank = kv[1]; }
+                if (kv[0].equals("right")) { vi.rightFlank = kv[1]; }
+            }
+
+            allVariants.put(vi.variantId, vi);
+        }
+
         Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
 
         TableReader tr = new TableReader(NOVEL_KMER_MAP);
 
         for (Map<String, String> te : tr) {
-            VariantInfo vi = new VariantInfo();
+            VariantInfo vi = allVariants.get(te.get("variantId"));
 
-            if (!te.get("vstart").equals("NA")) {
-                vi.variantId = te.get("variantId");
-                vi.vclass = te.get("vclass");
-                vi.vchr = te.get("vchr");
-                vi.vstart = Integer.valueOf(te.get("vstart"));
-                vi.vstop = Integer.valueOf(te.get("vstop"));
+            CortexKmer kmer = new CortexKmer(te.get("kmer"));
 
-                CortexKmer kmer = new CortexKmer(te.get("kmer"));
-
-                vis.put(kmer, vi);
-            }
+            vis.put(kmer, vi);
         }
 
         return vis;
@@ -127,8 +186,8 @@ public class PrintNovelSubgraph extends Module {
 
     public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix, boolean withText, boolean withPdf) {
         try {
-            File f = new File(out.getAbsolutePath() + "." + prefix + ".dot");
-            File p = new File(out.getAbsolutePath() + "." + prefix + ".pdf");
+            File f = new File(gout.getAbsolutePath() + "." + prefix + ".dot");
+            File p = new File(gout.getAbsolutePath() + "." + prefix + ".pdf");
 
             PrintStream o = new PrintStream(f);
 
@@ -486,9 +545,9 @@ public class PrintNovelSubgraph extends Module {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
-        printGraph(simplifyGraph(trimGraph(b, candidateStarts, candidateEnds)), "monocolor.all",      false, true);
-        printGraph(simplifyGraph(trimGraph(b0, candidateStarts, candidateEnds)), "monocolor." + 0,     false, true);
-        printGraph(simplifyGraph(trimGraph(bc, candidateStarts, candidateEnds)), "monocolor." + color, false, true);
+        //printGraph(simplifyGraph(trimGraph(b, candidateStarts, candidateEnds)), "monocolor.all",      false, true);
+        //printGraph(simplifyGraph(trimGraph(b0, candidateStarts, candidateEnds)), "monocolor." + 0,     false, true);
+        //printGraph(simplifyGraph(trimGraph(bc, candidateStarts, candidateEnds)), "monocolor." + color, false, true);
 
         GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = computeMinWeightPath(b0, candidateEnds, candidateStarts);
         GraphPath<AnnotatedVertex, AnnotatedEdge> pc = computeMinWeightPath(bc, candidateEnds, candidateStarts);
@@ -510,16 +569,12 @@ public class PrintNovelSubgraph extends Module {
                 GraphPath<AnnotatedVertex, AnnotatedEdge> path = dsp.getPath();
                 double pathLength = dsp.getPathLength();
 
-                //log.info("  path: {}", linearizePath(b, path));
-
                 if (pathLength < minPathLength) {
                     minPathLength = pathLength;
                     minWeightPath = path;
                 }
             }
         }
-
-        //log.info("");
 
         return minWeightPath;
     }
@@ -549,8 +604,46 @@ public class PrintNovelSubgraph extends Module {
         return false;
     }
 
+    private Pair<String, String> getAlleles(Pair<String, String> minWeightPaths) {
+        int s, e0 = minWeightPaths.getFirst().length() - 1, e1 = minWeightPaths.getSecond().length() - 1;
+
+        for (s = 0; s < (minWeightPaths.getFirst().length() < minWeightPaths.getSecond().length() ? minWeightPaths.getFirst().length() : minWeightPaths.getSecond().length()) && minWeightPaths.getFirst().charAt(s) == minWeightPaths.getSecond().charAt(s); s++) {}
+
+        while (e0 > s && e1 > s && minWeightPaths.getFirst().charAt(e0) == minWeightPaths.getSecond().charAt(e1)) {
+            e0--;
+            e1--;
+        }
+
+        return new Pair<String, String>(minWeightPaths.getFirst().substring(s, e0 + 1), minWeightPaths.getSecond().substring(s, e1 + 1));
+    }
+
+    private VariantContext getVariant(Pair<String, String> minWeightPaths, String stretch) {
+        int s, e0 = minWeightPaths.getFirst().length() - 1, e1 = minWeightPaths.getSecond().length() - 1;
+
+        for (s = 0; s < (minWeightPaths.getFirst().length() < minWeightPaths.getSecond().length() ? minWeightPaths.getFirst().length() : minWeightPaths.getSecond().length()) && minWeightPaths.getFirst().charAt(s) == minWeightPaths.getSecond().charAt(s); s++) {}
+
+        while (e0 > s && e1 > s && minWeightPaths.getFirst().charAt(e0) == minWeightPaths.getSecond().charAt(e1)) {
+            e0--;
+            e1--;
+        }
+
+        VariantContext vc = (new VariantContextBuilder())
+                .chr("unknown")
+                .start(s)
+                .stop(e1)
+                .alleles(minWeightPaths.getSecond().substring(s, e1 + 1), minWeightPaths.getFirst().substring(s, e0 + 1))
+                .attribute("NOVEL_STRETCH", stretch)
+                .attribute("CHILD_STRETCH", minWeightPaths.getFirst())
+                .attribute("PARENT_STRETCH", minWeightPaths.getSecond())
+                .make();
+
+        return vc;
+    }
+
     @Override
     public void execute() {
+        TableWriter tw = new TableWriter(out);
+
         Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
 
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -636,6 +729,8 @@ public class PrintNovelSubgraph extends Module {
                 addGraph(ag, sg1, 1, novelKmers);
                 addGraph(ag, sg2, 2, novelKmers);
 
+                printGraph(simplifyGraph(ag), "debug", false, false);
+
                 Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
                 for (AnnotatedVertex ak : ag.vertexSet()) {
                     CortexKmer ck = new CortexKmer(ak.getKmer());
@@ -660,25 +755,25 @@ public class PrintNovelSubgraph extends Module {
 
                 log.info("    novelKmers: {}, totalNovelKmersUsed: {}, totalNovelKmers: {}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
-                // Simplify the graph
-                /*
-                log.info("    simplifying graph...");
-                log.info("    - before: v: {} e: {}", ag.vertexSet().size(), ag.edgeSet().size());
-
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = simplifyGraph(ag);
-
-                log.info("    -  after: v: {} e: {}", sg.vertexSet().size(), sg.edgeSet().size());
-
-                for (VariantInfo vi : relevantVis) {
-                    String prefix = String.format("stretch%s.%s.%s.%s.%d-%d", String.format("%04d", stretchNum), vi.variantId, vi.vclass, vi.vchr, vi.vstart, vi.vstop);
-
-                    printGraph(sg, prefix + ".simplified", false, true);
-                }
-                */
-
                 // Now, find min-weight paths for each color vs child
                 boolean c1 = isConnected(ag, 1, stretch, novelKmers);
                 Pair<String, String> p1 = computeMinWeightPaths(ag, 1, stretch, novelKmers);
+                VariantContext vc1 = (new VariantContextBuilder())
+                        .chr("unknown")
+                        .start(1)
+                        .stop(1)
+                        .alleles("A", "N")
+                        .filter("TRAVERSAL_FAILED")
+                        .attribute("NOVEL_STRETCH", stretch)
+                        .make();
+                VariantContext vc2 = (new VariantContextBuilder())
+                        .chr("unknown")
+                        .start(1)
+                        .stop(1)
+                        .alleles("A", "N")
+                        .filter("TRAVERSAL_FAILED")
+                        .attribute("NOVEL_STRETCH", stretch)
+                        .make();
 
                 boolean c2 = isConnected(ag, 2, stretch, novelKmers);
                 Pair<String, String> p2 = computeMinWeightPaths(ag, 2, stretch, novelKmers);
@@ -687,14 +782,183 @@ public class PrintNovelSubgraph extends Module {
                 log.info("     c1: {}", c1);
                 log.info("     n1: {} ({})", p1.getFirst(), p1.getFirst().length());
                 log.info("     p1: {} ({})", p1.getSecond(), p1.getSecond().length());
+
+                if (p1.getFirst() != null && p1.getSecond() != null && p1.getFirst().length() > 0 && p1.getSecond().length() > 0 && p1.getFirst().charAt(0) == p1.getSecond().charAt(0) && !p1.getFirst().equals(p1.getSecond())) {
+                    Pair<String, String> a1 = getAlleles(p1);
+                    vc1 = getVariant(p1, stretch);
+
+                    log.info("     a1: {}", a1.getFirst());
+                    log.info("     a1: {}", a1.getSecond());
+                    log.info("     v1: {}", vc1);
+                }
+
                 log.info("     c2: {}", c2);
                 log.info("     n2: {} ({})", p2.getFirst(), p2.getFirst().length());
                 log.info("     p2: {} ({})", p2.getSecond(), p2.getSecond().length());
 
-                stretchNum++;
+                if (p2.getFirst() != null && p2.getSecond() != null && p2.getFirst().length() > 0 && p2.getSecond().length() > 0 && p2.getFirst().charAt(0) == p2.getSecond().charAt(0) && !p2.getFirst().equals(p2.getSecond())) {
+                    Pair<String, String> a2 = getAlleles(p2);
+                    vc2 = getVariant(p2, stretch);
 
-                //p1 = computeMinWeightPaths(ag, 1, stretch, novelKmers);
-                //p2 = computeMinWeightPaths(ag, 2, stretch, novelKmers);
+                    log.info("     a2: {}", a2.getFirst());
+                    log.info("     a2: {}", a2.getSecond());
+                    log.info("     v2: {}", vc2);
+                }
+
+                Map<String, String> te = new LinkedHashMap<String, String>();
+
+                te.put("variantId", "unknown");
+                te.put("knownType", "unknown");
+                te.put("knownRef", "unknown");
+                te.put("knownAlt", "unknown");
+
+                for (VariantInfo vi : relevantVis) {
+                    te.put("variantId", vi.variantId);
+                    te.put("knownType", vi.type);
+                    te.put("knownRef", vi.ref);
+                    te.put("knownAlt", vi.alt == null ? "." : vi.alt);
+                }
+
+                if (vc1 != null) {
+                    String ref = vc1.getReference().getBaseString();
+                    String alt = vc1.getAlternateAllele(0).getBaseString();
+
+                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc1.getReference().length() && !te.get("knownRef").equals(vc1.getReference().getBaseString()) && !te.get("knownAlt").equals(vc1.getAlternateAllele(0).getBaseString())) {
+                        int pos = vc1.getStart();
+                        int refLength = vc1.getReference().length();
+                        int altLength = vc1.getAlternateAllele(0).length();
+                        boolean found = false;
+
+                        while (pos >= 0 && pos + refLength < p1.getFirst().length() && pos + altLength < p1.getSecond().length()) {
+                            String refFw = p1.getSecond().substring(pos, pos + refLength);
+                            String refRc = SequenceUtils.reverseComplement(refFw);
+
+                            String altFw = p1.getFirst().substring(pos, pos + altLength);
+                            String altRc = SequenceUtils.reverseComplement(altFw);
+
+                            if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
+                                ref = refFw;
+                                alt = altFw;
+                                found = true;
+                                break;
+                            } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
+                                ref = refRc;
+                                alt = altRc;
+                                found = true;
+                                break;
+                            }
+
+                            pos--;
+                        }
+
+                        if (!found) {
+                            pos = vc1.getStart();
+
+                            while (pos >= 0 && pos + refLength < p1.getFirst().length() && pos + altLength < p1.getSecond().length()) {
+                                String refFw = p1.getSecond().substring(pos, pos + refLength);
+                                String refRc = SequenceUtils.reverseComplement(refFw);
+
+                                String altFw = p1.getFirst().substring(pos, pos + altLength);
+                                String altRc = SequenceUtils.reverseComplement(altFw);
+
+                                if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
+                                    ref = refFw;
+                                    alt = altFw;
+                                    break;
+                                } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
+                                    ref = refRc;
+                                    alt = altRc;
+                                    break;
+                                }
+
+                                pos++;
+                            }
+                        }
+                    }
+
+                    te.put("v1Type", vc1.getType().name());
+                    te.put("v1Ref", ref);
+                    te.put("v1Alt", alt);
+                    te.put("v1Filter", String.valueOf(vc1.isFiltered()));
+                } else {
+                    te.put("v1Type", "NA");
+                    te.put("v1Ref", "NA");
+                    te.put("v1Alt", "NA");
+                    te.put("v1Filter", "NA");
+                }
+
+                if (vc2 != null) {
+                    String ref = vc2.getReference().getBaseString();
+                    String alt = vc2.getAlternateAllele(0).getBaseString();
+
+                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc2.getReference().length() && !te.get("knownRef").equals(vc2.getReference().getBaseString()) && !te.get("knownAlt").equals(vc2.getAlternateAllele(0).getBaseString())) {
+                        int pos = vc2.getStart();
+                        int refLength = vc2.getReference().length();
+                        int altLength = vc2.getAlternateAllele(0).length();
+                        boolean found = false;
+
+                        while (pos >= 0 && pos + refLength < p2.getFirst().length() && pos + altLength < p2.getSecond().length()) {
+                            String refFw = p2.getSecond().substring(pos, pos + vc2.getReference().length());
+                            String refRc = SequenceUtils.reverseComplement(refFw);
+
+                            String altFw = p2.getFirst().substring(pos, pos + vc2.getAlternateAllele(0).length());
+                            String altRc = SequenceUtils.reverseComplement(altFw);
+
+                            if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
+                                ref = refFw;
+                                alt = altFw;
+                                found = true;
+                                break;
+                            } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
+                                ref = refRc;
+                                alt = altRc;
+                                found = true;
+                                break;
+                            }
+
+                            pos--;
+                        }
+
+                        if (!found) {
+                            pos = vc2.getStart();
+
+                            while (pos >= 0 && pos + refLength < p2.getFirst().length() && pos + altLength < p2.getSecond().length()) {
+                                String refFw = p2.getSecond().substring(pos, pos + refLength);
+                                String refRc = SequenceUtils.reverseComplement(refFw);
+
+                                String altFw = p2.getFirst().substring(pos, pos + altLength);
+                                String altRc = SequenceUtils.reverseComplement(altFw);
+
+                                if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
+                                    ref = refFw;
+                                    alt = altFw;
+                                    break;
+                                } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
+                                    ref = refRc;
+                                    alt = altRc;
+                                    break;
+                                }
+
+                                pos++;
+                            }
+                        }
+                    }
+
+                    te.put("v2Type", vc2.getType().name());
+                    te.put("v2Ref", ref);
+                    te.put("v2Alt", alt);
+                    te.put("v2Filter", String.valueOf(vc2.isFiltered()));
+                } else {
+                    te.put("v2Type", "NA");
+                    te.put("v2Ref", "NA");
+                    te.put("v2Alt", "NA");
+                    te.put("v2Filter", "NA");
+                }
+
+                tw.addEntry(te);
+                out.flush();
+
+                stretchNum++;
             }
         }
 

@@ -18,7 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
-public class GraphGenotyper extends Module {
+public class GraphGenotyperOld extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph (sorted)")
     public CortexGraph GRAPH;
 
