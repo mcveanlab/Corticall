@@ -49,6 +49,9 @@ public class SimChild extends Module {
     @Argument(fullName="numTDs", shortName="ntds", doc="Number of tandem duplications to simulate")
     public Integer NUM_TDS = 1;
 
+    @Argument(fullName="numGCs", shortName="ngcs", doc="Number of GC events per chromosome")
+    public Integer NUM_GCS = 1;
+
     @Argument(fullName="maxLength", shortName="l", doc="Maximum length of variants")
     public Integer MAX_LENGTH = 5;
 
@@ -627,8 +630,6 @@ public class SimChild extends Module {
         log.info("Simulating gene conversion events...");
         int removedVariants = 0, addedVariants = 0;
         for (String chr : variants.keySet()) {
-            int numGCEvents = 3;
-
             List<Integer> positions = new ArrayList<Integer>();
             for (Integer i : variants.get(chr).keySet()) {
                 positions.add(i);
@@ -636,7 +637,7 @@ public class SimChild extends Module {
 
             Collections.sort(positions);
 
-            for (int i = 0; i < numGCEvents; i++) {
+            for (int i = 0; i < NUM_GCS; i++) {
                 int numVariantsInGC = rng.nextInt(2) + 1;
 
                 int index;
