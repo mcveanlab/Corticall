@@ -11,5 +11,7 @@ public interface TraversalStopper {
 
     boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions);
 
+    int maxJunctionsAllowed();
+
     int getDistanceToGoal();
 }

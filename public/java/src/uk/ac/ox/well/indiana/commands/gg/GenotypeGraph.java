@@ -35,16 +35,16 @@ public class GenotypeGraph extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="graphRaw", shortName="gr", doc="Graph (raw)", required=false)
+    @Argument(fullName="graphRaw", shortName="r", doc="Graph (raw)", required=false)
     public CortexGraph GRAPH_RAW;
 
     @Argument(fullName="novelGraph", shortName="n", doc="Graph of novel kmers")
     public CortexGraph NOVEL;
 
-    @Argument(fullName="bed", shortName="b", doc="Bed file describing variants")
+    @Argument(fullName="bed", shortName="b", doc="Bed file describing variants", required=false)
     public File BED;
 
-    @Argument(fullName="novelKmerMap", shortName="m", doc="Novel kmer map")
+    @Argument(fullName="novelKmerMap", shortName="m", doc="Novel kmer map", required=false)
     public File NOVEL_KMER_MAP;
 
     @Output(fullName="gout", shortName="go", doc="Graph out")
@@ -127,46 +127,54 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private Map<CortexKmer, VariantInfo> loadNovelKmerMap() {
+    private Map<String, VariantInfo> loadVariantInfoMap() {
         Map<String, VariantInfo> allVariants = new HashMap<String, VariantInfo>();
 
-        TableReader bed = new TableReader(BED, "vchr", "vstart", "vstop", "info");
+        if (BED != null) {
+            TableReader bed = new TableReader(BED, "vchr", "vstart", "vstop", "info");
 
-        for (Map<String, String> be : bed) {
-            VariantInfo vi = new VariantInfo();
+            for (Map<String, String> be : bed) {
+                VariantInfo vi = new VariantInfo();
 
-            vi.vchr = be.get("vchr");
-            vi.vstart = Integer.valueOf(be.get("vstart"));
-            vi.vstop = Integer.valueOf(be.get("vstop"));
+                vi.vchr = be.get("vchr");
+                vi.vstart = Integer.valueOf(be.get("vstart"));
+                vi.vstop = Integer.valueOf(be.get("vstop"));
 
-            String[] kvpairs = be.get("info").split(";");
-            for (String kvpair : kvpairs) {
-                String[] kv = kvpair.split("=");
+                String[] kvpairs = be.get("info").split(";");
+                for (String kvpair : kvpairs) {
+                    String[] kv = kvpair.split("=");
 
-                if (kv[0].equals("id")) { vi.variantId = kv[1]; }
-                if (kv[0].equals("type")) { vi.type = kv[1]; }
-                if (kv[0].equals("denovo")) { vi.denovo = kv[1]; }
-                if (kv[0].equals("nahr")) { vi.nahr = kv[1]; }
-                if (kv[0].equals("gcindex")) { vi.gcindex = Integer.valueOf(kv[1]); }
-                if (kv[0].equals("ref")) { vi.ref = kv[1]; }
-                if (kv[0].equals("alt")) { vi.alt = kv[1]; }
-                if (kv[0].equals("left")) { vi.leftFlank = kv[1]; }
-                if (kv[0].equals("right")) { vi.rightFlank = kv[1]; }
+                    if (kv[0].equals("id")) { vi.variantId = kv[1]; }
+                    if (kv[0].equals("type")) { vi.type = kv[1]; }
+                    if (kv[0].equals("denovo")) { vi.denovo = kv[1]; }
+                    if (kv[0].equals("nahr")) { vi.nahr = kv[1]; }
+                    if (kv[0].equals("gcindex")) { vi.gcindex = Integer.valueOf(kv[1]); }
+                    if (kv[0].equals("ref")) { vi.ref = kv[1]; }
+                    if (kv[0].equals("alt")) { vi.alt = kv[1]; }
+                    if (kv[0].equals("left")) { vi.leftFlank = kv[1]; }
+                    if (kv[0].equals("right")) { vi.rightFlank = kv[1]; }
+                }
+
+                allVariants.put(vi.variantId, vi);
             }
-
-            allVariants.put(vi.variantId, vi);
         }
+        return allVariants;
+    }
+
+    private Map<CortexKmer, VariantInfo> loadNovelKmerMap() {
+        Map<String, VariantInfo> allVariants = loadVariantInfoMap();
 
         Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
 
-        TableReader tr = new TableReader(NOVEL_KMER_MAP);
+        if (NOVEL_KMER_MAP != null) {
+            TableReader tr = new TableReader(NOVEL_KMER_MAP);
 
-        for (Map<String, String> te : tr) {
-            VariantInfo vi = allVariants.get(te.get("variantId"));
+            for (Map<String, String> te : tr) {
+                VariantInfo vi = allVariants.get(te.get("variantId"));
+                CortexKmer kmer = new CortexKmer(te.get("kmer"));
 
-            CortexKmer kmer = new CortexKmer(te.get("kmer"));
-
-            vis.put(kmer, vi);
+                vis.put(kmer, vi);
+            }
         }
 
         return vis;
@@ -204,7 +212,7 @@ public class GenotypeGraph extends Module {
             for (AnnotatedVertex v : g.vertexSet()) {
                 Map<String, Object> attrs = new TreeMap<String, Object>();
 
-                if (!withText) {
+                if (!withText || g.inDegreeOf(v) == 0 || g.outDegreeOf(v) == 0) {
                     attrs.put("label", "");
                 }
 
@@ -215,7 +223,7 @@ public class GenotypeGraph extends Module {
                 }
 
                 if (v.flagIsSet("start") || v.flagIsSet("end")) {
-                    //attrs.put("label", v.getKmer());
+                    attrs.put("label", v.getKmer());
                     attrs.put("fillcolor", v.flagIsSet("start") ? "orange" : "purple");
                     attrs.put("shape", "rect");
                 }
@@ -271,43 +279,12 @@ public class GenotypeGraph extends Module {
             AnnotatedVertex a0 = new AnnotatedVertex(s0, novelKmers.containsKey(ck0));
             AnnotatedVertex a1 = new AnnotatedVertex(s1, novelKmers.containsKey(ck1));
 
-            //log.info("a0: {}", a0);
-            //log.info("a1: {}", a1);
-
             if (!a.containsEdge(a0, a1)) {
                 a.addEdge(a0, a1, new AnnotatedEdge());
             }
 
             a.getEdge(a0, a1).set(color, true);
         }
-    }
-
-    private Set<AnnotatedVertex> getListOfVerticesToRemove(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfs) {
-        Set<AnnotatedVertex> toRemove = new HashSet<AnnotatedVertex>();
-
-        while (dfs.hasNext()) {
-            AnnotatedVertex v1 = dfs.next();
-
-            if (!v1.isNovel() && !toRemove.contains(v1)) {
-                Set<AnnotatedEdge> oes = a.outgoingEdgesOf(v1);
-
-                for (AnnotatedEdge oe : oes) {
-                    if (oe.isPresent(0) && (oe.isPresent(1) || oe.isPresent(2))) {
-                        AnnotatedVertex vt = a.getEdgeTarget(oe);
-
-                        DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> subdfs = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(a, vt);
-
-                        while (subdfs.hasNext()) {
-                            AnnotatedVertex vs = subdfs.next();
-
-                            toRemove.add(vs);
-                        }
-                    }
-                }
-            }
-        }
-
-        return toRemove;
     }
 
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> copyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
@@ -377,7 +354,6 @@ public class GenotypeGraph extends Module {
 
                 while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
                     AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
-                    //sv.setFlags(thisVertex.getFlags());
 
                     b.addVertex(sv);
 
@@ -469,74 +445,8 @@ public class GenotypeGraph extends Module {
         return sb.toString();
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> trimGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, Set<AnnotatedVertex> candidateStarts, Set<AnnotatedVertex> candidateEnds) {
-        /*
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
-
-        for (AnnotatedVertex candidateStart : candidateStarts) {
-            Set<AnnotatedVertex> candidateVertices = new HashSet<AnnotatedVertex>(Graphs.predecessorListOf(b, candidateStart));
-
-            boolean goodToRemove = true;
-            for (AnnotatedVertex av : candidateVertices) {
-                if (av.isNovel()) {
-                    goodToRemove = false;
-                }
-            }
-
-            if (goodToRemove) {
-                verticesToRemove.addAll(candidateVertices);
-            }
-        }
-
-        for (AnnotatedVertex candidateEnd : candidateEnds) {
-            Set<AnnotatedVertex> candidateVertices = new HashSet<AnnotatedVertex>(Graphs.successorListOf(b, candidateEnd));
-
-            boolean goodToRemove = true;
-            for (AnnotatedVertex av : candidateVertices) {
-                if (av.isNovel()) {
-                    goodToRemove = false;
-                }
-            }
-
-            if (goodToRemove) {
-                verticesToRemove.addAll(candidateVertices);
-            }
-        }
-
-        Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
-
-        for (AnnotatedVertex av : verticesToRemove) {
-            for (AnnotatedEdge ae : b.outgoingEdgesOf(av)) {
-                AnnotatedVertex nav = b.getEdgeTarget(ae);
-
-                if (verticesToRemove.contains(nav)) {
-                    edgesToRemove.add(ae);
-                }
-            }
-
-            for (AnnotatedEdge ae : b.incomingEdgesOf(av)) {
-                AnnotatedVertex pav = b.getEdgeSource(ae);
-
-                if (verticesToRemove.contains(pav)) {
-                    edgesToRemove.add(ae);
-                }
-            }
-        }
-
-        b.removeAllVertices(verticesToRemove);
-        b.removeAllEdges(edgesToRemove);
-
-        return b;
-        */
-
-        return a;
-    }
-
     private Pair<String, String> computeMinWeightPaths(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-
-        log.info("    a={} {}, b={} {}", a.vertexSet().size(), a.edgeSet().size(), b.vertexSet().size(), b.edgeSet().size());
 
         AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
@@ -544,10 +454,6 @@ public class GenotypeGraph extends Module {
 
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
-
-        //printGraph(simplifyGraph(trimGraph(b, candidateStarts, candidateEnds)), "monocolor.all",      false, true);
-        //printGraph(simplifyGraph(trimGraph(b0, candidateStarts, candidateEnds)), "monocolor." + 0,     false, true);
-        //printGraph(simplifyGraph(trimGraph(bc, candidateStarts, candidateEnds)), "monocolor." + color, false, true);
 
         GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = computeMinWeightPath(b0, candidateEnds, candidateStarts);
         GraphPath<AnnotatedVertex, AnnotatedEdge> pc = computeMinWeightPath(bc, candidateEnds, candidateStarts);
@@ -569,7 +475,9 @@ public class GenotypeGraph extends Module {
                 GraphPath<AnnotatedVertex, AnnotatedEdge> path = dsp.getPath();
                 double pathLength = dsp.getPathLength();
 
-                if (pathLength < minPathLength) {
+                String linearizedPath = path == null ? "" : linearizePath(b, path);
+
+                if (linearizedPath.contains(sv.getKmer()) && linearizedPath.contains(ev.getKmer()) && pathLength < minPathLength) {
                     minPathLength = pathLength;
                     minWeightPath = path;
                 }
@@ -579,390 +487,216 @@ public class GenotypeGraph extends Module {
         return minWeightPath;
     }
 
-    private boolean isConnected(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+    private List<String> getNovelStretch(String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        boolean[] novel = new boolean[stretch.length()];
+        int kmerLength = novelKmers.keySet().iterator().next().length();
+
+        for (int i = 0; i <= stretch.length() - kmerLength; i++) {
+            String sk = stretch.substring(i, i + kmerLength);
+            CortexKmer ck = new CortexKmer(sk);
+
+            novel[i] = novelKmers.containsKey(ck);
+        }
+
+        List<String> novelStretches = new ArrayList<String>();
+
+        StringBuilder novelStretchBuilder = new StringBuilder();
+
+        for (int i = 0; i <= stretch.length() - kmerLength; i++) {
+            String sk = stretch.substring(i, i + kmerLength);
+            boolean isNovel = novel[i];
+
+            if (!isNovel) {
+                if (novelStretchBuilder.length() > 0) {
+                    novelStretches.add(novelStretchBuilder.toString());
+                    novelStretchBuilder = new StringBuilder();
+                }
+            } else {
+                if (novelStretchBuilder.length() == 0) {
+                    novelStretchBuilder.append(sk);
+                } else {
+                    novelStretchBuilder.append(sk.charAt(sk.length() - 1));
+                }
+            }
+        }
+
+        if (novelStretchBuilder.length() > 0) {
+            novelStretches.add(novelStretchBuilder.toString());
+        }
+
+        return novelStretches;
+    }
+
+    private Pair<String, String> computeBestMinWeightPath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
         Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
-        b = removeOtherColors(b, color);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
-        ConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new ConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
-        //StrongConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new StrongConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
+        List<String> novelStretches = getNovelStretch(stretch, novelKmers);
 
-        for (AnnotatedVertex candidateStart : candidateStarts) {
-            for (AnnotatedVertex candidateEnd : candidateEnds) {
-                if (ci.pathExists(candidateStart, candidateEnd)) {
-                    log.info("s: {}, e: {}", candidateStart, candidateEnd);
+        double minPl0 = Double.MAX_VALUE, minPlc = Double.MAX_VALUE;
+        String minLp0 = "", minLpc = "";
 
-                    return true;
+        for (AnnotatedVertex sv : candidateStarts) {
+            for (AnnotatedVertex ev : candidateEnds) {
+                DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
+                DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
+
+                GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
+                GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
+
+                String lp0 = p0 == null ? "" : linearizePath(b0, p0);
+                String lpc = pc == null ? "" : linearizePath(bc, pc);
+
+                if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
+                    boolean stretchesArePresent = true;
+                    for (String novelStretch : novelStretches) {
+                        if (!lp0.contains(novelStretch)) {
+                            stretchesArePresent = false;
+                            break;
+                        }
+                    }
+
+                    if (novelStretches.size() > 0 && stretchesArePresent) {
+                        double pl0 = dsp0.getPathLength();
+                        double plc = dspc.getPathLength();
+
+                        if (pl0 < minPl0 && plc < minPlc) {
+                            minPl0 = pl0;
+                            minLp0 = lp0;
+
+                            minPlc = plc;
+                            minLpc = lpc;
+                        }
+                    }
                 }
             }
         }
 
-        return false;
+        return new Pair<String, String>(minLp0, minLpc);
     }
 
-    private Pair<String, String> getAlleles(Pair<String, String> minWeightPaths) {
-        int s, e0 = minWeightPaths.getFirst().length() - 1, e1 = minWeightPaths.getSecond().length() - 1;
+    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        //Pair<String, String> p = computeMinWeightPaths(a, color, stretch, novelKmers);
+        Pair<String, String> p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
-        for (s = 0; s < (minWeightPaths.getFirst().length() < minWeightPaths.getSecond().length() ? minWeightPaths.getFirst().length() : minWeightPaths.getSecond().length()) && minWeightPaths.getFirst().charAt(s) == minWeightPaths.getSecond().charAt(s); s++) {}
+        int s, e0 = p.getFirst().length() - 1, e1 = p.getSecond().length() - 1;
 
-        while (e0 > s && e1 > s && minWeightPaths.getFirst().charAt(e0) == minWeightPaths.getSecond().charAt(e1)) {
+        for (s = 0; s < (p.getFirst().length() < p.getSecond().length() ? p.getFirst().length() : p.getSecond().length()) && p.getFirst().charAt(s) == p.getSecond().charAt(s); s++) {}
+
+        while (e0 > s && e1 > s && p.getFirst().charAt(e0) == p.getSecond().charAt(e1)) {
             e0--;
             e1--;
         }
 
-        return new Pair<String, String>(minWeightPaths.getFirst().substring(s, e0 + 1), minWeightPaths.getSecond().substring(s, e1 + 1));
-    }
+        String parentalAllele = p.getSecond() == null || p.getSecond().equals("") || p.getFirst().equals(p.getSecond()) ? "A" : p.getSecond().substring(s, e1 + 1);
+        String childAllele = p.getFirst() == null || p.getFirst().equals("") || p.getFirst().equals(p.getSecond()) ? "N" : p.getFirst().substring(s, e0 + 1);
 
-    private VariantContext getVariant(Pair<String, String> minWeightPaths, String stretch) {
-        int s, e0 = minWeightPaths.getFirst().length() - 1, e1 = minWeightPaths.getSecond().length() - 1;
+        int e = s + parentalAllele.length() - 1;
 
-        for (s = 0; s < (minWeightPaths.getFirst().length() < minWeightPaths.getSecond().length() ? minWeightPaths.getFirst().length() : minWeightPaths.getSecond().length()) && minWeightPaths.getFirst().charAt(s) == minWeightPaths.getSecond().charAt(s); s++) {}
+        //log.info("  parentalAllele: {}", parentalAllele);
+        //log.info("  childAllele: {}", childAllele);
 
-        while (e0 > s && e1 > s && minWeightPaths.getFirst().charAt(e0) == minWeightPaths.getSecond().charAt(e1)) {
-            e0--;
-            e1--;
-        }
-
-        VariantContext vc = (new VariantContextBuilder())
+        VariantContextBuilder vcb = new VariantContextBuilder()
                 .chr("unknown")
                 .start(s)
-                .stop(e1)
-                .alleles(minWeightPaths.getSecond().substring(s, e1 + 1), minWeightPaths.getFirst().substring(s, e0 + 1))
+                .stop(e)
+                .alleles(parentalAllele, childAllele)
                 .attribute("NOVEL_STRETCH", stretch)
-                .attribute("CHILD_STRETCH", minWeightPaths.getFirst())
-                .attribute("PARENT_STRETCH", minWeightPaths.getSecond())
-                .make();
+                .attribute("CHILD_STRETCH", p.getFirst())
+                .attribute("PARENT_STRETCH", p.getSecond())
+                .attribute("CHILD_COLOR", 0)
+                .attribute("PARENT_COLOR", color)
+                .source(String.valueOf(color));
 
-        return vc;
-    }
-
-    @Override
-    public void execute() {
-        TableWriter tw = new TableWriter(out);
-
-        Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
-
-        Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
-        for (CortexRecord cr : NOVEL) {
-            novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
+        if (childAllele.equals("N")) {
+            vcb.filter("TRAVERSAL_INCOMPLETE");
         }
 
-        int totalNovelKmersUsed = 0;
-        int stretchNum = 0;
-        for (CortexKmer novelKmer : novelKmers.keySet()) {
-            if (novelKmers.get(novelKmer)) {
-                int novelKmersUsed = 0;
+        return vcb.make();
+    }
 
-                // first, explore each color and bring the local subgraphs into memory
-                DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-                DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-                DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, CortexKmer novelKmer, String stretch) {
+        // first, explore each color and bring the local subgraphs into memory
+        DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
 
-                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0);
+        for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
+            String kmer = stretch.substring(i, i + novelKmer.length());
 
-                log.info("  stretch: {} ({})", stretchNum, stretch.length());
-                log.info("    processing child graph...");
-
-                for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
-                    String kmer = stretch.substring(i, i + novelKmer.length());
-
-                    if (!sg0.containsVertex(kmer)) {
-                        Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
-                            @Override
-                            public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
-                                return false;
-                            }
-
-                            @Override
-                            public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                                return junctions >= maxJunctions;
-                            }
-                        }));
-                    }
-                }
-
-                for (int c = 1; c <= 2; c++) {
-                    log.info("    processing parent {} graph... ({} kmers)", c, sg0.vertexSet().size());
-
-                    for (String kmer : sg0.vertexSet()) {
-                        DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
-
-                        if (!sg.containsVertex(kmer)) {
-                            TraversalStopper stopper = new AbstractTraversalStopper() {
-                                @Override
-                                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                                    String fw = cr.getKmerAsString();
-                                    String rc = SequenceUtils.reverseComplement(fw);
-
-                                    if (g.containsVertex(fw) || g.containsVertex(rc)) {
-                                        if (junctions < distanceToGoal) {
-                                            distanceToGoal = junctions;
-                                        }
-
-                                        return true;
-                                    }
-
-                                    return false;
-                                }
-
-                                @Override
-                                public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                                    return junctions >= maxJunctions;
-                                }
-                            };
-
-                            Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
-                        }
-                    }
-                }
-
-                log.info("    combining graphs...");
-
-                // Now, combine them all into an annotated graph
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-
-                addGraph(ag, sg0, 0, novelKmers);
-                addGraph(ag, sg1, 1, novelKmers);
-                addGraph(ag, sg2, 2, novelKmers);
-
-                printGraph(simplifyGraph(ag), "debug", false, false);
-
-                Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
-                for (AnnotatedVertex ak : ag.vertexSet()) {
-                    CortexKmer ck = new CortexKmer(ak.getKmer());
-
-                    if (ak.isNovel() && vis.containsKey(ck)) {
-                        VariantInfo vi = vis.get(novelKmer);
-
-                        relevantVis.add(vi);
-                    }
-                }
-
-                // Perform novel kmer accounting
-                for (AnnotatedVertex ak : ag.vertexSet()) {
-                    CortexKmer ck = new CortexKmer(ak.getKmer());
-
-                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                        totalNovelKmersUsed++;
-                        novelKmersUsed++;
-                        novelKmers.put(ck, false);
-                    }
-                }
-
-                log.info("    novelKmers: {}, totalNovelKmersUsed: {}, totalNovelKmers: {}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
-
-                // Now, find min-weight paths for each color vs child
-                boolean c1 = isConnected(ag, 1, stretch, novelKmers);
-                Pair<String, String> p1 = computeMinWeightPaths(ag, 1, stretch, novelKmers);
-                VariantContext vc1 = (new VariantContextBuilder())
-                        .chr("unknown")
-                        .start(1)
-                        .stop(1)
-                        .alleles("A", "N")
-                        .filter("TRAVERSAL_FAILED")
-                        .attribute("NOVEL_STRETCH", stretch)
-                        .make();
-                VariantContext vc2 = (new VariantContextBuilder())
-                        .chr("unknown")
-                        .start(1)
-                        .stop(1)
-                        .alleles("A", "N")
-                        .filter("TRAVERSAL_FAILED")
-                        .attribute("NOVEL_STRETCH", stretch)
-                        .make();
-
-                boolean c2 = isConnected(ag, 2, stretch, novelKmers);
-                Pair<String, String> p2 = computeMinWeightPaths(ag, 2, stretch, novelKmers);
-
-                log.info("    vis: {}", relevantVis);
-                log.info("     c1: {}", c1);
-                log.info("     n1: {} ({})", p1.getFirst(), p1.getFirst().length());
-                log.info("     p1: {} ({})", p1.getSecond(), p1.getSecond().length());
-
-                if (p1.getFirst() != null && p1.getSecond() != null && p1.getFirst().length() > 0 && p1.getSecond().length() > 0 && p1.getFirst().charAt(0) == p1.getSecond().charAt(0) && !p1.getFirst().equals(p1.getSecond())) {
-                    Pair<String, String> a1 = getAlleles(p1);
-                    vc1 = getVariant(p1, stretch);
-
-                    log.info("     a1: {}", a1.getFirst());
-                    log.info("     a1: {}", a1.getSecond());
-                    log.info("     v1: {}", vc1);
-                }
-
-                log.info("     c2: {}", c2);
-                log.info("     n2: {} ({})", p2.getFirst(), p2.getFirst().length());
-                log.info("     p2: {} ({})", p2.getSecond(), p2.getSecond().length());
-
-                if (p2.getFirst() != null && p2.getSecond() != null && p2.getFirst().length() > 0 && p2.getSecond().length() > 0 && p2.getFirst().charAt(0) == p2.getSecond().charAt(0) && !p2.getFirst().equals(p2.getSecond())) {
-                    Pair<String, String> a2 = getAlleles(p2);
-                    vc2 = getVariant(p2, stretch);
-
-                    log.info("     a2: {}", a2.getFirst());
-                    log.info("     a2: {}", a2.getSecond());
-                    log.info("     v2: {}", vc2);
-                }
-
-                Map<String, String> te = new LinkedHashMap<String, String>();
-
-                te.put("variantId", "unknown");
-                te.put("knownType", "unknown");
-                te.put("knownRef", "unknown");
-                te.put("knownAlt", "unknown");
-
-                for (VariantInfo vi : relevantVis) {
-                    te.put("variantId", vi.variantId);
-                    te.put("knownType", vi.type);
-                    te.put("knownRef", vi.ref);
-                    te.put("knownAlt", vi.alt == null ? "." : vi.alt);
-                }
-
-                if (vc1 != null) {
-                    String ref = vc1.getReference().getBaseString();
-                    String alt = vc1.getAlternateAllele(0).getBaseString();
-
-                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc1.getReference().length() && (!te.get("knownRef").equals(vc1.getReference().getBaseString()) || !te.get("knownAlt").equals(vc1.getAlternateAllele(0).getBaseString()))) {
-                        int pos = vc1.getStart();
-                        int refLength = vc1.getReference().length();
-                        int altLength = vc1.getAlternateAllele(0).length();
-                        boolean found = false;
-
-                        while (pos >= 0 && pos + refLength < p1.getSecond().length() && pos + altLength < p1.getFirst().length()) {
-                            String refFw = p1.getSecond().substring(pos, pos + refLength);
-                            String refRc = SequenceUtils.reverseComplement(refFw);
-
-                            String altFw = p1.getFirst().substring(pos, pos + altLength);
-                            String altRc = SequenceUtils.reverseComplement(altFw);
-
-                            if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
-                                ref = refFw;
-                                alt = altFw;
-                                found = true;
-                                break;
-                            } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
-                                ref = refRc;
-                                alt = altRc;
-                                found = true;
-                                break;
-                            }
-
-                            pos--;
-                        }
-
-                        if (!found) {
-                            pos = vc1.getStart();
-
-                            while (pos >= 0 && pos + refLength < p1.getSecond().length() && pos + altLength < p1.getFirst().length()) {
-                                String refFw = p1.getSecond().substring(pos, pos + refLength);
-                                String refRc = SequenceUtils.reverseComplement(refFw);
-
-                                String altFw = p1.getFirst().substring(pos, pos + altLength);
-                                String altRc = SequenceUtils.reverseComplement(altFw);
-
-                                if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
-                                    ref = refFw;
-                                    alt = altFw;
-                                    break;
-                                } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
-                                    ref = refRc;
-                                    alt = altRc;
-                                    break;
-                                }
-
-                                pos++;
-                            }
-                        }
+            if (!sg0.containsVertex(kmer)) {
+                Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
+                    @Override
+                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                        return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
                     }
 
-                    te.put("v1Type", vc1.getType().name());
-                    te.put("v1Ref", ref);
-                    te.put("v1Alt", alt);
-                    te.put("v1Filter", String.valueOf(vc1.isFiltered()));
-                } else {
-                    te.put("v1Type", "NA");
-                    te.put("v1Ref", "NA");
-                    te.put("v1Alt", "NA");
-                    te.put("v1Filter", "NA");
-                }
-
-                if (vc2 != null) {
-                    String ref = vc2.getReference().getBaseString();
-                    String alt = vc2.getAlternateAllele(0).getBaseString();
-
-                    if (!te.get("knownRef").equals("unknown") && te.get("knownRef").length() == vc2.getReference().length() && (!te.get("knownRef").equals(vc2.getReference().getBaseString()) || !te.get("knownAlt").equals(vc2.getAlternateAllele(0).getBaseString()))) {
-                        int pos = vc2.getStart();
-                        int refLength = vc2.getReference().length();
-                        int altLength = vc2.getAlternateAllele(0).length();
-                        boolean found = false;
-
-                        while (pos >= 0 && pos + refLength < p2.getSecond().length() && pos + altLength < p2.getFirst().length()) {
-                            String refFw = p2.getSecond().substring(pos, pos + vc2.getReference().length());
-                            String refRc = SequenceUtils.reverseComplement(refFw);
-
-                            String altFw = p2.getFirst().substring(pos, pos + vc2.getAlternateAllele(0).length());
-                            String altRc = SequenceUtils.reverseComplement(altFw);
-
-                            if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
-                                ref = refFw;
-                                alt = altFw;
-                                found = true;
-                                break;
-                            } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
-                                ref = refRc;
-                                alt = altRc;
-                                found = true;
-                                break;
-                            }
-
-                            pos--;
-                        }
-
-                        if (!found) {
-                            pos = vc2.getStart();
-
-                            while (pos >= 0 && pos + refLength < p2.getFirst().length() && pos + altLength < p2.getSecond().length()) {
-                                String refFw = p2.getSecond().substring(pos, pos + refLength);
-                                String refRc = SequenceUtils.reverseComplement(refFw);
-
-                                String altFw = p2.getFirst().substring(pos, pos + altLength);
-                                String altRc = SequenceUtils.reverseComplement(altFw);
-
-                                if (te.get("knownRef").equals(refFw) && te.get("knownAlt").equals(altFw)) {
-                                    ref = refFw;
-                                    alt = altFw;
-                                    break;
-                                } else if (te.get("knownRef").equals(refRc) && te.get("knownAlt").equals(altRc)) {
-                                    ref = refRc;
-                                    alt = altRc;
-                                    break;
-                                }
-
-                                pos++;
-                            }
-                        }
+                    @Override
+                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                        //return junctions >= maxJunctionsAllowed();
+                        return false;
                     }
 
-                    te.put("v2Type", vc2.getType().name());
-                    te.put("v2Ref", ref);
-                    te.put("v2Alt", alt);
-                    te.put("v2Filter", String.valueOf(vc2.isFiltered()));
-                } else {
-                    te.put("v2Type", "NA");
-                    te.put("v2Ref", "NA");
-                    te.put("v2Alt", "NA");
-                    te.put("v2Filter", "NA");
-                }
-
-                tw.addEntry(te);
-                out.flush();
-
-                stretchNum++;
+                    @Override
+                    public int maxJunctionsAllowed() {
+                        return 3;
+                    }
+                }));
             }
         }
 
-        log.info("Num stretches: {}", stretchNum);
+        for (int c = 1; c <= 2; c++) {
+            for (String kmer : sg0.vertexSet()) {
+                DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
+
+                if (!sg.containsVertex(kmer)) {
+                    TraversalStopper stopper = new AbstractTraversalStopper() {
+                        @Override
+                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                            String fw = cr.getKmerAsString();
+                            String rc = SequenceUtils.reverseComplement(fw);
+
+                            if (g.containsVertex(fw) || g.containsVertex(rc)) {
+                                if (junctions < distanceToGoal) {
+                                    distanceToGoal = junctions;
+                                }
+
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        @Override
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                            return junctions >= maxJunctionsAllowed();
+                        }
+
+                        @Override
+                        public int maxJunctionsAllowed() {
+                            return 5;
+                        }
+                    };
+
+                    Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
+                }
+            }
+        }
+
+        // Now, combine them all into an annotated graph
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+
+        addGraph(ag, sg0, 0, novelKmers);
+        addGraph(ag, sg1, 1, novelKmers);
+        addGraph(ag, sg2, 2, novelKmers);
+
+        return ag;
     }
 
     private class AnnotateStartsAndEnds {
@@ -1079,5 +813,249 @@ public class GenotypeGraph extends Module {
             }
             return this;
         }
+    }
+
+    private boolean isConnected(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+
+        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
+        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
+        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
+
+        b = removeOtherColors(b, color);
+
+        ConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new ConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
+
+        for (AnnotatedVertex candidateStart : candidateStarts) {
+            for (AnnotatedVertex candidateEnd : candidateEnds) {
+                if (ci.pathExists(candidateStart, candidateEnd)) {
+                    log.info("s: {}, e: {}", candidateStart, candidateEnd);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean evalVariant(VariantContext vc, Map<CortexKmer, VariantInfo> vis, String stretch) {
+        Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
+        int kmerSize = vis.keySet().iterator().next().length();
+
+        for (int i = 0; i <= stretch.length() - kmerSize; i++) {
+            CortexKmer ck = new CortexKmer(stretch.substring(i, i + kmerSize));
+
+            if (vis.containsKey(ck)) {
+                relevantVis.add(vis.get(ck));
+            }
+        }
+
+        if (relevantVis.size() > 0) {
+            VariantInfo vi = relevantVis.iterator().next();
+
+            String ref = vc.getReference().getBaseString();
+            String alt = vc.getAlternateAllele(0).getBaseString();
+
+            String refStretch = vc.getAttributeAsString("PARENT_STRETCH", ref);
+            String altStretch = vc.getAttributeAsString("CHILD_STRETCH", alt);
+
+            int pos = vc.getStart();
+            int refLength = vc.getReference().length();
+            int altLength = vc.getAlternateAllele(0).length();
+            boolean found = false;
+
+            while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
+                String refFw = refStretch.substring(pos, pos + refLength);
+                String refRc = SequenceUtils.reverseComplement(refFw);
+
+                String altFw = altStretch.substring(pos, pos + altLength);
+                String altRc = SequenceUtils.reverseComplement(altFw);
+
+                if (vi.ref.equals(refFw) && vi.alt.equals(altFw)) {
+                    ref = refFw;
+                    alt = altFw;
+                    found = true;
+                    break;
+                } else if (vi.ref.equals(refRc) && vi.alt.equals(altRc)) {
+                    ref = refRc;
+                    alt = altRc;
+                    found = true;
+                    break;
+                }
+
+                pos--;
+            }
+
+            if (!found) {
+                pos = vc.getStart();
+
+                while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
+                    String refFw = refStretch.substring(pos, pos + refLength);
+                    String refRc = SequenceUtils.reverseComplement(refFw);
+
+                    String altFw = altStretch.substring(pos, pos + altLength);
+                    String altRc = SequenceUtils.reverseComplement(altFw);
+
+                    if (vi.ref.equals(refFw) && vi.alt.equals(altFw)) {
+                        ref = refFw;
+                        alt = altFw;
+                        found = true;
+                        break;
+                    } else if (vi.ref.equals(refRc) && vi.alt.equals(altRc)) {
+                        ref = refRc;
+                        alt = altRc;
+                        found = true;
+                        break;
+                    }
+
+                    pos++;
+                }
+            }
+
+            String knownRef = vi.ref;
+            String knownAlt = vi.alt == null ? "" : vi.alt;
+
+            if (!found && knownRef.length() > ref.length() && knownAlt.length() > alt.length() && knownRef.length() == knownAlt.length()) {
+                String refFw = ref;
+                String altFw = alt;
+                String refRc = SequenceUtils.reverseComplement(refFw);
+                String altRc = SequenceUtils.reverseComplement(altFw);
+
+                String refFinal = null, altFinal = null;
+
+                if (knownRef.contains(refFw) && knownAlt.contains(altFw)) {
+                    refFinal = refFw;
+                    altFinal = altFw;
+                } else if (knownRef.contains(refRc) && knownAlt.contains(altRc)) {
+                    refFinal = refRc;
+                    altFinal = altRc;
+                }
+
+                if (refFinal != null && altFinal != null) {
+                    int r0index = knownRef.indexOf(refFinal);
+                    int a0index = knownAlt.indexOf(altFinal);
+                    int r1index = r0index + refFinal.length();
+                    int a1index = a0index + altFinal.length();
+
+                    if (r0index == a0index && r1index == a1index &&
+                        knownRef.substring(0, r0index).equals(knownAlt.substring(0, a0index)) &&
+                        knownRef.substring(r1index, knownRef.length()).equals(knownAlt.substring(a1index, knownAlt.length()))) {
+                        knownRef = ref;
+                        knownAlt = alt;
+                    }
+                }
+            }
+
+            log.info("    - vi: {}", vi);
+            log.info("        known ref: {}", knownRef);
+            log.info("        known alt: {}", knownAlt);
+            log.info("        called ref: {}", ref);
+            log.info("        called alt: {}", alt);
+
+            log.info("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
+
+            //return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC") || vi.denovo.equals("NAHR");
+            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC");
+        }
+
+        log.info("    - matches: {}", false);
+
+        return false;
+    }
+
+    @Override
+    public void execute() {
+        Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
+
+        Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
+        for (CortexRecord cr : NOVEL) {
+            novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
+        }
+
+        //TableWriter tw = new TableWriter(out);
+        int totalNovelKmersUsed = 0;
+        int stretchNum = 0;
+        int numMatches = 0;
+
+        log.info("Genotyping novel kmer stretches in graph...");
+        for (CortexKmer novelKmer : novelKmers.keySet()) {
+            if (novelKmers.get(novelKmer)) {
+                int novelKmersUsed = 0;
+
+                // Walk the graph left and right of novelKmer and extract a novel stretch
+                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0);
+                log.info("  stretch : {} ({} bp)", stretchNum, stretch.length());
+
+                // Fetch the local subgraph context from disk
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, novelKmer, stretch);
+                log.info("    subgraph: {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+
+                // See how many novel kmers we've used up
+                for (AnnotatedVertex ak : ag.vertexSet()) {
+                    CortexKmer ck = new CortexKmer(ak.getKmer());
+
+                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
+                        totalNovelKmersUsed++;
+                        novelKmersUsed++;
+                        novelKmers.put(ck, false);
+                    }
+                }
+
+                log.info("    novelty : novelKmersUsed: {}, totalNovelKmersUsed: {}/{}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
+
+                // Extract stretches
+                Pair<String, String> p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                Pair<String, String> p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+
+                log.info("    stretches:");
+                log.info("    - s1: {}", p1.getSecond());
+                log.info("          {}", p1.getFirst());
+                log.info("    - s2: {}", p2.getSecond());
+                log.info("          {}", p2.getFirst());
+
+                // Call variants
+                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers);
+                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers);
+
+                log.info("    variants:");
+                log.info("    - vc1: {}", vc1);
+                log.info("    - vc2: {}", vc2);
+
+                // Evaluate variants
+                if (BED != null) {
+                    log.info("    evaluate:");
+                    boolean m1 = evalVariant(vc1, vis, stretch);
+                    boolean m2 = evalVariant(vc2, vis, stretch);
+
+                    printGraph(simplifyGraph(ag), "debug", false, false);
+                    printGraph(ag, "debugFull", false, false);
+
+                    if (m1 || m2) {
+                        log.info("    - match!");
+                        numMatches++;
+                    } else {
+                        log.info("    - no match :(");
+
+                        for (AnnotatedVertex v : ag.vertexSet()) {
+                            if (v.isNovel() && (ag.inDegreeOf(v) == 0 || ag.outDegreeOf(v) == 0)) {
+                                log.info("weird: {}", v);
+                            }
+                        }
+
+                        boolean b1 = evalVariant(vc1, vis, stretch);
+                        boolean b2 = evalVariant(vc2, vis, stretch);
+
+                        Pair<String, String> d1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                        Pair<String, String> d2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                    }
+                }
+
+                stretchNum++;
+            }
+        }
+
+        log.info("Num stretches: {}", stretchNum);
+        log.info("Num matches: {}", numMatches);
     }
 }
