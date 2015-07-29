@@ -1,19 +1,23 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.exact.ExactLookup;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -21,7 +25,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
-import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -40,6 +43,12 @@ public class GenotypeGraph extends Module {
 
     @Argument(fullName="novelGraph", shortName="n", doc="Graph of novel kmers")
     public CortexGraph NOVEL;
+
+    @Argument(fullName="ref1", shortName="r1", doc="Fasta file for first parent")
+    public File REF1;
+
+    @Argument(fullName="ref2", shortName="r2", doc="Fasta file for second parent")
+    public File REF2;
 
     @Argument(fullName="bed", shortName="b", doc="Bed file describing variants", required=false)
     public File BED;
@@ -445,48 +454,6 @@ public class GenotypeGraph extends Module {
         return sb.toString();
     }
 
-    private Pair<String, String> computeMinWeightPaths(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-
-        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
-        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
-        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
-
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
-
-        GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = computeMinWeightPath(b0, candidateEnds, candidateStarts);
-        GraphPath<AnnotatedVertex, AnnotatedEdge> pc = computeMinWeightPath(bc, candidateEnds, candidateStarts);
-
-        return new Pair<String, String>(
-                p0 == null ? "" : linearizePath(b0, p0),
-                pc == null ? "" : linearizePath(bc, pc)
-        );
-    }
-
-    private GraphPath<AnnotatedVertex, AnnotatedEdge> computeMinWeightPath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> b, Set<AnnotatedVertex> candidateEnds, Set<AnnotatedVertex> candidateStarts) {
-        double minPathLength = Double.MAX_VALUE;
-        GraphPath<AnnotatedVertex, AnnotatedEdge> minWeightPath = null;
-
-        for (AnnotatedVertex sv : candidateStarts) {
-            for (AnnotatedVertex ev : candidateEnds) {
-                DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b, sv, ev);
-
-                GraphPath<AnnotatedVertex, AnnotatedEdge> path = dsp.getPath();
-                double pathLength = dsp.getPathLength();
-
-                String linearizedPath = path == null ? "" : linearizePath(b, path);
-
-                if (linearizedPath.contains(sv.getKmer()) && linearizedPath.contains(ev.getKmer()) && pathLength < minPathLength) {
-                    minPathLength = pathLength;
-                    minWeightPath = path;
-                }
-            }
-        }
-
-        return minWeightPath;
-    }
-
     private List<String> getNovelStretch(String stretch, Map<CortexKmer, Boolean> novelKmers) {
         boolean[] novel = new boolean[stretch.length()];
         int kmerLength = novelKmers.keySet().iterator().next().length();
@@ -581,9 +548,147 @@ public class GenotypeGraph extends Module {
         return new Pair<String, String>(minLp0, minLpc);
     }
 
-    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
-        //Pair<String, String> p = computeMinWeightPaths(a, color, stretch, novelKmers);
+    private enum KmerOrigin { MOTHER, FATHER, BOTH, NONE };
+
+    private void align(String stretch, KmerLookup kl) {
+        KmerOrigin[] ko = new KmerOrigin[stretch.length() - GRAPH.getKmerSize() + 1];
+
+        List<String> sks = new ArrayList<String>();
+        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+            CortexRecord cr = GRAPH.findRecord(ck);
+
+            sks.add(sk);
+
+            //log.info("sk: {} {}", sk, kl.find(sk));
+
+            //List<Set<Interval>> interval = kl.find(sk);
+
+            if (cr != null) {
+                int cov1 = cr.getCoverage(1);
+                int cov2 = cr.getCoverage(2);
+
+                if (cov1 > 0 && cov2 > 0) {
+                    ko[i] = KmerOrigin.BOTH;
+                } else if (cov1 >  0 && cov2 == 0) {
+                    ko[i] = KmerOrigin.MOTHER;
+                } else if (cov1 == 0 && cov2 >  0) {
+                    ko[i] = KmerOrigin.FATHER;
+                } else {
+                    ko[i] = KmerOrigin.NONE;
+                }
+            } else {
+                ko[i] = KmerOrigin.NONE;
+            }
+        }
+
+        int start = 0, end = 0;
+        KmerOrigin currentOrigin = null;
+        int stretchNum = 0;
+        Set<String> pieces = new LinkedHashSet<String>();
+
+        for (int i = 0; i < ko.length; i++) {
+            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
+
+            if ((ko[i] == KmerOrigin.MOTHER || ko[i] == KmerOrigin.FATHER) && currentOrigin != null && currentOrigin == KmerOrigin.BOTH) {
+                currentOrigin = ko[i];
+            }
+
+            if (currentOrigin == null && ko[i] != KmerOrigin.NONE) {
+                currentOrigin = ko[i];
+                start = i;
+                end = i;
+            } else if (ko[i] == currentOrigin || ko[i] == KmerOrigin.BOTH) {
+                if (currentOrigin == KmerOrigin.BOTH && ko[i] != currentOrigin) {
+                    currentOrigin = ko[i];
+                }
+
+                end = i;
+            } else if (ko[i] != currentOrigin && ko[i] != KmerOrigin.BOTH && currentOrigin != null) {
+                StringBuilder sb = new StringBuilder(sks.get(start));
+
+                for (int j = start + 1; j <= end; j++) {
+                    String skj = sks.get(j);
+                    sb.append(skj.charAt(skj.length() - 1));
+                }
+
+                pieces.add(sb.toString());
+
+                stretchNum++;
+                start = i;
+                end = i;
+                currentOrigin = (ko[i] == KmerOrigin.NONE) ? null : ko[i];
+            }
+
+            //log.info("{} {} {} {} {}-{}", i, sk, ko[i], stretchNum, start, end);
+        }
+
+        if (currentOrigin != null && currentOrigin != KmerOrigin.NONE) {
+            StringBuilder sb = new StringBuilder(sks.get(start));
+
+            for (int j = start + 1; j <= end; j++) {
+                String skj = sks.get(j);
+                sb.append(skj.charAt(skj.length() - 1));
+            }
+
+            pieces.add(sb.toString());
+        }
+
+        for (String piece : pieces) {
+            log.info("piece: {} {}", kl.find(piece), piece);
+        }
+    }
+
+    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
         Pair<String, String> p = computeBestMinWeightPath(a, color, stretch, novelKmers);
+
+        int kmerSize = GRAPH.getKmerSize();
+        String startFw, endFw;
+        if (p.getSecond().length() > GRAPH.getKmerSize()) {
+            startFw = p.getSecond().substring(0, kmerSize);
+            endFw = p.getSecond().substring(p.getSecond().length() - kmerSize, p.getSecond().length());
+        } else {
+            startFw = null;
+            endFw = null;
+
+            for (int i = 0; i <= stretch.length() - kmerSize; i++) {
+                String sk = stretch.substring(i, i + kmerSize);
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                if (cr != null && cr.getCoverage(color) > 0) { startFw = sk; }
+            }
+
+            for (int i = stretch.length() - kmerSize; i >= 0; i--) {
+                String sk = stretch.substring(i, i + kmerSize);
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                if (cr != null && cr.getCoverage(color) > 0) { endFw = sk; }
+            }
+        }
+
+        if (startFw != null && endFw != null) {
+            String contextLeft = CortexUtils.getSeededStretchLeft(GRAPH, startFw, color);
+            String contextRight = CortexUtils.getSeededStretchRight(GRAPH, endFw, color);
+            String contextFull = contextLeft + p.getSecond() + contextRight;
+
+            List<Set<Interval>> intervalLeft = kl.find(contextLeft);
+            List<Set<Interval>> intervalRight = kl.find(contextRight);
+            List<Set<Interval>> intervalFull = kl.find(contextFull);
+
+            log.info("    context:");
+            log.info("    - {} {} {} {}", color, intervalLeft, contextLeft.length(), contextLeft);
+            log.info("    - {} {} {} {}", color, intervalRight, contextRight.length(), contextRight);
+            log.info("    - {} {} {} {}", color, intervalFull, contextFull.length(), contextFull);
+
+            if (contextFull.length() > GRAPH.getKmerSize()) {
+                align(contextFull, kl);
+            } else {
+                align(contextLeft + stretch + contextRight, kl);
+            }
+        }
 
         int s, e0 = p.getFirst().length() - 1, e1 = p.getSecond().length() - 1;
 
@@ -598,9 +703,6 @@ public class GenotypeGraph extends Module {
         String childAllele = p.getFirst() == null || p.getFirst().equals("") || p.getFirst().equals(p.getSecond()) ? "N" : p.getFirst().substring(s, e0 + 1);
 
         int e = s + parentalAllele.length() - 1;
-
-        //log.info("  parentalAllele: {}", parentalAllele);
-        //log.info("  childAllele: {}", childAllele);
 
         VariantContextBuilder vcb = new VariantContextBuilder()
                 .chr("unknown")
@@ -815,30 +917,6 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private boolean isConnected(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-
-        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
-        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
-        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
-
-        b = removeOtherColors(b, color);
-
-        ConnectivityInspector<AnnotatedVertex, AnnotatedEdge> ci = new ConnectivityInspector<AnnotatedVertex, AnnotatedEdge>(b);
-
-        for (AnnotatedVertex candidateStart : candidateStarts) {
-            for (AnnotatedVertex candidateEnd : candidateEnds) {
-                if (ci.pathExists(candidateStart, candidateEnd)) {
-                    log.info("s: {}, e: {}", candidateStart, candidateEnd);
-
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private boolean evalVariant(VariantContext vc, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
         int kmerSize = vis.keySet().iterator().next().length();
@@ -966,6 +1044,10 @@ public class GenotypeGraph extends Module {
 
     @Override
     public void execute() {
+        log.info("Loading reference indices for fast kmer lookup...");
+        KmerLookup kl1 = new KmerLookup(REF1);
+        KmerLookup kl2 = new KmerLookup(REF2);
+
         Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
 
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -1015,8 +1097,8 @@ public class GenotypeGraph extends Module {
                 log.info("          {}", p2.getFirst());
 
                 // Call variants
-                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers);
-                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers);
+                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1);
+                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
 
                 log.info("    variants:");
                 log.info("    - vc1: {}", vc1);
