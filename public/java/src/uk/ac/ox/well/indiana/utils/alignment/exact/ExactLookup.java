@@ -4,6 +4,7 @@ import com.javacodegeeks.stringsearch.BM;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.Interval;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,23 +25,36 @@ public class ExactLookup {
 
     public Interval find(String s) {
         String fw = s.replaceAll("-", "");
+        String rc = SequenceUtils.reverseComplement(fw);
 
         String finalName = null;
         int finalPos = -1;
         int numHomes = 0;
+        boolean isNegative = false;
 
-        for (String name : ref.keySet()) {
-            String seq = ref.get(name);
-            List<Integer> pos = BM.findAll(fw, seq);
+        if (!fw.isEmpty() && !rc.isEmpty()) {
+            for (String name : ref.keySet()) {
+                String seq = ref.get(name);
+                List<Integer> posFw = BM.findAll(fw, seq);
+                List<Integer> posRc = BM.findAll(rc, seq);
 
-            numHomes += pos.size();
+                numHomes += posFw.size() + posRc.size();
 
-            if (pos.size() == 1) {
-                finalName = name;
-                finalPos = pos.iterator().next();
+                if (posFw.size() == 1) {
+                    finalName = name;
+                    finalPos = posFw.iterator().next();
+                } else if (posRc.size() == 1) {
+                    finalName = name;
+                    finalPos = posRc.iterator().next();
+                    isNegative = true;
+                }
+
+                if (numHomes > 1) {
+                    break;
+                }
             }
         }
 
-        return (finalName != null && numHomes == 1) ? new Interval(finalName, finalPos, finalPos + fw.length()) : null;
+        return (finalName != null && numHomes == 1) ? new Interval(finalName, finalPos, finalPos + fw.length(), isNegative, "unknown") : null;
     }
 }
