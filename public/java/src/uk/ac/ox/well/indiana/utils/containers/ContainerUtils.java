@@ -21,4 +21,18 @@ public class ContainerUtils {
         }
         map.get(key).add(value);
     }
+
+    public static String mostCommonKey(Map<String, Integer> map) {
+        String commonKey = map.keySet().iterator().next();
+        int count = map.get(commonKey);
+
+        for (String key : map.keySet()) {
+            if (map.get(key) > count) {
+                commonKey = key;
+                count = map.get(key);
+            }
+        }
+
+        return commonKey;
+    }
 }

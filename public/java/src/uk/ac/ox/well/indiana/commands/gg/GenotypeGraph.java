@@ -20,6 +20,7 @@ import uk.ac.ox.well.indiana.utils.alignment.exact.ExactLookup;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -494,7 +495,18 @@ public class GenotypeGraph extends Module {
         return novelStretches;
     }
 
-    private Pair<String, String> computeBestMinWeightPath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+    private class PathInfo {
+        public String start, stop, child, parent;
+
+        public PathInfo(String start, String stop, String child, String parent) {
+            this.start = start;
+            this.stop = stop;
+            this.child = child;
+            this.parent = parent;
+        }
+    }
+
+    private PathInfo computeBestMinWeightPath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
@@ -508,6 +520,7 @@ public class GenotypeGraph extends Module {
 
         double minPl0 = Double.MAX_VALUE, minPlc = Double.MAX_VALUE;
         String minLp0 = "", minLpc = "";
+        String start = "", stop = "";
 
         for (AnnotatedVertex sv : candidateStarts) {
             for (AnnotatedVertex ev : candidateEnds) {
@@ -539,13 +552,16 @@ public class GenotypeGraph extends Module {
 
                             minPlc = plc;
                             minLpc = lpc;
+
+                            start = sv.getKmer();
+                            stop = ev.getKmer();
                         }
                     }
                 }
             }
         }
 
-        return new Pair<String, String>(minLp0, minLpc);
+        return new PathInfo(start, stop, minLp0, minLpc);
     }
 
     private enum KmerOrigin { MOTHER, FATHER, BOTH, NONE };
@@ -640,67 +656,108 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
-        Pair<String, String> p = computeBestMinWeightPath(a, color, stretch, novelKmers);
+    private String mostCommonChr(List<Set<Interval>> allIntervals) {
+        Map<String, Integer> chrCounts = new HashMap<String, Integer>();
+        chrCounts.put("unknown", 0);
 
-        int kmerSize = GRAPH.getKmerSize();
-        String startFw, endFw;
-        if (p.getSecond().length() > GRAPH.getKmerSize()) {
-            startFw = p.getSecond().substring(0, kmerSize);
-            endFw = p.getSecond().substring(p.getSecond().length() - kmerSize, p.getSecond().length());
-        } else {
-            startFw = null;
-            endFw = null;
-
-            for (int i = 0; i <= stretch.length() - kmerSize; i++) {
-                String sk = stretch.substring(i, i + kmerSize);
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
-
-                if (cr != null && cr.getCoverage(color) > 0) { startFw = sk; }
-            }
-
-            for (int i = stretch.length() - kmerSize; i >= 0; i--) {
-                String sk = stretch.substring(i, i + kmerSize);
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
-
-                if (cr != null && cr.getCoverage(color) > 0) { endFw = sk; }
+        for (Set<Interval> intervals : allIntervals) {
+            if (intervals.size() > 0) {
+                ContainerUtils.increment(chrCounts, intervals.iterator().next().getSequence());
             }
         }
+
+        return ContainerUtils.mostCommonKey(chrCounts);
+    }
+
+    private boolean isGC(String contextChild, KmerLookup kl1, KmerLookup kl2) {
+        List<Set<Interval>> intervalChild1 = kl1.find(contextChild);
+        List<Set<Interval>> intervalChild2 = kl2.find(contextChild);
+
+        String lastChr1 = mostCommonChr(intervalChild1);
+        String lastChr2 = mostCommonChr(intervalChild2);
+
+        boolean sameChr = lastChr1.equals(lastChr2);
+
+        int numGCSwitches = 0;
+
+        boolean inGCBlock = false;
+        int gcBlockLength = 0;
+        List<Integer> gcBlockLengths = new ArrayList<Integer>();
+        for (int i = 0; i < intervalChild1.size(); i++) {
+            Set<Interval> intervals1 = intervalChild1.get(i);
+            Set<Interval> intervals2 = intervalChild2.get(i);
+
+            if (inGCBlock) { gcBlockLength++; }
+
+            if ((intervals1.size() == 0 && intervals2.size() >  0 && sameChr) ||
+                (intervals2.size() == 0 && intervals1.size() == 0 && sameChr)) {
+                if (!inGCBlock) {
+                    inGCBlock = true;
+                    gcBlockLength = 0;
+                } else {
+                    inGCBlock = false;
+
+                    if (gcBlockLength > 10) {
+                        gcBlockLengths.add(gcBlockLength);
+                    }
+                }
+            }
+        }
+
+        return gcBlockLengths.size() > 0;
+    }
+
+    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl1, KmerLookup kl2) {
+        PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
+
+        // Find context kmers
+        //Pair<String, String> startAndEnd = getStartAndStop(color, stretch, p);
+
+        String startFw = p.start;
+        String endFw = p.stop;
 
         if (startFw != null && endFw != null) {
+            /*
             String contextLeft = CortexUtils.getSeededStretchLeft(GRAPH, startFw, color);
+            String contextLeftFull = contextLeft + startFw;
             String contextRight = CortexUtils.getSeededStretchRight(GRAPH, endFw, color);
-            String contextFull = contextLeft + p.getSecond() + contextRight;
+            String contextRightFull = endFw + contextRight;
 
-            List<Set<Interval>> intervalLeft = kl.find(contextLeft);
-            List<Set<Interval>> intervalRight = kl.find(contextRight);
-            List<Set<Interval>> intervalFull = kl.find(contextFull);
+            String contextParent = contextLeft + p.parent + contextRight;
+            String contextChild = contextLeft + stretch + contextRight;
+
+            List<Set<Interval>> intervalChild1 = kl1.find(contextChild);
+            List<Set<Interval>> intervalChild2 = kl2.find(contextChild);
+
+            String alignmentChild1 = kl1.findSimplified(contextChild);
+            String alignmentChild2 = kl2.findSimplified(contextChild);
 
             log.info("    context:");
-            log.info("    - {} {} {} {}", color, intervalLeft, contextLeft.length(), contextLeft);
-            log.info("    - {} {} {} {}", color, intervalRight, contextRight.length(), contextRight);
-            log.info("    - {} {} {} {}", color, intervalFull, contextFull.length(), contextFull);
+            log.info("    - child  {} {} {} {}", 1, alignmentChild1, contextChild.length(), contextChild);
+            log.info("    - child  {} {} {} {}", 2, alignmentChild2, contextChild.length(), contextChild);
+            log.info("    - is GC?: {}", isGC(contextChild, kl1, kl2));
+            */
 
-            if (contextFull.length() > GRAPH.getKmerSize()) {
-                align(contextFull, kl);
+            /*
+            if (contextParent.length() > GRAPH.getKmerSize()) {
+                align(contextParent, kl);
             } else {
-                align(contextLeft + stretch + contextRight, kl);
+                align(contextChild, kl);
             }
+            */
         }
 
-        int s, e0 = p.getFirst().length() - 1, e1 = p.getSecond().length() - 1;
+        int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
-        for (s = 0; s < (p.getFirst().length() < p.getSecond().length() ? p.getFirst().length() : p.getSecond().length()) && p.getFirst().charAt(s) == p.getSecond().charAt(s); s++) {}
+        for (s = 0; s < (p.child.length() < p.parent.length() ? p.child.length() : p.parent.length()) && p.child.charAt(s) == p.parent.charAt(s); s++) {}
 
-        while (e0 > s && e1 > s && p.getFirst().charAt(e0) == p.getSecond().charAt(e1)) {
+        while (e0 > s && e1 > s && p.child.charAt(e0) == p.parent.charAt(e1)) {
             e0--;
             e1--;
         }
 
-        String parentalAllele = p.getSecond() == null || p.getSecond().equals("") || p.getFirst().equals(p.getSecond()) ? "A" : p.getSecond().substring(s, e1 + 1);
-        String childAllele = p.getFirst() == null || p.getFirst().equals("") || p.getFirst().equals(p.getSecond()) ? "N" : p.getFirst().substring(s, e0 + 1);
+        String parentalAllele = p.parent == null || p.parent.equals("") || p.child.equals(p.parent) ? "A" : p.parent.substring(s, e1 + 1);
+        String childAllele = p.child == null || p.child.equals("") || p.child.equals(p.parent) ? "N" : p.child.substring(s, e0 + 1);
 
         int e = s + parentalAllele.length() - 1;
 
@@ -710,8 +767,8 @@ public class GenotypeGraph extends Module {
                 .stop(e)
                 .alleles(parentalAllele, childAllele)
                 .attribute("NOVEL_STRETCH", stretch)
-                .attribute("CHILD_STRETCH", p.getFirst())
-                .attribute("PARENT_STRETCH", p.getSecond())
+                .attribute("CHILD_STRETCH", p.child)
+                .attribute("PARENT_STRETCH", p.parent)
                 .attribute("CHILD_COLOR", 0)
                 .attribute("PARENT_COLOR", color)
                 .source(String.valueOf(color));
@@ -721,6 +778,36 @@ public class GenotypeGraph extends Module {
         }
 
         return vcb.make();
+    }
+
+    private Pair<String, String> getStartAndStop(int color, String stretch, Pair<String, String> p) {
+        int kmerSize = GRAPH.getKmerSize();
+        String sFw, eFw;
+        if (p.getSecond().length() > GRAPH.getKmerSize()) {
+            sFw = p.getSecond().substring(0, kmerSize);
+            eFw = p.getSecond().substring(p.getSecond().length() - kmerSize, p.getSecond().length());
+        } else {
+            sFw = null;
+            eFw = null;
+
+            for (int i = 0; i <= stretch.length() - kmerSize; i++) {
+                String sk = stretch.substring(i, i + kmerSize);
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                if (cr != null && cr.getCoverage(color) > 0) { sFw = sk; }
+            }
+
+            for (int i = stretch.length() - kmerSize; i >= 0; i--) {
+                String sk = stretch.substring(i, i + kmerSize);
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                if (cr != null && cr.getCoverage(color) > 0) { eFw = sk; }
+            }
+        }
+
+        return new Pair<String, String>(sFw, eFw);
     }
 
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, CortexKmer novelKmer, String stretch) {
@@ -1087,18 +1174,18 @@ public class GenotypeGraph extends Module {
                 log.info("    novelty : novelKmersUsed: {}, totalNovelKmersUsed: {}/{}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
                 // Extract stretches
-                Pair<String, String> p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-                Pair<String, String> p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
 
                 log.info("    stretches:");
-                log.info("    - s1: {}", p1.getSecond());
-                log.info("          {}", p1.getFirst());
-                log.info("    - s2: {}", p2.getSecond());
-                log.info("          {}", p2.getFirst());
+                log.info("    - s1: {}", p1.parent);
+                log.info("          {}", p1.child);
+                log.info("    - s2: {}", p2.parent);
+                log.info("          {}", p2.child);
 
                 // Call variants
-                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1);
-                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
+                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1, kl2);
+                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl1, kl2);
 
                 log.info("    variants:");
                 log.info("    - vc1: {}", vc1);
@@ -1111,25 +1198,26 @@ public class GenotypeGraph extends Module {
                     boolean m2 = evalVariant(vc2, vis, stretch);
 
                     printGraph(simplifyGraph(ag), "debug", false, false);
-                    printGraph(ag, "debugFull", false, false);
+                    //printGraph(ag, "debugFull", false, false);
 
                     if (m1 || m2) {
                         log.info("    - match!");
                         numMatches++;
+
+                        /*
+                        callVariant(ag, 1, stretch, novelKmers, kl1, kl2);
+                        callVariant(ag, 2, stretch, novelKmers, kl1, kl2);
+                        */
                     } else {
                         log.info("    - no match :(");
 
-                        for (AnnotatedVertex v : ag.vertexSet()) {
-                            if (v.isNovel() && (ag.inDegreeOf(v) == 0 || ag.outDegreeOf(v) == 0)) {
-                                log.info("weird: {}", v);
-                            }
-                        }
-
+                        /*
                         boolean b1 = evalVariant(vc1, vis, stretch);
                         boolean b2 = evalVariant(vc2, vis, stretch);
 
-                        Pair<String, String> d1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-                        Pair<String, String> d2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                        PathInfo d1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                        PathInfo d2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                        */
                     }
                 }
 
