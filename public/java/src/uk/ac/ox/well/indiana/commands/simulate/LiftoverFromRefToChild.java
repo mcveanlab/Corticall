@@ -194,34 +194,36 @@ public class LiftoverFromRefToChild extends Module {
 
             int gpos = 0;
             for (int i = 0; i < seq.length(); i++) {
-                Entry e = table.get(name).get(i);
+                if (table.containsKey(name)) {
+                    Entry e = table.get(name).get(i);
 
-                List<Entry> es = (alleles.get(i).length() > 1) ? computeEntries(table.get(name), i, alleles.get(i).length()) : null;
+                    List<Entry> es = (alleles.get(i).length() > 1) ? computeEntries(table.get(name), i, alleles.get(i).length()) : null;
 
-                for (int q = 0; q < alleles.get(i).length(); q++) {
-                    Map<String, String> liftedTe = new LinkedHashMap<String, String>();
+                    for (int q = 0; q < alleles.get(i).length(); q++) {
+                        Map<String, String> liftedTe = new LinkedHashMap<String, String>();
 
-                    liftedTe.put("chr", name);
-                    //liftedTe.put("oldpos", String.valueOf(i));
-                    liftedTe.put("pos", String.valueOf(gpos + q));
-                    //liftedTe.put("q", String.valueOf(q));
+                        liftedTe.put("chr", name);
+                        //liftedTe.put("oldpos", String.valueOf(i));
+                        liftedTe.put("pos", String.valueOf(gpos + q));
+                        //liftedTe.put("q", String.valueOf(q));
 
-                    if (q == 0) {
-                        liftedTe.put("numReadsWithErrors", String.valueOf(e.numReadsWithErrors));
-                        liftedTe.put("numReads", String.valueOf(e.numReads));
-                        liftedTe.put("numFragmentsWithErrors", String.valueOf(e.numFragmentsWithErrors));
-                        liftedTe.put("numFragments", String.valueOf(e.numFragments));
-                    } else {
-                        liftedTe.put("numReadsWithErrors", String.valueOf(es.get(q).numReadsWithErrors));
-                        liftedTe.put("numReads", String.valueOf(es.get(q).numReads));
-                        liftedTe.put("numFragmentsWithErrors", String.valueOf(es.get(q).numFragmentsWithErrors));
-                        liftedTe.put("numFragments", String.valueOf(es.get(q).numFragments));
+                        if (q == 0) {
+                            liftedTe.put("numReadsWithErrors", String.valueOf(e.numReadsWithErrors));
+                            liftedTe.put("numReads", String.valueOf(e.numReads));
+                            liftedTe.put("numFragmentsWithErrors", String.valueOf(e.numFragmentsWithErrors));
+                            liftedTe.put("numFragments", String.valueOf(e.numFragments));
+                        } else {
+                            liftedTe.put("numReadsWithErrors", String.valueOf(es.get(q).numReadsWithErrors));
+                            liftedTe.put("numReads", String.valueOf(es.get(q).numReads));
+                            liftedTe.put("numFragmentsWithErrors", String.valueOf(es.get(q).numFragmentsWithErrors));
+                            liftedTe.put("numFragments", String.valueOf(es.get(q).numFragments));
+                        }
+
+                        tw.addEntry(liftedTe);
                     }
 
-                    tw.addEntry(liftedTe);
+                    gpos += alleles.get(i).length();
                 }
-
-                gpos += alleles.get(i).length();
             }
         }
     }
