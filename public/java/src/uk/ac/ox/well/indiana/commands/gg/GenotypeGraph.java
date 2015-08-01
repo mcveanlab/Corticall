@@ -561,149 +561,6 @@ public class GenotypeGraph extends Module {
         return new PathInfo(start, stop, minLp0, minLpc);
     }
 
-    private enum KmerOrigin { MOTHER, FATHER, BOTH, NONE };
-
-    private void align(String stretch, KmerLookup kl) {
-        KmerOrigin[] ko = new KmerOrigin[stretch.length() - GRAPH.getKmerSize() + 1];
-
-        List<String> sks = new ArrayList<String>();
-        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
-            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
-            CortexKmer ck = new CortexKmer(sk);
-            CortexRecord cr = GRAPH.findRecord(ck);
-
-            sks.add(sk);
-
-            //log.info("sk: {} {}", sk, kl.find(sk));
-
-            //List<Set<Interval>> interval = kl.find(sk);
-
-            if (cr != null) {
-                int cov1 = cr.getCoverage(1);
-                int cov2 = cr.getCoverage(2);
-
-                if (cov1 > 0 && cov2 > 0) {
-                    ko[i] = KmerOrigin.BOTH;
-                } else if (cov1 >  0 && cov2 == 0) {
-                    ko[i] = KmerOrigin.MOTHER;
-                } else if (cov1 == 0 && cov2 >  0) {
-                    ko[i] = KmerOrigin.FATHER;
-                } else {
-                    ko[i] = KmerOrigin.NONE;
-                }
-            } else {
-                ko[i] = KmerOrigin.NONE;
-            }
-        }
-
-        int start = 0, end = 0;
-        KmerOrigin currentOrigin = null;
-        int stretchNum = 0;
-        Set<String> pieces = new LinkedHashSet<String>();
-
-        for (int i = 0; i < ko.length; i++) {
-            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
-
-            if ((ko[i] == KmerOrigin.MOTHER || ko[i] == KmerOrigin.FATHER) && currentOrigin != null && currentOrigin == KmerOrigin.BOTH) {
-                currentOrigin = ko[i];
-            }
-
-            if (currentOrigin == null && ko[i] != KmerOrigin.NONE) {
-                currentOrigin = ko[i];
-                start = i;
-                end = i;
-            } else if (ko[i] == currentOrigin || ko[i] == KmerOrigin.BOTH) {
-                if (currentOrigin == KmerOrigin.BOTH && ko[i] != currentOrigin) {
-                    currentOrigin = ko[i];
-                }
-
-                end = i;
-            } else if (ko[i] != currentOrigin && ko[i] != KmerOrigin.BOTH && currentOrigin != null) {
-                StringBuilder sb = new StringBuilder(sks.get(start));
-
-                for (int j = start + 1; j <= end; j++) {
-                    String skj = sks.get(j);
-                    sb.append(skj.charAt(skj.length() - 1));
-                }
-
-                pieces.add(sb.toString());
-
-                stretchNum++;
-                start = i;
-                end = i;
-                currentOrigin = (ko[i] == KmerOrigin.NONE) ? null : ko[i];
-            }
-
-            //log.info("{} {} {} {} {}-{}", i, sk, ko[i], stretchNum, start, end);
-        }
-
-        if (currentOrigin != null && currentOrigin != KmerOrigin.NONE) {
-            StringBuilder sb = new StringBuilder(sks.get(start));
-
-            for (int j = start + 1; j <= end; j++) {
-                String skj = sks.get(j);
-                sb.append(skj.charAt(skj.length() - 1));
-            }
-
-            pieces.add(sb.toString());
-        }
-
-        for (String piece : pieces) {
-            log.info("piece: {} {}", kl.find(piece), piece);
-        }
-    }
-
-    private String mostCommonChr(List<Set<Interval>> allIntervals) {
-        Map<String, Integer> chrCounts = new HashMap<String, Integer>();
-        chrCounts.put("unknown", 0);
-
-        for (Set<Interval> intervals : allIntervals) {
-            if (intervals.size() > 0) {
-                ContainerUtils.increment(chrCounts, intervals.iterator().next().getSequence());
-            }
-        }
-
-        return ContainerUtils.mostCommonKey(chrCounts);
-    }
-
-    private boolean isGC(String contextChild, KmerLookup kl1, KmerLookup kl2) {
-        List<Set<Interval>> intervalChild1 = kl1.find(contextChild);
-        List<Set<Interval>> intervalChild2 = kl2.find(contextChild);
-
-        String lastChr1 = mostCommonChr(intervalChild1);
-        String lastChr2 = mostCommonChr(intervalChild2);
-
-        boolean sameChr = lastChr1.equals(lastChr2);
-
-        int numGCSwitches = 0;
-
-        boolean inGCBlock = false;
-        int gcBlockLength = 0;
-        List<Integer> gcBlockLengths = new ArrayList<Integer>();
-        for (int i = 0; i < intervalChild1.size(); i++) {
-            Set<Interval> intervals1 = intervalChild1.get(i);
-            Set<Interval> intervals2 = intervalChild2.get(i);
-
-            if (inGCBlock) { gcBlockLength++; }
-
-            if ((intervals1.size() == 0 && intervals2.size() >  0 && sameChr) ||
-                (intervals2.size() == 0 && intervals1.size() == 0 && sameChr)) {
-                if (!inGCBlock) {
-                    inGCBlock = true;
-                    gcBlockLength = 0;
-                } else {
-                    inGCBlock = false;
-
-                    if (gcBlockLength > 10) {
-                        gcBlockLengths.add(gcBlockLength);
-                    }
-                }
-            }
-        }
-
-        return gcBlockLengths.size() > 0;
-    }
-
     private boolean hasRecombinations(String stretch) {
         StringBuilder inherit = new StringBuilder();
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
@@ -730,9 +587,6 @@ public class GenotypeGraph extends Module {
                 }
             }
         }
-
-        log.info("    novel stretch: {}", stretch);
-        log.info("    - inherit:     {}", inherit.toString());
 
         for (int i = 0; i < inherit.length(); i++) {
             if (inherit.charAt(i) == 'B') {
@@ -802,8 +656,7 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        log.info("    novel stretch: {}", stretch);
-        log.info("         chimeric: {}", sb.toString());
+        log.info("    - chimeric:    {}", sb.toString());
 
         return chrCount.size() > 1;
     }
@@ -811,10 +664,11 @@ public class GenotypeGraph extends Module {
     private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl1, KmerLookup kl2) {
         PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
+        log.info("    novel stretch: {}", stretch);
+
         boolean hasRecombs = hasRecombinations(stretch);
 
-        boolean isChimeric1 = isChimeric(stretch, kl1);
-        boolean isChimeric2 = isChimeric(stretch, kl2);
+        boolean isChimeric = isChimeric(stretch, color == 1 ? kl1 : kl2);
 
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
@@ -840,13 +694,12 @@ public class GenotypeGraph extends Module {
                 .attribute("PARENT_STRETCH", p.parent)
                 .attribute("CHILD_COLOR", 0)
                 .attribute("PARENT_COLOR", color)
-                .attribute("HAS_RECOMBS", hasRecombs)
                 .source(String.valueOf(color));
 
         if (childAllele.equals("N")) {
             if (hasRecombs) {
                 vcb.attribute("DENOVO", "GC");
-            } else if (isChimeric1 || isChimeric2) {
+            } else if (isChimeric) {
                 vcb.attribute("DENOVO", "NAHR");
             } else {
                 vcb.filter("TRAVERSAL_INCOMPLETE");
@@ -854,36 +707,6 @@ public class GenotypeGraph extends Module {
         }
 
         return vcb.make();
-    }
-
-    private Pair<String, String> getStartAndStop(int color, String stretch, Pair<String, String> p) {
-        int kmerSize = GRAPH.getKmerSize();
-        String sFw, eFw;
-        if (p.getSecond().length() > GRAPH.getKmerSize()) {
-            sFw = p.getSecond().substring(0, kmerSize);
-            eFw = p.getSecond().substring(p.getSecond().length() - kmerSize, p.getSecond().length());
-        } else {
-            sFw = null;
-            eFw = null;
-
-            for (int i = 0; i <= stretch.length() - kmerSize; i++) {
-                String sk = stretch.substring(i, i + kmerSize);
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
-
-                if (cr != null && cr.getCoverage(color) > 0) { sFw = sk; }
-            }
-
-            for (int i = stretch.length() - kmerSize; i >= 0; i--) {
-                String sk = stretch.substring(i, i + kmerSize);
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
-
-                if (cr != null && cr.getCoverage(color) > 0) { eFw = sk; }
-            }
-        }
-
-        return new Pair<String, String>(sFw, eFw);
     }
 
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, CortexKmer novelKmer, String stretch) {
@@ -1196,8 +1019,6 @@ public class GenotypeGraph extends Module {
 
             log.info("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
 
-            //return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC") || vi.denovo.equals("NAHR");
-            //return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC");
             return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown"));
         }
 
