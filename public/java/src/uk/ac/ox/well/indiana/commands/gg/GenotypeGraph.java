@@ -1,8 +1,6 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -16,7 +14,6 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
-import uk.ac.ox.well.indiana.utils.alignment.exact.ExactLookup;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -707,45 +704,117 @@ public class GenotypeGraph extends Module {
         return gcBlockLengths.size() > 0;
     }
 
+    private boolean hasRecombinations(String stretch) {
+        StringBuilder inherit = new StringBuilder();
+        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+
+            CortexRecord cr = GRAPH.findRecord(ck);
+
+            if (cr != null) {
+                int cov0 = cr.getCoverage(0);
+                int cov1 = cr.getCoverage(1);
+                int cov2 = cr.getCoverage(2);
+
+                if (cov0 > 0 && cov1 == 0 && cov2 == 0) {
+                    inherit.append("C");
+                } else if (cov0 > 0 && cov1 > 0 && cov2 == 0) {
+                    inherit.append("M");
+                } else if (cov0 > 0 && cov1 == 0 && cov2 > 0) {
+                    inherit.append("D");
+                } else if (cov0 > 0 && cov1 > 0 && cov2 > 0) {
+                    inherit.append("B");
+                } else {
+                    inherit.append("?");
+                }
+            }
+        }
+
+        log.info("    novel stretch: {}", stretch);
+        log.info("    - inherit:     {}", inherit.toString());
+
+        for (int i = 0; i < inherit.length(); i++) {
+            if (inherit.charAt(i) == 'B') {
+                char prevContext = '?';
+                char nextContext = '?';
+
+                for (int j = i - 1; j >= 0; j--) {
+                    if (inherit.charAt(j) == 'M' || inherit.charAt(j) == 'D') {
+                        prevContext = inherit.charAt(j);
+                        break;
+                    }
+                }
+
+                for (int j = i + 1; j < inherit.length(); j++) {
+                    if (inherit.charAt(j) == 'M' || inherit.charAt(j) == 'D') {
+                        nextContext = inherit.charAt(j);
+                        break;
+                    }
+                }
+
+                char context = '?';
+                if (prevContext == nextContext && prevContext != '?') { context = prevContext; }
+                else if (prevContext != nextContext) {
+                    if (prevContext != '?') {
+                        context = prevContext;
+                    } else {
+                        context = nextContext;
+                    }
+                }
+
+                inherit.setCharAt(i, context);
+            }
+        }
+
+        log.info("    - inherit:     {}", inherit.toString());
+
+        String inheritStr = inherit.toString();
+        return inheritStr.matches(".*D+.C+.M+.*") || inheritStr.matches(".*M+.C+.D+.*");
+    }
+
+    private boolean isChimeric(String stretch, KmerLookup kl) {
+        List<Set<Interval>> ils = kl.find(stretch);
+
+        StringBuilder sb = new StringBuilder();
+
+        int nextAvailableCode = 0;
+        Map<String, Integer> chrCodes = new HashMap<String, Integer>();
+        Map<String, Integer> chrCount = new HashMap<String, Integer>();
+
+        for (int i = 0; i < ils.size(); i++) {
+            Set<Interval> il = ils.get(i);
+
+            if (il.size() == 1) {
+                Interval interval = il.iterator().next();
+
+                ContainerUtils.increment(chrCount, interval.getSequence());
+
+                if (!chrCodes.containsKey(interval.getSequence())) {
+                    chrCodes.put(interval.getSequence(), nextAvailableCode);
+                    nextAvailableCode++;
+                }
+
+                int code = chrCodes.get(interval.getSequence());
+                sb.append(code);
+            } else {
+                sb.append(".");
+            }
+        }
+
+        log.info("    novel stretch: {}", stretch);
+        log.info("         chimeric: {}", sb.toString());
+
+        return chrCount.size() > 1;
+    }
+
     private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl1, KmerLookup kl2) {
         PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
-        // Find context kmers
-        //Pair<String, String> startAndEnd = getStartAndStop(color, stretch, p);
+        boolean hasRecombs = hasRecombinations(stretch);
 
-        String startFw = p.start;
-        String endFw = p.stop;
-
-        if (startFw != null && endFw != null) {
-            /*
-            String contextLeft = CortexUtils.getSeededStretchLeft(GRAPH, startFw, color);
-            String contextLeftFull = contextLeft + startFw;
-            String contextRight = CortexUtils.getSeededStretchRight(GRAPH, endFw, color);
-            String contextRightFull = endFw + contextRight;
-
-            String contextParent = contextLeft + p.parent + contextRight;
-            String contextChild = contextLeft + stretch + contextRight;
-
-            List<Set<Interval>> intervalChild1 = kl1.find(contextChild);
-            List<Set<Interval>> intervalChild2 = kl2.find(contextChild);
-
-            String alignmentChild1 = kl1.findSimplified(contextChild);
-            String alignmentChild2 = kl2.findSimplified(contextChild);
-
-            log.info("    context:");
-            log.info("    - child  {} {} {} {}", 1, alignmentChild1, contextChild.length(), contextChild);
-            log.info("    - child  {} {} {} {}", 2, alignmentChild2, contextChild.length(), contextChild);
-            log.info("    - is GC?: {}", isGC(contextChild, kl1, kl2));
-            */
-
-            /*
-            if (contextParent.length() > GRAPH.getKmerSize()) {
-                align(contextParent, kl);
-            } else {
-                align(contextChild, kl);
-            }
-            */
-        }
+        boolean isChimeric1 = isChimeric(stretch, kl1);
+        boolean isChimeric2 = isChimeric(stretch, kl2);
 
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
@@ -771,10 +840,17 @@ public class GenotypeGraph extends Module {
                 .attribute("PARENT_STRETCH", p.parent)
                 .attribute("CHILD_COLOR", 0)
                 .attribute("PARENT_COLOR", color)
+                .attribute("HAS_RECOMBS", hasRecombs)
                 .source(String.valueOf(color));
 
         if (childAllele.equals("N")) {
-            vcb.filter("TRAVERSAL_INCOMPLETE");
+            if (hasRecombs) {
+                vcb.attribute("DENOVO", "GC");
+            } else if (isChimeric1 || isChimeric2) {
+                vcb.attribute("DENOVO", "NAHR");
+            } else {
+                vcb.filter("TRAVERSAL_INCOMPLETE");
+            }
         }
 
         return vcb.make();
@@ -1121,7 +1197,8 @@ public class GenotypeGraph extends Module {
             log.info("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
 
             //return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC") || vi.denovo.equals("NAHR");
-            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC");
+            //return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals("GC");
+            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown"));
         }
 
         log.info("    - matches: {}", false);
@@ -1203,21 +1280,8 @@ public class GenotypeGraph extends Module {
                     if (m1 || m2) {
                         log.info("    - match!");
                         numMatches++;
-
-                        /*
-                        callVariant(ag, 1, stretch, novelKmers, kl1, kl2);
-                        callVariant(ag, 2, stretch, novelKmers, kl1, kl2);
-                        */
                     } else {
                         log.info("    - no match :(");
-
-                        /*
-                        boolean b1 = evalVariant(vc1, vis, stretch);
-                        boolean b2 = evalVariant(vc2, vis, stretch);
-
-                        PathInfo d1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-                        PathInfo d2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
-                        */
                     }
                 }
 
