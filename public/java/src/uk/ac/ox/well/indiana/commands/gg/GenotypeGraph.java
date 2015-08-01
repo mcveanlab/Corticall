@@ -661,15 +661,11 @@ public class GenotypeGraph extends Module {
         return chrCount.size() > 1;
     }
 
-    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl1, KmerLookup kl2) {
+    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+        // Compute paths
         PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
-        log.info("    novel stretch: {}", stretch);
-
-        boolean hasRecombs = hasRecombinations(stretch);
-
-        boolean isChimeric = isChimeric(stretch, color == 1 ? kl1 : kl2);
-
+        // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
         for (s = 0; s < (p.child.length() < p.parent.length() ? p.child.length() : p.parent.length()) && p.child.charAt(s) == p.parent.charAt(s); s++) {}
@@ -684,6 +680,13 @@ public class GenotypeGraph extends Module {
 
         int e = s + parentalAllele.length() - 1;
 
+        // Decide if the event is actually a GC or NAHR event
+        log.info("    novel stretch: {}", stretch);
+
+        boolean hasRecombs = hasRecombinations(stretch);
+        boolean isChimeric = isChimeric(stretch, kl);
+
+        // Build the VC
         VariantContextBuilder vcb = new VariantContextBuilder()
                 .chr("unknown")
                 .start(s)
@@ -727,7 +730,6 @@ public class GenotypeGraph extends Module {
 
                     @Override
                     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
-                        //return junctions >= maxJunctionsAllowed();
                         return false;
                     }
 
@@ -1082,8 +1084,8 @@ public class GenotypeGraph extends Module {
                 log.info("          {}", p2.child);
 
                 // Call variants
-                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1, kl2);
-                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl1, kl2);
+                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1);
+                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
 
                 log.info("    variants:");
                 log.info("    - vc1: {}", vc1);
