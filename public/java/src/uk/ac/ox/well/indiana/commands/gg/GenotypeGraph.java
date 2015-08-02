@@ -270,6 +270,7 @@ public class GenotypeGraph extends Module {
         }
     }
 
+    /*
     private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<String, DefaultEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
         for (String v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v, novelKmers.containsKey(new CortexKmer(v)));
@@ -286,6 +287,32 @@ public class GenotypeGraph extends Module {
 
             AnnotatedVertex a0 = new AnnotatedVertex(s0, novelKmers.containsKey(ck0));
             AnnotatedVertex a1 = new AnnotatedVertex(s1, novelKmers.containsKey(ck1));
+
+            if (!a.containsEdge(a0, a1)) {
+                a.addEdge(a0, a1, new AnnotatedEdge());
+            }
+
+            a.getEdge(a0, a1).set(color, true);
+        }
+    }
+    */
+
+    private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
+        for (AnnotatedVertex v : g.vertexSet()) {
+            AnnotatedVertex av = new AnnotatedVertex(v.getKmer(), novelKmers.containsKey(new CortexKmer(v.getKmer())));
+
+            a.addVertex(av);
+        }
+
+        for (AnnotatedEdge e : g.edgeSet()) {
+            AnnotatedVertex s0 = g.getEdgeSource(e);
+            AnnotatedVertex s1 = g.getEdgeTarget(e);
+
+            CortexKmer ck0 = new CortexKmer(s0.getKmer());
+            CortexKmer ck1 = new CortexKmer(s1.getKmer());
+
+            AnnotatedVertex a0 = new AnnotatedVertex(s0.getKmer(), novelKmers.containsKey(ck0));
+            AnnotatedVertex a1 = new AnnotatedVertex(s1.getKmer(), novelKmers.containsKey(ck1));
 
             if (!a.containsEdge(a0, a1)) {
                 a.addEdge(a0, a1, new AnnotatedEdge());
@@ -715,22 +742,23 @@ public class GenotypeGraph extends Module {
 
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, CortexKmer novelKmer, String stretch) {
         // first, explore each color and bring the local subgraphs into memory
-        DirectedGraph<String, DefaultEdge> sg0 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-        DirectedGraph<String, DefaultEdge> sg1 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-        DirectedGraph<String, DefaultEdge> sg2 = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
             String kmer = stretch.substring(i, i + novelKmer.length());
+            AnnotatedVertex ak = new AnnotatedVertex(kmer);
 
-            if (!sg0.containsVertex(kmer)) {
-                Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, kmer, 0, null, new AbstractTraversalStopper() {
+            if (!sg0.containsVertex(ak)) {
+                Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                     @Override
-                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int depth) {
+                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth) {
                         return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
                     }
 
                     @Override
-                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
                         return false;
                     }
 
@@ -743,17 +771,17 @@ public class GenotypeGraph extends Module {
         }
 
         for (int c = 1; c <= 2; c++) {
-            for (String kmer : sg0.vertexSet()) {
-                DirectedGraph<String, DefaultEdge> sg = (c == 1) ? sg1 : sg2;
+            for (AnnotatedVertex ak : sg0.vertexSet()) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
-                if (!sg.containsVertex(kmer)) {
-                    TraversalStopper stopper = new AbstractTraversalStopper() {
+                if (!sg.containsVertex(ak)) {
+                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                         @Override
-                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
                             String fw = cr.getKmerAsString();
                             String rc = SequenceUtils.reverseComplement(fw);
 
-                            if (g.containsVertex(fw) || g.containsVertex(rc)) {
+                            if (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc))) {
                                 if (junctions < distanceToGoal) {
                                     distanceToGoal = junctions;
                                 }
@@ -765,7 +793,7 @@ public class GenotypeGraph extends Module {
                         }
 
                         @Override
-                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<String, DefaultEdge> g, int junctions) {
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
                             return junctions >= maxJunctionsAllowed();
                         }
 
@@ -775,7 +803,7 @@ public class GenotypeGraph extends Module {
                         }
                     };
 
-                    Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, kmer, c, sg0, stopper));
+                    Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper));
                 }
             }
         }
