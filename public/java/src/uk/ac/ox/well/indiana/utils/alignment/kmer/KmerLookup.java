@@ -29,13 +29,17 @@ public class KmerLookup {
         return new KmerIndex(ref, kmerSize);
     }
 
-    public List<Set<Interval>> find(String s) {
+    public KmerIndex.KmerIndexRecord findKmer(String sk) {
+        return ki.lookup(sk);
+    }
+
+    public List<Set<Interval>> findKmers(String s) {
         List<Set<Interval>> allIntervals = new ArrayList<Set<Interval>>();
 
         for (int i = 0; i <= s.length() - kmerSize; i++) {
             String sk = s.substring(i, i + kmerSize);
 
-            KmerIndex.KmerIndexRecord kir = ki.lookup(sk);
+            KmerIndex.KmerIndexRecord kir = findKmer(sk);
 
             if (kir == null) {
                 allIntervals.add(new HashSet<Interval>());
@@ -48,7 +52,7 @@ public class KmerLookup {
     }
 
     public String findSimplified(String s) {
-        List<Set<Interval>> allIntervals = find(s);
+        List<Set<Interval>> allIntervals = findKmers(s);
         StringBuilder simplified = new StringBuilder();
 
         /*

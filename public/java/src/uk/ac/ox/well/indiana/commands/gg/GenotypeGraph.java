@@ -23,6 +23,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.io.table.TableWriter;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -628,7 +629,7 @@ public class GenotypeGraph extends Module {
     }
 
     private boolean isChimeric(String stretch, KmerLookup kl) {
-        List<Set<Interval>> ils = kl.find(stretch);
+        List<Set<Interval>> ils = kl.findKmers(stretch);
 
         StringBuilder sb = new StringBuilder();
 
@@ -1042,7 +1043,7 @@ public class GenotypeGraph extends Module {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
         }
 
-        //TableWriter tw = new TableWriter(out);
+        TableWriter tw = new TableWriter(out);
         int totalNovelKmersUsed = 0;
         int stretchNum = 0;
         int numMatches = 0;
@@ -1107,6 +1108,20 @@ public class GenotypeGraph extends Module {
                         log.info("    - no match :(");
                     }
                 }
+
+                Map<String, String> te = new LinkedHashMap<String, String>();
+                te.put("stretchNum", String.valueOf(stretchNum));
+                te.put("stretch", stretch);
+
+                te.put("ref1", vc1.getReference().getBaseString());
+                te.put("alt1", vc1.getAlternateAllele(0).getBaseString());
+                te.put("type1", vc1.getType().toString());
+                te.put("denovo1", vc1.getAttributeAsString("denovo", "unknown"));
+
+                te.put("ref2", vc2.getReference().getBaseString());
+                te.put("alt2", vc2.getAlternateAllele(0).getBaseString());
+                te.put("type2", vc2.getType().toString());
+                te.put("denovo2", vc1.getAttributeAsString("denovo", "unknown"));
 
                 stretchNum++;
             }
