@@ -964,12 +964,12 @@ public class GenotypeGraph extends Module {
                     String altFw = altStretch.substring(pos, pos + altLength);
                     String altRc = SequenceUtils.reverseComplement(altFw);
 
-                    if (vi.ref.equals(refFw) && vi.alt.equals(altFw)) {
+                    if (vi.ref.equals(refFw) && vi.alt != null && vi.alt.equals(altFw)) {
                         ref = refFw;
                         alt = altFw;
                         found = true;
                         break;
-                    } else if (vi.ref.equals(refRc) && vi.alt.equals(altRc)) {
+                    } else if (vi.ref.equals(refRc) && vi.alt != null && vi.alt.equals(altRc)) {
                         ref = refRc;
                         alt = altRc;
                         found = true;
