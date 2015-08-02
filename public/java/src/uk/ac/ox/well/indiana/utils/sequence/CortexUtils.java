@@ -416,6 +416,91 @@ public class CortexUtils {
         return dfsf;
     }
 
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
+        class StackEntry {
+            public AnnotatedVertex first;
+            public AnnotatedVertex second;
+            public int depth;
+
+            public StackEntry(AnnotatedVertex first, AnnotatedVertex second, int depth) {
+                this.first = first;
+                this.second = second;
+                this.depth = depth;
+            }
+
+            public AnnotatedVertex getFirst() { return first; }
+            public AnnotatedVertex getSecond() { return second; }
+            public int getDepth() { return depth; }
+        }
+
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+
+        Set<String> adjKmers = goForward ? CortexUtils.getNextKmers(clean, kmer, color) : CortexUtils.getPrevKmers(clean, kmer, color);
+
+        Stack<StackEntry> kmerStack = new Stack<StackEntry>();
+        for (String adjKmer : adjKmers) {
+            if (goForward) {
+                kmerStack.push(new StackEntry(new AnnotatedVertex(kmer), new AnnotatedVertex(adjKmer), 0));
+            } else {
+                kmerStack.push(new StackEntry(new AnnotatedVertex(adjKmer), new AnnotatedVertex(kmer), 0));
+            }
+        }
+
+        while (!kmerStack.isEmpty()) {
+            StackEntry p = kmerStack.pop();
+
+            AnnotatedVertex av0 = p.getFirst();
+            AnnotatedVertex av1 = p.getSecond();
+            int depth = p.getDepth();
+
+            dfs.addVertex(av0);
+            dfs.addVertex(av1);
+            dfs.addEdge(av0, av1, new AnnotatedEdge());
+
+            CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
+            adjKmers = goForward ? CortexUtils.getNextKmers(clean, av1.getKmer(), color) : CortexUtils.getPrevKmers(clean, av0.getKmer(), color);
+
+            if (stopper.keepGoing(crAdj, sg0, depth)) {
+                if (adjKmers.size() > 1) {
+                    depth++;
+                }
+
+                for (String ska : adjKmers) {
+                    AnnotatedVertex ava = new AnnotatedVertex(ska);
+                    if (!dfs.containsVertex(ava)) {
+                        if (goForward) {
+                            kmerStack.push(new StackEntry(p.getSecond(), ava, depth));
+                        } else {
+                            kmerStack.push(new StackEntry(ava, p.getFirst(), depth));
+                        }
+                    }
+                }
+            } else {
+                for (String ska : adjKmers) {
+                    AnnotatedVertex ava = new AnnotatedVertex(ska);
+                    dfs.addVertex(ava);
+
+                    if (goForward) {
+                        dfs.addEdge(av1, ava);
+                    } else {
+                        dfs.addEdge(ava, av0);
+                    }
+                }
+            }
+        }
+
+        return dfs;
+    }
+
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, raw, kmer, color, sg0, stopper, true);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, raw, kmer, color, sg0, stopper, false);
+
+        Graphs.addGraph(dfsf, dfsb);
+
+        return dfsf;
+    }
+
     /**
      * Given a kmer, extract the local subgraph by a depth-first search
      *
