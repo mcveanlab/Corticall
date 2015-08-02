@@ -906,7 +906,7 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private boolean evalVariant(VariantContext vc, Map<CortexKmer, VariantInfo> vis, String stretch) {
+    private VariantInfo evalVariant(VariantContext vc, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
         int kmerSize = vis.keySet().iterator().next().length();
 
@@ -1022,12 +1022,12 @@ public class GenotypeGraph extends Module {
 
             log.info("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
 
-            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown"));
+            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown")) ? vi : null;
         }
 
         log.info("    - matches: {}", false);
 
-        return false;
+        return null;
     }
 
     @Override
@@ -1107,17 +1107,22 @@ public class GenotypeGraph extends Module {
                 te.put("denovo2", vc1.getAttributeAsString("denovo", "unknown"));
 
                 te.put("match", "NA");
+                te.put("m1", "NA");
+                te.put("m2", "NA");
 
                 // Evaluate variants
                 if (BED != null) {
                     log.info("    evaluate:");
-                    boolean m1 = evalVariant(vc1, vis, stretch);
-                    boolean m2 = evalVariant(vc2, vis, stretch);
+                    VariantInfo m1 = evalVariant(vc1, vis, stretch);
+                    VariantInfo m2 = evalVariant(vc2, vis, stretch);
 
                     printGraph(simplifyGraph(ag), "debug", false, false);
                     //printGraph(ag, "debugFull", false, false);
 
-                    if (m1 || m2) {
+                    if (m1 != null || m2 != null) {
+                        te.put("m1", m1 != null ? m1.variantId : "NA");
+                        te.put("m2", m2 != null ? m2.variantId : "NA");
+
                         log.info("    - match!");
                         numMatches++;
 
