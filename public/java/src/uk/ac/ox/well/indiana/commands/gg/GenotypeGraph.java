@@ -1092,23 +1092,6 @@ public class GenotypeGraph extends Module {
                 log.info("    - vc1: {}", vc1);
                 log.info("    - vc2: {}", vc2);
 
-                // Evaluate variants
-                if (BED != null) {
-                    log.info("    evaluate:");
-                    boolean m1 = evalVariant(vc1, vis, stretch);
-                    boolean m2 = evalVariant(vc2, vis, stretch);
-
-                    printGraph(simplifyGraph(ag), "debug", false, false);
-                    //printGraph(ag, "debugFull", false, false);
-
-                    if (m1 || m2) {
-                        log.info("    - match!");
-                        numMatches++;
-                    } else {
-                        log.info("    - no match :(");
-                    }
-                }
-
                 Map<String, String> te = new LinkedHashMap<String, String>();
                 te.put("stretchNum", String.valueOf(stretchNum));
                 te.put("stretch", stretch);
@@ -1122,6 +1105,31 @@ public class GenotypeGraph extends Module {
                 te.put("alt2", vc2.getAlternateAllele(0).getBaseString());
                 te.put("type2", vc2.getType().toString());
                 te.put("denovo2", vc1.getAttributeAsString("denovo", "unknown"));
+
+                te.put("match", "NA");
+
+                // Evaluate variants
+                if (BED != null) {
+                    log.info("    evaluate:");
+                    boolean m1 = evalVariant(vc1, vis, stretch);
+                    boolean m2 = evalVariant(vc2, vis, stretch);
+
+                    printGraph(simplifyGraph(ag), "debug", false, false);
+                    //printGraph(ag, "debugFull", false, false);
+
+                    if (m1 || m2) {
+                        log.info("    - match!");
+                        numMatches++;
+
+                        te.put("match", "true");
+                    } else {
+                        log.info("    - no match :(");
+
+                        te.put("match", "false");
+                    }
+                }
+
+                tw.addEntry(te);
 
                 stretchNum++;
             }
