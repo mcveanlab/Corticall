@@ -457,8 +457,15 @@ public class CortexUtils {
             dfs.addVertex(av1);
             dfs.addEdge(av0, av1, new AnnotatedEdge());
 
+            boolean dataIsClean = true;
             CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
             adjKmers = goForward ? CortexUtils.getNextKmers(clean, av1.getKmer(), color) : CortexUtils.getPrevKmers(clean, av0.getKmer(), color);
+
+            if (adjKmers.size() == 0 && raw != null) {
+                dataIsClean = false;
+                crAdj = goForward ? raw.findRecord(new CortexKmer(av1.getKmer())) : raw.findRecord(new CortexKmer(av0.getKmer()));
+                adjKmers = goForward ? CortexUtils.getNextKmers(raw, av1.getKmer(), color) : CortexUtils.getPrevKmers(raw, av0.getKmer(), color);
+            }
 
             if (stopper.keepGoing(crAdj, sg0, depth)) {
                 if (adjKmers.size() > 1) {

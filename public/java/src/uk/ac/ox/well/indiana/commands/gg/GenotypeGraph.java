@@ -270,33 +270,6 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    /*
-    private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<String, DefaultEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
-        for (String v : g.vertexSet()) {
-            AnnotatedVertex av = new AnnotatedVertex(v, novelKmers.containsKey(new CortexKmer(v)));
-
-            a.addVertex(av);
-        }
-
-        for (DefaultEdge e : g.edgeSet()) {
-            String s0 = g.getEdgeSource(e);
-            String s1 = g.getEdgeTarget(e);
-
-            CortexKmer ck0 = new CortexKmer(s0);
-            CortexKmer ck1 = new CortexKmer(s1);
-
-            AnnotatedVertex a0 = new AnnotatedVertex(s0, novelKmers.containsKey(ck0));
-            AnnotatedVertex a1 = new AnnotatedVertex(s1, novelKmers.containsKey(ck1));
-
-            if (!a.containsEdge(a0, a1)) {
-                a.addEdge(a0, a1, new AnnotatedEdge());
-            }
-
-            a.getEdge(a0, a1).set(color, true);
-        }
-    }
-    */
-
     private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
         for (AnnotatedVertex v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v.getKmer(), novelKmers.containsKey(new CortexKmer(v.getKmer())));
@@ -649,7 +622,7 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        log.info("    - inherit:     {}", inherit.toString());
+        log.debug("    - inherit:     {}", inherit.toString());
 
         String inheritStr = inherit.toString();
         return inheritStr.matches(".*D+.C+.M+.*") || inheritStr.matches(".*M+.C+.D+.*");
@@ -684,7 +657,7 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        log.info("    - chimeric:    {}", sb.toString());
+        log.debug("    - chimeric:    {}", sb.toString());
 
         return chrCount.size() > 1;
     }
@@ -709,7 +682,7 @@ public class GenotypeGraph extends Module {
         int e = s + parentalAllele.length() - 1;
 
         // Decide if the event is actually a GC or NAHR event
-        log.info("    novel stretch: {}", stretch);
+        log.debug("    novel stretch: {}", stretch);
 
         boolean hasRecombs = hasRecombinations(stretch);
         boolean isChimeric = isChimeric(stretch, kl);
@@ -1042,18 +1015,18 @@ public class GenotypeGraph extends Module {
                 }
             }
 
-            log.info("    - vi: {}", vi);
-            log.info("        known ref: {}", knownRef);
-            log.info("        known alt: {}", knownAlt);
-            log.info("        called ref: {}", ref);
-            log.info("        called alt: {}", alt);
+            log.debug("    - vi: {}", vi);
+            log.debug("        known ref: {}", knownRef);
+            log.debug("        known alt: {}", knownAlt);
+            log.debug("        called ref: {}", ref);
+            log.debug("        called alt: {}", alt);
 
-            log.info("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
+            log.debug("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
 
             return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown")) ? vi : null;
         }
 
-        log.info("    - matches: {}", false);
+        log.debug("    - matches: {}", false);
 
         return null;
     }
@@ -1117,8 +1090,8 @@ public class GenotypeGraph extends Module {
                 VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
 
                 log.info("    variants:");
-                log.info("    - vc1: {}", vc1);
-                log.info("    - vc2: {}", vc2);
+                log.info("    - vc1: {} {}", vc1.getReference(), vc1.getAlternateAllele(0));
+                log.info("    - vc2: {} {}", vc2.getReference(), vc2.getAlternateAllele(0));
 
                 Map<String, String> te = new LinkedHashMap<String, String>();
                 te.put("stretchNum", String.valueOf(stretchNum));
@@ -1151,7 +1124,10 @@ public class GenotypeGraph extends Module {
                         te.put("m1", m1 != null ? m1.variantId : "NA");
                         te.put("m2", m2 != null ? m2.variantId : "NA");
 
+                        log.info("    - m1: {}", m1);
+                        log.info("    - m2: {}", m2);
                         log.info("    - match!");
+
                         numMatches++;
 
                         te.put("match", "true");
