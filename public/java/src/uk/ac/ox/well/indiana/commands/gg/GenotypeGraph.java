@@ -737,7 +737,7 @@ public class GenotypeGraph extends Module {
 
                     @Override
                     public int maxJunctionsAllowed() {
-                        return 3;
+                        return 10;
                     }
                 }));
             }
@@ -772,7 +772,7 @@ public class GenotypeGraph extends Module {
 
                         @Override
                         public int maxJunctionsAllowed() {
-                            return 5;
+                            return 10;
                         }
                     };
 
