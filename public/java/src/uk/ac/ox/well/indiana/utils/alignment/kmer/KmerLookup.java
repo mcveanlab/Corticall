@@ -88,6 +88,13 @@ public class KmerLookup {
             }
         }
 
+        if (currentInterval != null) {
+            Set<Interval> combined = new HashSet<Interval>();
+            combined.add(currentInterval);
+
+            combinedIntervals.add(combined);
+        }
+
         return combinedIntervals;
     }
 
