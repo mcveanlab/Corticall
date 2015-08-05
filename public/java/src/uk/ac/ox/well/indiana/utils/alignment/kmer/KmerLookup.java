@@ -1,8 +1,7 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
-import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
-import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.util.*;
@@ -51,27 +50,69 @@ public class KmerLookup {
         return allIntervals;
     }
 
-    public String findSimplified(String s) {
-        List<Set<Interval>> allIntervals = findKmers(s);
-        StringBuilder simplified = new StringBuilder();
+    private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals) {
+        List<Set<Interval>> combinedIntervals = new ArrayList<Set<Interval>>();
 
-        /*
-        Map<String, Integer> chrCounts = new HashMap<String, Integer>();
+        Interval currentInterval = null;
         for (Set<Interval> intervals : allIntervals) {
-            Map<String, Integer> cc = new HashMap<String, Integer>();
+            if (intervals.size() == 1) {
+                Interval interval = intervals.iterator().next();
 
-            for (Interval interval : intervals) {
-                ContainerUtils.increment(cc, interval.getSequence());
+                if (currentInterval == null) {
+                    currentInterval = interval;
+                } else {
+                    if (currentInterval.getSequence().equals(interval.getSequence()) && interval.abuts(currentInterval)) {
+                        currentInterval = new Interval(
+                                currentInterval.getSequence(),
+                                currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
+                                currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd()
+                        );
+                    } else {
+                        Set<Interval> combined = new HashSet<Interval>();
+                        combined.add(currentInterval);
+
+                        combinedIntervals.add(combined);
+
+                        currentInterval = interval;
+                    }
+                }
+            } else {
+                if (currentInterval != null) {
+                    Set<Interval> combined = new HashSet<Interval>();
+                    combined.add(currentInterval);
+
+                    combinedIntervals.add(combined);
+
+                    currentInterval = null;
+                }
             }
-
-            ContainerUtils.increment(chrCounts, ContainerUtils.mostCommonKey(cc));
         }
-        */
+
+        return combinedIntervals;
+    }
+
+    private int computeNumKmersAlignedUniquely(List<Set<Interval>> allIntervals) {
+        int numKmersAlignedUniquely = 0;
 
         for (Set<Interval> intervals : allIntervals) {
-            simplified.append(intervals.size() == 0 ? "0" : "1");
+            if (intervals.size() == 1) {
+                numKmersAlignedUniquely++;
+            }
         }
 
-        return simplified.toString();
+        return numKmersAlignedUniquely;
+    }
+
+    public List<Set<Interval>> align(String sFw) {
+        String sRc = SequenceUtils.reverseComplement(sFw);
+
+        List<Set<Interval>> allIntervalsFw = findKmers(sFw);
+        List<Set<Interval>> allIntervalsRc = findKmers(sRc);
+        int scoreFw = computeNumKmersAlignedUniquely(allIntervalsFw);
+        int scoreRc = computeNumKmersAlignedUniquely(allIntervalsRc);
+
+        List<Set<Interval>> combinedIntervals = scoreFw > scoreRc ? combineIntervals(allIntervalsFw) : combineIntervals(allIntervalsRc);
+
+        return combinedIntervals;
     }
 }
