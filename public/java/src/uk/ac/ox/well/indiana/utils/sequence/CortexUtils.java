@@ -45,11 +45,9 @@ public class CortexUtils {
      * @param kmer  the kmer
      * @return      the next kmer (in the orientation of the given kmer)
      */
-    public static String getNextKmer(CortexGraph cg, String kmer) {
-        return getNextKmer(cg, kmer, 0);
-    }
+    public static String getNextKmer(CortexGraph cg, String kmer) { return getNextKmer(cg, kmer, 0, false); }
 
-    public static String getNextKmer(CortexGraph cg, String kmer, int color) {
+    public static String getNextKmer(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
 
@@ -64,6 +62,20 @@ public class CortexUtils {
                 String outEdge = outEdges.iterator().next();
 
                 return kmer.substring(1, kmer.length()) + outEdge;
+            } else if (beAggressive) {
+                Set<String> novelKmers = new HashSet<String>();
+
+                for (String outEdge : Arrays.asList("A", "C", "G", "T")) {
+                    String outKmer = kmer.substring(1, kmer.length()) + outEdge;
+
+                    if (isNovelKmer(cg, kmer, color)) {
+                        novelKmers.add(outKmer);
+                    }
+                }
+
+                if (novelKmers.size() == 1) {
+                    return novelKmers.iterator().next();
+                }
             }
         }
 
@@ -109,11 +121,9 @@ public class CortexUtils {
      * @param kmer  the kmer
      * @return      the preivous kmer (in the orientation of the given kmer)
      */
-    public static String getPrevKmer(CortexGraph cg, String kmer) {
-        return getPrevKmer(cg, kmer, 0);
-    }
+    public static String getPrevKmer(CortexGraph cg, String kmer) { return getPrevKmer(cg, kmer, 0, false); }
 
-    public static String getPrevKmer(CortexGraph cg, String kmer, int color) {
+    public static String getPrevKmer(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
 
@@ -128,6 +138,20 @@ public class CortexUtils {
                 String inEdge = inEdges.iterator().next();
 
                 return inEdge + kmer.substring(0, kmer.length() - 1);
+            } else if (beAggressive) {
+                Set<String> novelKmers = new HashSet<String>();
+
+                for (String inEdge : Arrays.asList("A", "C", "G", "T")) {
+                    String inKmer = inEdge + kmer.substring(0, kmer.length() - 1);
+
+                    if (isNovelKmer(cg, kmer, color)) {
+                        novelKmers.add(inKmer);
+                    }
+                }
+
+                if (novelKmers.size() == 1) {
+                    return novelKmers.iterator().next();
+                }
             }
         }
 
@@ -165,14 +189,14 @@ public class CortexUtils {
         return prevKmers;
     }
 
-    public static String getSeededStretchLeft(CortexGraph cg, String kmer, int color) {
+    public static String getSeededStretchLeft(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
         Set<String> usedKmers = new HashSet<String>();
 
         String pk;
-        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null && !usedKmers.contains(pk)) {
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color, beAggressive)) != null && !usedKmers.contains(pk)) {
             stretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
 
             tk = pk;
@@ -182,14 +206,14 @@ public class CortexUtils {
         return stretchBuilder.toString();
     }
 
-    public static String getSeededStretchRight(CortexGraph cg, String kmer, int color) {
+    public static String getSeededStretchRight(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
         Set<String> usedKmers = new HashSet<String>();
 
         String nk;
-        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null && !usedKmers.contains(nk)) {
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color, beAggressive)) != null && !usedKmers.contains(nk)) {
             stretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
 
             tk = nk;
@@ -208,7 +232,11 @@ public class CortexUtils {
      * @return      a string containing the results of the walk
      */
     public static String getSeededStretch(CortexGraph cg, String kmer, int color) {
-        return getSeededStretchLeft(cg, kmer, color) + kmer + getSeededStretchRight(cg, kmer, color);
+        return getSeededStretchLeft(cg, kmer, color, false) + kmer + getSeededStretchRight(cg, kmer, color, false);
+    }
+
+    public static String getSeededStretch(CortexGraph cg, String kmer, int color, boolean beAggressive) {
+        return getSeededStretchLeft(cg, kmer, color, beAggressive) + kmer + getSeededStretchRight(cg, kmer, color, beAggressive);
     }
 
     private static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
@@ -231,14 +259,14 @@ public class CortexUtils {
         return true;
     }
 
-    public static String getNovelStretch(CortexGraph cg, String kmer, int color) {
+    public static String getNovelStretch(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         String tk = kmer;
         StringBuilder novelStretchBuilder = new StringBuilder(tk);
 
         Set<String> usedKmers = new HashSet<String>();
 
         String pk;
-        while ((pk = CortexUtils.getPrevKmer(cg, tk, color)) != null && isNovelKmer(cg, pk, color) && !usedKmers.contains(pk)) {
+        while ((pk = CortexUtils.getPrevKmer(cg, tk, color, beAggressive)) != null && isNovelKmer(cg, pk, color) && !usedKmers.contains(pk)) {
             novelStretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
 
             tk = pk;
@@ -249,7 +277,7 @@ public class CortexUtils {
         usedKmers.clear();
 
         String nk;
-        while ((nk = CortexUtils.getNextKmer(cg, tk, color)) != null && isNovelKmer(cg, nk, color) && !usedKmers.contains(nk)) {
+        while ((nk = CortexUtils.getNextKmer(cg, tk, color, beAggressive)) != null && isNovelKmer(cg, nk, color) && !usedKmers.contains(nk)) {
             novelStretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
 
             tk = nk;
@@ -333,7 +361,7 @@ public class CortexUtils {
         }
     }
 
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper stopper, boolean goForward) {
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper, boolean goForward) {
         class StackEntry {
             public String first;
             public String second;
@@ -407,7 +435,7 @@ public class CortexUtils {
         return dfs;
     }
 
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper stopper) {
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper) {
         DirectedGraph<String, DefaultEdge> dfsf = dfs(cg, kmer, color, sg0, stopper, true);
         DirectedGraph<String, DefaultEdge> dfsb = dfs(cg, kmer, color, sg0, stopper, false);
 
@@ -542,7 +570,6 @@ public class CortexUtils {
         }
 
         printGraph(sgc);
-        System.out.println("print");
 
         Set<AnnotatedVertex> childVertices = new HashSet<AnnotatedVertex>(sgc.vertexSet());
 
@@ -604,12 +631,10 @@ public class CortexUtils {
                         }
 
                         printGraph(sgc);
-                        System.out.println("print");
                     }
                 }
 
                 printGraph(sgc);
-                System.out.println("print");
 
                 if (cr != null && cr.getCoverage(c) > 0) {
                     Set<String> prevKmers = CortexUtils.getPrevKmers(cg, ak.getKmer(), c);
@@ -660,12 +685,10 @@ public class CortexUtils {
                         }
 
                         printGraph(sgc);
-                        System.out.println("print");
                     }
                 }
 
                 printGraph(sgc);
-                System.out.println("print");
             }
         }
 
@@ -933,6 +956,4 @@ public class CortexUtils {
 
         return bbuf.getLong(0);
     }
-
-    //public static long[] encodeBinaryKmer(byte[] kmer) { }
 }

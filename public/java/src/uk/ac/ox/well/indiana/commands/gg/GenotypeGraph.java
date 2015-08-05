@@ -4,13 +4,11 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
-import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -55,11 +53,17 @@ public class GenotypeGraph extends Module {
     @Argument(fullName="novelKmerMap", shortName="m", doc="Novel kmer map", required=false)
     public File NOVEL_KMER_MAP;
 
+    @Argument(fullName="beAggressive", shortName="a", doc="Be aggressive in extending novel stretches")
+    public Boolean AGGRESSIVE = false;
+
     @Output(fullName="gout", shortName="go", doc="Graph out")
     public File gout;
 
     @Output
     public PrintStream out;
+
+    @Output(fullName="evalOut", shortName="eout", doc="Eval out")
+    public PrintStream eout;
 
     private class VariantInfo {
         public String variantId;
@@ -96,7 +100,6 @@ public class GenotypeGraph extends Module {
             if (alt != null ? !alt.equals(that.alt) : that.alt != null) return false;
             if (leftFlank != null ? !leftFlank.equals(that.leftFlank) : that.leftFlank != null) return false;
             return !(rightFlank != null ? !rightFlank.equals(that.rightFlank) : that.rightFlank != null);
-
         }
 
         @Override
@@ -687,6 +690,9 @@ public class GenotypeGraph extends Module {
         boolean hasRecombs = hasRecombinations(stretch);
         boolean isChimeric = isChimeric(stretch, kl);
 
+        List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(GRAPH, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(GRAPH, p.stop, color, false));
+        log.info("    - align {} {}", color, alignment);
+
         // Build the VC
         VariantContextBuilder vcb = new VariantContextBuilder()
                 .chr("unknown")
@@ -737,7 +743,7 @@ public class GenotypeGraph extends Module {
 
                     @Override
                     public int maxJunctionsAllowed() {
-                        return 10;
+                        return 3;
                     }
                 }));
             }
@@ -772,7 +778,7 @@ public class GenotypeGraph extends Module {
 
                         @Override
                         public int maxJunctionsAllowed() {
-                            return 10;
+                            return 5;
                         }
                     };
 
@@ -1038,6 +1044,10 @@ public class GenotypeGraph extends Module {
         KmerLookup kl2 = new KmerLookup(REF2);
 
         Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
+        Map<VariantInfo, Integer> visSeen = new HashMap<VariantInfo, Integer>();
+        for (CortexKmer ck : vis.keySet()) {
+            visSeen.put(vis.get(ck), 0);
+        }
 
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
         for (CortexRecord cr : NOVEL) {
@@ -1055,7 +1065,7 @@ public class GenotypeGraph extends Module {
                 int novelKmersUsed = 0;
 
                 // Walk the graph left and right of novelKmer and extract a novel stretch
-                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0);
+                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
                 log.info("  stretch : {} ({} bp)", stretchNum, stretch.length());
 
                 // Fetch the local subgraph context from disk
@@ -1090,8 +1100,8 @@ public class GenotypeGraph extends Module {
                 VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
 
                 log.info("    variants:");
-                log.info("    - vc1: {} {}", vc1.getReference(), vc1.getAlternateAllele(0));
-                log.info("    - vc2: {} {}", vc2.getReference(), vc2.getAlternateAllele(0));
+                log.info("    - vc1: {} {} {} {}", vc1.getReference(), vc1.getAlternateAllele(0), vc1.getAttributeAsString("DENOVO", "unknown"), vc1.getFilters());
+                log.info("    - vc2: {} {} {} {}", vc2.getReference(), vc2.getAlternateAllele(0), vc2.getAttributeAsString("DENOVO", "unknown"), vc2.getFilters());
 
                 Map<String, String> te = new LinkedHashMap<String, String>();
                 te.put("stretchNum", String.valueOf(stretchNum));
@@ -1120,6 +1130,9 @@ public class GenotypeGraph extends Module {
                     printGraph(simplifyGraph(ag), "debug", false, false);
                     //printGraph(ag, "debugFull", false, false);
 
+                    if (m1 != null) { visSeen.put(m1, visSeen.get(m1) + 1); }
+                    else if (m2 != null) { visSeen.put(m2, visSeen.get(m2) + 1); }
+
                     if (m1 != null || m2 != null) {
                         te.put("m1", m1 != null ? m1.variantId : "NA");
                         te.put("m2", m2 != null ? m2.variantId : "NA");
@@ -1144,7 +1157,13 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        log.info("Num stretches: {}", stretchNum);
+        log.info("Num stretches: {}", stretchNum - 1);
         log.info("Num matches: {}", numMatches);
+
+        int vid = 1;
+        for (VariantInfo vi : visSeen.keySet()) {
+            eout.println(vid + "\t" + vi.variantId + "\t" + vi.type + "\t" + vi.denovo + "\t" + visSeen.get(vi));
+            vid++;
+        }
     }
 }

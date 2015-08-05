@@ -308,7 +308,7 @@ public class PrintKnownVariantEdges extends Module {
 
                 String curKmer = new String(REF.getSubsequenceAt(chr, start, start + kmerSize - 1).getBases());
                 String prevKmer;
-                while ((prevKmer = CortexUtils.getPrevKmer(GRAPH, curKmer, 0)) != null) {
+                while ((prevKmer = CortexUtils.getPrevKmer(GRAPH, curKmer, 0, false)) != null) {
                     g.addVertex(prevKmer);
                     g.addVertex(curKmer);
                     g.addEdge(prevKmer, curKmer, new Link(0, 1));
@@ -318,7 +318,7 @@ public class PrintKnownVariantEdges extends Module {
 
                 curKmer = new String(REF.getSubsequenceAt(chr, start, start + kmerSize).getBases());
                 String nextKmer;
-                while ((nextKmer = CortexUtils.getNextKmer(GRAPH, curKmer, 0)) != null) {
+                while ((nextKmer = CortexUtils.getNextKmer(GRAPH, curKmer, 0, false)) != null) {
                     g.addVertex(curKmer);
                     g.addVertex(nextKmer);
                     g.addEdge(curKmer, nextKmer, new Link(0, 1));
@@ -694,8 +694,8 @@ public class PrintKnownVariantEdges extends Module {
         String kmer = new String(REF.getSubsequenceAt(chr, start, start + kmerSize - 1).getBases());
         g.addVertex(kmer);
 
-        while (CortexUtils.getPrevKmer(GRAPH, kmer, 0) != null) {
-            String prevKmer = CortexUtils.getPrevKmer(GRAPH, kmer, 0);
+        while (CortexUtils.getPrevKmer(GRAPH, kmer, 0, false) != null) {
+            String prevKmer = CortexUtils.getPrevKmer(GRAPH, kmer, 0, false);
 
             g.addVertex(prevKmer);
             g.addEdge(prevKmer, kmer, new Link());
@@ -709,7 +709,7 @@ public class PrintKnownVariantEdges extends Module {
         }
 
         kmer = new String(REF.getSubsequenceAt(chr, start, start + kmerSize - 1).getBases());
-        while (CortexUtils.getNextKmer(GRAPH, kmer, 0) != null) {
+        while (CortexUtils.getNextKmer(GRAPH, kmer, 0, false) != null) {
             String nextKmer = CortexUtils.getNextKmer(GRAPH, kmer);
 
             g.addVertex(nextKmer);

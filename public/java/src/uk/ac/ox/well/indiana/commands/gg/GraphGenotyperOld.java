@@ -191,19 +191,19 @@ public class GraphGenotyperOld extends Module {
 
                 do {
                     prevKmer = CortexUtils.getPrevKmer(GRAPH, prevKmer);
-                } while (prevKmer != null && CortexUtils.getNextKmer(GRAPH, prevKmer, c) == null);
+                } while (prevKmer != null && CortexUtils.getNextKmer(GRAPH, prevKmer, c, false) == null);
 
                 String nextKmer = stretch.get(stretch.size() - 1);
 
                 do {
                     nextKmer = CortexUtils.getNextKmer(GRAPH, nextKmer);
-                } while (nextKmer != null && CortexUtils.getPrevKmer(GRAPH, nextKmer, c) == null);
+                } while (nextKmer != null && CortexUtils.getPrevKmer(GRAPH, nextKmer, c, false) == null);
 
-                String prevKmerToNextChild  = CortexUtils.getNextKmer(GRAPH, prevKmer, 0);
-                String prevKmerToNextParent = CortexUtils.getNextKmer(GRAPH, prevKmer, c);
+                String prevKmerToNextChild  = CortexUtils.getNextKmer(GRAPH, prevKmer, 0, false);
+                String prevKmerToNextParent = CortexUtils.getNextKmer(GRAPH, prevKmer, c, false);
 
-                String nextKmerToPrevChild  = CortexUtils.getPrevKmer(GRAPH, nextKmer, 0);
-                String nextKmerToPrevParent = CortexUtils.getPrevKmer(GRAPH, nextKmer, c);
+                String nextKmerToPrevChild  = CortexUtils.getPrevKmer(GRAPH, nextKmer, 0, false);
+                String nextKmerToPrevParent = CortexUtils.getPrevKmer(GRAPH, nextKmer, c, false);
 
                 Map<Integer, String> alleles = new TreeMap<Integer, String>();
 
@@ -215,7 +215,7 @@ public class GraphGenotyperOld extends Module {
                         StringBuilder sf = new StringBuilder(tk);
                         boolean fComplete = false;
 
-                        while ((tk = CortexUtils.getNextKmer(GRAPH, tk, ca)) != null) {
+                        while ((tk = CortexUtils.getNextKmer(GRAPH, tk, ca, false)) != null) {
                             if (tk.equals(nextKmer)) {
                                 fComplete = true;
                                 break;
@@ -228,7 +228,7 @@ public class GraphGenotyperOld extends Module {
                         StringBuilder sr = new StringBuilder(tk);
                         boolean rComplete = false;
 
-                        while ((tk = CortexUtils.getPrevKmer(GRAPH, tk, ca)) != null) {
+                        while ((tk = CortexUtils.getPrevKmer(GRAPH, tk, ca, false)) != null) {
                             if (tk.equals(prevKmer)) {
                                 rComplete = true;
                                 break;
@@ -262,12 +262,12 @@ public class GraphGenotyperOld extends Module {
                 List<String> stretch = new ArrayList<String>(Arrays.asList(sk));
 
                 String tk = sk;
-                while ((tk = CortexUtils.getPrevKmer(GRAPH, tk, 0)) != null && novelKmers.contains(new CortexKmer(tk))) {
+                while ((tk = CortexUtils.getPrevKmer(GRAPH, tk, 0, false)) != null && novelKmers.contains(new CortexKmer(tk))) {
                     stretch.add(0, tk);
                 }
 
                 tk = sk;
-                while ((tk = CortexUtils.getNextKmer(GRAPH, tk, 0)) != null && novelKmers.contains(new CortexKmer(tk))) {
+                while ((tk = CortexUtils.getNextKmer(GRAPH, tk, 0, false)) != null && novelKmers.contains(new CortexKmer(tk))) {
                     stretch.add(tk);
                 }
 
