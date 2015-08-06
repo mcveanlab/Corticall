@@ -370,7 +370,7 @@ public class SimChild extends Module {
                 int numRepeats = rng.nextInt(Integer.valueOf(te.get("numRepeats")) - 1) + 1;
 
                 refAllele = getRefAllele(chr, start - 1, 0);
-                altAllele = Allele.create(StringUtils.repeat(te.get("str"), numRepeats), false);
+                altAllele = Allele.create(refAllele + StringUtils.repeat(te.get("str"), numRepeats), false);
 
                 repUnit = te.get("str");
                 repsBefore = Integer.valueOf(te.get("numRepeats"));
