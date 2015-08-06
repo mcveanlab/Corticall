@@ -691,7 +691,9 @@ public class GenotypeGraph extends Module {
         boolean isChimeric = isChimeric(stretch, kl);
 
         List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(GRAPH, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(GRAPH, p.stop, color, false));
+        List<Set<Interval>> anovel = kl.align(stretch);
         log.info("    - align {} {}", color, alignment);
+        log.info("    - align {} {}", 0, anovel);
 
         // Build the VC
         VariantContextBuilder vcb = new VariantContextBuilder()
@@ -704,6 +706,7 @@ public class GenotypeGraph extends Module {
                 .attribute("PARENT_STRETCH", p.parent)
                 .attribute("CHILD_COLOR", 0)
                 .attribute("PARENT_COLOR", color)
+                .attribute("DENOVO", "UNKNOWN")
                 .source(String.valueOf(color));
 
         if (childAllele.equals("N")) {
@@ -712,7 +715,81 @@ public class GenotypeGraph extends Module {
             } else if (isChimeric) {
                 vcb.attribute("DENOVO", "NAHR");
             } else {
+                vcb.attribute("DENOVO", "UNKNOWN");
                 vcb.filter("TRAVERSAL_INCOMPLETE");
+            }
+        } else {
+            if (parentalAllele.length() == childAllele.length()) {
+                if (parentalAllele.length() == 1) {
+                    vcb.attribute("DENOVO", "SNP");
+                } else if (SequenceUtils.reverseComplement(parentalAllele).equals(childAllele)) {
+                    vcb.attribute("DENOVO", "INV");
+                }
+            } else if (parentalAllele.length() == 1 && childAllele.length() > 1) {
+                vcb.attribute("DENOVO", "INS");
+
+                String childAlleleTrimmed = childAllele;
+                if (parentalAllele.length() == 1 && childAllele.charAt(0) == parentalAllele.charAt(0)) {
+                    childAlleleTrimmed = childAllele.substring(1, childAllele.length());
+                } else if (parentalAllele.length() == 1 && childAllele.charAt(childAllele.length() - 1) == parentalAllele.charAt(0)) {
+                    childAlleleTrimmed = childAllele.substring(0, childAllele.length() - 1);
+                }
+
+                log.info("cat: {} {} {}", parentalAllele, childAllele, childAlleleTrimmed);
+
+                String repUnit = "";
+                boolean isStrExp = false;
+                for (int repLength = 2; repLength <= 5 && repLength < childAlleleTrimmed.length(); repLength++) {
+                    repUnit = childAlleleTrimmed.substring(0, repLength);
+
+                    boolean fits = true;
+                    for (int i = 0; i < childAlleleTrimmed.length(); i += repLength) {
+                        fits &= (i + repLength <= childAllele.length()) && childAllele.substring(i, i + repLength).equals(repUnit);
+                    }
+
+                    if ( fits &&
+                       ( p.parent.substring(s - repLength, s).equals(repUnit) ||
+                         p.parent.substring(s, s + repLength).equals(repUnit)) ) {
+                        vcb.attribute("DENOVO", "STR_EXP");
+                        vcb.attribute("REPUNIT", repUnit);
+                        isStrExp = true;
+                    }
+                }
+
+                if ( !isStrExp && childAlleleTrimmed.length() >= 10 && childAlleleTrimmed.length() <= 50 &&
+                     ((s - childAlleleTrimmed.length() >= 0 && p.parent.substring(s - childAlleleTrimmed.length(), s).equals(childAlleleTrimmed)) ||
+                      (s + childAlleleTrimmed.length() <= p.parent.length() && p.parent.substring(s, s + childAlleleTrimmed.length()).equals(childAlleleTrimmed))) ) {
+                    vcb.attribute("DENOVO", "TD");
+                    vcb.attribute("REPUNIT", repUnit);
+                }
+            } else if (parentalAllele.length() > 1 && childAllele.length() == 1) {
+                vcb.attribute("DENOVO", "DEL");
+
+                String parentalAlleleTrimmed = parentalAllele;
+                if (childAllele.length() == 1 && parentalAllele.charAt(0) == childAllele.charAt(0)) {
+                    parentalAlleleTrimmed = parentalAllele.substring(1, parentalAllele.length());
+                } else if (childAllele.length() == 1 && parentalAllele.charAt(parentalAllele.length() - 1) == childAllele.charAt(0)) {
+                    parentalAlleleTrimmed = parentalAllele.substring(0, parentalAllele.length() - 1);
+                }
+
+                log.info("cat: {} {} {}", parentalAllele, childAllele, parentalAlleleTrimmed);
+
+                String repUnit = "";
+                for (int repLength = 2; repLength <= 5 && repLength < parentalAlleleTrimmed.length(); repLength++) {
+                    repUnit = parentalAlleleTrimmed.substring(0, repLength);
+
+                    boolean fits = true;
+                    for (int i = 0; i < parentalAlleleTrimmed.length(); i += repLength) {
+                        fits &= (i + repLength <= parentalAllele.length()) && parentalAllele.substring(i, i + repLength).equals(repUnit);
+                    }
+
+                    if ( fits &&
+                            ( p.child.substring(s - repLength, s).equals(repUnit) ||
+                              p.child.substring(s + parentalAlleleTrimmed.length(), s + parentalAlleleTrimmed.length() + repLength).equals(repUnit)) ) {
+                        vcb.attribute("DENOVO", "STR_CON");
+                        vcb.attribute("REPUNIT", repUnit);
+                    }
+                }
             }
         }
 
@@ -1070,7 +1147,7 @@ public class GenotypeGraph extends Module {
 
                 // Fetch the local subgraph context from disk
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, novelKmer, stretch);
-                log.info("    subgraph: {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
                 // See how many novel kmers we've used up
                 for (AnnotatedVertex ak : ag.vertexSet()) {
@@ -1083,7 +1160,7 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
-                log.info("    novelty : novelKmersUsed: {}, totalNovelKmersUsed: {}/{}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
+                log.info("    novelty  : novelKmersUsed: {}, totalNovelKmersUsed: {}/{}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
 
                 // Extract stretches
                 PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);

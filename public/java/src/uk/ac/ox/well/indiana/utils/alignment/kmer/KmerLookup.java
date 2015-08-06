@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -50,7 +52,7 @@ public class KmerLookup {
         return allIntervals;
     }
 
-    private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals) {
+    private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals, boolean isNegative) {
         List<Set<Interval>> combinedIntervals = new ArrayList<Set<Interval>>();
 
         Interval currentInterval = null;
@@ -59,13 +61,15 @@ public class KmerLookup {
                 Interval interval = intervals.iterator().next();
 
                 if (currentInterval == null) {
-                    currentInterval = interval;
+                    currentInterval = new Interval(interval.getSequence(), interval.getStart(), interval.getEnd(), isNegative, "none");
                 } else {
                     if (currentInterval.getSequence().equals(interval.getSequence()) && interval.abuts(currentInterval)) {
                         currentInterval = new Interval(
                                 currentInterval.getSequence(),
                                 currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
-                                currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd()
+                                currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd(),
+                                isNegative,
+                                "."
                         );
                     } else {
                         Set<Interval> combined = new HashSet<Interval>();
@@ -118,7 +122,7 @@ public class KmerLookup {
         int scoreFw = computeNumKmersAlignedUniquely(allIntervalsFw);
         int scoreRc = computeNumKmersAlignedUniquely(allIntervalsRc);
 
-        List<Set<Interval>> combinedIntervals = scoreFw > scoreRc ? combineIntervals(allIntervalsFw) : combineIntervals(allIntervalsRc);
+        List<Set<Interval>> combinedIntervals = (scoreFw > scoreRc) ? combineIntervals(allIntervalsFw, false) : combineIntervals(allIntervalsRc, true);
 
         return combinedIntervals;
     }
