@@ -63,18 +63,25 @@ public class CortexUtils {
 
                 return kmer.substring(1, kmer.length()) + outEdge;
             } else if (beAggressive) {
+                Set<String> inferredKmers = new HashSet<String>();
                 Set<String> novelKmers = new HashSet<String>();
 
                 for (String outEdge : Arrays.asList("A", "C", "G", "T")) {
                     String outKmer = kmer.substring(1, kmer.length()) + outEdge;
 
-                    if (isNovelKmer(cg, kmer, color)) {
-                        novelKmers.add(outKmer);
+                    if (hasKmer(cg, outKmer, color)) {
+                        inferredKmers.add(outKmer);
+
+                        if (isNovelKmer(cg, outKmer, color)) {
+                            novelKmers.add(outKmer);
+                        }
                     }
                 }
 
                 if (novelKmers.size() == 1) {
                     return novelKmers.iterator().next();
+                } else if (inferredKmers.size() == 1) {
+                    return inferredKmers.iterator().next();
                 }
             }
         }
@@ -139,18 +146,25 @@ public class CortexUtils {
 
                 return inEdge + kmer.substring(0, kmer.length() - 1);
             } else if (beAggressive) {
+                Set<String> inferredKmers = new HashSet<String>();
                 Set<String> novelKmers = new HashSet<String>();
 
                 for (String inEdge : Arrays.asList("A", "C", "G", "T")) {
                     String inKmer = inEdge + kmer.substring(0, kmer.length() - 1);
 
-                    if (isNovelKmer(cg, kmer, color)) {
-                        novelKmers.add(inKmer);
+                    if (hasKmer(cg, inKmer, color)) {
+                        inferredKmers.add(inKmer);
+
+                        if (isNovelKmer(cg, inKmer, color)) {
+                            novelKmers.add(inKmer);
+                        }
                     }
                 }
 
                 if (novelKmers.size() == 1) {
                     return novelKmers.iterator().next();
+                } else if (inferredKmers.size() == 1) {
+                    return inferredKmers.iterator().next();
                 }
             }
         }
@@ -163,7 +177,7 @@ public class CortexUtils {
      *
      * @param cg    the sorted Cortex graph
      * @param kmer  the kmer
-     * @return      the preivous kmers (in the orientation of the given kmer)
+     * @return      the previous kmers (in the orientation of the given kmer)
      */
     public static Set<String> getPrevKmers(CortexGraph cg, String kmer) {
         return getPrevKmers(cg, kmer, 0);
@@ -237,6 +251,12 @@ public class CortexUtils {
 
     public static String getSeededStretch(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         return getSeededStretchLeft(cg, kmer, color, beAggressive) + kmer + getSeededStretchRight(cg, kmer, color, beAggressive);
+    }
+
+    private static boolean hasKmer(CortexGraph cg, String kmer, int color) {
+        CortexRecord cr = cg.findRecord(new CortexKmer(kmer));
+
+        return (cr != null && cr.getCoverage(color) > 0);
     }
 
     private static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
