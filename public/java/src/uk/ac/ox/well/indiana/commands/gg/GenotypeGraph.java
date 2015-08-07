@@ -81,6 +81,9 @@ public class GenotypeGraph extends Module {
         public String leftFlank;
         public String rightFlank;
 
+        public boolean found = false;
+        public boolean matches = false;
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -739,7 +742,7 @@ public class GenotypeGraph extends Module {
 
                 String repUnit = "";
                 boolean isStrExp = false;
-                for (int repLength = 2; repLength <= 5 && repLength < childAlleleTrimmed.length(); repLength++) {
+                for (int repLength = 2; repLength <= 5 && repLength <= childAlleleTrimmed.length(); repLength++) {
                     repUnit = childAlleleTrimmed.substring(0, repLength);
 
                     boolean fits = true;
@@ -775,7 +778,7 @@ public class GenotypeGraph extends Module {
                 log.info("cat: {} {} {}", parentalAllele, childAllele, parentalAlleleTrimmed);
 
                 String repUnit = "";
-                for (int repLength = 2; repLength <= 5 && repLength < parentalAlleleTrimmed.length(); repLength++) {
+                for (int repLength = 2; repLength <= 5 && repLength <= parentalAlleleTrimmed.length(); repLength++) {
                     repUnit = parentalAlleleTrimmed.substring(0, repLength);
 
                     boolean fits = true;
@@ -900,10 +903,10 @@ public class GenotypeGraph extends Module {
         public AnnotateStartsAndEnds invoke() {
             int kmerLength = novelKmers.keySet().iterator().next().length();
 
-            String fk = stretch.substring(1, kmerLength + 1);
+            String fk = stretch.length() > kmerLength + 1 ? stretch.substring(1, kmerLength + 1) : stretch;
             AnnotatedVertex afk = new AnnotatedVertex(fk, novelKmers.containsKey(new CortexKmer(fk)));
 
-            String lk = stretch.substring(stretch.length() - kmerLength - 1, stretch.length() - 1);
+            String lk = stretch.length() > kmerLength + 1 ? stretch.substring(stretch.length() - kmerLength - 1, stretch.length() - 1) : stretch;
             AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
 
             candidateEnds = new HashSet<AnnotatedVertex>();
@@ -1003,43 +1006,19 @@ public class GenotypeGraph extends Module {
         }
 
         if (relevantVis.size() > 0) {
-            VariantInfo vi = relevantVis.iterator().next();
+            VariantInfo bestVi = null;
 
-            String ref = vc.getReference().getBaseString();
-            String alt = vc.getAlternateAllele(0).getBaseString();
+            for (VariantInfo vi : relevantVis) {
+                String ref = vc.getReference().getBaseString();
+                String alt = vc.getAlternateAllele(0).getBaseString();
 
-            String refStretch = vc.getAttributeAsString("PARENT_STRETCH", ref);
-            String altStretch = vc.getAttributeAsString("CHILD_STRETCH", alt);
+                String refStretch = vc.getAttributeAsString("PARENT_STRETCH", ref);
+                String altStretch = vc.getAttributeAsString("CHILD_STRETCH", alt);
 
-            int pos = vc.getStart();
-            int refLength = vc.getReference().length();
-            int altLength = vc.getAlternateAllele(0).length();
-            boolean found = false;
-
-            while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
-                String refFw = refStretch.substring(pos, pos + refLength);
-                String refRc = SequenceUtils.reverseComplement(refFw);
-
-                String altFw = altStretch.substring(pos, pos + altLength);
-                String altRc = SequenceUtils.reverseComplement(altFw);
-
-                if (vi.ref.equals(refFw) && vi.alt != null && vi.alt.equals(altFw)) {
-                    ref = refFw;
-                    alt = altFw;
-                    found = true;
-                    break;
-                } else if (vi.ref.equals(refRc) && vi.alt != null && vi.alt.equals(altRc)) {
-                    ref = refRc;
-                    alt = altRc;
-                    found = true;
-                    break;
-                }
-
-                pos--;
-            }
-
-            if (!found) {
-                pos = vc.getStart();
+                int pos = vc.getStart();
+                int refLength = vc.getReference().length();
+                int altLength = vc.getAlternateAllele(0).length();
+                boolean found = false;
 
                 while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
                     String refFw = refStretch.substring(pos, pos + refLength);
@@ -1060,53 +1039,88 @@ public class GenotypeGraph extends Module {
                         break;
                     }
 
-                    pos++;
-                }
-            }
-
-            String knownRef = vi.ref;
-            String knownAlt = vi.alt == null ? "" : vi.alt;
-
-            if (!found && knownRef.length() > ref.length() && knownAlt.length() > alt.length() && knownRef.length() == knownAlt.length()) {
-                String refFw = ref;
-                String altFw = alt;
-                String refRc = SequenceUtils.reverseComplement(refFw);
-                String altRc = SequenceUtils.reverseComplement(altFw);
-
-                String refFinal = null, altFinal = null;
-
-                if (knownRef.contains(refFw) && knownAlt.contains(altFw)) {
-                    refFinal = refFw;
-                    altFinal = altFw;
-                } else if (knownRef.contains(refRc) && knownAlt.contains(altRc)) {
-                    refFinal = refRc;
-                    altFinal = altRc;
+                    pos--;
                 }
 
-                if (refFinal != null && altFinal != null) {
-                    int r0index = knownRef.indexOf(refFinal);
-                    int a0index = knownAlt.indexOf(altFinal);
-                    int r1index = r0index + refFinal.length();
-                    int a1index = a0index + altFinal.length();
+                if (!found) {
+                    pos = vc.getStart();
 
-                    if (r0index == a0index && r1index == a1index &&
-                        knownRef.substring(0, r0index).equals(knownAlt.substring(0, a0index)) &&
-                        knownRef.substring(r1index, knownRef.length()).equals(knownAlt.substring(a1index, knownAlt.length()))) {
-                        knownRef = ref;
-                        knownAlt = alt;
+                    while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
+                        String refFw = refStretch.substring(pos, pos + refLength);
+                        String refRc = SequenceUtils.reverseComplement(refFw);
+
+                        String altFw = altStretch.substring(pos, pos + altLength);
+                        String altRc = SequenceUtils.reverseComplement(altFw);
+
+                        if (vi.ref.equals(refFw) && vi.alt != null && vi.alt.equals(altFw)) {
+                            ref = refFw;
+                            alt = altFw;
+                            found = true;
+                            break;
+                        } else if (vi.ref.equals(refRc) && vi.alt != null && vi.alt.equals(altRc)) {
+                            ref = refRc;
+                            alt = altRc;
+                            found = true;
+                            break;
+                        }
+
+                        pos++;
                     }
                 }
+
+                String knownRef = vi.ref;
+                String knownAlt = vi.alt == null ? "" : vi.alt;
+
+                if (!found && knownRef.length() > ref.length() && knownAlt.length() > alt.length() && knownRef.length() == knownAlt.length()) {
+                    String refFw = ref;
+                    String altFw = alt;
+                    String refRc = SequenceUtils.reverseComplement(refFw);
+                    String altRc = SequenceUtils.reverseComplement(altFw);
+
+                    String refFinal = null, altFinal = null;
+
+                    if (knownRef.contains(refFw) && knownAlt.contains(altFw)) {
+                        refFinal = refFw;
+                        altFinal = altFw;
+                    } else if (knownRef.contains(refRc) && knownAlt.contains(altRc)) {
+                        refFinal = refRc;
+                        altFinal = altRc;
+                    }
+
+                    if (refFinal != null && altFinal != null) {
+                        int r0index = knownRef.indexOf(refFinal);
+                        int a0index = knownAlt.indexOf(altFinal);
+                        int r1index = r0index + refFinal.length();
+                        int a1index = a0index + altFinal.length();
+
+                        if (r0index == a0index && r1index == a1index &&
+                                knownRef.substring(0, r0index).equals(knownAlt.substring(0, a0index)) &&
+                                knownRef.substring(r1index, knownRef.length()).equals(knownAlt.substring(a1index, knownAlt.length()))) {
+                            knownRef = ref;
+                            knownAlt = alt;
+                        }
+                    }
+                }
+
+                log.debug("    - vi: {}", vi);
+                log.debug("        known ref: {}", knownRef);
+                log.debug("        known alt: {}", knownAlt);
+                log.debug("        called ref: {}", ref);
+                log.debug("        called alt: {}", alt);
+
+                log.debug("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
+
+                vi.found = true;
+                vi.matches = (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown"));
+
+                //return vi;
+
+                if (bestVi == null || vi.matches) {
+                    bestVi = vi;
+                }
             }
 
-            log.debug("    - vi: {}", vi);
-            log.debug("        known ref: {}", knownRef);
-            log.debug("        known alt: {}", knownAlt);
-            log.debug("        called ref: {}", ref);
-            log.debug("        called alt: {}", alt);
-
-            log.debug("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
-
-            return (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown")) ? vi : null;
+            return bestVi;
         }
 
         log.debug("    - matches: {}", false);
@@ -1122,8 +1136,10 @@ public class GenotypeGraph extends Module {
 
         Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
         Map<VariantInfo, Integer> visSeen = new HashMap<VariantInfo, Integer>();
+        Map<VariantInfo, Integer> visMatched = new HashMap<VariantInfo, Integer>();
         for (CortexKmer ck : vis.keySet()) {
             visSeen.put(vis.get(ck), 0);
+            visMatched.put(vis.get(ck), 0);
         }
 
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -1134,6 +1150,7 @@ public class GenotypeGraph extends Module {
         TableWriter tw = new TableWriter(out);
         int totalNovelKmersUsed = 0;
         int stretchNum = 0;
+        int numFound = 0;
         int numMatches = 0;
 
         log.info("Genotyping novel kmer stretches in graph...");
@@ -1207,23 +1224,35 @@ public class GenotypeGraph extends Module {
                     printGraph(simplifyGraph(ag), "debug", false, false);
                     //printGraph(ag, "debugFull", false, false);
 
-                    if (m1 != null) { visSeen.put(m1, visSeen.get(m1) + 1); }
-                    else if (m2 != null) { visSeen.put(m2, visSeen.get(m2) + 1); }
-
                     if (m1 != null || m2 != null) {
+                        numFound++;
+
+                        boolean matches = (m1 != null && m1.matches) || (m2 != null && m2.matches);
+                        if (matches) { numMatches++; }
+
                         te.put("m1", m1 != null ? m1.variantId : "NA");
                         te.put("m2", m2 != null ? m2.variantId : "NA");
+                        te.put("found", "true");
+                        te.put("match", String.valueOf(matches));
+
+                        if (m1 != null) { visSeen.put(m1, visSeen.get(m1) + 1); }
+                        else if (m2 != null) { visSeen.put(m2, visSeen.get(m2) + 1); }
+
+                        if (m1 != null && m1.matches) { visMatched.put(m1, visMatched.get(m1) + 1); }
+                        else if (m2 != null && m2.matches) { visMatched.put(m2, visMatched.get(m2) + 1); }
 
                         log.info("    - m1: {}", m1);
                         log.info("    - m2: {}", m2);
-                        log.info("    - match!");
+                        if (matches) {
+                            log.info("    - found and matches!");
+                        } else {
+                            log.info("    - found but no match :(");
+                        }
 
-                        numMatches++;
-
-                        te.put("match", "true");
                     } else {
-                        log.info("    - no match :(");
+                        log.info("    - not found, no match :(");
 
+                        te.put("found", "false");
                         te.put("match", "false");
                     }
                 }
@@ -1234,12 +1263,14 @@ public class GenotypeGraph extends Module {
             }
         }
 
+        log.info("Num variants: {}", visSeen.size());
         log.info("Num stretches: {}", stretchNum - 1);
+        log.info("Num found: {}", numFound);
         log.info("Num matches: {}", numMatches);
 
         int vid = 1;
         for (VariantInfo vi : visSeen.keySet()) {
-            eout.println(vid + "\t" + vi.variantId + "\t" + vi.type + "\t" + vi.denovo + "\t" + visSeen.get(vi));
+            eout.println(vid + "\t" + vi.variantId + "\t" + vi.type + "\t" + vi.denovo + "\t" + visSeen.get(vi) + "\t" + visMatched.get(vi));
             vid++;
         }
     }
