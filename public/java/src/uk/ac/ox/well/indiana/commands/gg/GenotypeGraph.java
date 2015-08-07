@@ -668,7 +668,7 @@ public class GenotypeGraph extends Module {
         return chrCount.size() > 1;
     }
 
-    private VariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+    private GraphicalVariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
         // Compute paths
         PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
@@ -698,38 +698,34 @@ public class GenotypeGraph extends Module {
         log.info("    - align {} {}", color, alignment);
         log.info("    - align {} {}", 0, anovel);
 
-        // Build the VC
-        VariantContextBuilder vcb = new VariantContextBuilder()
-                .chr("unknown")
-                .start(s)
-                .stop(e)
-                .alleles(parentalAllele, childAllele)
-                .attribute("NOVEL_STRETCH", stretch)
-                .attribute("CHILD_STRETCH", p.child)
-                .attribute("PARENT_STRETCH", p.parent)
-                .attribute("CHILD_COLOR", 0)
-                .attribute("PARENT_COLOR", color)
-                .attribute("DENOVO", "UNKNOWN")
-                .source(String.valueOf(color));
+        // Build the GVC
+        GraphicalVariantContext gvc = new GraphicalVariantContext()
+                .attribute(color, "start", s)
+                .attribute(color, "stop", e)
+                .attribute(color, "parentalAllele", parentalAllele)
+                .attribute(color, "childAllele", childAllele)
+                .attribute(color, "parentalStretch", p.parent)
+                .attribute(color, "childStretch", p.child)
+                .attribute(color, "event", "unknown")
+                .attribute(color, "traversalStatus", "complete");
 
         if (childAllele.equals("N")) {
             if (hasRecombs) {
-                vcb.attribute("DENOVO", "GC");
+                gvc.attribute(color, "event", "GC");
             } else if (isChimeric) {
-                vcb.attribute("DENOVO", "NAHR");
+                gvc.attribute(color, "event", "NAHR");
             } else {
-                vcb.attribute("DENOVO", "UNKNOWN");
-                vcb.filter("TRAVERSAL_INCOMPLETE");
+                gvc.attribute(color, "traversalStatus", "incomplete");
             }
         } else {
             if (parentalAllele.length() == childAllele.length()) {
                 if (parentalAllele.length() == 1) {
-                    vcb.attribute("DENOVO", "SNP");
+                    gvc.attribute(color, "event", "SNP");
                 } else if (SequenceUtils.reverseComplement(parentalAllele).equals(childAllele)) {
-                    vcb.attribute("DENOVO", "INV");
+                    gvc.attribute(color, "event", "INV");
                 }
             } else if (parentalAllele.length() == 1 && childAllele.length() > 1) {
-                vcb.attribute("DENOVO", "INS");
+                gvc.attribute(color, "event", "INS");
 
                 String childAlleleTrimmed = childAllele;
                 if (parentalAllele.length() == 1 && childAllele.charAt(0) == parentalAllele.charAt(0)) {
@@ -737,8 +733,6 @@ public class GenotypeGraph extends Module {
                 } else if (parentalAllele.length() == 1 && childAllele.charAt(childAllele.length() - 1) == parentalAllele.charAt(0)) {
                     childAlleleTrimmed = childAllele.substring(0, childAllele.length() - 1);
                 }
-
-                log.info("cat: {} {} {}", parentalAllele, childAllele, childAlleleTrimmed);
 
                 String repUnit = "";
                 boolean isStrExp = false;
@@ -753,8 +747,8 @@ public class GenotypeGraph extends Module {
                     if ( fits &&
                        ( p.parent.substring(s - repLength, s).equals(repUnit) ||
                          p.parent.substring(s, s + repLength).equals(repUnit)) ) {
-                        vcb.attribute("DENOVO", "STR_EXP");
-                        vcb.attribute("REPUNIT", repUnit);
+                        gvc.attribute(color, "event", "STR_EXP");
+                        gvc.attribute(color, "repeatingUnit", repUnit);
                         isStrExp = true;
                     }
                 }
@@ -762,11 +756,11 @@ public class GenotypeGraph extends Module {
                 if ( !isStrExp && childAlleleTrimmed.length() >= 10 && childAlleleTrimmed.length() <= 50 &&
                      ((s - childAlleleTrimmed.length() >= 0 && p.parent.substring(s - childAlleleTrimmed.length(), s).equals(childAlleleTrimmed)) ||
                       (s + childAlleleTrimmed.length() <= p.parent.length() && p.parent.substring(s, s + childAlleleTrimmed.length()).equals(childAlleleTrimmed))) ) {
-                    vcb.attribute("DENOVO", "TD");
-                    vcb.attribute("REPUNIT", repUnit);
+                    gvc.attribute(color, "event", "TD");
+                    gvc.attribute(color, "repeatingUnit", repUnit);
                 }
             } else if (parentalAllele.length() > 1 && childAllele.length() == 1) {
-                vcb.attribute("DENOVO", "DEL");
+                gvc.attribute(color, "event", "DEL");
 
                 String parentalAlleleTrimmed = parentalAllele;
                 if (childAllele.length() == 1 && parentalAllele.charAt(0) == childAllele.charAt(0)) {
@@ -774,8 +768,6 @@ public class GenotypeGraph extends Module {
                 } else if (childAllele.length() == 1 && parentalAllele.charAt(parentalAllele.length() - 1) == childAllele.charAt(0)) {
                     parentalAlleleTrimmed = parentalAllele.substring(0, parentalAllele.length() - 1);
                 }
-
-                log.info("cat: {} {} {}", parentalAllele, childAllele, parentalAlleleTrimmed);
 
                 String repUnit = "";
                 for (int repLength = 2; repLength <= 5 && repLength <= parentalAlleleTrimmed.length(); repLength++) {
@@ -789,24 +781,24 @@ public class GenotypeGraph extends Module {
                     if ( fits &&
                             ( p.child.substring(s - repLength, s).equals(repUnit) ||
                               p.child.substring(s + parentalAlleleTrimmed.length(), s + parentalAlleleTrimmed.length() + repLength).equals(repUnit)) ) {
-                        vcb.attribute("DENOVO", "STR_CON");
-                        vcb.attribute("REPUNIT", repUnit);
+                        gvc.attribute(color, "event", "STR_CON");
+                        gvc.attribute(color, "repeatingUnit", repUnit);
                     }
                 }
             }
         }
 
-        return vcb.make();
+        return gvc;
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, CortexKmer novelKmer, String stretch) {
+    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, String stretch) {
         // first, explore each color and bring the local subgraphs into memory
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        for (int i = 0; i <= stretch.length() - novelKmer.length(); i++) {
-            String kmer = stretch.substring(i, i + novelKmer.length());
+        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+            String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
             AnnotatedVertex ak = new AnnotatedVertex(kmer);
 
             if (!sg0.containsVertex(ak)) {
@@ -993,7 +985,7 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private VariantInfo evalVariant(VariantContext vc, Map<CortexKmer, VariantInfo> vis, String stretch) {
+    private VariantInfo evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
         int kmerSize = vis.keySet().iterator().next().length();
 
@@ -1009,15 +1001,15 @@ public class GenotypeGraph extends Module {
             VariantInfo bestVi = null;
 
             for (VariantInfo vi : relevantVis) {
-                String ref = vc.getReference().getBaseString();
-                String alt = vc.getAlternateAllele(0).getBaseString();
+                String ref = gvc.getAttributeAsString(color, "parentalAllele");
+                String alt = gvc.getAttributeAsString(color, "childAllele");
 
-                String refStretch = vc.getAttributeAsString("PARENT_STRETCH", ref);
-                String altStretch = vc.getAttributeAsString("CHILD_STRETCH", alt);
+                String refStretch = gvc.getAttributeAsString(color, "parentalStretch");
+                String altStretch = gvc.getAttributeAsString(color, "childStretch");
 
-                int pos = vc.getStart();
-                int refLength = vc.getReference().length();
-                int altLength = vc.getAlternateAllele(0).length();
+                int pos = gvc.getAttributeAsInt(color, "start");
+                int refLength = gvc.getAttributeAsString(color, "parentalAllele").length();
+                int altLength = gvc.getAttributeAsString(color, "childAllele").length();
                 boolean found = false;
 
                 while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
@@ -1043,7 +1035,7 @@ public class GenotypeGraph extends Module {
                 }
 
                 if (!found) {
-                    pos = vc.getStart();
+                    pos = gvc.getAttributeAsInt(color, "start");
 
                     while (pos >= 0 && pos + refLength < refStretch.length() && pos + altLength < altStretch.length()) {
                         String refFw = refStretch.substring(pos, pos + refLength);
@@ -1111,9 +1103,7 @@ public class GenotypeGraph extends Module {
                 log.debug("    - matches: {} ({} {} {} {})", knownRef.equals(ref) && knownAlt.equals(alt), ref, alt, knownRef, knownAlt);
 
                 vi.found = true;
-                vi.matches = (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(vc.getAttributeAsString("DENOVO", "unknown"));
-
-                //return vi;
+                vi.matches = (knownRef.equals(ref) && knownAlt.equals(alt)) || vi.denovo.equals(gvc.getAttributeAsString(color, "event"));
 
                 if (bestVi == null || vi.matches) {
                     bestVi = vi;
@@ -1147,28 +1137,21 @@ public class GenotypeGraph extends Module {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
         }
 
-        TableWriter tw = new TableWriter(out);
         int totalNovelKmersUsed = 0;
-        int stretchNum = 0;
-        int numFound = 0;
-        int numMatches = 0;
+        int stretchNum = 1;
 
-        log.info("Genotyping novel kmer stretches in graph...");
+        log.info("Finding novel stretches in graph...");
+        Set<GraphicalVariantContext> stretches = new LinkedHashSet<GraphicalVariantContext>();
         for (CortexKmer novelKmer : novelKmers.keySet()) {
             if (novelKmers.get(novelKmer)) {
                 int novelKmersUsed = 0;
 
                 // Walk the graph left and right of novelKmer and extract a novel stretch
                 String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
-                log.info("  stretch : {} ({} bp)", stretchNum, stretch.length());
-
-                // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, novelKmer, stretch);
-                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
                 // See how many novel kmers we've used up
-                for (AnnotatedVertex ak : ag.vertexSet()) {
-                    CortexKmer ck = new CortexKmer(ak.getKmer());
+                for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
 
                     if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
                         totalNovelKmersUsed++;
@@ -1177,90 +1160,120 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
-                log.info("    novelty  : novelKmersUsed: {}, totalNovelKmersUsed: {}/{}", novelKmersUsed, totalNovelKmersUsed, novelKmers.size());
+                GraphicalVariantContext gvc = new GraphicalVariantContext()
+                        .attribute(0, "stretch", stretch)
+                        .attribute(0, "stretchNum", stretchNum)
+                        .attribute(0, "stretchLength", stretch.length())
+                        .attribute(0, "novelKmersUsed", novelKmersUsed)
+                        .attribute(0, "novelKmersTotal", novelKmers.size());
 
-                // Extract stretches
-                PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-                PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                stretches.add(gvc);
 
-                log.info("    stretches:");
-                log.info("    - s1: {}", p1.parent);
-                log.info("          {}", p1.child);
-                log.info("    - s2: {}", p2.parent);
-                log.info("          {}", p2.child);
-
-                // Call variants
-                VariantContext vc1 = callVariant(ag, 1, stretch, novelKmers, kl1);
-                VariantContext vc2 = callVariant(ag, 2, stretch, novelKmers, kl2);
-
-                log.info("    variants:");
-                log.info("    - vc1: {} {} {} {}", vc1.getReference(), vc1.getAlternateAllele(0), vc1.getAttributeAsString("DENOVO", "unknown"), vc1.getFilters());
-                log.info("    - vc2: {} {} {} {}", vc2.getReference(), vc2.getAlternateAllele(0), vc2.getAttributeAsString("DENOVO", "unknown"), vc2.getFilters());
-
-                Map<String, String> te = new LinkedHashMap<String, String>();
-                te.put("stretchNum", String.valueOf(stretchNum));
-                te.put("stretch", stretch);
-
-                te.put("ref1", vc1.getReference().getBaseString());
-                te.put("alt1", vc1.getAlternateAllele(0).getBaseString());
-                te.put("type1", vc1.getType().toString());
-                te.put("denovo1", vc1.getAttributeAsString("denovo", "unknown"));
-
-                te.put("ref2", vc2.getReference().getBaseString());
-                te.put("alt2", vc2.getAlternateAllele(0).getBaseString());
-                te.put("type2", vc2.getType().toString());
-                te.put("denovo2", vc1.getAttributeAsString("denovo", "unknown"));
-
-                te.put("match", "NA");
-                te.put("m1", "NA");
-                te.put("m2", "NA");
-
-                // Evaluate variants
-                if (BED != null) {
-                    log.info("    evaluate:");
-                    VariantInfo m1 = evalVariant(vc1, vis, stretch);
-                    VariantInfo m2 = evalVariant(vc2, vis, stretch);
-
-                    printGraph(simplifyGraph(ag), "debug", false, false);
-                    //printGraph(ag, "debugFull", false, false);
-
-                    if (m1 != null || m2 != null) {
-                        numFound++;
-
-                        boolean matches = (m1 != null && m1.matches) || (m2 != null && m2.matches);
-                        if (matches) { numMatches++; }
-
-                        te.put("m1", m1 != null ? m1.variantId : "NA");
-                        te.put("m2", m2 != null ? m2.variantId : "NA");
-                        te.put("found", "true");
-                        te.put("match", String.valueOf(matches));
-
-                        if (m1 != null) { visSeen.put(m1, visSeen.get(m1) + 1); }
-                        else if (m2 != null) { visSeen.put(m2, visSeen.get(m2) + 1); }
-
-                        if (m1 != null && m1.matches) { visMatched.put(m1, visMatched.get(m1) + 1); }
-                        else if (m2 != null && m2.matches) { visMatched.put(m2, visMatched.get(m2) + 1); }
-
-                        log.info("    - m1: {}", m1);
-                        log.info("    - m2: {}", m2);
-                        if (matches) {
-                            log.info("    - found and matches!");
-                        } else {
-                            log.info("    - found but no match :(");
-                        }
-
-                    } else {
-                        log.info("    - not found, no match :(");
-
-                        te.put("found", "false");
-                        te.put("match", "false");
-                    }
-                }
-
-                tw.addEntry(te);
+                log.info("  stretch {}: {} bp, {}/{} novel kmers, {}/{} cumulative novel kmers seen", stretchNum, stretch.length(), novelKmersUsed, novelKmers.size(), totalNovelKmersUsed, novelKmers.size());
 
                 stretchNum++;
             }
+        }
+        log.info("  found {} stretches", stretches.size());
+
+        TableWriter tw = new TableWriter(out);
+        int numFound = 0;
+        int numMatches = 0;
+
+        log.info("Genotyping novel kmer stretches in graph...");
+        for (GraphicalVariantContext gvc : stretches) {
+            log.info("  stretch : {}/{}", gvc.getAttributeAsInt(0, "stretchNum"), gvc.getAttribute(0, "stretchLength"));
+
+            // Fetch the local subgraph context from disk
+            String stretch = gvc.getAttributeAsString(0, "stretch");
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
+            log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+
+            // Extract parental stretches
+            PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+            PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+
+            log.info("    stretches:");
+            log.info("    - s1: {}", p1.parent);
+            log.info("          {}", p1.child);
+            log.info("    - s2: {}", p2.parent);
+            log.info("          {}", p2.child);
+
+            // Call variants
+            gvc.add(callVariant(ag, 1, stretch, novelKmers, kl1));
+            gvc.add(callVariant(ag, 2, stretch, novelKmers, kl2));
+
+            log.info("    variants:");
+            log.info("    - vc1: {} {} {}", gvc.getAttributeAsString(1, "parentalAllele"), gvc.getAttributeAsString(1, "childAllele"), gvc.getAttributeAsString(1, "event"));
+            log.info("    - vc2: {} {} {}", gvc.getAttributeAsString(2, "parentalAllele"), gvc.getAttributeAsString(2, "childAllele"), gvc.getAttributeAsString(2, "event"));
+
+            /*
+            Map<String, String> te = new LinkedHashMap<String, String>();
+            te.put("stretchNum", String.valueOf(stretchNum));
+            te.put("stretch", stretch);
+
+            te.put("ref1", vc1.getReference().getBaseString());
+            te.put("alt1", vc1.getAlternateAllele(0).getBaseString());
+            te.put("type1", vc1.getType().toString());
+            te.put("denovo1", vc1.getAttributeAsString("denovo", "unknown"));
+
+            te.put("ref2", vc2.getReference().getBaseString());
+            te.put("alt2", vc2.getAlternateAllele(0).getBaseString());
+            te.put("type2", vc2.getType().toString());
+            te.put("denovo2", vc1.getAttributeAsString("denovo", "unknown"));
+
+            te.put("match", "NA");
+            te.put("m1", "NA");
+            te.put("m2", "NA");
+            */
+
+            // Evaluate variants
+            if (BED != null) {
+                log.info("    evaluate:");
+                VariantInfo m1 = evalVariant(gvc, 1, vis, stretch);
+                VariantInfo m2 = evalVariant(gvc, 2, vis, stretch);
+
+                //printGraph(simplifyGraph(ag), "debug", false, false);
+                //printGraph(ag, "debugFull", false, false);
+
+                if (m1 != null || m2 != null) {
+                    numFound++;
+
+                    boolean matches = (m1 != null && m1.matches) || (m2 != null && m2.matches);
+                    if (matches) { numMatches++; }
+
+                    /*
+                    te.put("m1", m1 != null ? m1.variantId : "NA");
+                    te.put("m2", m2 != null ? m2.variantId : "NA");
+                    te.put("found", "true");
+                    te.put("match", String.valueOf(matches));
+                    */
+
+                    if (m1 != null) { visSeen.put(m1, visSeen.get(m1) + 1); }
+                    else if (m2 != null) { visSeen.put(m2, visSeen.get(m2) + 1); }
+
+                    if (m1 != null && m1.matches) { visMatched.put(m1, visMatched.get(m1) + 1); }
+                    else if (m2 != null && m2.matches) { visMatched.put(m2, visMatched.get(m2) + 1); }
+
+                    log.info("    - m1: {}", m1);
+                    log.info("    - m2: {}", m2);
+                    if (matches) {
+                        log.info("    - found and matches!");
+                    } else {
+                        log.info("    - found but no match :(");
+                    }
+
+                } else {
+                    log.info("    - not found, no match :(");
+
+                    /*
+                    te.put("found", "false");
+                    te.put("match", "false");
+                    */
+                }
+            }
+
+            //tw.addEntry(te);
         }
 
         log.info("Num variants: {}", visSeen.size());
