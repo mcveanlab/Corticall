@@ -1309,9 +1309,12 @@ public class GenotypeGraph extends Module {
                     String vid = gvc.getAttributeAsString(0, "variantId");
                     VariantInfo vi = vids.get(vid);
 
+                    int refLength = vi.ref != null ? vi.ref.length() : 0;
+                    int altLength = vi.alt != null ? vi.alt.length() : 0;
+
                     evalTables.getTable("variantStats").set(vid, "knownVariantId", gvc.getAttributeAsString(0, "variantId"));
                     evalTables.getTable("variantStats").set(vid, "knownVariantEvent", vi.denovo);
-                    evalTables.getTable("variantStats").set(vid, "knownVariantLength", Math.abs(vi.ref.length() - vi.alt.length()));
+                    evalTables.getTable("variantStats").set(vid, "knownVariantLength", Math.abs(refLength - altLength));
                     evalTables.getTable("variantStats").set(vid, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
                     evalTables.getTable("variantStats").set(vid, "variantEvent", gvc.getAttributeAsString(0, "event"));
                     evalTables.getTable("variantStats").set(vid, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
