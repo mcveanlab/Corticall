@@ -37,6 +37,20 @@ public class MoreMathUtils {
         return maxIndex;
     }
 
+    public static int whichMax(int... values) {
+        int maxIndex = 0;
+        int maxValue = values[0];
+
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] > maxValue) {
+                maxIndex = i;
+                maxValue = values[i];
+            }
+        }
+
+        return maxIndex;
+    }
+
     public static int roundUp(int n, int nearest) {
         return (n + nearest - 1) / nearest * nearest;
     }

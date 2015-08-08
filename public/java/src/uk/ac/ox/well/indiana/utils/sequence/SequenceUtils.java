@@ -732,4 +732,12 @@ public class SequenceUtils {
 
         return kmers;
     }
+
+    public static String truncate(String s, int length) {
+        if (s.length() < length) {
+            return s;
+        }
+
+        return s.substring(0, length - 3) + "..." + s.substring(s.length() - 3, s.length());
+    }
 }
