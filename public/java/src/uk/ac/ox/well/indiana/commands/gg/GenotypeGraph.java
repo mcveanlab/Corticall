@@ -915,10 +915,10 @@ public class GenotypeGraph extends Module {
         public AnnotateStartsAndEnds invoke() {
             int kmerLength = novelKmers.keySet().iterator().next().length();
 
-            String fk = stretch.length() > kmerLength + 1 ? stretch.substring(1, kmerLength + 1) : stretch;
+            String fk = stretch.substring(0, kmerLength);
             AnnotatedVertex afk = new AnnotatedVertex(fk, novelKmers.containsKey(new CortexKmer(fk)));
 
-            String lk = stretch.length() > kmerLength + 1 ? stretch.substring(stretch.length() - kmerLength - 1, stretch.length() - 1) : stretch;
+            String lk = stretch.substring(stretch.length() - kmerLength, stretch.length());
             AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
 
             candidateEnds = new HashSet<AnnotatedVertex>();
@@ -1188,8 +1188,9 @@ public class GenotypeGraph extends Module {
         int totalNovelKmersUsed = 0;
         int stretchNum = 1;
 
-        log.info("Discovering novel stretches in graph...");
         Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
+        /*
+        log.info("Discovering novel stretches in graph...");
         for (CortexKmer novelKmer : novelKmers.keySet()) {
             if (novelKmers.get(novelKmer)) {
                 int novelKmersUsed = 0;
@@ -1223,10 +1224,11 @@ public class GenotypeGraph extends Module {
             }
         }
         log.info("  found {} stretches", gvcs.size());
+        */
 
         DataTables evalTables = new DataTables();
 
-        evalTables.addTable("variantStats", "Statistics on variants", "knownVariantId", "knownVariantEvent", "knownVariantLength", "variantId", "variantEvent", "variantLength");
+        evalTables.addTable("variantStats", "Statistics on variants", "knownVariantId", "knownVariantEvent", "knownVariantLength", "variantId", "variantEvent", "variantLength", "novelKmersUsed");
 
         evalTables.addTable("discoveryStats", "Statistics on variant discovery", "tp", "tn", "fp", "fn");
         evalTables.getTable("discoveryStats").set("dummy", "tp", 0l);
@@ -1243,101 +1245,154 @@ public class GenotypeGraph extends Module {
         evalTables.getTable("eventMatchStats").set("dummy", "mismatch", 0l);
 
         log.info("Genotyping novel kmer stretches in graph...");
-        for (GraphicalVariantContext gvc : gvcs) {
-            log.info("  stretch : {}/{} ({} bp, {} novel kmers)", gvc.getAttributeAsInt(0, "stretchNum"), gvcs.size(), gvc.getAttributeAsInt(0, "stretchLength"), gvc.getAttributeAsInt(0, "novelKmersUsed"));
+        for (CortexKmer novelKmer : novelKmers.keySet()) {
+            if (novelKmers.get(novelKmer)) {
+                // Walk the graph left and right of novelKmer and extract a novel stretch
+                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
 
-            //if (gvc.getAttributeAsInt(0, "stretchNum") > 2) { break; }
+                // Construct GVC
+                GraphicalVariantContext gvc = new GraphicalVariantContext()
+                        .attribute(0, "stretch", stretch)
+                        .attribute(0, "stretchNum", stretchNum)
+                        .attribute(0, "stretchLength", stretch.length())
+                        .attribute(0, "novelKmersTotal", novelKmers.size());
 
-            // Fetch the local subgraph context from disk
-            String stretch = gvc.getAttributeAsString(0, "stretch");
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
-            log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+                log.info("  stretch {}: {} bp", stretchNum, stretch.length());
 
-            // Extract parental stretches
-            PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-            PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                // Fetch the local subgraph context from disk
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
+                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
-            log.info("    paths:");
-            log.info("    - 1: {}", SequenceUtils.truncate(p1.parent, 100));
-            log.info("      c: {}", SequenceUtils.truncate(p1.child,  100));
-            log.info("    - 2: {}", SequenceUtils.truncate(p2.parent, 100));
-            log.info("      c: {}", SequenceUtils.truncate(p2.child,  100));
+                // Extract parental stretches
+                PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
 
-            // Call variants
-            gvc.add(callVariant(ag, 1, stretch, novelKmers, kl1));
-            gvc.add(callVariant(ag, 2, stretch, novelKmers, kl2));
+                log.info("    paths:");
+                log.info("    - 1: {}", SequenceUtils.truncate(p1.parent, 100));
+                log.info("      c: {}", SequenceUtils.truncate(p1.child, 100));
+                log.info("    - 2: {}", SequenceUtils.truncate(p2.parent, 100));
+                log.info("      c: {}", SequenceUtils.truncate(p2.child, 100));
 
-            log.info("    variants:");
-            log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
-            log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
-            log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
-            log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
+                // Call variants
+                gvc.add(callVariant(ag, 1, stretch, novelKmers, kl1));
+                gvc.add(callVariant(ag, 2, stretch, novelKmers, kl2));
 
-            // Finalize into a single call
-            chooseVariant(gvc);
+                log.info("    variants:");
+                log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
+                log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
 
-            // Show alignment
-            log.info("    alignment:");
-            log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
-            log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
+                // Finalize into a single call
+                chooseVariant(gvc);
 
-            // Evaluate variants
-            if (BED != null) {
-                log.info("    evaluate:");
+                // Show alignment
+                log.info("    alignment:");
+                log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
+                log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
 
-                for (int c = 0; c < 3; c++) {
-                    evalVariant(gvc, c, vis, stretch);
+                // See how many novel kmers we've used up
+                int novelKmersUsed = 0;
 
-                    String vid = gvc.getAttributeAsString(c, "variantId");
-                    VariantInfo vi = vids.containsKey(vid) ? vids.get(vid) : null;
-                    String event = vi == null ? "none" : vi.denovo;
+                for (int i = 0; i <= p1.child.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(p1.child.substring(i, i + GRAPH.getKmerSize()));
 
-                    log.info("    - {}: background {}, isKnownVariant {}, allelesMatch {}, eventsMatch {}, variantId {} {}",
-                            c,
-                            gvc.getAttributeAsInt(c, "haplotypeBackground"),
-                            gvc.getAttribute(c, "isKnownVariant"),
-                            gvc.getAttribute(c, "allelesMatch"),
-                            gvc.getAttribute(c, "eventsMatch"),
-                            gvc.getAttributeAsString(c, "variantId"),
-                            event
-                    );
+                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
+                        totalNovelKmersUsed++;
+                        novelKmersUsed++;
+                        novelKmers.put(ck, false);
+                    }
                 }
 
-                if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {
-                    evalTables.getTable("discoveryStats").increment("dummy", "tp");
+                for (int i = 0; i <= p2.child.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(p2.child.substring(i, i + GRAPH.getKmerSize()));
 
-                    String vid = gvc.getAttributeAsString(0, "variantId");
-                    VariantInfo vi = vids.get(vid);
-
-                    int refLength = vi.ref != null ? vi.ref.length() : 0;
-                    int altLength = vi.alt != null ? vi.alt.length() : 0;
-
-                    evalTables.getTable("variantStats").set(vid, "knownVariantId", gvc.getAttributeAsString(0, "variantId"));
-                    evalTables.getTable("variantStats").set(vid, "knownVariantEvent", vi.denovo);
-                    evalTables.getTable("variantStats").set(vid, "knownVariantLength", Math.abs(refLength - altLength));
-                    evalTables.getTable("variantStats").set(vid, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
-                    evalTables.getTable("variantStats").set(vid, "variantEvent", gvc.getAttributeAsString(0, "event"));
-                    evalTables.getTable("variantStats").set(vid, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
-
-                    viSeen.put(gvc.getAttributeAsString(0, "variantId"), true);
-
-                    if (gvc.getAttributeAsBoolean(0, "allelesMatch")) {
-                        evalTables.getTable("alleleMatchStats").increment("dummy", "match");
-                    } else {
-                        evalTables.getTable("alleleMatchStats").increment("dummy", "mismatch");
+                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
+                        totalNovelKmersUsed++;
+                        novelKmersUsed++;
+                        novelKmers.put(ck, false);
                     }
-
-                    if (gvc.getAttributeAsBoolean(0, "eventsMatch")) {
-                        evalTables.getTable("eventMatchStats").increment("dummy", "match");
-                    } else {
-                        evalTables.getTable("eventMatchStats").increment("dummy", "mismatch");
-                    }
-                } else {
-                    evalTables.getTable("discoveryStats").increment("dummy", "fp");
                 }
+
+                for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
+
+                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
+                        totalNovelKmersUsed++;
+                        novelKmersUsed++;
+                        novelKmers.put(ck, false);
+                    }
+                }
+
+                gvc.attribute(0, "novelKmersUsed", novelKmersUsed);
+
+                log.info("    novelty:");
+                log.info("    - novel kmers used: {}/{}", novelKmersUsed, novelKmers.size());
+                log.info("    - cumulative usage: {}/{}", totalNovelKmersUsed, novelKmers.size());
+
+                // Evaluate variants
+                if (BED != null) {
+                    log.info("    evaluate:");
+
+                    for (int c = 0; c < 3; c++) {
+                        evalVariant(gvc, c, vis, stretch);
+
+                        String vid = gvc.getAttributeAsString(c, "variantId");
+                        VariantInfo vi = vids.containsKey(vid) ? vids.get(vid) : null;
+                        String event = vi == null ? "none" : vi.denovo;
+
+                        log.info("    - {}: background {}, isKnownVariant {}, allelesMatch {}, eventsMatch {}, variantId {} {}",
+                                c,
+                                gvc.getAttributeAsInt(c, "haplotypeBackground"),
+                                gvc.getAttribute(c, "isKnownVariant"),
+                                gvc.getAttribute(c, "allelesMatch"),
+                                gvc.getAttribute(c, "eventsMatch"),
+                                gvc.getAttributeAsString(c, "variantId"),
+                                event
+                        );
+                    }
+
+                    if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {
+                        evalTables.getTable("discoveryStats").increment("dummy", "tp");
+
+                        String vid = gvc.getAttributeAsString(0, "variantId");
+                        VariantInfo vi = vids.get(vid);
+
+                        int refLength = vi.ref != null ? vi.ref.length() : 0;
+                        int altLength = vi.alt != null ? vi.alt.length() : 0;
+
+                        String pk = vid + "." + gvc.getAttributeAsInt(0, "stretchNum");
+
+                        evalTables.getTable("variantStats").set(pk, "knownVariantId", gvc.getAttributeAsString(0, "variantId"));
+                        evalTables.getTable("variantStats").set(pk, "knownVariantEvent", vi.denovo);
+                        evalTables.getTable("variantStats").set(pk, "knownVariantLength", Math.abs(refLength - altLength));
+                        evalTables.getTable("variantStats").set(pk, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
+                        evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
+                        evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
+                        evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
+
+                        viSeen.put(gvc.getAttributeAsString(0, "variantId"), true);
+
+                        if (gvc.getAttributeAsBoolean(0, "allelesMatch")) {
+                            evalTables.getTable("alleleMatchStats").increment("dummy", "match");
+                        } else {
+                            evalTables.getTable("alleleMatchStats").increment("dummy", "mismatch");
+                        }
+
+                        if (gvc.getAttributeAsBoolean(0, "eventsMatch")) {
+                            evalTables.getTable("eventMatchStats").increment("dummy", "match");
+                        } else {
+                            evalTables.getTable("eventMatchStats").increment("dummy", "mismatch");
+                        }
+                    } else {
+                        evalTables.getTable("discoveryStats").increment("dummy", "fp");
+                    }
+                }
+
+                log.info("");
+
+                stretchNum++;
             }
-
-            log.info("");
         }
 
         for (String vid : viSeen.keySet()) {
