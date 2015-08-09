@@ -1361,7 +1361,7 @@ public class GenotypeGraph extends Module {
                         int refLength = vi.ref != null ? vi.ref.length() : 0;
                         int altLength = vi.alt != null ? vi.alt.length() : 0;
 
-                        String pk = String.valueOf(gvc.getAttributeAsInt(0, "stretchNum"));
+                        String pk = vi.variantId + "." + gvc.getAttributeAsInt(0, "stretchNum");
 
                         evalTables.getTable("variantStats").set(pk, "knownVariantId", gvc.getAttributeAsString(0, "variantId"));
                         evalTables.getTable("variantStats").set(pk, "knownVariantEvent", vi.denovo);
@@ -1387,7 +1387,7 @@ public class GenotypeGraph extends Module {
                     } else {
                         evalTables.getTable("discoveryStats").increment("dummy", "fp");
 
-                        String pk = String.valueOf(gvc.getAttributeAsInt(0, "stretchNum"));
+                        String pk = "none." + gvc.getAttributeAsInt(0, "stretchNum");
 
                         evalTables.getTable("variantStats").set(pk, "knownVariantId", "none");
                         evalTables.getTable("variantStats").set(pk, "knownVariantEvent", "none");
