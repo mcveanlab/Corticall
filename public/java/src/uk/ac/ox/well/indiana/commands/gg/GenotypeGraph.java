@@ -1361,7 +1361,7 @@ public class GenotypeGraph extends Module {
                         int refLength = vi.ref != null ? vi.ref.length() : 0;
                         int altLength = vi.alt != null ? vi.alt.length() : 0;
 
-                        String pk = vid + "." + gvc.getAttributeAsInt(0, "stretchNum");
+                        String pk = String.valueOf(gvc.getAttributeAsInt(0, "stretchNum"));
 
                         evalTables.getTable("variantStats").set(pk, "knownVariantId", gvc.getAttributeAsString(0, "variantId"));
                         evalTables.getTable("variantStats").set(pk, "knownVariantEvent", vi.denovo);
@@ -1371,7 +1371,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
 
-                        viSeen.put(gvc.getAttributeAsString(0, "variantId"), true);
+                        viSeen.put(gvc.getAttributeAsString(0, "knownVariantId"), true);
 
                         if (gvc.getAttributeAsBoolean(0, "allelesMatch")) {
                             evalTables.getTable("alleleMatchStats").increment("dummy", "match");
@@ -1386,6 +1386,16 @@ public class GenotypeGraph extends Module {
                         }
                     } else {
                         evalTables.getTable("discoveryStats").increment("dummy", "fp");
+
+                        String pk = String.valueOf(gvc.getAttributeAsInt(0, "stretchNum"));
+
+                        evalTables.getTable("variantStats").set(pk, "knownVariantId", "none");
+                        evalTables.getTable("variantStats").set(pk, "knownVariantEvent", "none");
+                        evalTables.getTable("variantStats").set(pk, "knownVariantLength", 0);
+                        evalTables.getTable("variantStats").set(pk, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
+                        evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
+                        evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
+                        evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                     }
                 }
 
