@@ -89,6 +89,16 @@ public class CortexUtils {
         return null;
     }
 
+    public static String getNextKmer(CortexGraph cg, CortexGraph craw, String kmer, int color, boolean beAggressive) {
+        String nextClean = getNextKmer(cg, kmer, color, beAggressive);
+        String nextRaw = getNextKmer(craw, kmer, color, beAggressive);
+
+        if (nextClean != null) { return nextClean; }
+        else if (nextRaw != null) { return nextRaw; }
+
+        return null;
+    }
+
     /**
      * Return the next kmers, in the orientation of the given kmer
      *
@@ -172,6 +182,16 @@ public class CortexUtils {
         return null;
     }
 
+    public static String getPrevKmer(CortexGraph cg, CortexGraph craw, String kmer, int color, boolean beAggressive) {
+        String prevClean = getPrevKmer(cg, kmer, color, beAggressive);
+        String prevRaw = getPrevKmer(craw, kmer, color, beAggressive);
+
+        if (prevClean != null) { return prevClean; }
+        else if (prevRaw != null) { return prevRaw; }
+
+        return null;
+    }
+
     /**
      * Return the previous kmers, in the orientation of the given kmer
      *
@@ -237,6 +257,40 @@ public class CortexUtils {
         return stretchBuilder.toString();
     }
 
+    public static String getSeededStretchLeft(CortexGraph cg, CortexGraph craw, String kmer, int color, boolean beAggressive) {
+        String tk = kmer;
+        StringBuilder stretchBuilder = new StringBuilder();
+
+        Set<String> usedKmers = new HashSet<String>();
+
+        String pk;
+        while ((pk = CortexUtils.getPrevKmer(cg, craw, tk, color, beAggressive)) != null && !usedKmers.contains(pk)) {
+            stretchBuilder.insert(0, String.valueOf(pk.charAt(0)));
+
+            tk = pk;
+            usedKmers.add(pk);
+        }
+
+        return stretchBuilder.toString();
+    }
+
+    public static String getSeededStretchRight(CortexGraph cg, CortexGraph craw, String kmer, int color, boolean beAggressive) {
+        String tk = kmer;
+        StringBuilder stretchBuilder = new StringBuilder();
+
+        Set<String> usedKmers = new HashSet<String>();
+
+        String nk;
+        while ((nk = CortexUtils.getNextKmer(cg, craw, tk, color, beAggressive)) != null && !usedKmers.contains(nk)) {
+            stretchBuilder.append(String.valueOf(nk.charAt(nk.length() - 1)));
+
+            tk = nk;
+            usedKmers.add(nk);
+        }
+
+        return stretchBuilder.toString();
+    }
+
     /**
      * Given a kmer, walk left and right until we get to junctions on either end.
      *
@@ -251,6 +305,10 @@ public class CortexUtils {
 
     public static String getSeededStretch(CortexGraph cg, String kmer, int color, boolean beAggressive) {
         return getSeededStretchLeft(cg, kmer, color, beAggressive) + kmer + getSeededStretchRight(cg, kmer, color, beAggressive);
+    }
+
+    public static String getSeededStretch(CortexGraph cg, CortexGraph craw, String kmer, int color, boolean beAggressive) {
+        return getSeededStretchLeft(cg, craw, kmer, color, beAggressive) + kmer + getSeededStretchRight(cg, craw, kmer, color, beAggressive);
     }
 
     private static boolean hasKmer(CortexGraph cg, String kmer, int color) {

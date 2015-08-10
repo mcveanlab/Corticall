@@ -1214,7 +1214,12 @@ public class GenotypeGraph extends Module {
         for (CortexKmer novelKmer : novelKmers.keySet()) {
             if (novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
-                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
+                String stretch;
+                if (GRAPH_RAW == null) {
+                    stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
+                } else {
+                    stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
+                }
 
                 // Construct GVC
                 GraphicalVariantContext gvc = new GraphicalVariantContext()
