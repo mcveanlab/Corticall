@@ -540,8 +540,13 @@ public class CortexUtils {
         }
 
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        dfs.addVertex(new AnnotatedVertex(kmer));
 
         Set<String> adjKmers = goForward ? CortexUtils.getNextKmers(clean, kmer, color) : CortexUtils.getPrevKmers(clean, kmer, color);
+
+        if (adjKmers.size() == 0 && raw != null) {
+            adjKmers = goForward ? CortexUtils.getNextKmers(raw, kmer, color) : CortexUtils.getPrevKmers(raw, kmer, color);
+        }
 
         Stack<StackEntry> kmerStack = new Stack<StackEntry>();
         for (String adjKmer : adjKmers) {
