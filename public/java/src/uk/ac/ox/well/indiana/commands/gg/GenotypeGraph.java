@@ -55,6 +55,9 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "beAggressive", shortName = "a", doc = "Be aggressive in extending novel stretches")
     public Boolean AGGRESSIVE = false;
 
+    @Argument(fullName = "maxJunctionsAllowed", shortName = "j", doc = "Maximum number of junctions we'll permit ourselves to traverse")
+    public Integer MAX_JUNCTIONS_ALLOWED = 10;
+
     @Output(fullName = "gout", shortName = "go", doc = "Graph out")
     public File gout;
 
@@ -250,7 +253,7 @@ public class GenotypeGraph extends Module {
                 if (v.isNovel()) {
                     attrs.put("color", "red");
                     attrs.put("fillcolor", "red");
-                    attrs.put("shape", "circle");
+                    attrs.put("shape", withText ? "box" : "circle");
                 }
 
                 if (v.flagIsSet("start") || v.flagIsSet("end")) {
@@ -283,7 +286,6 @@ public class GenotypeGraph extends Module {
             o.close();
 
             if (withPdf) {
-                //log.info("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
                 Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
             }
         } catch (FileNotFoundException e) {
@@ -835,7 +837,7 @@ public class GenotypeGraph extends Module {
 
                     @Override
                     public int maxJunctionsAllowed() {
-                        return 3;
+                        return MAX_JUNCTIONS_ALLOWED;
                     }
                 }));
             }
@@ -870,7 +872,7 @@ public class GenotypeGraph extends Module {
 
                         @Override
                         public int maxJunctionsAllowed() {
-                            return 5;
+                            return MAX_JUNCTIONS_ALLOWED;
                         }
                     };
 
@@ -883,8 +885,16 @@ public class GenotypeGraph extends Module {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         addGraph(ag, sg0, 0, novelKmers);
+
+        printGraph(ag, "calltest", true, true);
+
         addGraph(ag, sg1, 1, novelKmers);
+
+        printGraph(ag, "calltest", true, true);
+
         addGraph(ag, sg2, 2, novelKmers);
+
+        printGraph(ag, "calltest", true, true);
 
         return ag;
     }
@@ -922,8 +932,6 @@ public class GenotypeGraph extends Module {
             AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
 
             candidateEnds = new HashSet<AnnotatedVertex>();
-
-            log.info("wtf: {}", afk);
 
             DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsLk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(b, afk);
             while (dfsLk.hasNext()) {
@@ -1221,14 +1229,16 @@ public class GenotypeGraph extends Module {
                     stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
                 }
 
+                log.info("  stretch {}: {} bp", stretchNum, stretch.length());
+                log.info("    sequence:");
+                log.info("    - 0: {}", SequenceUtils.truncate(stretch, 100));
+
                 // Construct GVC
                 GraphicalVariantContext gvc = new GraphicalVariantContext()
                         .attribute(0, "stretch", stretch)
                         .attribute(0, "stretchNum", stretchNum)
                         .attribute(0, "stretchLength", stretch.length())
                         .attribute(0, "novelKmersTotal", novelKmers.size());
-
-                log.info("  stretch {}: {} bp", stretchNum, stretch.length());
 
                 // Fetch the local subgraph context from disk
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
@@ -1369,6 +1379,9 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                     }
                 }
+
+                // Print graph
+                printGraph(simplifyGraph(ag), "call" + String.format("%04d", stretchNum), false, true);
 
                 log.info("");
 
