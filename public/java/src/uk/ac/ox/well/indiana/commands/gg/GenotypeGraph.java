@@ -884,6 +884,7 @@ public class GenotypeGraph extends Module {
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
+        /*
         addGraph(ag, sg0, 0, novelKmers);
 
         printGraph(ag, "calltest", true, true);
@@ -895,6 +896,7 @@ public class GenotypeGraph extends Module {
         addGraph(ag, sg2, 2, novelKmers);
 
         printGraph(ag, "calltest", true, true);
+        */
 
         return ag;
     }
