@@ -1371,7 +1371,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
 
-                        viSeen.put(gvc.getAttributeAsString(0, "knownVariantId"), true);
+                        viSeen.put(vi.variantId, true);
 
                         if (gvc.getAttributeAsBoolean(0, "allelesMatch")) {
                             evalTables.getTable("alleleMatchStats").increment("dummy", "match");
@@ -1411,6 +1411,21 @@ public class GenotypeGraph extends Module {
 
                 evalTables.getTable("variantStats").set(vid, "knownVariantId", vid);
                 evalTables.getTable("variantStats").set(vid, "knownVariantEvent", vids.get(vid).denovo);
+
+                String pk = vid + ".none";
+
+                VariantInfo vi = vids.get(vid);
+
+                int refLength = vi.ref != null ? vi.ref.length() : 0;
+                int altLength = vi.alt != null ? vi.alt.length() : 0;
+
+                evalTables.getTable("variantStats").set(pk, "knownVariantId", vid);
+                evalTables.getTable("variantStats").set(pk, "knownVariantEvent", vids.get(vid).denovo);
+                evalTables.getTable("variantStats").set(pk, "knownVariantLength", Math.abs(refLength - altLength));
+                evalTables.getTable("variantStats").set(pk, "variantId", "none");
+                evalTables.getTable("variantStats").set(pk, "variantEvent", "none");
+                evalTables.getTable("variantStats").set(pk, "variantLength", 0);
+                evalTables.getTable("variantStats").set(pk, "novelKmersUsed", 0);
             }
         }
 
