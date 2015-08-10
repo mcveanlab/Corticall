@@ -922,6 +922,9 @@ public class GenotypeGraph extends Module {
             AnnotatedVertex alk = new AnnotatedVertex(lk, novelKmers.containsKey(new CortexKmer(lk)));
 
             candidateEnds = new HashSet<AnnotatedVertex>();
+
+            log.info("wtf: {}", afk);
+
             DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsLk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(b, afk);
             while (dfsLk.hasNext()) {
                 AnnotatedVertex av = dfsLk.next();
@@ -1188,44 +1191,6 @@ public class GenotypeGraph extends Module {
         int totalNovelKmersUsed = 0;
         int stretchNum = 1;
 
-        Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
-        /*
-        log.info("Discovering novel stretches in graph...");
-        for (CortexKmer novelKmer : novelKmers.keySet()) {
-            if (novelKmers.get(novelKmer)) {
-                int novelKmersUsed = 0;
-
-                // Walk the graph left and right of novelKmer and extract a novel stretch
-                String stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
-
-                // See how many novel kmers we've used up
-                for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
-
-                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                        totalNovelKmersUsed++;
-                        novelKmersUsed++;
-                        novelKmers.put(ck, false);
-                    }
-                }
-
-                GraphicalVariantContext gvc = new GraphicalVariantContext()
-                        .attribute(0, "stretch", stretch)
-                        .attribute(0, "stretchNum", stretchNum)
-                        .attribute(0, "stretchLength", stretch.length())
-                        .attribute(0, "novelKmersUsed", novelKmersUsed)
-                        .attribute(0, "novelKmersTotal", novelKmers.size());
-
-                gvcs.add(gvc);
-
-                log.info("  stretch {}: {} bp, {}/{} novel kmers, {}/{} cumulative novel kmers seen", stretchNum, stretch.length(), novelKmersUsed, novelKmers.size(), totalNovelKmersUsed, novelKmers.size());
-
-                stretchNum++;
-            }
-        }
-        log.info("  found {} stretches", gvcs.size());
-        */
-
         DataTables evalTables = new DataTables();
 
         evalTables.addTable("variantStats", "Statistics on variants", "knownVariantId", "knownVariantEvent", "knownVariantLength", "variantId", "variantEvent", "variantLength", "novelKmersUsed");
@@ -1245,6 +1210,7 @@ public class GenotypeGraph extends Module {
         evalTables.getTable("eventMatchStats").set("dummy", "mismatch", 0l);
 
         log.info("Genotyping novel kmer stretches in graph...");
+        Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
         for (CortexKmer novelKmer : novelKmers.keySet()) {
             if (novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
@@ -1401,6 +1367,7 @@ public class GenotypeGraph extends Module {
 
                 log.info("");
 
+                gvcs.add(gvc);
                 stretchNum++;
             }
         }
