@@ -819,6 +819,8 @@ public class GenotypeGraph extends Module {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
+        log.info("    load local subgraph:");
+
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
             String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
             AnnotatedVertex ak = new AnnotatedVertex(kmer);
@@ -827,12 +829,13 @@ public class GenotypeGraph extends Module {
                 Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                     @Override
                     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth) {
-                        return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
+                        //return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
+                        return false;
                     }
 
                     @Override
                     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
-                        return false;
+                        return junctions >= maxJunctionsAllowed();
                     }
 
                     @Override
@@ -843,60 +846,79 @@ public class GenotypeGraph extends Module {
             }
         }
 
+        String firstNovelKmer = null, lastNovelKmer = null;
+
+        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
+            boolean isNovel = (CortexUtils.hasKmer(GRAPH, sk, 0) && CortexUtils.isNovelKmer(GRAPH, sk, 0)) || (GRAPH_RAW != null && AGGRESSIVE && CortexUtils.hasKmer(GRAPH_RAW, sk, 0) && CortexUtils.isNovelKmer(GRAPH_RAW, sk, 0));
+
+            if (isNovel) {
+                if (firstNovelKmer == null) {
+                    firstNovelKmer = sk;
+                }
+
+                lastNovelKmer = sk;
+            }
+        }
+
+        log.info("    - 0: {} vertices, {} edges", sg0.vertexSet().size(), sg0.edgeSet().size());
+
+        List<AnnotatedVertex> predecessorList = Graphs.predecessorListOf(sg0, new AnnotatedVertex(firstNovelKmer));
+        List<AnnotatedVertex> successorList = Graphs.successorListOf(sg0, new AnnotatedVertex(lastNovelKmer));
+
+        //printGraph(simplifyGraph(sg0), "test", true, true);
+
         for (int c = 1; c <= 2; c++) {
-            for (AnnotatedVertex ak : sg0.vertexSet()) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
-                if (!sg.containsVertex(ak)) {
-                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                        @Override
-                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
-                            String fw = cr.getKmerAsString();
-                            String rc = SequenceUtils.reverseComplement(fw);
+            for (boolean goForward : Arrays.asList(true, false)) {
+                List<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
-                            if (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc))) {
-                                if (junctions < distanceToGoal) {
-                                    distanceToGoal = junctions;
+                for (AnnotatedVertex ak : psList) {
+                    if (!sg.containsVertex(ak)) {
+                        TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
+                            @Override
+                            public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
+                                String fw = cr.getKmerAsString();
+                                String rc = SequenceUtils.reverseComplement(fw);
+
+                                if (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc))) {
+                                    if (junctions < distanceToGoal) {
+                                        distanceToGoal = junctions;
+                                    }
+
+                                    return true;
                                 }
 
-                                return true;
+                                return false;
                             }
 
-                            return false;
-                        }
+                            @Override
+                            public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
+                                return junctions >= maxJunctionsAllowed();
+                            }
 
-                        @Override
-                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
-                            return junctions >= maxJunctionsAllowed();
-                        }
+                            @Override
+                            public int maxJunctionsAllowed() {
+                                return MAX_JUNCTIONS_ALLOWED;
+                            }
+                        };
 
-                        @Override
-                        public int maxJunctionsAllowed() {
-                            return MAX_JUNCTIONS_ALLOWED;
-                        }
-                    };
-
-                    Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper));
+                        Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper, goForward));
+                    }
                 }
             }
+
+            log.info("    - {}: {} vertices, {} edges", c, sg.vertexSet().size(), sg.edgeSet().size());
         }
 
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-
-        /*
         addGraph(ag, sg0, 0, novelKmers);
-
-        printGraph(ag, "calltest", true, true);
-
         addGraph(ag, sg1, 1, novelKmers);
-
-        printGraph(ag, "calltest", true, true);
-
         addGraph(ag, sg2, 2, novelKmers);
 
-        printGraph(ag, "calltest", true, true);
-        */
+        //printGraph(ag, "calltest", true, true);
 
         return ag;
     }
@@ -1251,10 +1273,10 @@ public class GenotypeGraph extends Module {
                 PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
 
                 log.info("    paths:");
-                log.info("    - 1: {}", SequenceUtils.truncate(p1.parent, 100));
-                log.info("      c: {}", SequenceUtils.truncate(p1.child, 100));
-                log.info("    - 2: {}", SequenceUtils.truncate(p2.parent, 100));
-                log.info("      c: {}", SequenceUtils.truncate(p2.child, 100));
+                log.info("    - 1: {} ({} bp)", SequenceUtils.truncate(p1.parent, 100), p1.parent.length());
+                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p1.child, 100), p1.child.length());
+                log.info("    - 2: {} ({} bp)", SequenceUtils.truncate(p2.parent, 100), p2.parent.length());
+                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
                 // Call variants
                 gvc.add(callVariant(ag, 1, stretch, novelKmers, kl1));
@@ -1416,6 +1438,8 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        evalTables.write(out);
+        if (BED != null) {
+            evalTables.write(out);
+        }
     }
 }
