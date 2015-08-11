@@ -311,13 +311,13 @@ public class CortexUtils {
         return getSeededStretchLeft(cg, craw, kmer, color, beAggressive) + kmer + getSeededStretchRight(cg, craw, kmer, color, beAggressive);
     }
 
-    private static boolean hasKmer(CortexGraph cg, String kmer, int color) {
+    public static boolean hasKmer(CortexGraph cg, String kmer, int color) {
         CortexRecord cr = cg.findRecord(new CortexKmer(kmer));
 
         return (cr != null && cr.getCoverage(color) > 0);
     }
 
-    private static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
+    public static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
         CortexRecord cr = cg.findRecord(new CortexKmer(kmer));
 
         if (cr == null) {
