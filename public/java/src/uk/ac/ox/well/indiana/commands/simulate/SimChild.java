@@ -228,8 +228,10 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoInsertions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+    private void addDeNovoInsertions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(MAX_LENGTH - 1) + 1;
+
             SAMSequenceRecord ssr = getRandomAutosome();
             int pos;
             do {
@@ -270,8 +272,10 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoDeletions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+    private void addDeNovoDeletions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(MAX_LENGTH - 1) + 1;
+
             SAMSequenceRecord ssr = getRandomAutosome();
             int pos;
             do {
@@ -307,8 +311,10 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoInversions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+    private void addDeNovoInversions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(MAX_LENGTH - 1) + 1;
+
             SAMSequenceRecord ssr;
             int pos;
 
@@ -348,10 +354,12 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoStrExpansions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length, Map<Integer, List<Map<String, String>>> strMap) {
-        List<Map<String, String>> strs = strMap.get(length);
-
+    private void addDeNovoStrExpansions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, Map<Integer, List<Map<String, String>>> strMap) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(3) + 2;
+
+            List<Map<String, String>> strs = strMap.get(length);
+
             String chr;
             int pos;
 
@@ -408,10 +416,11 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoStrContractions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length, Map<Integer, List<Map<String, String>>> strMap) {
-        List<Map<String, String>> strs = strMap.get(length);
-
+    private void addDeNovoStrContractions(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, Map<Integer, List<Map<String, String>>> strMap) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(3) + 2;
+            List<Map<String, String>> strs = strMap.get(length);
+
             String chr;
             int pos;
 
@@ -470,8 +479,10 @@ public class SimChild extends Module {
         }
     }
 
-    private void addDeNovoTandemDuplications(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName, int length) {
+    private void addDeNovoTandemDuplications(Map<String, Map<Integer, List<VariantContext>>> vcs, int numVariants, String sampleName) {
         for (int i = 0; i < numVariants; i++) {
+            int length = rng.nextInt(40) + 10;
+
             SAMSequenceRecord ssr;
             int pos;
 
@@ -750,20 +761,15 @@ public class SimChild extends Module {
         }
 
         addDeNovoSNPs(vcs, NUM_SNPS, "child_" + SEED);
-        for (int i = 1; i <= MAX_LENGTH; i++) {
-            addDeNovoInsertions(vcs, NUM_INDELS, "child_" + SEED, i);
-            addDeNovoDeletions(vcs,  NUM_INDELS, "child_" + SEED, i);
-            addDeNovoInversions(vcs, NUM_INDELS, "child_" + SEED, i);
-        }
 
-        for (int strLength = 2; strLength <= 5; strLength++) {
-            addDeNovoStrExpansions(vcs, NUM_STRS, "child_" + SEED, strLength, strMap);
-            addDeNovoStrContractions(vcs, NUM_STRS, "child_" + SEED, strLength, strMap);
-        }
+        addDeNovoInsertions(vcs, NUM_INDELS, "child_" + SEED);
+        addDeNovoDeletions(vcs,  NUM_INDELS, "child_" + SEED);
+        addDeNovoInversions(vcs, NUM_INDELS, "child_" + SEED);
 
-        for (int tdLength = 10; tdLength <= 50; tdLength+=10) {
-            addDeNovoTandemDuplications(vcs, NUM_TDS, "child_" + SEED, tdLength);
-        }
+        addDeNovoStrExpansions(vcs, NUM_STRS, "child_" + SEED, strMap);
+        addDeNovoStrContractions(vcs, NUM_STRS, "child_" + SEED, strMap);
+
+        addDeNovoTandemDuplications(vcs, NUM_TDS, "child_" + SEED);
 
         int simid = 0;
         for (SAMSequenceRecord ssr : VCF.getFileHeader().getSequenceDictionary().getSequences()) {
