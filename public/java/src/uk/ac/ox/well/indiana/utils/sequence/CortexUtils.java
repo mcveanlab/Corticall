@@ -6,7 +6,9 @@ import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
+import org.jgrapht.WeightedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
@@ -131,6 +133,16 @@ public class CortexUtils {
         return nextKmers;
     }
 
+    public static Set<String> getNextKmers(CortexGraph cg, CortexGraph craw, String kmer, int color) {
+        Set<String> nextKmers = getNextKmers(cg, kmer, color);
+
+        if (craw != null && (nextKmers == null || nextKmers.isEmpty())) {
+            nextKmers = getNextKmers(craw, kmer, color);
+        }
+
+        return nextKmers;
+    }
+
     /**
      * Return the previous kmer, in the orientation of the given kmer
      *
@@ -218,6 +230,16 @@ public class CortexUtils {
             for (String inEdge : inEdges) {
                 prevKmers.add(inEdge + kmer.substring(0, kmer.length() - 1));
             }
+        }
+
+        return prevKmers;
+    }
+
+    public static Set<String> getPrevKmers(CortexGraph cg, CortexGraph craw, String kmer, int color) {
+        Set<String> prevKmers = getPrevKmers(cg, kmer, color);
+
+        if (craw != null && (prevKmers == null || prevKmers.isEmpty())) {
+            prevKmers = getPrevKmers(craw, kmer, color);
         }
 
         return prevKmers;
@@ -388,7 +410,7 @@ public class CortexUtils {
         return Joiner.on(" ").join(attrArray);
     }
 
-    private static void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g) {
+    private static void printGraph(WeightedGraph<AnnotatedVertex, AnnotatedEdge> g) {
         try {
             File f = new File("testgraph.dot");
             //File p = new File("testgraph.png");
@@ -439,7 +461,7 @@ public class CortexUtils {
         }
     }
 
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper, boolean goForward) {
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DefaultDirectedWeightedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper, boolean goForward) {
         class StackEntry {
             public String first;
             public String second;
@@ -483,7 +505,7 @@ public class CortexUtils {
             CortexRecord crAdj = goForward ? cg.findRecord(new CortexKmer(sk1)) : cg.findRecord(new CortexKmer(sk0));
             adjKmers = goForward ? CortexUtils.getNextKmers(cg, sk1, color) : CortexUtils.getPrevKmers(cg, sk0, color);
 
-            if (stopper.keepGoing(crAdj, sg0, depth)) {
+            if (stopper.keepGoing(crAdj, sg0, depth, dfs.vertexSet().size())) {
                 if (adjKmers.size() > 1) {
                     depth++;
                 }
@@ -513,7 +535,7 @@ public class CortexUtils {
         return dfs;
     }
 
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper) {
+    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DefaultDirectedWeightedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper) {
         DirectedGraph<String, DefaultEdge> dfsf = dfs(cg, kmer, color, sg0, stopper, true);
         DirectedGraph<String, DefaultEdge> dfsb = dfs(cg, kmer, color, sg0, stopper, false);
 
@@ -522,7 +544,7 @@ public class CortexUtils {
         return dfsf;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
+    public static WeightedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
         class StackEntry {
             public AnnotatedVertex first;
             public AnnotatedVertex second;
@@ -539,7 +561,7 @@ public class CortexUtils {
             public int getDepth() { return depth; }
         }
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        WeightedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         dfs.addVertex(new AnnotatedVertex(kmer));
 
         Set<String> adjKmers = goForward ? CortexUtils.getNextKmers(clean, kmer, color) : CortexUtils.getPrevKmers(clean, kmer, color);
@@ -562,11 +584,12 @@ public class CortexUtils {
 
             AnnotatedVertex av0 = p.getFirst();
             AnnotatedVertex av1 = p.getSecond();
+
             int depth = p.getDepth();
 
             dfs.addVertex(av0);
             dfs.addVertex(av1);
-            dfs.addEdge(av0, av1, new AnnotatedEdge());
+            dfs.addEdge(av0, av1, new AnnotatedEdge(color));
 
             boolean dataIsClean = true;
             CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
@@ -578,7 +601,7 @@ public class CortexUtils {
                 adjKmers = goForward ? CortexUtils.getNextKmers(raw, av1.getKmer(), color) : CortexUtils.getPrevKmers(raw, av0.getKmer(), color);
             }
 
-            if (stopper.keepGoing(crAdj, sg0, depth)) {
+            if (stopper.keepGoing(crAdj, sg0, depth, dfs.vertexSet().size())) {
                 if (adjKmers.size() > 1) {
                     depth++;
                 }
@@ -599,9 +622,9 @@ public class CortexUtils {
                     dfs.addVertex(ava);
 
                     if (goForward) {
-                        dfs.addEdge(av1, ava);
+                        dfs.addEdge(av1, ava, new AnnotatedEdge(color));
                     } else {
-                        dfs.addEdge(ava, av0);
+                        dfs.addEdge(ava, av0, new AnnotatedEdge(color));
                     }
                 }
             }
@@ -610,9 +633,9 @@ public class CortexUtils {
         return dfs;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, raw, kmer, color, sg0, stopper, true);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, raw, kmer, color, sg0, stopper, false);
+    public static WeightedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph raw, String kmer, int color, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper) {
+        WeightedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, raw, kmer, color, sg0, stopper, true);
+        WeightedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, raw, kmer, color, sg0, stopper, false);
 
         Graphs.addGraph(dfsf, dfsb);
 
@@ -627,12 +650,12 @@ public class CortexUtils {
      * @param color the color in which to begin the traversal
      * @return      a subgraph containing the local context
      */
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> getSeededSubgraph(CortexGraph cg, String kmer, int color) {
+    public static WeightedGraph<AnnotatedVertex, AnnotatedEdge> getSeededSubgraph(CortexGraph cg, String kmer, int color) {
         String stretch = CortexUtils.getSeededStretch(cg, kmer, color);
 
         System.out.println(stretch.length() + " " + stretch);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgc = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        WeightedGraph<AnnotatedVertex, AnnotatedEdge> sgc = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         for (int i = 0; i <= stretch.length() - cg.getKmerSize() - 1; i++) {
             String sk0 = stretch.substring(i, i + cg.getKmerSize());

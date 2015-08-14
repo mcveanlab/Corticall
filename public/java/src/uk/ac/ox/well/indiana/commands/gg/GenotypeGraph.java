@@ -2,13 +2,10 @@ package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.DijkstraShortestPath;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.EdgeReversedGraph;
-import org.jgrapht.traverse.DepthFirstIterator;
+import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -57,6 +54,9 @@ public class GenotypeGraph extends Module {
 
     @Argument(fullName = "maxJunctionsAllowed", shortName = "j", doc = "Maximum number of junctions we'll permit ourselves to traverse")
     public Integer MAX_JUNCTIONS_ALLOWED = 10;
+
+    @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
+    public String KMER;
 
     @Output(fullName = "gout", shortName = "go", doc = "Graph out")
     public File gout;
@@ -226,7 +226,7 @@ public class GenotypeGraph extends Module {
         return Joiner.on(" ").join(attrArray);
     }
 
-    public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix, boolean withText, boolean withPdf) {
+    public void printGraph(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix, boolean withText, boolean withPdf) {
         try {
             File f = new File(gout.getAbsolutePath() + "." + prefix + ".dot");
             File p = new File(gout.getAbsolutePath() + "." + prefix + ".pdf");
@@ -275,6 +275,8 @@ public class GenotypeGraph extends Module {
                     if (e.isPresent(c)) {
                         Map<String, Object> attrs = new TreeMap<String, Object>();
                         attrs.put("color", colors[c]);
+                        attrs.put("weight", g.getEdgeWeight(e));
+                        attrs.put("label", g.getEdgeWeight(e));
 
                         o.println(indent + "\"" + s + "\" -> \"" + t + "\" [ " + formatAttributes(attrs) + " ];");
                     }
@@ -295,7 +297,7 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
+    private void addGraph(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
         for (AnnotatedVertex v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v.getKmer(), novelKmers.containsKey(new CortexKmer(v.getKmer())));
 
@@ -320,8 +322,8 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> copyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+    private DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> copyGraph(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         for (AnnotatedVertex av : a.vertexSet()) {
             AnnotatedVertex newAv = new AnnotatedVertex(av.getKmer(), av.isNovel());
@@ -341,8 +343,8 @@ public class GenotypeGraph extends Module {
         return b;
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> simplifyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+    private DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> simplifyGraph(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, boolean combine) {
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         AnnotatedVertex thisVertex;
         Set<AnnotatedVertex> usedStarts = new HashSet<AnnotatedVertex>();
@@ -385,7 +387,7 @@ public class GenotypeGraph extends Module {
 
                 AnnotatedVertex nextVertex = b.outDegreeOf(thisVertex) == 0 ? null : b.getEdgeTarget(b.outgoingEdgesOf(thisVertex).iterator().next());
 
-                while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && thisVertex.isNovel() == nextVertex.isNovel()) {
+                while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && (combine || thisVertex.isNovel() == nextVertex.isNovel())) {
                     AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
 
                     b.addVertex(sv);
@@ -435,8 +437,8 @@ public class GenotypeGraph extends Module {
         return b;
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> removeOtherColors(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int colorToRetain) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+    private DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> removeOtherColors(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, int colorToRetain) {
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
 
@@ -466,7 +468,7 @@ public class GenotypeGraph extends Module {
         return b;
     }
 
-    private String linearizePath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, GraphPath<AnnotatedVertex, AnnotatedEdge> p) {
+    private String linearizePath(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, GraphPath<AnnotatedVertex, AnnotatedEdge> p) {
         StringBuilder sb = new StringBuilder(p.getStartVertex().getKmer());
 
         for (AnnotatedEdge ae : p.getEdgeList()) {
@@ -529,15 +531,15 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    private PathInfo computeBestMinWeightPath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+    private PathInfo computeBestMinWeightPath(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
         Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
         List<String> novelStretches = getNovelStretch(stretch, novelKmers);
 
@@ -547,40 +549,52 @@ public class GenotypeGraph extends Module {
 
         for (AnnotatedVertex sv : candidateStarts) {
             for (AnnotatedVertex ev : candidateEnds) {
-                DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
-                DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
+                String lp0, lpc;
 
-                GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
-                GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
+                do {
+                    DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
+                    DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
 
-                String lp0 = p0 == null ? "" : linearizePath(b0, p0);
-                String lpc = pc == null ? "" : linearizePath(bc, pc);
+                    GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
+                    GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
 
-                if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
-                    boolean stretchesArePresent = true;
-                    for (String novelStretch : novelStretches) {
-                        if (!lp0.contains(novelStretch)) {
-                            stretchesArePresent = false;
-                            break;
+                    lp0 = p0 == null ? "" : linearizePath(b0, p0);
+                    lpc = pc == null ? "" : linearizePath(bc, pc);
+
+                    if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
+                        boolean stretchesArePresent = true;
+                        for (String novelStretch : novelStretches) {
+                            if (!lp0.contains(novelStretch)) {
+                                stretchesArePresent = false;
+                                break;
+                            }
+                        }
+
+                        if (novelStretches.size() > 0 && stretchesArePresent) {
+                            double pl0 = dsp0.getPathLength();
+                            double plc = dspc.getPathLength();
+
+                            if (pl0 < minPl0 && plc < minPlc) {
+                                minPl0 = pl0;
+                                minLp0 = lp0;
+
+                                minPlc = plc;
+                                minLpc = lpc;
+
+                                start = sv.getKmer();
+                                stop = ev.getKmer();
+                            }
                         }
                     }
 
-                    if (novelStretches.size() > 0 && stretchesArePresent) {
-                        double pl0 = dsp0.getPathLength();
-                        double plc = dspc.getPathLength();
+                    if (lp0.equals(lpc) && !lp0.isEmpty()) {
+                        for (int i = 1; i < lp0.length() - GRAPH.getKmerSize(); i++) {
+                            AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + GRAPH.getKmerSize()));
 
-                        if (pl0 < minPl0 && plc < minPlc) {
-                            minPl0 = pl0;
-                            minLp0 = lp0;
-
-                            minPlc = plc;
-                            minLpc = lpc;
-
-                            start = sv.getKmer();
-                            stop = ev.getKmer();
+                            b0.removeVertex(as);
                         }
                     }
-                }
+                } while (lp0.equals(lpc) && !lp0.isEmpty());
             }
         }
 
@@ -688,7 +702,7 @@ public class GenotypeGraph extends Module {
         return chrCount.size() > 1;
     }
 
-    private GraphicalVariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+    private GraphicalVariantContext callVariant(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
         // Compute paths
         PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
@@ -813,11 +827,32 @@ public class GenotypeGraph extends Module {
         return gvc;
     }
 
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, String stretch) {
+    private void setEdgePresence(DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+        for (AnnotatedEdge ae : a.edgeSet()) {
+            AnnotatedVertex as = a.getEdgeSource(ae);
+            AnnotatedVertex at = a.getEdgeTarget(ae);
+
+            int weight = 0;
+            for (int c = 0; c < 3; c++) {
+                if (CortexUtils.hasKmer(GRAPH, as.getKmer(), c) && CortexUtils.getNextKmers(GRAPH, GRAPH_RAW, as.getKmer(), c).contains(at.getKmer())) {
+                    ae.setPresence(c);
+
+                    weight = (weight == 0) ? 1 : weight*10;
+                }
+            }
+
+            a.setEdgeWeight(ae, weight);
+
+            //a.removeEdge(as, at);
+            a.addEdge(as, at, ae);
+        }
+    }
+
+    private DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, String stretch) {
         // first, explore each color and bring the local subgraphs into memory
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         log.info("    load local subgraph:");
 
@@ -828,23 +863,27 @@ public class GenotypeGraph extends Module {
             if (!sg0.containsVertex(ak)) {
                 Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                     @Override
-                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth) {
+                    public boolean hasTraversalSucceeded(CortexRecord cr, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
                         //return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
                         return false;
                     }
 
                     @Override
-                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
-                        return junctions >= maxJunctionsAllowed();
+                    public boolean hasTraversalFailed(CortexRecord cr, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
+                        return junctions >= maxJunctionsAllowed() || size > 100000;
                     }
 
                     @Override
                     public int maxJunctionsAllowed() {
-                        return MAX_JUNCTIONS_ALLOWED;
+                        //return MAX_JUNCTIONS_ALLOWED;
+                        return 3;
                     }
                 }));
             }
         }
+
+        printGraph(sg0, "test", true, true);
+        //printGraph(sg0, "test", true, true);
 
         String firstNovelKmer = null, lastNovelKmer = null;
 
@@ -861,15 +900,18 @@ public class GenotypeGraph extends Module {
             }
         }
 
+        //printGraph(simplifyGraph(sg0, false), "test", false, true);
+
         log.info("    - 0: {} vertices, {} edges", sg0.vertexSet().size(), sg0.edgeSet().size());
+
+        //printGraph(simplifyGraph(sg0, false), "test", false, true);
+        //printGraph(sg0, "test", true, true);
 
         List<AnnotatedVertex> predecessorList = Graphs.predecessorListOf(sg0, new AnnotatedVertex(firstNovelKmer));
         List<AnnotatedVertex> successorList = Graphs.successorListOf(sg0, new AnnotatedVertex(lastNovelKmer));
 
-        //printGraph(simplifyGraph(sg0), "test", true, true);
-
         for (int c = 1; c <= 2; c++) {
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
+            DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
             for (boolean goForward : Arrays.asList(true, false)) {
                 List<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
@@ -878,24 +920,16 @@ public class GenotypeGraph extends Module {
                     if (!sg.containsVertex(ak)) {
                         TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                             @Override
-                            public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
+                            public boolean hasTraversalSucceeded(CortexRecord cr, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
                                 String fw = cr.getKmerAsString();
                                 String rc = SequenceUtils.reverseComplement(fw);
 
-                                if (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc))) {
-                                    if (junctions < distanceToGoal) {
-                                        distanceToGoal = junctions;
-                                    }
-
-                                    return true;
-                                }
-
-                                return false;
+                                return (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)));
                             }
 
                             @Override
-                            public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions) {
-                                return junctions >= maxJunctionsAllowed();
+                            public boolean hasTraversalFailed(CortexRecord cr, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
+                                return junctions >= maxJunctionsAllowed() || size > 100000;
                             }
 
                             @Override
@@ -913,12 +947,21 @@ public class GenotypeGraph extends Module {
         }
 
         // Now, combine them all into an annotated graph
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         addGraph(ag, sg0, 0, novelKmers);
+
+        //printGraph(simplifyGraph(sg0, true), "test", false, true);
+        //printGraph(simplifyGraph(ag, true), "test", false, true);
+
         addGraph(ag, sg1, 1, novelKmers);
+
+        //printGraph(simplifyGraph(ag, true), "test", false, true);
+
         addGraph(ag, sg2, 2, novelKmers);
 
-        //printGraph(ag, "calltest", true, true);
+        //printGraph(simplifyGraph(ag, true), "test", false, true);
+
+        setEdgePresence(ag);
 
         return ag;
     }
@@ -927,11 +970,11 @@ public class GenotypeGraph extends Module {
         private int color;
         private String stretch;
         private Map<CortexKmer, Boolean> novelKmers;
-        private DirectedGraph<AnnotatedVertex, AnnotatedEdge> b;
-        private Set<AnnotatedVertex> candidateEnds;
-        private Set<AnnotatedVertex> candidateStarts;
+        private DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b;
+        private Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
+        private Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
 
-        public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b) {
+        public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> b) {
             this.color = color;
             this.stretch = stretch;
             this.novelKmers = novelKmers;
@@ -942,11 +985,62 @@ public class GenotypeGraph extends Module {
             return candidateEnds;
         }
 
-        public Set<AnnotatedVertex> getCandidateStarts() {
-            return candidateStarts;
-        }
+        public Set<AnnotatedVertex> getCandidateStarts() { return candidateStarts; }
 
         public AnnotateStartsAndEnds invoke() {
+            for (AnnotatedVertex av : b.vertexSet()) {
+                if (b.outDegreeOf(av) > 1) {
+                    Set<AnnotatedEdge> aes = b.outgoingEdgesOf(av);
+
+                    Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
+                    Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+
+                    for (AnnotatedEdge ae : aes) {
+                        if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                            childEdges.add(ae);
+                        }
+
+                        if (ae.isPresent(color)) {
+                            parentEdges.add(ae);
+                        }
+                    }
+
+                    if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                        av.setFlag("start");
+
+                        candidateStarts.add(av);
+                    }
+                }
+
+                if (b.inDegreeOf(av) > 1) {
+                    Set<AnnotatedEdge> aes = b.incomingEdgesOf(av);
+
+                    Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
+                    Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+
+                    for (AnnotatedEdge ae : aes) {
+                        if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                            childEdges.add(ae);
+                        }
+
+                        if (ae.isPresent(color)) {
+                            parentEdges.add(ae);
+                        }
+                    }
+
+                    if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                        av.setFlag("end");
+
+                        candidateEnds.add(av);
+                    }
+                }
+            }
+
+            return this;
+        }
+
+        /*
+        public AnnotateStartsAndEnds invoke2() {
             int kmerLength = novelKmers.keySet().iterator().next().length();
 
             String fk = stretch.substring(0, kmerLength);
@@ -997,7 +1091,7 @@ public class GenotypeGraph extends Module {
             }
 
             candidateStarts = new HashSet<AnnotatedVertex>();
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> rag = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(b);
+            DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> rag = new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(b);
             DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfsFk = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(rag, alk);
             while (dfsFk.hasNext()) {
                 AnnotatedVertex av = dfsFk.next();
@@ -1038,6 +1132,7 @@ public class GenotypeGraph extends Module {
             }
             return this;
         }
+        */
     }
 
     private void evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
@@ -1241,6 +1336,11 @@ public class GenotypeGraph extends Module {
         evalTables.getTable("eventMatchStats").set("dummy", "match", 0l);
         evalTables.getTable("eventMatchStats").set("dummy", "mismatch", 0l);
 
+        if (KMER != null) {
+            novelKmers.clear();
+            novelKmers.put(new CortexKmer(KMER), true);
+        }
+
         log.info("Genotyping novel kmer stretches in graph...");
         Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
         for (CortexKmer novelKmer : novelKmers.keySet()) {
@@ -1254,6 +1354,7 @@ public class GenotypeGraph extends Module {
                 }
 
                 log.info("  stretch {}: {} bp", stretchNum, stretch.length());
+                log.info("    novel kmer: {}", novelKmer);
                 log.info("    sequence:");
                 log.info("    - 0: {}", SequenceUtils.truncate(stretch, 100));
 
@@ -1265,7 +1366,7 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
+                DefaultDirectedWeightedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
                 // Extract parental stretches
@@ -1405,7 +1506,12 @@ public class GenotypeGraph extends Module {
                 }
 
                 // Print graph
-                printGraph(simplifyGraph(ag), "call" + String.format("%04d", stretchNum), false, true);
+                //if (stretchNum == 5) {
+                    //printGraph(simplifyGraph(ag, true), "call" + String.format("%04d", stretchNum), false, true);
+                    //log.debug("Graph printed");
+                    printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
+                    //log.debug("Graph printed");
+                //}
 
                 log.info("");
 
