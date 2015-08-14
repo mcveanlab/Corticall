@@ -1,11 +1,13 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
+import org.jgrapht.graph.DefaultWeightedEdge;
+
 import java.util.Arrays;
 
 /**
  * Created by kiran on 18/06/2015.
  */
-public class AnnotatedEdge {
+public class AnnotatedEdge extends DefaultWeightedEdge {
     private boolean[] isInColor = new boolean[10];
 
     public AnnotatedEdge() {}
@@ -14,6 +16,10 @@ public class AnnotatedEdge {
         for (int c = 0; c < cs.length; c++) {
             set(c, cs[c]);
         }
+    }
+
+    public AnnotatedEdge(int presentInColor) {
+        setPresence(presentInColor);
     }
 
     public void setPresence(int c) {
