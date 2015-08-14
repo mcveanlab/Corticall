@@ -6,6 +6,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -23,6 +24,24 @@ public class print extends Module {
     @Output
     public PrintStream out;
 
+    private String recordToString(String sk, CortexRecord cr) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        for (int coverage : cr.getCoverages()) {
+            cov += " " + coverage;
+        }
+
+        for (String edge : cr.getEdgeAsStrings()) {
+            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+        }
+
+        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed;
+    }
+
     @Override
     public void execute() {
         if (HEADER_ONLY) {
@@ -34,7 +53,8 @@ public class print extends Module {
                     CortexRecord cr = GRAPH.findRecord(ck);
 
                     if (cr != null) {
-                        out.println(kmer + ": " + cr);
+                        //out.println(kmer + ": " + cr);
+                        out.println(recordToString(kmer, cr));
                     } else {
                         out.println(kmer + ": missing");
                     }
