@@ -98,22 +98,22 @@ public class ContigConfidence extends Module {
 
                     StringBuilder firstFlank = new StringBuilder();
                     String firstKmer = seq.substring(0, cg.getKmerSize());
-                    Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer);
+                    Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer, 0);
                     while (pks.size() == 1) {
                         String kmer = pks.iterator().next();
                         firstFlank.insert(0, kmer.charAt(0));
 
-                        pks = CortexUtils.getPrevKmers(cg, kmer);
+                        pks = CortexUtils.getPrevKmers(cg, kmer, 0);
                     }
 
                     StringBuilder lastFlank = new StringBuilder();
                     String lastKmer = seq.substring(seq.length() - cg.getKmerSize(), seq.length());
-                    Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer);
+                    Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer, 0);
                     while (nks.size() == 1) {
                         String kmer = nks.iterator().next();
                         lastFlank.append(kmer.charAt(kmer.length() - 1));
 
-                        nks = CortexUtils.getNextKmers(cg, kmer);
+                        nks = CortexUtils.getNextKmers(cg, kmer, 0);
                     }
 
                     String contig = firstFlank.toString() + seq + lastFlank.toString();
@@ -170,8 +170,8 @@ public class ContigConfidence extends Module {
                     for (int i = 0; i <= contig.length() - cg.getKmerSize(); i++) {
                         String sk = contig.substring(i, i + cg.getKmerSize());
 
-                        Set<String> inKmers  = CortexUtils.getPrevKmers(cg, sk);
-                        Set<String> outKmers = CortexUtils.getNextKmers(cg, sk);
+                        Set<String> inKmers  = CortexUtils.getPrevKmers(cg, sk, 0);
+                        Set<String> outKmers = CortexUtils.getNextKmers(cg, sk, 0);
 
                         if (inKmers.size() > 1) {
                             iedges[i] = '|';

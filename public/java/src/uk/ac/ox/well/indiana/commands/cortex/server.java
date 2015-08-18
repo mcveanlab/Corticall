@@ -628,7 +628,7 @@ public class server extends Module {
                                 for (int i = 0; i <= seq.length() - ks; i++) {
                                     String kmer = seq.substring(i, i + ks);
 
-                                    Set<String> outKmers = CortexUtils.getNextKmers(cg, kmer);
+                                    Set<String> outKmers = CortexUtils.getNextKmers(cg, kmer, 0);
 
                                     if (i <= seq.length() - ks - 1) {
                                         String nextKmer = seq.substring(i + 1, i + 1 + ks);
@@ -729,7 +729,7 @@ public class server extends Module {
                                                 if (i > 0) {
                                                     String psk = contig.substring(i - 1, i - 1 + cg.getKmerSize());
 
-                                                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk);
+                                                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, sk, 0);
                                                     prevKmers.remove(psk);
 
                                                     if (prevKmers.size() > 0) {
@@ -752,7 +752,7 @@ public class server extends Module {
                                                 if (i < contig.length() - cg.getKmerSize() - 1) {
                                                     String nsk = contig.substring(i + 1, i + 1 + cg.getKmerSize());
 
-                                                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk);
+                                                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, sk, 0);
                                                     nextKmers.remove(nsk);
 
                                                     if (nextKmers.size() > 0) {

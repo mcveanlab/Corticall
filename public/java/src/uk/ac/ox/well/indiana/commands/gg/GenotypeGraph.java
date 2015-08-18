@@ -705,9 +705,10 @@ public class GenotypeGraph extends Module {
         return chrCount.size() > 1;
     }
 
-    private GraphicalVariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+    //private GraphicalVariantContext callVariant(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+    private GraphicalVariantContext callVariant(PathInfo p, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
         // Compute paths
-        PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
+        //PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
 
         // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
@@ -958,7 +959,7 @@ public class GenotypeGraph extends Module {
 
         //printGraph(simplifyGraph(ag, true), "test", false, true);
 
-        setEdgePresence(ag);
+        //setEdgePresence(ag);
 
         return ag;
     }
@@ -1379,8 +1380,8 @@ public class GenotypeGraph extends Module {
                 log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
                 // Call variants
-                gvc.add(callVariant(ag, 1, stretch, novelKmers, kl1));
-                gvc.add(callVariant(ag, 2, stretch, novelKmers, kl2));
+                gvc.add(callVariant(p1, 1, stretch, novelKmers, kl1));
+                gvc.add(callVariant(p2, 2, stretch, novelKmers, kl2));
 
                 log.info("    variants:");
                 log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
