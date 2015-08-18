@@ -541,6 +541,8 @@ public class GenotypeGraph extends Module {
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
         Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
+        log.info("    - starts: {}, ends: {}", candidateStarts.size(), candidateEnds.size());
+
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
@@ -554,50 +556,52 @@ public class GenotypeGraph extends Module {
             for (AnnotatedVertex ev : candidateEnds) {
                 String lp0, lpc;
 
-                do {
-                    DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
-                    DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
+                if (b0.containsVertex(sv) && b0.containsVertex(ev) && bc.containsVertex(sv) && bc.containsVertex(ev)) {
+                    do {
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
 
-                    GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
-                    GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
+                        GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
+                        GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
 
-                    lp0 = p0 == null ? "" : linearizePath(b0, p0);
-                    lpc = pc == null ? "" : linearizePath(bc, pc);
+                        lp0 = p0 == null ? "" : linearizePath(b0, p0);
+                        lpc = pc == null ? "" : linearizePath(bc, pc);
 
-                    if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
-                        boolean stretchesArePresent = true;
-                        for (String novelStretch : novelStretches) {
-                            if (!lp0.contains(novelStretch)) {
-                                stretchesArePresent = false;
-                                break;
+                        if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
+                            boolean stretchesArePresent = true;
+                            for (String novelStretch : novelStretches) {
+                                if (!lp0.contains(novelStretch)) {
+                                    stretchesArePresent = false;
+                                    break;
+                                }
+                            }
+
+                            if (novelStretches.size() > 0 && stretchesArePresent) {
+                                double pl0 = dsp0.getPathLength();
+                                double plc = dspc.getPathLength();
+
+                                if (pl0 < minPl0 && plc < minPlc) {
+                                    minPl0 = pl0;
+                                    minLp0 = lp0;
+
+                                    minPlc = plc;
+                                    minLpc = lpc;
+
+                                    start = sv.getKmer();
+                                    stop = ev.getKmer();
+                                }
                             }
                         }
 
-                        if (novelStretches.size() > 0 && stretchesArePresent) {
-                            double pl0 = dsp0.getPathLength();
-                            double plc = dspc.getPathLength();
+                        if (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > GRAPH.getKmerSize() + 1) {
+                            for (int i = 1; i < lp0.length() - GRAPH.getKmerSize(); i++) {
+                                AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + GRAPH.getKmerSize()));
 
-                            if (pl0 < minPl0 && plc < minPlc) {
-                                minPl0 = pl0;
-                                minLp0 = lp0;
-
-                                minPlc = plc;
-                                minLpc = lpc;
-
-                                start = sv.getKmer();
-                                stop = ev.getKmer();
+                                b0.removeVertex(as);
                             }
                         }
-                    }
-
-                    if (lp0.equals(lpc) && !lp0.isEmpty()) {
-                        for (int i = 1; i < lp0.length() - GRAPH.getKmerSize(); i++) {
-                            AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + GRAPH.getKmerSize()));
-
-                            b0.removeVertex(as);
-                        }
-                    }
-                } while (lp0.equals(lpc) && !lp0.isEmpty());
+                    } while (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > GRAPH.getKmerSize() + 1);
+                }
             }
         }
 
@@ -831,21 +835,6 @@ public class GenotypeGraph extends Module {
         return gvc;
     }
 
-    private void setEdgePresence(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        for (AnnotatedEdge ae : a.edgeSet()) {
-            AnnotatedVertex as = a.getEdgeSource(ae);
-            AnnotatedVertex at = a.getEdgeTarget(ae);
-
-            for (int c = 0; c < 3; c++) {
-                Set<String> nextKmers = CortexUtils.getNextKmers(GRAPH, GRAPH_RAW, as.getKmer(), c);
-
-                if (nextKmers.contains(at.getKmer())) {
-                    ae.setPresence(c);
-                }
-            }
-        }
-    }
-
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, String stretch) {
         // first, explore each color and bring the local subgraphs into memory
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
@@ -868,7 +857,7 @@ public class GenotypeGraph extends Module {
 
                     @Override
                     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                        return junctions >= maxJunctionsAllowed() || size > 100000;
+                        return junctions >= maxJunctionsAllowed() || size > 20000;
                     }
 
                     @Override
@@ -921,7 +910,7 @@ public class GenotypeGraph extends Module {
 
                             @Override
                             public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                                return junctions >= maxJunctionsAllowed() || size > 100000;
+                                return junctions >= maxJunctionsAllowed() || size > 20000;
                             }
 
                             @Override
@@ -1354,6 +1343,9 @@ public class GenotypeGraph extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
+                //log.debug("Graph printed");
+                printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
+
                 // Extract parental stretches
                 PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
                 PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
@@ -1494,7 +1486,7 @@ public class GenotypeGraph extends Module {
                 //if (stretchNum == 5) {
                     //printGraph(simplifyGraph(ag, true), "call" + String.format("%04d", stretchNum), false, true);
                     //log.debug("Graph printed");
-                    printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
+                    //printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
                     //log.debug("Graph printed");
                 //}
 
