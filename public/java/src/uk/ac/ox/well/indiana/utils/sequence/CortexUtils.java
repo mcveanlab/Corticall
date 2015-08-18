@@ -116,7 +116,7 @@ public class CortexUtils {
         return nextKmers;
     }
 
-    public static Map<Integer, Set<String>> getNextKmers(CortexGraph clean, CortexGraph dirty, String kmer) {
+    private static Pair<CortexGraph, CortexRecord> getGraphRecordPair(CortexGraph clean, CortexGraph dirty, String kmer) {
         CortexKmer ck = new CortexKmer(kmer);
 
         CortexRecord crclean = clean == null ? null : clean.findRecord(ck);
@@ -124,6 +124,21 @@ public class CortexUtils {
 
         CortexRecord cr = crclean == null && crdirty != null ? crdirty : crclean;
         CortexGraph cg = clean == null && dirty != null ? dirty : clean;
+
+        return new Pair<CortexGraph, CortexRecord>(cg, cr);
+    }
+
+    public static Map<Integer, Set<String>> getNextKmers(CortexGraph clean, CortexGraph dirty, String kmer) {
+        Pair<CortexGraph, CortexRecord> cgcr = getGraphRecordPair(clean, dirty, kmer);
+
+        return getNextKmers(cgcr, kmer);
+    }
+
+    public static Map<Integer, Set<String>> getNextKmers(Pair<CortexGraph, CortexRecord> cgcr, String kmer) {
+        CortexKmer ck = new CortexKmer(kmer);
+
+        CortexGraph cg = cgcr.getFirst();
+        CortexRecord cr = cgcr.getSecond();
 
         Map<Integer, Set<String>> nextKmersAllColors = new HashMap<Integer, Set<String>>();
 
@@ -229,13 +244,16 @@ public class CortexUtils {
     }
 
     public static Map<Integer, Set<String>> getPrevKmers(CortexGraph clean, CortexGraph dirty, String kmer) {
+        Pair<CortexGraph, CortexRecord> cgcr = getGraphRecordPair(clean, dirty, kmer);
+
+        return getPrevKmers(cgcr, kmer);
+    }
+
+    public static Map<Integer, Set<String>> getPrevKmers(Pair<CortexGraph, CortexRecord> cgcr, String kmer) {
         CortexKmer ck = new CortexKmer(kmer);
 
-        CortexRecord crclean = clean == null ? null : clean.findRecord(ck);
-        CortexRecord crdirty = dirty == null ? null : dirty.findRecord(ck);
-
-        CortexRecord cr = crclean == null && crdirty != null ? crdirty : crclean;
-        CortexGraph cg = clean == null && dirty != null ? dirty : clean;
+        CortexGraph cg = cgcr.getFirst();
+        CortexRecord cr = cgcr.getSecond();
 
         Map<Integer, Set<String>> prevKmersAllColors = new HashMap<Integer, Set<String>>();
 
@@ -492,89 +510,6 @@ public class CortexUtils {
         }
     }
 
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper, boolean goForward) {
-        class StackEntry {
-            public String first;
-            public String second;
-            public int depth;
-
-            public StackEntry(String first, String second, int depth) {
-                this.first = first;
-                this.second = second;
-                this.depth = depth;
-            }
-
-            public String getFirst() { return first; }
-            public String getSecond() { return second; }
-            public int getDepth() { return depth; }
-        }
-
-        DirectedGraph<String, DefaultEdge> dfs = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-
-        Set<String> adjKmers = goForward ? CortexUtils.getNextKmers(cg, kmer, color) : CortexUtils.getPrevKmers(cg, kmer, color);
-
-        Stack<StackEntry> kmerStack = new Stack<StackEntry>();
-        for (String adjKmer : adjKmers) {
-            if (goForward) {
-                kmerStack.push(new StackEntry(kmer, adjKmer, 0));
-            } else {
-                kmerStack.push(new StackEntry(adjKmer, kmer, 0));
-            }
-        }
-
-        while (!kmerStack.isEmpty()) {
-            StackEntry p = kmerStack.pop();
-
-            String sk0 = p.getFirst();
-            String sk1 = p.getSecond();
-            int depth = p.getDepth();
-
-            dfs.addVertex(sk0);
-            dfs.addVertex(sk1);
-            dfs.addEdge(sk0, sk1);
-
-            CortexRecord crAdj = goForward ? cg.findRecord(new CortexKmer(sk1)) : cg.findRecord(new CortexKmer(sk0));
-            adjKmers = goForward ? CortexUtils.getNextKmers(cg, sk1, color) : CortexUtils.getPrevKmers(cg, sk0, color);
-
-            if (stopper.keepGoing(crAdj, sg0, depth, dfs.vertexSet().size())) {
-                if (adjKmers.size() > 1) {
-                    depth++;
-                }
-
-                for (String ska : adjKmers) {
-                    if (!dfs.containsVertex(ska)) {
-                        if (goForward) {
-                            kmerStack.push(new StackEntry(p.getSecond(), ska, depth));
-                        } else {
-                            kmerStack.push(new StackEntry(ska, p.getFirst(), depth));
-                        }
-                    }
-                }
-            } else {
-                for (String ska : adjKmers) {
-                    dfs.addVertex(ska);
-
-                    if (goForward) {
-                        dfs.addEdge(sk1, ska);
-                    } else {
-                        dfs.addEdge(ska, sk0);
-                    }
-                }
-            }
-        }
-
-        return dfs;
-    }
-
-    public static DirectedGraph<String, DefaultEdge> dfs(CortexGraph cg, String kmer, int color, DirectedGraph<String, DefaultEdge> sg0, TraversalStopper<String, DefaultEdge> stopper) {
-        DirectedGraph<String, DefaultEdge> dfsf = dfs(cg, kmer, color, sg0, stopper, true);
-        DirectedGraph<String, DefaultEdge> dfsb = dfs(cg, kmer, color, sg0, stopper, false);
-
-        Graphs.addGraph(dfsf, dfsb);
-
-        return dfsf;
-    }
-
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
         class StackEntry {
             public AnnotatedVertex first;
@@ -619,7 +554,6 @@ public class CortexUtils {
 
             dfs.addVertex(av0);
             dfs.addVertex(av1);
-            //dfs.addEdge(av0, av1, new AnnotatedEdge(color));
 
             AnnotatedEdge ae = new AnnotatedEdge();
             for (int c = 0; c < 3; c++) {
@@ -630,11 +564,12 @@ public class CortexUtils {
 
             dfs.addEdge(av0, av1, ae);
 
-            boolean dataIsClean = true;
-            CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
-            adjKmers = goForward ? CortexUtils.getNextKmers(clean, dirty, av1.getKmer()) : CortexUtils.getPrevKmers(clean, dirty, av0.getKmer());
+            //CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
 
-            if (stopper.keepGoing(crAdj, sg0, depth, dfs.vertexSet().size())) {
+            Pair<CortexGraph, CortexRecord> cgcr = goForward ? getGraphRecordPair(clean, dirty, av1.getKmer()) : getGraphRecordPair(clean, dirty, av0.getKmer());
+            adjKmers = goForward ? CortexUtils.getNextKmers(cgcr, av1.getKmer()) : CortexUtils.getPrevKmers(cgcr, av0.getKmer());
+
+            if (stopper.keepGoing(cgcr.getSecond(), sg0, depth, dfs.vertexSet().size())) {
                 if (adjKmers.get(color).size() > 1) {
                     depth++;
                 }
