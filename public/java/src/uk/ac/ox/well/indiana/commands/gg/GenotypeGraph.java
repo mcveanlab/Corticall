@@ -318,10 +318,10 @@ public class GenotypeGraph extends Module {
             AnnotatedVertex a1 = new AnnotatedVertex(s1.getKmer(), novelKmers.containsKey(ck1));
 
             if (!a.containsEdge(a0, a1)) {
-                a.addEdge(a0, a1, new AnnotatedEdge());
+                a.addEdge(a0, a1, new AnnotatedEdge(e.getPresence()));
             }
 
-            a.getEdge(a0, a1).set(color, true);
+            //a.getEdge(a0, a1).set(color, true);
         }
     }
 
@@ -881,7 +881,6 @@ public class GenotypeGraph extends Module {
         }
 
         printGraph(sg0, "test", true, true);
-        //printGraph(sg0, "test", true, true);
 
         String firstNovelKmer = null, lastNovelKmer = null;
 
@@ -898,12 +897,7 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        //printGraph(simplifyGraph(sg0, false), "test", false, true);
-
         log.info("    - 0: {} vertices, {} edges", sg0.vertexSet().size(), sg0.edgeSet().size());
-
-        //printGraph(simplifyGraph(sg0, false), "test", false, true);
-        //printGraph(sg0, "test", true, true);
 
         List<AnnotatedVertex> predecessorList = Graphs.predecessorListOf(sg0, new AnnotatedVertex(firstNovelKmer));
         List<AnnotatedVertex> successorList = Graphs.successorListOf(sg0, new AnnotatedVertex(lastNovelKmer));
@@ -947,17 +941,8 @@ public class GenotypeGraph extends Module {
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         addGraph(ag, sg0, 0, novelKmers);
-
-        //printGraph(simplifyGraph(sg0, true), "test", false, true);
-        //printGraph(simplifyGraph(ag, true), "test", false, true);
-
         addGraph(ag, sg1, 1, novelKmers);
-
-        //printGraph(simplifyGraph(ag, true), "test", false, true);
-
         addGraph(ag, sg2, 2, novelKmers);
-
-        //printGraph(simplifyGraph(ag, true), "test", false, true);
 
         //setEdgePresence(ag);
 
