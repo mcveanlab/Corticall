@@ -284,7 +284,7 @@ public class GraphContext extends Module {
 
                 StringBuilder firstFlank = new StringBuilder();
                 String firstKmer = contig.substring(0, cg.getKmerSize());
-                Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer);
+                Set<String> pks = CortexUtils.getPrevKmers(cg, firstKmer, 0);
                 Set<String> usedPrevKmers = new HashSet<String>();
                 usedPrevKmers.add(firstKmer);
                 while (pks.size() == 1 && usedPrevKmers.size() <= 100) {
@@ -296,12 +296,12 @@ public class GraphContext extends Module {
                     }
                     usedPrevKmers.add(kmer);
 
-                    pks = CortexUtils.getPrevKmers(cg, kmer);
+                    pks = CortexUtils.getPrevKmers(cg, kmer, 0);
                 }
 
                 StringBuilder lastFlank = new StringBuilder();
                 String lastKmer = contig.substring(contig.length() - cg.getKmerSize(), contig.length());
-                Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer);
+                Set<String> nks = CortexUtils.getNextKmers(cg, lastKmer, 0);
                 Set<String> usedNextKmers = new HashSet<String>();
                 usedNextKmers.add(lastKmer);
                 while (nks.size() == 1 && usedNextKmers.size() <= 100) {
@@ -313,7 +313,7 @@ public class GraphContext extends Module {
                     }
                     usedNextKmers.add(kmer);
 
-                    nks = CortexUtils.getNextKmers(cg, kmer);
+                    nks = CortexUtils.getNextKmers(cg, kmer, 0);
                 }
 
                 contig = firstFlank.toString() + contig + lastFlank.toString();
@@ -329,7 +329,7 @@ public class GraphContext extends Module {
                     String expectedPrevKmer = (i > 0) ? contig.substring(i - 1, i - 1 + cg.getKmerSize()) : "";
                     String expectedNextKmer = (i < contig.length() - cg.getKmerSize()) ? contig.substring(i + 1, i + 1 + cg.getKmerSize()) : "";
 
-                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, curKmer);
+                    Set<String> prevKmers = CortexUtils.getPrevKmers(cg, curKmer, 0);
                     for (String prevKmer : prevKmers) {
                         if (!expectedPrevKmer.equals(prevKmer)) {
                             CortexKmer pk = new CortexKmer(prevKmer);
@@ -343,7 +343,7 @@ public class GraphContext extends Module {
                         }
                     }
 
-                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, curKmer);
+                    Set<String> nextKmers = CortexUtils.getNextKmers(cg, curKmer, 0);
                     for (String nextKmer : nextKmers) {
                         if (!expectedNextKmer.equals(nextKmer)) {
                             CortexKmer nk = new CortexKmer(nextKmer);

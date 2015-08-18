@@ -84,7 +84,7 @@ public class ctxgraph extends Module {
             if (cr != null) {
                 g.addVertex(contigKmer);
 
-                Set<String> nextKmers = CortexUtils.getNextKmers(INFERRED_EDGES_GRAPH, contigKmer);
+                Set<String> nextKmers = CortexUtils.getNextKmers(INFERRED_EDGES_GRAPH, contigKmer, 0);
                 for (String nextKmer : nextKmers) {
                     g.addVertex(nextKmer);
 
@@ -94,7 +94,7 @@ public class ctxgraph extends Module {
                     g.addEdge(contigKmer, nextKmer, new WeightedEdge(inEdge, outEdge, 1.0));
                 }
 
-                Set<String> prevKmers = CortexUtils.getPrevKmers(INFERRED_EDGES_GRAPH, contigKmer);
+                Set<String> prevKmers = CortexUtils.getPrevKmers(INFERRED_EDGES_GRAPH, contigKmer, 0);
                 for (String prevKmer : prevKmers) {
                     g.addVertex(prevKmer);
 
@@ -126,7 +126,7 @@ public class ctxgraph extends Module {
                 CortexRecord cr = INFERRED_EDGES_GRAPH.findRecord(ck);
 
                 if (cr != null) {
-                    Set<String> nextKmers = CortexUtils.getNextKmers(INFERRED_EDGES_GRAPH, kmer);
+                    Set<String> nextKmers = CortexUtils.getNextKmers(INFERRED_EDGES_GRAPH, kmer, 0);
 
                     for (String nextKmer : nextKmers) {
                         curKmer = kmer;
@@ -140,7 +140,7 @@ public class ctxgraph extends Module {
                             g.addEdge(curKmer, nextKmer, new WeightedEdge(inEdge, outEdge, 1.0));
 
                             curKmer = nextKmer;
-                            nextKmer = CortexUtils.getNextKmer(INFERRED_EDGES_GRAPH, nextKmer);
+                            nextKmer = CortexUtils.getNextKmer(INFERRED_EDGES_GRAPH, nextKmer, 0, false);
                         }
                     }
                 }
@@ -154,7 +154,7 @@ public class ctxgraph extends Module {
                 CortexRecord cr = INFERRED_EDGES_GRAPH.findRecord(ck);
 
                 if (cr != null) {
-                    Set<String> prevKmers = CortexUtils.getPrevKmers(INFERRED_EDGES_GRAPH, kmer);
+                    Set<String> prevKmers = CortexUtils.getPrevKmers(INFERRED_EDGES_GRAPH, kmer, 0);
 
                     for (String prevKmer : prevKmers) {
                         curKmer = kmer;
@@ -168,7 +168,7 @@ public class ctxgraph extends Module {
                             g.addEdge(prevKmer, curKmer, new WeightedEdge(inEdge, outEdge, 1.0));
 
                             curKmer = prevKmer;
-                            prevKmer = CortexUtils.getPrevKmer(INFERRED_EDGES_GRAPH, prevKmer);
+                            prevKmer = CortexUtils.getPrevKmer(INFERRED_EDGES_GRAPH, prevKmer, 0, false);
                         }
                     }
                 }
@@ -330,7 +330,7 @@ public class ctxgraph extends Module {
                 if (cr != null) {
                     g.addVertex(vertex);
 
-                    Set<String> nextKmers = CortexUtils.getNextKmers(UNCLEANED_GRAPH, vertex);
+                    Set<String> nextKmers = CortexUtils.getNextKmers(UNCLEANED_GRAPH, vertex, 0);
                     for (String nextKmer : nextKmers) {
                         g.addVertex(nextKmer);
 
@@ -340,7 +340,7 @@ public class ctxgraph extends Module {
                         g.addEdge(vertex, nextKmer, new WeightedEdge(inEdge, outEdge, 1.0));
                     }
 
-                    Set<String> prevKmers = CortexUtils.getPrevKmers(UNCLEANED_GRAPH, vertex);
+                    Set<String> prevKmers = CortexUtils.getPrevKmers(UNCLEANED_GRAPH, vertex, 0);
                     for (String prevKmer : prevKmers) {
                         g.addVertex(prevKmer);
 

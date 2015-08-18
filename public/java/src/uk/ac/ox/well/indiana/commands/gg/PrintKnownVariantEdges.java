@@ -396,7 +396,7 @@ public class PrintKnownVariantEdges extends Module {
                         Set<String> evenMoreLeftKmers = new HashSet<String>();
 
                         for (String leftKmer : leftKmers) {
-                            Set<String> moreLeftKmers = CortexUtils.getPrevKmers(GRAPH, leftKmer);
+                            Set<String> moreLeftKmers = CortexUtils.getPrevKmers(GRAPH, leftKmer, 0);
 
                             for (String moreLeftKmer : moreLeftKmers) {
                                 g.addVertex(moreLeftKmer);
@@ -419,7 +419,7 @@ public class PrintKnownVariantEdges extends Module {
                         Set<String> evenMoreRightKmers = new HashSet<String>();
 
                         for (String rightKmer : rightKmers) {
-                            Set<String> moreRightKmers = CortexUtils.getNextKmers(GRAPH, rightKmer);
+                            Set<String> moreRightKmers = CortexUtils.getNextKmers(GRAPH, rightKmer, 0);
 
                             for (String moreRightKmer : moreRightKmers) {
                                 g.addVertex(moreRightKmer);
@@ -710,7 +710,7 @@ public class PrintKnownVariantEdges extends Module {
 
         kmer = new String(REF.getSubsequenceAt(chr, start, start + kmerSize - 1).getBases());
         while (CortexUtils.getNextKmer(GRAPH, kmer, 0, false) != null) {
-            String nextKmer = CortexUtils.getNextKmer(GRAPH, kmer);
+            String nextKmer = CortexUtils.getNextKmer(GRAPH, kmer, 0, false);
 
             g.addVertex(nextKmer);
             g.addEdge(kmer, nextKmer, new Link());

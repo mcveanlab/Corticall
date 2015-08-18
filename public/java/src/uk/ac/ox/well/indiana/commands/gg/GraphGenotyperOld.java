@@ -190,13 +190,13 @@ public class GraphGenotyperOld extends Module {
                 String prevKmer = stretch.get(0);
 
                 do {
-                    prevKmer = CortexUtils.getPrevKmer(GRAPH, prevKmer);
+                    prevKmer = CortexUtils.getPrevKmer(GRAPH, prevKmer, 0, false);
                 } while (prevKmer != null && CortexUtils.getNextKmer(GRAPH, prevKmer, c, false) == null);
 
                 String nextKmer = stretch.get(stretch.size() - 1);
 
                 do {
-                    nextKmer = CortexUtils.getNextKmer(GRAPH, nextKmer);
+                    nextKmer = CortexUtils.getNextKmer(GRAPH, nextKmer, 0, false);
                 } while (nextKmer != null && CortexUtils.getPrevKmer(GRAPH, nextKmer, c, false) == null);
 
                 String prevKmerToNextChild  = CortexUtils.getNextKmer(GRAPH, prevKmer, 0, false);
