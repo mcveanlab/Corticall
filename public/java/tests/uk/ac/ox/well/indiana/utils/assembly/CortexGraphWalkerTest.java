@@ -158,8 +158,6 @@ public class CortexGraphWalkerTest {
 
     @Test
     public void testMultiSampleGraph() {
-        System.out.println("testTwoSampleGraph()");
-
         CortexMap cm = new CortexMap("testdata/samples_1_and_2.ctx");
         CortexKmer ck = new CortexKmer("GGATAAATCAAGTATTGCTAACAAAATTGAA");
         CortexGraphWalker gw = new CortexGraphWalker(cm);

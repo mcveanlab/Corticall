@@ -8,7 +8,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
-import java.util.List;
+
+import java.util.*;
 
 public class CortexUtilsTest {
     @Test
@@ -38,12 +39,43 @@ public class CortexUtilsTest {
         }
     }
 
-    @Test(enabled = false)
-    public void decodeBinaryKmer() {
-        CortexGraph cg = new CortexGraph("testdata/PG0051-C.ERR019061.chr1.infer.sorted.ctx");
+    @Test
+    public void testNextKmers() {
+        CortexGraph clean = new CortexGraph("testdata/smallgraph.sorted.ctx");
 
-        for (CortexRecord cr : cg) {
-            System.out.println(cr);
+        Set<String> kmers = new HashSet<String>();
+        for (CortexRecord cr : clean) {
+            kmers.add(cr.getKmerAsString());
+        }
+
+        for (String kmer : kmers) {
+            Map<Integer, Set<String>> nkm = new HashMap<Integer, Set<String>>();
+            nkm.put(0, CortexUtils.getNextKmers(clean, null, kmer, 0));
+            nkm.put(1, CortexUtils.getNextKmers(clean, null, kmer, 1));
+
+            Map<Integer, Set<String>> nka = CortexUtils.getNextKmers(clean, null, kmer);
+
+            Assert.assertEquals(nkm, nka);
+        }
+    }
+
+    @Test
+    public void textPrevKmers() {
+        CortexGraph clean = new CortexGraph("testdata/smallgraph.sorted.ctx");
+
+        Set<String> kmers = new HashSet<String>();
+        for (CortexRecord cr : clean) {
+            kmers.add(cr.getKmerAsString());
+        }
+
+        for (String kmer : kmers) {
+            Map<Integer, Set<String>> pkm = new HashMap<Integer, Set<String>>();
+            pkm.put(0, CortexUtils.getPrevKmers(clean, null, kmer, 0));
+            pkm.put(1, CortexUtils.getPrevKmers(clean, null, kmer, 1));
+
+            Map<Integer, Set<String>> pka = CortexUtils.getPrevKmers(clean, null, kmer);
+
+            Assert.assertEquals(pkm, pka);
         }
     }
 }
