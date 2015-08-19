@@ -869,8 +869,6 @@ public class GenotypeGraph extends Module {
             }
         }
 
-        printGraph(sg0, "test", true, true);
-
         String firstNovelKmer = null, lastNovelKmer = null;
 
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
@@ -1343,8 +1341,9 @@ public class GenotypeGraph extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
+
                 //log.debug("Graph printed");
-                printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
+                //printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
 
                 // Extract parental stretches
                 PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
@@ -1481,14 +1480,6 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                     }
                 }
-
-                // Print graph
-                //if (stretchNum == 5) {
-                    //printGraph(simplifyGraph(ag, true), "call" + String.format("%04d", stretchNum), false, true);
-                    //log.debug("Graph printed");
-                    //printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
-                    //log.debug("Graph printed");
-                //}
 
                 log.info("");
 
