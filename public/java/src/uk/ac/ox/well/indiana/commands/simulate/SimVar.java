@@ -153,7 +153,8 @@ public class SimVar extends Module {
                         sb.append(kmers1.containsKey(kmer1) && kmers2.containsKey(kmer1) ? "1" : "0");
 
                         if (kmers1.containsKey(kmer1) && kmers2.containsKey(kmer1)) {
-                            int pos1 = i;
+                            //int pos1 = i;
+                            int pos1 = kmers1.get(kmer1);
                             int pos2 = kmers2.get(kmer1);
 
                             if (Math.abs(pos1 - pos2) < 100 && Math.abs(pos1 - pos2) > 20) {
@@ -162,6 +163,9 @@ public class SimVar extends Module {
                             }
                         }
                     }
+
+                    Collections.sort(possibleRecombSites1);
+                    Collections.sort(possibleRecombSites2);
 
                     log.info("         sb={}", sb.toString());
 
@@ -186,6 +190,7 @@ public class SimVar extends Module {
                             for (Integer index : recombs) {
                                 if (copyFrom1) {
                                     int currentPos = possibleRecombSites1.get(index);
+
                                     newVar.append(seq1.substring(lastPos, currentPos));
                                     switches.append(StringUtils.repeat(" ", currentPos - lastPos - 1)).append("v");
 
