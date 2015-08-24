@@ -569,6 +569,8 @@ public class CortexUtils {
             Pair<CortexGraph, CortexRecord> cgcr = goForward ? getGraphRecordPair(clean, dirty, av1.getKmer()) : getGraphRecordPair(clean, dirty, av0.getKmer());
             adjKmers = goForward ? CortexUtils.getNextKmers(cgcr, av1.getKmer()) : CortexUtils.getPrevKmers(cgcr, av0.getKmer());
 
+            boolean isClean = cgcr.getFirst() == clean;
+
             if (stopper.keepGoing(cgcr.getSecond(), sg0, depth, dfs.vertexSet().size())) {
                 if (adjKmers.get(color).size() > 1) {
                     depth++;

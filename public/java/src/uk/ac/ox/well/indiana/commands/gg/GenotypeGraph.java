@@ -234,6 +234,8 @@ public class GenotypeGraph extends Module {
             File f = new File(gout.getAbsolutePath() + "." + prefix + ".dot");
             File p = new File(gout.getAbsolutePath() + "." + prefix + ".pdf");
 
+            log.info("  {}", gout.getAbsolutePath() + "." + prefix + ".pdf");
+
             PrintStream o = new PrintStream(f);
 
             String indent = "  ";
@@ -931,8 +933,6 @@ public class GenotypeGraph extends Module {
         addGraph(ag, sg1, 1, novelKmers);
         addGraph(ag, sg2, 2, novelKmers);
 
-        //setEdgePresence(ag);
-
         return ag;
     }
 
@@ -1234,7 +1234,7 @@ public class GenotypeGraph extends Module {
 
             if (bestVi != null) {
                 String knownRef = bestVi.ref;
-                String knownAlt = bestVi.alt;
+                String knownAlt = bestVi.alt != null ? bestVi.alt : "";
                 String ref = gvc.getAttributeAsString(color, "parentalAllele");
                 String alt = gvc.getAttributeAsString(color, "childAllele");
 
@@ -1341,9 +1341,11 @@ public class GenotypeGraph extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag1 = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, AGGRESSIVE, novelKmers);
+                log.info("    subgraph : {} vertices, {} edges", ag1.vertexSet().size(), ag1.edgeSet().size());
 
-                //log.debug("Graph printed");
-                //printGraph(ag, "call" + String.format("%04d", stretchNum), true, true);
+                log.debug("Graph printed");
+                printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
 
                 // Extract parental stretches
                 PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
