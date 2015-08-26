@@ -48,15 +48,18 @@ public class print extends Module {
             out.println(GRAPH);
         } else {
             if (RECORDS != null && !RECORDS.isEmpty()) {
-                for (String kmer : RECORDS) {
-                    CortexKmer ck = new CortexKmer(kmer);
-                    CortexRecord cr = GRAPH.findRecord(ck);
+                for (String seq : RECORDS) {
+                    for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                        String kmer = seq.substring(i, i + GRAPH.getKmerSize());
 
-                    if (cr != null) {
-                        //out.println(kmer + ": " + cr);
-                        out.println(recordToString(kmer, cr));
-                    } else {
-                        out.println(kmer + ": missing");
+                        CortexKmer ck = new CortexKmer(kmer);
+                        CortexRecord cr = GRAPH.findRecord(ck);
+
+                        if (cr != null) {
+                            out.println(recordToString(kmer, cr));
+                        } else {
+                            out.println(kmer + ": missing");
+                        }
                     }
                 }
             } else {

@@ -67,7 +67,7 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
             }
             version = header.has("formatVersion") ? header.getInt("formatVersion") : header.getInt("format_version");
 
-            if (version != 2 && version != 3) {
+            if (version != 2 && version != 3 && version != 4) {
                 throw new IndianaException("Cannot parse CortexLinks format version '" + version + "'");
             }
 
@@ -166,20 +166,22 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
                     String[] linkLine = buffered.readLine().split("\\s+");
 
                     String orientation = linkLine[0];
-                    int numKmers = Integer.valueOf(linkLine[1]);
-                    int numJunctions = Integer.valueOf(linkLine[2]);
+                    int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
+                    int numJunctions = version == 4 ? Integer.valueOf(linkLine[1]) : Integer.valueOf(linkLine[2]);
                     int[] coverages = new int[numColors];
 
+                    int offset = version == 4 ? 2 : 3;
+
                     for (int c = 0; c < numColors; c++) {
-                        coverages[c] = Integer.valueOf(linkLine[3 + c]);
+                        coverages[c] = Integer.valueOf(linkLine[offset + c]);
                     }
 
-                    String junctions = linkLine[3 + numColors];
+                    String junctions = linkLine[offset + numColors];
 
                     String seq = null;
                     int[] juncpos = null;
-                    if (linkLine.length > 3 + numColors + 1) {
-                        for (int j = 3 + numColors + 1; j < linkLine.length; j++) {
+                    if (linkLine.length > offset + numColors + 1) {
+                        for (int j = offset + numColors + 1; j < linkLine.length; j++) {
                             String entry = linkLine[j];
 
                             if (entry.contains("seq=")) {

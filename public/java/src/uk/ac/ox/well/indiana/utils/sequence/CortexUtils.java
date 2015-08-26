@@ -544,6 +544,8 @@ public class CortexUtils {
             }
         }
 
+        AnnotatedVertex avseek = new AnnotatedVertex("ATATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCA");
+
         while (!kmerStack.isEmpty()) {
             StackEntry p = kmerStack.pop();
 
@@ -587,21 +589,30 @@ public class CortexUtils {
                     }
                 }
             } else {
-                for (String ska : adjKmers.get(color)) {
-                    AnnotatedVertex ava = new AnnotatedVertex(ska);
-                    dfs.addVertex(ava);
+                for (int c = 0; c < 3; c++) {
+                    for (String ska : adjKmers.get(c)) {
+                        AnnotatedVertex ava = new AnnotatedVertex(ska);
+                        dfs.addVertex(ava);
 
-                    AnnotatedEdge aen = new AnnotatedEdge();
-                    for (int c = 0; c < 3; c++) {
+                        AnnotatedEdge aen;
+
+                        if (goForward && dfs.containsEdge(av1, ava)) {
+                            aen = dfs.getEdge(av1, ava);
+                        } else if (dfs.containsEdge(ava, av0)) {
+                            aen = dfs.getEdge(ava, av0);
+                        } else {
+                            aen = new AnnotatedEdge();
+                        }
+
                         if (adjKmers.get(c).contains(ava.getKmer())) {
                             aen.setPresence(c);
                         }
-                    }
 
-                    if (goForward) {
-                        dfs.addEdge(av1, ava, aen);
-                    } else {
-                        dfs.addEdge(ava, av0, aen);
+                        if (goForward) {
+                            dfs.addEdge(av1, ava, aen);
+                        } else {
+                            dfs.addEdge(ava, av0, aen);
+                        }
                     }
                 }
             }

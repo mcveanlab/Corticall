@@ -1338,11 +1338,11 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
-                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
+                //log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag1 = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, AGGRESSIVE, novelKmers);
-                log.info("    subgraph : {} vertices, {} edges", ag1.vertexSet().size(), ag1.edgeSet().size());
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, null, AGGRESSIVE, novelKmers);
+                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
                 log.debug("Graph printed");
                 printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
@@ -1454,6 +1454,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
+                        evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
 
                         viSeen.put(vi.variantId, true);
 
@@ -1480,6 +1481,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
+                        evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
                     }
                 }
 
@@ -1511,6 +1513,7 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantStats").set(pk, "variantEvent", "none");
                 evalTables.getTable("variantStats").set(pk, "variantLength", 0);
                 evalTables.getTable("variantStats").set(pk, "novelKmersUsed", 0);
+                evalTables.getTable("variantStats").set(pk, "seedKmer", "none");
             }
         }
 
