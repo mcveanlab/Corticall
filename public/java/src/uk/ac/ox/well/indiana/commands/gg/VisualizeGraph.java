@@ -14,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.*;
@@ -26,6 +27,9 @@ public class VisualizeGraph extends Module {
 
     @Argument(fullName = "graphRaw", shortName = "r", doc = "Graph (raw)", required = false)
     public CortexGraph GRAPH_RAW;
+
+    @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
+    public CortexLinksMap LINKS;
 
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
@@ -154,13 +158,11 @@ public class VisualizeGraph extends Module {
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, AGGRESSIVE, novelKmers);
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, LINKS, AGGRESSIVE, novelKmers);
 
-            log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+            return ag;
 
-            //return ag;
-
-            return GenotypeGraphUtils.simplifyGraph(ag, false);
+            //return GenotypeGraphUtils.simplifyGraph(ag, false);
         }
 
         @Override
@@ -168,7 +170,9 @@ public class VisualizeGraph extends Module {
             Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
 
             String kmer = query.get("kmer");
+            boolean simplify = query.get("simplify").equals("true");
 
+            log.info("");
             log.info("Request: {}", httpExchange.getRequestURI());
 
             String stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, kmer, 0, true);
@@ -177,9 +181,13 @@ public class VisualizeGraph extends Module {
 
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = fetchGraph(stretch);
 
-            GenotypeGraphUtils.printGraph(a, new File("debug"), false, true);
+            log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
-            log.info("  graph: {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
+            if (simplify) {
+                a = GenotypeGraphUtils.simplifyGraph(a, false);
+
+                log.info("    simplified: {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
+            }
 
             JSONArray va = new JSONArray();
             JSONArray ea = new JSONArray();
@@ -228,8 +236,6 @@ public class VisualizeGraph extends Module {
 
     @Override
     public void execute() {
-        log.info("Loading...");
-
         log.info("Starting server...");
 
         try {

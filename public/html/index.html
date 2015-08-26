@@ -10,7 +10,7 @@
 <body>
 
 <div id="nav">
-    <div id="kmerSelection">Kmer: <input type="text" id="kmerBox" /></div>
+    <div id="kmerSelection">Kmer: <input type="text" id="kmerBox" /><input type="checkbox" id="simplify" checked></div>
     <div id="status"></div>
 </div>
 
@@ -19,11 +19,17 @@
 <script type="text/javascript">
     d3.select("#kmerBox").on("keyup", function (d) {
         if (d3.event.keyCode == 13) {
-            d3.json("graph?kmer=" + this.value, function (json) {
-                d3.selectAll("svg").remove();
+            d3.select("#status").text("Loading...");
 
-                drawGraph(json);
-            });
+            d3.json("graph?kmer=" + this.value + "&simplify=" + d3.select("#simplify").property("checked"))
+                .on("load", function(json) {
+                    d3.selectAll("svg").remove();
+
+                    drawGraph(json);
+
+                    d3.select("#status").text("Ready.");
+                })
+                .get();
         }
     });
 
@@ -56,9 +62,21 @@
                 .attr("width", w)
                 .attr("height", h);
 
+        svg.append("defs").append("marker")
+                .attr("id", "marker")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 15)
+                .attr("refY", 0)
+                .attr("markerWidth", 2)
+                .attr("markerHeight", 2)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5");
+
         var path = svg.selectAll("path")
                 .data(force.links())
-                .enter().append("path")
+                .enter()
+                .append("path")
                 .attr("id", "link")
                 .attr("class", function(d) {
                     switch (d.sample) {
@@ -67,6 +85,7 @@
                         case 2: return "linkFather"; break;
                     }
                 })
+                .attr("marker-end", "url(#marker)");
 
         var circle = svg.selectAll("circle")
                 .data(force.nodes())
@@ -77,6 +96,9 @@
                     return 3 + Math.sqrt(d.kmer.length/47)
                 })
                 .attr("title", function(d) { return d.kmer; })
+                .on("click", function(d) {
+                    svg.call(d3.behavior.zoom());
+                })
                 .on("mouseover", function(d) {
                     svg.append("text")
                         .attr("id", "tip")
@@ -89,7 +111,7 @@
                 .on("mouseout", function(d) {
                     svg.selectAll("#tip").remove();
                 })
-                .on("contextmenu", function(d) {
+                .on("click", function(d) {
                     d3.select("#status").text(d.kmer + " (" + (d.kmer.length) + " bp)");
                 })
                 .call(force.drag);
