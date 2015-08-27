@@ -31,6 +31,10 @@ public class print extends Module {
 
         boolean fw = sk.equals(kmer);
 
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
         for (int coverage : cr.getCoverages()) {
             cov += " " + coverage;
         }

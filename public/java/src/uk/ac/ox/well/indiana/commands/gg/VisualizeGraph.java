@@ -183,11 +183,15 @@ public class VisualizeGraph extends Module {
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
+            int numVertices = a.vertexSet().size();
+
             if (simplify) {
                 a = GenotypeGraphUtils.simplifyGraph(a, false);
 
                 log.info("    simplified: {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
             }
+
+            int numVerticesSimplified = a.vertexSet().size();
 
             JSONArray va = new JSONArray();
             JSONArray ea = new JSONArray();
@@ -227,6 +231,8 @@ public class VisualizeGraph extends Module {
 
             JSONObject jo = new JSONObject();
             jo.put("stretch", stretch);
+            jo.put("numVertices", numVertices);
+            jo.put("numVerticesSimplified", numVerticesSimplified);
             jo.put("nodes", va);
             jo.put("links", ea);
 
