@@ -129,6 +129,19 @@ public class GenotypeGraphUtils {
         Set<AnnotatedVertex> predecessorList = predecessorsOf(sg0, firstNovelKmer);
         Set<AnnotatedVertex> successorList = successorsOf(sg0, lastNovelKmer);
 
+        for (AnnotatedVertex av : sg0.vertexSet()) {
+            if (sg0.outDegreeOf(av) != 0) {
+                predecessorList.add(av);
+            }
+
+            if (sg0.inDegreeOf(av) != 1) {
+                successorList.add(av);
+            }
+        }
+
+        //AnnotatedVertex av = new AnnotatedVertex("ATATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCA");
+        AnnotatedVertex av = new AnnotatedVertex("TATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCAT");
+
         for (int c = 1; c <= 2; c++) {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
@@ -149,7 +162,7 @@ public class GenotypeGraphUtils {
                             @Override
                             public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
                                 //return junctions >= maxJunctionsAllowed() || size > 20000;
-                                return size > 20000;
+                                return size > 5000;
                             }
 
                             @Override

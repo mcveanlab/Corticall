@@ -10,7 +10,7 @@
 <body>
 
 <div id="nav">
-    <div id="kmerSelection">Kmer: <input type="text" id="kmerBox" /><input type="checkbox" id="simplify" checked></div>
+    <div id="kmerSelection"><input type="text" id="kmerBox" /><input type="checkbox" id="simplify" checked></div>
     <div id="status"></div>
 </div>
 
@@ -26,8 +26,6 @@
                     d3.selectAll("svg").remove();
 
                     drawGraph(json);
-
-                    d3.select("#status").text("Ready.");
                 })
                 .get();
         }
@@ -45,7 +43,7 @@
                 .size([w, h])
                 .linkDistance(10)
                 .charge(function(d) {
-                    return d.isNovel ? -1000 : -100;
+                    return d.isNovel ? -200 : -100;
                 })
                 .on("tick", tick)
                 .start();
@@ -53,14 +51,15 @@
         var svg = d3.select("body").append("svg")
                 .attr("width", w)
                 .attr("height", h)
-                .append("g")
-                .call(d3.behavior.zoom().on("zoom", zoom))
-                .append("g");
 
         svg.append("rect")
                 .attr("class", "overlay")
                 .attr("width", w)
-                .attr("height", h);
+                .attr("height", h)
+                .on("click", function() { setDefaultStatus(graph) })
+                .append("g")
+                .call(d3.behavior.zoom().on("zoom", zoom))
+                .append("g")
 
         svg.append("defs").append("marker")
                 .attr("id", "marker")
@@ -115,6 +114,12 @@
                     d3.select("#status").text(d.kmer + " (" + (d.kmer.length) + " bp)");
                 })
                 .call(force.drag);
+
+        setDefaultStatus(graph);
+
+        function setDefaultStatus(graph) {
+            d3.select("#status").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ")");
+        }
 
         function tick() {
             path.attr("d", function(d) {
