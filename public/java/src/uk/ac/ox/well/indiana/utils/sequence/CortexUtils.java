@@ -510,6 +510,13 @@ public class CortexUtils {
         }
     }
 
+    public static boolean hasExpectedOverlap(AnnotatedVertex av0, AnnotatedVertex av1) {
+        String sk0 = av0.getKmer();
+        String sk1 = av1.getKmer();
+
+        return (sk0.substring(1, sk0.length()).equals(sk1.substring(0, sk0.length() - 1)));
+    }
+
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
         class StackEntry {
             public AnnotatedVertex first;
@@ -544,7 +551,7 @@ public class CortexUtils {
             }
         }
 
-        AnnotatedVertex avseek = new AnnotatedVertex("ATATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCA");
+        AnnotatedVertex avseek = new AnnotatedVertex("AAGGTAGTAGTAAGTAAGAAGTAGATCCTAAGTATGTAAGAGCTAAG");
 
         while (!kmerStack.isEmpty()) {
             StackEntry p = kmerStack.pop();
@@ -564,7 +571,38 @@ public class CortexUtils {
                 }
             }
 
+            if (!hasExpectedOverlap(av0, av1)) {
+                throw new IndianaException("Incorrect overlap between " + av0.getKmer() + " and " + av1.getKmer());
+            }
+
             dfs.addEdge(av0, av1, ae);
+
+            /*
+            for (int c = 0; c < 3; c++) {
+                for (String ska : adjKmers.get(c)) {
+                    AnnotatedVertex ava = new AnnotatedVertex(ska);
+                    dfs.addVertex(ava);
+
+                    AnnotatedEdge aen;
+
+                    if (goForward && dfs.containsEdge(av0, ava)) {
+                        aen = dfs.getEdge(av0, ava);
+                    } else if (dfs.containsEdge(ava, av1)) {
+                        aen = dfs.getEdge(ava, av1);
+                    } else {
+                        aen = new AnnotatedEdge();
+                    }
+
+                    aen.setPresence(c);
+
+                    if (goForward) {
+                        dfs.addEdge(av0, ava, aen);
+                    } else {
+                        dfs.addEdge(ava, av1, aen);
+                    }
+                }
+            }
+            */
 
             //CortexRecord crAdj = goForward ? clean.findRecord(new CortexKmer(av1.getKmer())) : clean.findRecord(new CortexKmer(av0.getKmer()));
 
@@ -609,8 +647,16 @@ public class CortexUtils {
                         }
 
                         if (goForward) {
+                            if (!hasExpectedOverlap(av1, ava)) {
+                                throw new IndianaException("Incorrect overlap between " + av1.getKmer() + " and " + ava.getKmer());
+                            }
+
                             dfs.addEdge(av1, ava, aen);
                         } else {
+                            if (!hasExpectedOverlap(ava, av0)) {
+                                throw new IndianaException("Incorrect overlap between " + ava.getKmer() + " and " + av0.getKmer());
+                            }
+
                             dfs.addEdge(ava, av0, aen);
                         }
                     }

@@ -42,37 +42,50 @@
                 .links(links)
                 .size([w, h])
                 .linkDistance(10)
-                .charge(function(d) {
+                .charge(function (d) {
                     return d.isNovel ? -200 : -100;
                 })
+
+        force.start();
+        for (var i = 0; i < nodes.length * nodes.length; i++) force.tick();
+        force.stop();
+
+        force
                 .on("tick", tick)
                 .start();
 
         var svg = d3.select("body").append("svg")
                 .attr("width", w)
                 .attr("height", h)
+                .append("g")
+                .call(d3.behavior.zoom().on("zoom", zoom))
+                .on("dblclick.zoom", null)
+                .append("g");
 
         svg.append("rect")
                 .attr("class", "overlay")
                 .attr("width", w)
                 .attr("height", h)
-                .on("click", function() { setDefaultStatus(graph) })
-                .append("g")
-                .call(d3.behavior.zoom().on("zoom", zoom))
-                .append("g")
+                .on("click", function () {
+                    setDefaultStatus(graph)
+                });
 
-        svg.append("defs").append("marker")
-                .attr("id", "marker")
-                .attr("viewBox", "0 -5 10 10")
-                .attr("refX", 15)
-                .attr("refY", 0)
-                .attr("markerWidth", 2)
-                .attr("markerHeight", 2)
-                .attr("orient", "auto")
-                .append("path")
-                .attr("d", "M0,-5L10,0L0,5");
+        var markerClasses = ["Child", "Mother", "Father"];
+        markerClasses.map(function(markerClass) {
+            svg.append("defs").append("marker")
+                    .attr("id", "marker" + markerClass)
+                    .attr("class", "marker" + markerClass)
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 15)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 3)
+                    .attr("markerHeight", 3)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5");
+        });
 
-        var path = svg.selectAll("path")
+        var path = svg.append("g").selectAll("path")
                 .data(force.links())
                 .enter()
                 .append("path")
@@ -84,9 +97,15 @@
                         case 2: return "linkFather"; break;
                     }
                 })
-                .attr("marker-end", "url(#marker)");
+                .attr("marker-end", function(d) {
+                    switch (d.sample) {
+                        case 0: return "url(#markerChild)"; break;
+                        case 1: return "url(#markerMother)"; break;
+                        case 2: return "url(#markerFather)"; break;
+                    }
+                })
 
-        var circle = svg.selectAll("circle")
+        var circle = svg.append("g").selectAll("circle")
                 .data(force.nodes())
                 .enter().append("circle")
                 .attr("id", "node")
@@ -95,9 +114,6 @@
                     return 3 + Math.sqrt(d.kmer.length/47)
                 })
                 .attr("title", function(d) { return d.kmer; })
-                .on("click", function(d) {
-                    svg.call(d3.behavior.zoom());
-                })
                 .on("mouseover", function(d) {
                     svg.append("text")
                         .attr("id", "tip")
@@ -115,6 +131,7 @@
                 })
                 .call(force.drag);
 
+        d3.selectAll("#kmerBox").property("value", graph.kmer);
         setDefaultStatus(graph);
 
         function setDefaultStatus(graph) {
