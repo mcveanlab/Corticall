@@ -146,23 +146,23 @@ public class VisualizeGraph extends Module {
 
     private class Graph extends BaseHandler {
         private Map<CortexKmer, Boolean> novelKmers;
+        private List<CortexKmer> novelKmersList;
+        private Random rng = new Random(0);
 
         public Graph() {
             novelKmers = new HashMap<CortexKmer, Boolean>();
+            novelKmersList = new ArrayList<CortexKmer>();
 
             for (CortexRecord cr : NOVEL) {
                 novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
+                novelKmersList.add(cr.getCortexKmer());
 
                 log.info("  novel kmer: {}", cr.getKmerAsString());
             }
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, LINKS, AGGRESSIVE, novelKmers);
-
-            return ag;
-
-            //return GenotypeGraphUtils.simplifyGraph(ag, false);
+            return GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, LINKS, AGGRESSIVE, novelKmers);
         }
 
         @Override
@@ -170,6 +170,11 @@ public class VisualizeGraph extends Module {
             Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
 
             String kmer = query.get("kmer");
+            if (kmer.contains("random")) {
+                int index = rng.nextInt(novelKmersList.size());
+                kmer = novelKmersList.get(index).getKmerAsString();
+            }
+
             boolean simplify = query.get("simplify").equals("true");
 
             log.info("");
@@ -230,6 +235,7 @@ public class VisualizeGraph extends Module {
             }
 
             JSONObject jo = new JSONObject();
+            jo.put("kmer", kmer);
             jo.put("stretch", stretch);
             jo.put("numVertices", numVertices);
             jo.put("numVerticesSimplified", numVerticesSimplified);

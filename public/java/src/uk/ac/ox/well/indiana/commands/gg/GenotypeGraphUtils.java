@@ -59,40 +59,17 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        Set<String> kmersToLookFor = new HashSet<String>();
-        kmersToLookFor.add("GGTATATTTATTAAAGAATTAATAGGAGATACTCCAAGGTCACTAGT");
-        kmersToLookFor.add("ATGTATACAAGTTGGTTTGTGTATATATGTATATATAGGTATATATA");
-
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
             String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
 
             Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                 @Override
                 public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                    /*
-                    if (cr.getCortexKmer().equals(new CortexKmer("GGTATATTTATTAAAGAATTAATAGGAGATACTCCAAGGTCACTAGT"))) {
-                        System.out.println("Found it");
-                    }
-                    */
-
                     return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
-
-                    //return false;
-
-                    //return size > 10000 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0);
                 }
 
                 @Override
                 public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                    /*
-                    if (cr.getCortexKmer().equals(new CortexKmer("GGTATATTTATTAAAGAATTAATAGGAGATACTCCAAGGTCACTAGT"))) {
-                        System.out.println("Found it");
-                    }
-
-                    return junctions >= maxJunctionsAllowed() || size > 20000;
-                    */
-                    //return size > 20000;
-
                     return false;
                 }
 
@@ -101,14 +78,6 @@ public class GenotypeGraphUtils {
                     return 10;
                 }
             }));
-        }
-
-        for (String kmer : kmersToLookFor) {
-            AnnotatedVertex av = new AnnotatedVertex(kmer);
-
-            if (sg0.containsVertex(av)) {
-                System.out.println("pause here");
-            }
         }
 
         String firstNovelKmer = null, lastNovelKmer = null;
@@ -161,7 +130,6 @@ public class GenotypeGraphUtils {
 
                             @Override
                             public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                                //return junctions >= maxJunctionsAllowed() || size > 20000;
                                 return size > 5000;
                             }
 

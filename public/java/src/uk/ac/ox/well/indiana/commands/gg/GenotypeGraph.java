@@ -1344,8 +1344,8 @@ public class GenotypeGraph extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, null, AGGRESSIVE, novelKmers);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
-                log.debug("Graph printed");
-                printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
+                //log.debug("Graph printed");
+                //printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
 
                 // Extract parental stretches
                 PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
