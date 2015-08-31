@@ -205,6 +205,7 @@ public class VisualizeGraph extends Module {
 
             int numVerticesSimplified = a.vertexSet().size();
 
+            /*
             String seq = vi.leftFlank + vi.ref + vi.rightFlank;
 
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
@@ -229,6 +230,7 @@ public class VisualizeGraph extends Module {
                     }
                 }
             }
+            */
 
             JSONArray va = new JSONArray();
             JSONArray ea = new JSONArray();

@@ -60,8 +60,6 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        AnnotatedVertex avseek = new AnnotatedVertex("CACCACCGCCCACACGAACCATGCATGCCACGATATAAACCACGTAT");
-
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
             String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
 
@@ -95,10 +93,13 @@ public class GenotypeGraphUtils {
             }
         }
 
+        //Set<AnnotatedVertex> predecessorList = getPredecessorList(sg0);
+        //Set<AnnotatedVertex> successorList = getSuccessorList(sg0);
+
+        //
         Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
         Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
 
-        //
         for (AnnotatedVertex av : sg0.vertexSet()) {
             if (sg0.outDegreeOf(av) != 1) {
                 predecessorList.add(av);
@@ -110,9 +111,7 @@ public class GenotypeGraphUtils {
         }
         //
 
-        //predecessorList.add(new AnnotatedVertex("ATTCTACCATATTACAATACTCCCATAACATACGCAATACGCCACCA"));
-        //successorList.add(new AnnotatedVertex("ACCACCGCCCACACGAACCATGCATGCCACGATATAAACCACGTATG"));
-
+        //
         for (int c = 1; c <= 2; c++) {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
@@ -147,6 +146,7 @@ public class GenotypeGraphUtils {
                 }
             }
         }
+        //
 
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
@@ -160,6 +160,78 @@ public class GenotypeGraphUtils {
         }
 
         return ag;
+    }
+
+    private static Set<AnnotatedVertex> getPredecessorList(DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0) {
+        Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
+
+        for (AnnotatedVertex av : sg0.vertexSet()) {
+            Set<AnnotatedEdge> oes = sg0.outgoingEdgesOf(av);
+
+            boolean hasOutgoingNovelEdge = false;
+            Set<AnnotatedEdge> outgoingParentalEdges = new HashSet<AnnotatedEdge>();
+
+            for (AnnotatedEdge oe : oes) {
+                if (oe.isPresent(0) && oe.isAbsent(1) && oe.isAbsent(2)) {
+                    hasOutgoingNovelEdge = true;
+                } else if (oe.isPresent(1) || oe.isPresent(2)) {
+                    outgoingParentalEdges.add(oe);
+                }
+            }
+
+            if (hasOutgoingNovelEdge && outgoingParentalEdges.size() > 0) {
+                for (AnnotatedEdge oe : outgoingParentalEdges) {
+                    AnnotatedVertex v = sg0.getEdgeTarget(oe);
+
+                    DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfs = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(sg0, v);
+                    while (dfs.hasNext()) {
+                        AnnotatedVertex nv = dfs.next();
+
+                        if (sg0.outDegreeOf(nv) == 0) {
+                            predecessorList.add(nv);
+                        }
+                    }
+                }
+            }
+        }
+
+        return predecessorList;
+    }
+
+    private static Set<AnnotatedVertex> getSuccessorList(DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0) {
+        Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
+
+        for (AnnotatedVertex av : sg0.vertexSet()) {
+            Set<AnnotatedEdge> ies = sg0.incomingEdgesOf(av);
+
+            boolean hasIncomingNovelEdge = false;
+            Set<AnnotatedEdge> incomingParentalEdges = new HashSet<AnnotatedEdge>();
+
+            for (AnnotatedEdge ie : ies) {
+                if (ie.isPresent(0) && ie.isAbsent(1) && ie.isAbsent(2)) {
+                    hasIncomingNovelEdge = true;
+                } else if (ie.isPresent(1) || ie.isPresent(2)) {
+                    incomingParentalEdges.add(ie);
+                }
+            }
+
+            if (hasIncomingNovelEdge && incomingParentalEdges.size() > 0) {
+                for (AnnotatedEdge ie : incomingParentalEdges) {
+                    AnnotatedVertex v = sg0.getEdgeSource(ie);
+
+                    DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> rdfs = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(sg0), v);
+                    while (rdfs.hasNext()) {
+                        AnnotatedVertex pv = rdfs.next();
+
+                        if (sg0.inDegreeOf(pv) == 0) {
+                            successorList.add(pv);
+                        }
+                    }
+                }
+            }
+        }
+
+        return successorList;
     }
 
     private static String formatAttributes(Map<String, Object> attrs) {
