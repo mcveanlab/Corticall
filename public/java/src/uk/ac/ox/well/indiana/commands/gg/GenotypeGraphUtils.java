@@ -13,6 +13,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -59,30 +60,45 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
+        AnnotatedVertex avseek = new AnnotatedVertex("CACCACCGCCCACACGAACCATGCATGCCACGATATAAACCACGTAT");
+
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
             String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
 
-            Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                @Override
-                public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                    return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
-                }
+            for (boolean goForward : Arrays.asList(true, false)) {
+                TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
+                    private int goalSize = 0;
 
-                @Override
-                public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                    return false;
-                }
+                    @Override
+                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
+                        //return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
 
-                @Override
-                public int maxJunctionsAllowed() {
-                    return 10;
-                }
-            }));
+                        if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
+                            goalSize = size;
+                        }
+
+                        return goalSize > 0 && (size >= 3 * goalSize);
+                    }
+
+                    @Override
+                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
+                        return false;
+                    }
+
+                    @Override
+                    public int maxJunctionsAllowed() {
+                        return 10;
+                    }
+                };
+
+                Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, stopper, goForward));
+            }
         }
 
         Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
         Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
 
+        //
         for (AnnotatedVertex av : sg0.vertexSet()) {
             if (sg0.outDegreeOf(av) != 1) {
                 predecessorList.add(av);
@@ -92,6 +108,10 @@ public class GenotypeGraphUtils {
                 successorList.add(av);
             }
         }
+        //
+
+        //predecessorList.add(new AnnotatedVertex("ATTCTACCATATTACAATACTCCCATAACATACGCAATACGCCACCA"));
+        //successorList.add(new AnnotatedVertex("ACCACCGCCCACACGAACCATGCATGCCACGATATAAACCACGTATG"));
 
         for (int c = 1; c <= 2; c++) {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
@@ -111,7 +131,7 @@ public class GenotypeGraphUtils {
 
                         @Override
                         public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                            return size > 5000;
+                            return size > 100;
                         }
 
                         @Override
@@ -121,7 +141,7 @@ public class GenotypeGraphUtils {
                     };
 
                     DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper, goForward);
-                    if (stopper.traversalSucceeded()) {
+                    if (stopper.anyTraversalSucceeded()) {
                         Graphs.addGraph(sg, dfs);
                     }
                 }
@@ -363,5 +383,76 @@ public class GenotypeGraphUtils {
         }
 
         return b;
+    }
+
+    public static Map<String, VariantInfo> loadVariantInfoMap(File bedFile) {
+        Map<String, VariantInfo> allVariants = new HashMap<String, VariantInfo>();
+
+        if (bedFile != null) {
+            TableReader bed = new TableReader(bedFile, "vchr", "vstart", "vstop", "info");
+
+            for (Map<String, String> be : bed) {
+                VariantInfo vi = new VariantInfo();
+
+                vi.vchr = be.get("vchr");
+                vi.vstart = Integer.valueOf(be.get("vstart"));
+                vi.vstop = Integer.valueOf(be.get("vstop"));
+
+                String[] kvpairs = be.get("info").split(";");
+                for (String kvpair : kvpairs) {
+                    String[] kv = kvpair.split("=");
+
+                    if (kv[0].equals("id")) {
+                        vi.variantId = kv[1];
+                    }
+                    if (kv[0].equals("type")) {
+                        vi.type = kv[1];
+                    }
+                    if (kv[0].equals("denovo")) {
+                        vi.denovo = kv[1];
+                    }
+                    if (kv[0].equals("nahr")) {
+                        vi.nahr = kv[1];
+                    }
+                    if (kv[0].equals("gcindex")) {
+                        vi.gcindex = Integer.valueOf(kv[1]);
+                    }
+                    if (kv[0].equals("ref")) {
+                        vi.ref = kv[1];
+                    }
+                    if (kv[0].equals("alt")) {
+                        vi.alt = kv[1];
+                    }
+                    if (kv[0].equals("left")) {
+                        vi.leftFlank = kv[1];
+                    }
+                    if (kv[0].equals("right")) {
+                        vi.rightFlank = kv[1];
+                    }
+                }
+
+                allVariants.put(vi.variantId, vi);
+            }
+        }
+        return allVariants;
+    }
+
+    public static Map<CortexKmer, VariantInfo> loadNovelKmerMap(File novelKmerMap, File bedFile) {
+        Map<String, VariantInfo> allVariants = loadVariantInfoMap(bedFile);
+
+        Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
+
+        if (novelKmerMap != null) {
+            TableReader tr = new TableReader(novelKmerMap);
+
+            for (Map<String, String> te : tr) {
+                VariantInfo vi = allVariants.get(te.get("variantId"));
+                CortexKmer kmer = new CortexKmer(te.get("kmer"));
+
+                vis.put(kmer, vi);
+            }
+        }
+
+        return vis;
     }
 }

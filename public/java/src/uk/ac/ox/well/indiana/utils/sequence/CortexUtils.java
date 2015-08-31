@@ -522,23 +522,28 @@ public class CortexUtils {
 
         class StackEntry {
             public AnnotatedVertex cv;
+            public int size = 0;
+            public int depth = 0;
 
-            public StackEntry(AnnotatedVertex cv) {
+            public StackEntry(AnnotatedVertex cv, int size, int depth) {
                 this.cv = cv;
+                this.size = size;
+                this.depth = depth;
             }
         }
-
-        int depth = 0;
 
         Stack<StackEntry> kmerStack = new Stack<StackEntry>();
 
         AnnotatedVertex firstVertex = new AnnotatedVertex(kmer);
 
-        kmerStack.push(new StackEntry(firstVertex));
+        kmerStack.push(new StackEntry(firstVertex, 0, 0));
         dfs.addVertex(firstVertex);
 
         while (!kmerStack.isEmpty()) {
-            AnnotatedVertex cv = kmerStack.pop().cv;
+            StackEntry se = kmerStack.pop();
+            AnnotatedVertex cv = se.cv;
+            int size = se.size;
+            int depth = se.depth;
 
             CortexRecord cr = clean.findRecord(new CortexKmer(cv.getKmer()));
             if (cr == null && dirty != null) {
@@ -548,13 +553,13 @@ public class CortexUtils {
             Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
 
-            if (stopper.keepGoing(cr, sg0, depth, dfs.vertexSet().size())) {
+            if (stopper.keepGoing(cr, sg0, depth, size)) {
                 if (goForward) {
                     for (String nextKmer : nextKmers.get(color)) {
                         AnnotatedVertex nv = new AnnotatedVertex(nextKmer);
 
                         if (!dfs.containsVertex(nv)) {
-                            kmerStack.push(new StackEntry(nv));
+                            kmerStack.push(new StackEntry(nv, size + 1, depth + (nextKmers.get(color).size() > 1 ? 1 : 0)));
                         }
                     }
                 } else {
@@ -562,7 +567,7 @@ public class CortexUtils {
                         AnnotatedVertex pv = new AnnotatedVertex(prevKmer);
 
                         if (!dfs.containsVertex(pv)) {
-                            kmerStack.push(new StackEntry(pv));
+                            kmerStack.push(new StackEntry(pv, size + 1, depth + (prevKmers.get(color).size() > 1 ? 1 : 0)));
                         }
                     }
                 }
@@ -601,10 +606,6 @@ public class CortexUtils {
                         }
                     }
                 }
-            }
-
-            if ((goForward && nextKmers.get(color).size() > 1) || (!goForward && prevKmers.get(color).size() > 1)) {
-                depth++;
             }
         }
 

@@ -11,6 +11,7 @@
 
 <div id="nav">
     <div id="kmerSelection"><input type="text" id="kmerBox" /><input type="checkbox" id="simplify" checked></div>
+    <div id="info"></div>
     <div id="status"></div>
 </div>
 
@@ -153,7 +154,8 @@
         setDefaultStatus(graph);
 
         function setDefaultStatus(graph) {
-            d3.select("#status").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ")");
+            d3.select("#info").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ").  Known (id: " + graph.knownVariant + ", type: " + graph.knownType + " ref: " + graph.knownRef + " alt: " + graph.knownAlt + " left: " + graph.knownLeft + " right: " + graph.knownRight + ")");
+            d3.select("#status").text("Ready.");
         }
 
         function tick() {
