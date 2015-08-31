@@ -4,6 +4,7 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -149,6 +150,7 @@ public class VisualizeGraph extends Module {
         private Map<CortexKmer, Boolean> novelKmers;
         private List<CortexKmer> novelKmersList;
         private Random rng = new Random(0);
+        private Map<CortexKmer, VariantInfo> vis;
 
         public Graph() {
             novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -157,9 +159,9 @@ public class VisualizeGraph extends Module {
             for (CortexRecord cr : NOVEL) {
                 novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
                 novelKmersList.add(cr.getCortexKmer());
-
-                log.info("  novel kmer: {}", cr.getKmerAsString());
             }
+
+            vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
@@ -175,6 +177,10 @@ public class VisualizeGraph extends Module {
                 int index = rng.nextInt(novelKmersList.size());
                 kmer = novelKmersList.get(index).getKmerAsString();
             }
+
+            CortexKmer ck = new CortexKmer(kmer);
+
+            VariantInfo vi = vis.containsKey(ck) ? vis.get(ck) : null;
 
             boolean simplify = query.get("simplify").equals("true");
 
@@ -198,6 +204,31 @@ public class VisualizeGraph extends Module {
             }
 
             int numVerticesSimplified = a.vertexSet().size();
+
+            String seq = vi.leftFlank + vi.ref + vi.rightFlank;
+
+            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                String fw = seq.substring(i, i + GRAPH.getKmerSize());
+                String rc = SequenceUtils.reverseComplement(fw);
+
+                AnnotatedVertex af = new AnnotatedVertex(fw);
+                AnnotatedVertex ar = new AnnotatedVertex(rc);
+
+                CortexKmer ca = new CortexKmer(fw);
+                CortexRecord cr = GRAPH.findRecord(ca);
+
+                if (cr != null) {
+                    log.info("  ar: clean {} {} {}", a.vertexSet().contains(ar), rc, cr);
+                } else {
+                    cr = GRAPH_RAW.findRecord(ca);
+
+                    if (cr != null) {
+                        log.info("  ar: dirty {} {} {}", a.vertexSet().contains(ar), rc, cr);
+                    } else {
+                        log.info("  ar: unknown {} {}", a.vertexSet().contains(ar), rc);
+                    }
+                }
+            }
 
             JSONArray va = new JSONArray();
             JSONArray ea = new JSONArray();
@@ -244,6 +275,12 @@ public class VisualizeGraph extends Module {
             jo.put("numVerticesSimplified", numVerticesSimplified);
             jo.put("nodes", va);
             jo.put("links", ea);
+            jo.put("knownVariant", vi == null ? "unknown" : vi.variantId);
+            jo.put("knownType", vi == null ? "unknown" : vi.denovo);
+            jo.put("knownRef", vi == null ? "unknown" : vi.ref);
+            jo.put("knownAlt", vi == null ? "unknown" : vi.alt);
+            jo.put("knownLeft", vi == null ? "unknown" : vi.leftFlank);
+            jo.put("knownRight", vi == null ? "unknown" : vi.rightFlank);
 
             write(httpExchange, jo.toString());
         }

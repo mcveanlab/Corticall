@@ -15,6 +15,7 @@ public interface TraversalStopper<V, E> {
 
     int maxJunctionsAllowed();
 
+    boolean anyTraversalSucceeded();
     boolean traversalSucceeded();
     boolean traversalFailed();
 }

@@ -70,6 +70,7 @@ public class GenotypeGraph extends Module {
     @Output(fullName = "evalOut", shortName = "eout", doc = "Eval out")
     public PrintStream eout;
 
+    /*
     private class VariantInfo {
         public String variantId;
 
@@ -198,13 +199,13 @@ public class GenotypeGraph extends Module {
         return allVariants;
     }
 
-    private Map<CortexKmer, VariantInfo> loadNovelKmerMap() {
+    private Map<CortexKmer, VariantInfo> loadNovelKmerMap(File novelKmerMap) {
         Map<String, VariantInfo> allVariants = loadVariantInfoMap();
 
         Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
 
-        if (NOVEL_KMER_MAP != null) {
-            TableReader tr = new TableReader(NOVEL_KMER_MAP);
+        if (novelKmerMap != null) {
+            TableReader tr = new TableReader(novelKmerMap);
 
             for (Map<String, String> te : tr) {
                 VariantInfo vi = allVariants.get(te.get("variantId"));
@@ -216,6 +217,7 @@ public class GenotypeGraph extends Module {
 
         return vis;
     }
+    */
 
     private String formatAttributes(Map<String, Object> attrs) {
         List<String> attrArray = new ArrayList<String>();
@@ -1278,7 +1280,7 @@ public class GenotypeGraph extends Module {
         KmerLookup kl1 = new KmerLookup(REF1);
         KmerLookup kl2 = new KmerLookup(REF2);
 
-        Map<CortexKmer, VariantInfo> vis = loadNovelKmerMap();
+        Map<CortexKmer, VariantInfo> vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
         Map<String, VariantInfo> vids = new HashMap<String, VariantInfo>();
         Map<String, Boolean> viSeen = new HashMap<String, Boolean>();
         for (VariantInfo vi : vis.values()) {
@@ -1379,28 +1381,8 @@ public class GenotypeGraph extends Module {
                 // See how many novel kmers we've used up
                 int novelKmersUsed = 0;
 
-                for (int i = 0; i <= p1.child.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(p1.child.substring(i, i + GRAPH.getKmerSize()));
-
-                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                        totalNovelKmersUsed++;
-                        novelKmersUsed++;
-                        novelKmers.put(ck, false);
-                    }
-                }
-
-                for (int i = 0; i <= p2.child.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(p2.child.substring(i, i + GRAPH.getKmerSize()));
-
-                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                        totalNovelKmersUsed++;
-                        novelKmersUsed++;
-                        novelKmers.put(ck, false);
-                    }
-                }
-
-                for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
+                for (AnnotatedVertex av : ag.vertexSet()) {
+                    CortexKmer ck = new CortexKmer(av.getKmer());
 
                     if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
                         totalNovelKmersUsed++;
