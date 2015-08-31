@@ -14,4 +14,7 @@ public interface TraversalStopper<V, E> {
     boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size);
 
     int maxJunctionsAllowed();
+
+    boolean traversalSucceeded();
+    boolean traversalFailed();
 }
