@@ -16,6 +16,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -208,6 +209,8 @@ public class VisualizeGraph extends Module {
                 Map<String, Object> m = new HashMap<String, Object>();
                 m.put("kmer", v.getKmer());
                 m.put("isNovel", v.isNovel());
+                m.put("isPredecessor", v.flagIsSet("predecessor"));
+                m.put("isSuccessor", v.flagIsSet("successor"));
 
                 va.put(m);
 
@@ -246,6 +249,54 @@ public class VisualizeGraph extends Module {
         }
     }
 
+    private class CrRecord extends BaseHandler {
+        private String recordToString(String sk, CortexRecord cr) {
+            String kmer = cr.getKmerAsString();
+            String cov = "";
+            String ed = "";
+
+            boolean fw = sk.equals(kmer);
+
+            if (!fw) {
+                kmer = SequenceUtils.reverseComplement(kmer);
+            }
+
+            for (int coverage : cr.getCoverages()) {
+                cov += " " + coverage;
+            }
+
+            for (String edge : cr.getEdgeAsStrings()) {
+                ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+            }
+
+            return kmer + " " + cov + " " + ed;
+        }
+
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            String seq = query.get("seq");
+            String sk = seq.substring(0, GRAPH.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+
+            boolean clean = true;
+            CortexRecord cr = GRAPH.findRecord(ck);
+            if (cr == null && GRAPH_RAW != null) {
+                cr = GRAPH_RAW.findRecord(ck);
+                clean = false;
+            }
+
+            String recordText = cr == null ? "not found" : recordToString(sk, cr) + " (" + (clean ? "clean" : "dirty") + ")";
+
+            JSONObject jo = new JSONObject();
+            jo.put("kmer", sk);
+            jo.put("recordText", recordText);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
     @Override
     public void execute() {
         log.info("Starting server...");
@@ -254,6 +305,7 @@ public class VisualizeGraph extends Module {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
             server.createContext("/", new PageHandler());
             server.createContext("/graph", new Graph());
+            server.createContext("/crrecord", new CrRecord());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {

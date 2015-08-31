@@ -1242,11 +1242,15 @@ public class GenotypeGraph extends Module {
                 gvc.attribute(color, "variantId", bestVi.variantId);
                 gvc.attribute(color, "allelesMatch", (knownRef.equals(ref) && knownAlt.equals(alt)) || bestVi.denovo.equals(gvc.getAttributeAsString(color, "event")));
                 gvc.attribute(color, "eventsMatch", bestVi.denovo.equals(gvc.getAttributeAsString(color, "event")));
+                gvc.attribute(color, "knownRef", knownRef);
+                gvc.attribute(color, "knownAlt", knownAlt);
             } else {
                 gvc.attribute(color, "isKnownVariant", false);
                 gvc.attribute(color, "variantId", "unknown");
                 gvc.attribute(color, "allelesMatch", false);
                 gvc.attribute(color, "eventsMatch", false);
+                gvc.attribute(color, "knownRef", "unknown");
+                gvc.attribute(color, "knownAlt", "unknown");
             }
         }
     }
@@ -1338,9 +1342,6 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = loadLocalGraph(novelKmers, stretch);
-                //log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
-
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, null, AGGRESSIVE, novelKmers);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
@@ -1425,14 +1426,16 @@ public class GenotypeGraph extends Module {
                         VariantInfo vi = vids.containsKey(vid) ? vids.get(vid) : null;
                         String event = vi == null ? "none" : vi.denovo;
 
-                        log.info("    - {}: background {}, isKnownVariant {}, allelesMatch {}, eventsMatch {}, variantId {} {}",
+                        log.info("    - {}: background {}, isKnownVariant {}, allelesMatch {}, eventsMatch {}, variantId {} {} {} {}",
                                 c,
                                 gvc.getAttributeAsInt(c, "haplotypeBackground"),
                                 gvc.getAttribute(c, "isKnownVariant"),
                                 gvc.getAttribute(c, "allelesMatch"),
                                 gvc.getAttribute(c, "eventsMatch"),
                                 gvc.getAttributeAsString(c, "variantId"),
-                                event
+                                event,
+                                gvc.getAttributeAsString(c, "knownRef"),
+                                gvc.getAttributeAsString(c, "knownAlt")
                         );
                     }
 

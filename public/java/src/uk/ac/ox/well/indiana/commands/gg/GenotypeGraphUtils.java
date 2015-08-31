@@ -80,26 +80,11 @@ public class GenotypeGraphUtils {
             }));
         }
 
-        String firstNovelKmer = null, lastNovelKmer = null;
-
-        for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
-            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
-            boolean isNovel = (CortexUtils.hasKmer(GRAPH, sk, 0) && CortexUtils.isNovelKmer(GRAPH, sk, 0)) || (GRAPH_RAW != null && AGGRESSIVE && CortexUtils.hasKmer(GRAPH_RAW, sk, 0) && CortexUtils.isNovelKmer(GRAPH_RAW, sk, 0));
-
-            if (isNovel) {
-                if (firstNovelKmer == null) {
-                    firstNovelKmer = sk;
-                }
-
-                lastNovelKmer = sk;
-            }
-        }
-
-        Set<AnnotatedVertex> predecessorList = predecessorsOf(sg0, firstNovelKmer);
-        Set<AnnotatedVertex> successorList = successorsOf(sg0, lastNovelKmer);
+        Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
 
         for (AnnotatedVertex av : sg0.vertexSet()) {
-            if (sg0.outDegreeOf(av) != 0) {
+            if (sg0.outDegreeOf(av) != 1) {
                 predecessorList.add(av);
             }
 
@@ -108,9 +93,6 @@ public class GenotypeGraphUtils {
             }
         }
 
-        //AnnotatedVertex av = new AnnotatedVertex("ATATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCA");
-        AnnotatedVertex av = new AnnotatedVertex("TATTAAAATATATAGATACACAAATTGCTATGAAATATAAGGACCAT");
-
         for (int c = 1; c <= 2; c++) {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
@@ -118,29 +100,30 @@ public class GenotypeGraphUtils {
                 Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
                 for (AnnotatedVertex ak : psList) {
-                    //if (!sg.containsVertex(ak)) {
-                        TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                            @Override
-                            public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                                String fw = cr.getKmerAsString();
-                                String rc = SequenceUtils.reverseComplement(fw);
+                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
+                        @Override
+                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
+                            String fw = cr.getKmerAsString();
+                            String rc = SequenceUtils.reverseComplement(fw);
 
-                                return (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)));
-                            }
+                            return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)));
+                        }
 
-                            @Override
-                            public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                                return size > 5000;
-                            }
+                        @Override
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
+                            return size > 5000;
+                        }
 
-                            @Override
-                            public int maxJunctionsAllowed() {
-                                return 5;
-                            }
-                        };
+                        @Override
+                        public int maxJunctionsAllowed() {
+                            return 5;
+                        }
+                    };
 
-                        Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper, goForward));
-                    //}
+                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper, goForward);
+                    if (stopper.traversalSucceeded()) {
+                        Graphs.addGraph(sg, dfs);
+                    }
                 }
             }
         }
@@ -150,6 +133,11 @@ public class GenotypeGraphUtils {
         addGraph(ag, sg0, 0, novelKmers);
         addGraph(ag, sg1, 1, novelKmers);
         addGraph(ag, sg2, 2, novelKmers);
+
+        for (AnnotatedVertex ava : ag.vertexSet()) {
+            if (predecessorList.contains(ava)) { ava.setFlag("predecessor"); }
+            if (successorList.contains(ava)) { ava.setFlag("successor"); }
+        }
 
         return ag;
     }
