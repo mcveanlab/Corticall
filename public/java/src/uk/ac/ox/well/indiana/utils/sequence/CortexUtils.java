@@ -554,21 +554,13 @@ public class CortexUtils {
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
 
             if (stopper.keepGoing(cr, sg0, depth, size)) {
-                if (goForward) {
-                    for (String nextKmer : nextKmers.get(color)) {
-                        AnnotatedVertex nv = new AnnotatedVertex(nextKmer);
+                Map<Integer, Set<String>> adjKmers = goForward ? nextKmers : prevKmers;
 
-                        if (!dfs.containsVertex(nv)) {
-                            kmerStack.push(new StackEntry(nv, size + 1, depth + (nextKmers.get(color).size() > 1 ? 1 : 0)));
-                        }
-                    }
-                } else {
-                    for (String prevKmer : prevKmers.get(color)) {
-                        AnnotatedVertex pv = new AnnotatedVertex(prevKmer);
+                for (String adjKmer : adjKmers.get(color)) {
+                    AnnotatedVertex av = new AnnotatedVertex(adjKmer);
 
-                        if (!dfs.containsVertex(pv)) {
-                            kmerStack.push(new StackEntry(pv, size + 1, depth + (prevKmers.get(color).size() > 1 ? 1 : 0)));
-                        }
+                    if (!dfs.containsVertex(av)) {
+                        kmerStack.push(new StackEntry(av, size + 1, depth + (adjKmers.get(color).size() > 1 ? 1 : 0)));
                     }
                 }
             }
