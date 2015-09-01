@@ -63,19 +63,36 @@ public class GenotypeGraphUtils {
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
             String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
 
-            for (boolean goForward : Arrays.asList(true, false)) {
+            for (final boolean goForward : Arrays.asList(true, false)) {
                 TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
                     private int goalSize = 0;
+                    private int goalDepth = 0;
 
-                    @Override
                     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
                         //return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
 
-                        if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
-                            goalSize = size;
+                        //
+                        if (size < goalSize) {
+                            goalSize = 0;
+                            goalDepth = 0;
                         }
 
-                        return goalSize > 0 && (size >= 3 * goalSize);
+                        if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
+                            goalSize = size;
+                            goalDepth = depth;
+                            //System.out.println("Hit first goal: " + goalSize + " " + goalDepth);
+                        }
+
+                        if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
+                            goalSize = size;
+                            goalDepth = depth;
+                            //System.out.println("Reset goal: " + goalSize + " " + goalDepth);
+                        }
+
+                        return goalSize > 0 && (size >= goalSize + 10) && depth >= goalDepth + 2;
+                        //
+
+                        //return goalSize > 0 && (size >= goalSize + 10) && depth <= goalDepth + 2;
                     }
 
                     @Override
@@ -130,12 +147,12 @@ public class GenotypeGraphUtils {
 
                         @Override
                         public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                            return size > 100;
+                            return size > 100 || junctions >= maxJunctionsAllowed();
                         }
 
                         @Override
                         public int maxJunctionsAllowed() {
-                            return 5;
+                            return 10;
                         }
                     };
 

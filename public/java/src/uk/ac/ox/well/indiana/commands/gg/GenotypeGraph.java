@@ -1319,6 +1319,8 @@ public class GenotypeGraph extends Module {
             novelKmers.put(new CortexKmer(KMER), true);
         }
 
+        int variantsMissingKmers = 0;
+
         log.info("Genotyping novel kmer stretches in graph...");
         Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
         for (CortexKmer novelKmer : novelKmers.keySet()) {
@@ -1350,33 +1352,35 @@ public class GenotypeGraph extends Module {
                 //log.debug("Graph printed");
                 //printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
 
-                // Extract parental stretches
-                PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
-                PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
+                if (true) {
+                    // Extract parental stretches
+                    PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
+                    PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
 
-                log.info("    paths:");
-                log.info("    - 1: {} ({} bp)", SequenceUtils.truncate(p1.parent, 100), p1.parent.length());
-                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p1.child, 100), p1.child.length());
-                log.info("    - 2: {} ({} bp)", SequenceUtils.truncate(p2.parent, 100), p2.parent.length());
-                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
+                    log.info("    paths:");
+                    log.info("    - 1: {} ({} bp)", SequenceUtils.truncate(p1.parent, 100), p1.parent.length());
+                    log.info("      c: {} ({} bp)", SequenceUtils.truncate(p1.child, 100), p1.child.length());
+                    log.info("    - 2: {} ({} bp)", SequenceUtils.truncate(p2.parent, 100), p2.parent.length());
+                    log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
-                // Call variants
-                gvc.add(callVariant(p1, 1, stretch, novelKmers, kl1));
-                gvc.add(callVariant(p2, 2, stretch, novelKmers, kl2));
+                    // Call variants
+                    gvc.add(callVariant(p1, 1, stretch, novelKmers, kl1));
+                    gvc.add(callVariant(p2, 2, stretch, novelKmers, kl2));
 
-                log.info("    variants:");
-                log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
-                log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
+                    log.info("    variants:");
+                    log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
+                    log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
+                    log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
+                    log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
 
-                // Finalize into a single call
-                chooseVariant(gvc);
+                    // Finalize into a single call
+                    chooseVariant(gvc);
 
-                // Show alignment
-                log.info("    alignment:");
-                log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
-                log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
+                    // Show alignment
+                    log.info("    alignment:");
+                    log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
+                    log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
+                }
 
                 // See how many novel kmers we've used up
                 int novelKmersUsed = 0;
@@ -1419,6 +1423,39 @@ public class GenotypeGraph extends Module {
                                 gvc.getAttributeAsString(c, "knownRef"),
                                 gvc.getAttributeAsString(c, "knownAlt")
                         );
+
+                        if (vi != null) {
+                            String refSeq = vi.leftFlank + vi.ref + vi.rightFlank;
+                            String altSeq = vi.leftFlank + (vi.alt == null ? "" : vi.alt) + vi.rightFlank;
+
+                            boolean isFwd = true;
+                            boolean isMissingKmers = false;
+
+                            for (int i = 0; i <= altSeq.length() - GRAPH.getKmerSize(); i++) {
+                                String fw = altSeq.substring(i, i + GRAPH.getKmerSize());
+                                String rc = SequenceUtils.reverseComplement(fw);
+
+                                //AnnotatedVertex afw = new AnnotatedVertex(fw);
+                                //AnnotatedVertex arc = new AnnotatedVertex(SequenceUtils.reverseComplement(fw));
+
+                                if (ag.containsVertex(new AnnotatedVertex(fw)) || ag.containsVertex(new AnnotatedVertex(fw, true))) {
+                                    //log.info("    - {}: fw {}", i, fw);
+                                    isFwd = true;
+                                } else if (ag.containsVertex(new AnnotatedVertex(rc)) || ag.containsVertex(new AnnotatedVertex(rc, true))) {
+                                    //log.info("    - {}: rc {}", i, rc);
+                                    isFwd = false;
+                                } else {
+                                    log.info("    - {}/{}: ?? {}", i, altSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc);
+                                    isMissingKmers = true;
+                                }
+                            }
+
+                            if (isMissingKmers) {
+                                variantsMissingKmers++;
+                            }
+                        }
+
+                        //break;
                     }
 
                     if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {
@@ -1476,6 +1513,8 @@ public class GenotypeGraph extends Module {
                 stretchNum++;
             }
         }
+
+        log.info("Variants missing kmers: {}", variantsMissingKmers);
 
         for (String vid : viSeen.keySet()) {
             if (!viSeen.get(vid)) {
