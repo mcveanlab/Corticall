@@ -69,9 +69,6 @@ public class GenotypeGraphUtils {
                     private int goalDepth = 0;
 
                     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                        //return cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0;
-
-                        //
                         if (size < goalSize) {
                             goalSize = 0;
                             goalDepth = 0;
@@ -80,19 +77,14 @@ public class GenotypeGraphUtils {
                         if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
                             goalSize = size;
                             goalDepth = depth;
-                            //System.out.println("Hit first goal: " + goalSize + " " + goalDepth);
                         }
 
                         if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
                             goalSize = size;
                             goalDepth = depth;
-                            //System.out.println("Reset goal: " + goalSize + " " + goalDepth);
                         }
 
                         return goalSize > 0 && (size >= goalSize + 10) && depth >= goalDepth + 2;
-                        //
-
-                        //return goalSize > 0 && (size >= goalSize + 10) && depth <= goalDepth + 2;
                     }
 
                     @Override
