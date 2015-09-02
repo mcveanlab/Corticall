@@ -524,26 +524,33 @@ public class CortexUtils {
             public AnnotatedVertex cv;
             public int size = 0;
             public int depth = 0;
+            public Set<AnnotatedVertex> kmersInBranch;
 
-            public StackEntry(AnnotatedVertex cv, int size, int depth) {
+            public StackEntry(AnnotatedVertex cv, int size, int depth, Set<AnnotatedVertex> kmersInBranch) {
                 this.cv = cv;
                 this.size = size;
                 this.depth = depth;
+                this.kmersInBranch = kmersInBranch;
             }
         }
 
+        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
+
         Stack<StackEntry> kmerStack = new Stack<StackEntry>();
+        StackEntry se0 = new StackEntry(new AnnotatedVertex(kmer), 0, 0, new HashSet<AnnotatedVertex>());
+        kmerStack.push(se0);
 
-        AnnotatedVertex firstVertex = new AnnotatedVertex(kmer);
-
-        kmerStack.push(new StackEntry(firstVertex, 0, 0));
-        dfs.addVertex(firstVertex);
+        dfs.addVertex(se0.cv);
 
         while (!kmerStack.isEmpty()) {
             StackEntry se = kmerStack.pop();
+
             AnnotatedVertex cv = se.cv;
             int size = se.size;
             int depth = se.depth;
+            Set<AnnotatedVertex> kmersInBranch = se.kmersInBranch;
+
+            kmersInBranch.add(cv);
 
             CortexRecord cr = clean.findRecord(new CortexKmer(cv.getKmer()));
             if (cr == null && dirty != null) {
@@ -552,54 +559,63 @@ public class CortexUtils {
 
             Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
+            Map<Integer, Set<String>> adjKmers = goForward ? nextKmers : prevKmers;
 
-            if (stopper.keepGoing(cr, sg0, depth, size)) {
-                Map<Integer, Set<String>> adjKmers = goForward ? nextKmers : prevKmers;
-
+            if (stopper.keepGoing(cr, sg0, depth, size) && adjKmers.get(color).size() > 0 && dfs.vertexSet().size() < 5000) {
                 for (String adjKmer : adjKmers.get(color)) {
                     AnnotatedVertex av = new AnnotatedVertex(adjKmer);
 
                     if (!dfs.containsVertex(av)) {
-                        kmerStack.push(new StackEntry(av, size + 1, depth + (adjKmers.get(color).size() > 1 ? 1 : 0)));
-                    }
-                }
-            }
-
-            for (int c = 0; c < 3; c++) {
-                for (int i = 0; i < 2; i++) {
-                    boolean edgesAreForward = i == 1;
-                    Map<Integer, Set<String>> adjKmers = edgesAreForward ? nextKmers : prevKmers;
-
-                    for (String adjKmer : adjKmers.get(c)) {
-                        AnnotatedVertex av = new AnnotatedVertex(adjKmer);
-
-                        dfs.addVertex(av);
-
-                        AnnotatedEdge aen;
-
-                        if (edgesAreForward && dfs.containsEdge(cv, av)) {
-                            aen = dfs.getEdge(cv, av);
-                        } else if (!edgesAreForward && dfs.containsEdge(av, cv)) {
-                            aen = dfs.getEdge(av, cv);
+                        if (adjKmers.get(color).size() > 1) {
+                            kmerStack.push(new StackEntry( av, 0, depth + 1, new HashSet<AnnotatedVertex>() ));
                         } else {
-                            aen = new AnnotatedEdge();
-                        }
-
-                        aen.setPresence(c);
-
-                        if (edgesAreForward) {
-                            if (!hasExpectedOverlap(cv, av)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
-
-                            dfs.addEdge(cv, av, aen);
-                        } else {
-                            if (!hasExpectedOverlap(av, cv)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
-
-                            dfs.addEdge(av, cv, aen);
+                            kmerStack.push(new StackEntry( av, size + 1, depth, kmersInBranch ));
                         }
                     }
                 }
+
+                for (int c = 0; c < 3; c++) {
+                    for (int i = 0; i < 2; i++) {
+                        boolean edgesAreForward = i == 1;
+                        adjKmers = edgesAreForward ? nextKmers : prevKmers;
+
+                        for (String adjKmer : adjKmers.get(c)) {
+                            AnnotatedVertex av = new AnnotatedVertex(adjKmer);
+
+                            dfs.addVertex(av);
+
+                            AnnotatedEdge aen;
+
+                            if (edgesAreForward && dfs.containsEdge(cv, av)) {
+                                aen = dfs.getEdge(cv, av);
+                            } else if (!edgesAreForward && dfs.containsEdge(av, cv)) {
+                                aen = dfs.getEdge(av, cv);
+                            } else {
+                                aen = new AnnotatedEdge();
+                            }
+
+                            aen.setPresence(c);
+
+                            if (edgesAreForward) {
+                                if (!hasExpectedOverlap(cv, av)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
+
+                                dfs.addEdge(cv, av, aen);
+                            } else {
+                                if (!hasExpectedOverlap(av, cv)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
+
+                                dfs.addEdge(av, cv, aen);
+                            }
+                        }
+                    }
+                }
+            } else if (stopper.traversalFailed() || adjKmers.get(color).size() == 0) {
+                verticesToRemove.addAll(kmersInBranch);
+            } else if (stopper.traversalSucceeded()) {
+                //System.out.println("Yay! " + kmer + " " + size + " " + depth + " " + dfs.vertexSet().size());
             }
         }
+
+        dfs.removeAllVertices(verticesToRemove);
 
         return dfs;
     }
