@@ -186,6 +186,7 @@ public class VisualizeGraph extends Module {
 
             log.info("");
             log.info("Request: {}", httpExchange.getRequestURI());
+            log.info("    known: {}", vi);
 
             String stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, kmer, 0, true);
 
