@@ -61,44 +61,75 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
         for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
-            String kmer = stretch.substring(i, i + GRAPH.getKmerSize());
+            String sk = stretch.substring(i, i + GRAPH.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
 
-            for (final boolean goForward : Arrays.asList(true, false)) {
-                TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                    private int goalSize = 0;
-                    private int goalDepth = 0;
+            if (novelKmers.containsKey(ck) && !sg0.containsVertex(new AnnotatedVertex(sk, true))) {
+                for (boolean goForward : Arrays.asList(true, false)) {
+                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
+                        private int goalSize = 0;
+                        private int goalDepth = 0;
 
-                    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                        if (size < goalSize) {
+                        private void reset() {
                             goalSize = 0;
                             goalDepth = 0;
                         }
 
-                        if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
-                            goalSize = size;
-                            goalDepth = depth;
+                        private boolean isLowComplexity(CortexRecord cr) {
+                            byte edges[][] = cr.getEdgesAsBytes();
+
+                            int numEdges = 0;
+                            for (int e = 0; e < 8; e++) {
+                                if (edges[0][e] != '.') {
+                                    numEdges++;
+                                }
+                            }
+
+                            return numEdges > 6;
                         }
 
-                        if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
-                            goalSize = size;
-                            goalDepth = depth;
+                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
+                            /* TODO: this doesn't work if there are multiple branches that need to be truncated.  Fix. */
+
+                            if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
+                                goalSize = size;
+                                goalDepth = depth;
+                            }
+
+                            if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
+                                goalSize = size;
+                                goalDepth = depth;
+                            }
+
+                            if (goalSize > 0 && (size >= goalSize + 50 || isLowComplexity(cr))) {
+                                reset();
+
+                                return true;
+                            }
+
+                            return false;
                         }
 
-                        return goalSize > 0 && (size >= goalSize + 10) && depth >= goalDepth + 2;
-                    }
+                        @Override
+                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
+                            //return goalSize > 0 && depth >= goalDepth + 2;
 
-                    @Override
-                    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                        return false;
-                    }
+                            if (goalSize > 0 && depth >= goalDepth + 1) {
+                                reset();
+                                return true;
+                            }
 
-                    @Override
-                    public int maxJunctionsAllowed() {
-                        return 10;
-                    }
-                };
+                            return false;
+                        }
 
-                Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, kmer, 0, null, stopper, goForward));
+                        @Override
+                        public int maxJunctionsAllowed() {
+                            return 10;
+                        }
+                    };
+
+                    Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, sk, 0, null, stopper, goForward));
+                }
             }
         }
 
@@ -129,22 +160,34 @@ public class GenotypeGraphUtils {
 
                 for (AnnotatedVertex ak : psList) {
                     TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
+                        private boolean isLowComplexity(CortexRecord cr) {
+                            byte edges[][] = cr.getEdgesAsBytes();
+
+                            int numEdges = 0;
+                            for (int e = 0; e < 8; e++) {
+                                if (edges[0][e] != '.') {
+                                    numEdges++;
+                                }
+                            }
+
+                            return numEdges > 6;
+                        }
                         @Override
                         public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
                             String fw = cr.getKmerAsString();
                             String rc = SequenceUtils.reverseComplement(fw);
 
-                            return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)));
+                            return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)) || g.containsVertex(new AnnotatedVertex(fw, true)) || g.containsVertex(new AnnotatedVertex(rc, true)));
                         }
 
                         @Override
                         public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                            return size > 100 || junctions >= maxJunctionsAllowed();
+                            return size > 100 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
                         }
 
                         @Override
                         public int maxJunctionsAllowed() {
-                            return 10;
+                            return 3;
                         }
                     };
 
@@ -160,8 +203,8 @@ public class GenotypeGraphUtils {
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         addGraph(ag, sg0, 0, novelKmers);
-        addGraph(ag, sg1, 1, novelKmers);
-        addGraph(ag, sg2, 2, novelKmers);
+        //addGraph(ag, sg1, 1, novelKmers);
+        //addGraph(ag, sg2, 2, novelKmers);
 
         for (AnnotatedVertex ava : ag.vertexSet()) {
             if (predecessorList.contains(ava)) { ava.setFlag("predecessor"); }
