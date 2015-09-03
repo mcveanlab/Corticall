@@ -592,7 +592,6 @@ public class CortexUtils {
                 } else if (adjKmers.get(color).size() != 1) {
                     for (String ak : adjKmers.get(color)) {
                         DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward);
-                        //DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + 1, goForward);
 
                         if (branch != null) {
                             Graphs.addGraph(dfs, branch);

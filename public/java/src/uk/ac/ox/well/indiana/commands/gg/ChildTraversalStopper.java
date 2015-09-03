@@ -20,13 +20,17 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
         return numEdges > 6;
     }
 
+    private boolean isNovel(CortexRecord cr) {
+        return cr.getCoverage(0) > 5 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0;
+    }
+
     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges) {
         if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
             goalSize = size;
             goalDepth = depth;
         }
 
-        if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
+        if (goalSize > 0 && isNovel(cr)) {
             goalSize = size;
             goalDepth = depth;
         }
@@ -37,11 +41,11 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges) {
         //return (goalSize > 0 && depth >= goalDepth + 1) || edges == 0;
-        return isLowComplexity(cr) || edges == 0 || depth >= maxJunctionsAllowed();
+        return !isNovel(cr) && (isLowComplexity(cr) || edges == 0 || depth >= maxJunctionsAllowed());
     }
 
     @Override
     public int maxJunctionsAllowed() {
-        return 2;
+        return 1;
     }
 }
