@@ -8,10 +8,10 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
     private boolean traversalSucceeded = false;
     private boolean traversalFailed = false;
 
-    public boolean keepGoing(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size) {
+    public boolean keepGoing(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size, int edges) {
         //return !hasTraversalSucceeded(cr, g, junctions, size) && !hasTraversalFailed(cr, g, junctions, size);
-        traversalSucceeded = hasTraversalSucceeded(cr, g, junctions, size);
-        traversalFailed = hasTraversalFailed(cr, g, junctions, size);
+        traversalSucceeded = hasTraversalSucceeded(cr, g, junctions, size, edges);
+        traversalFailed = hasTraversalFailed(cr, g, junctions, size, edges);
 
         if (traversalSucceeded) {
             anyTraversalSucceeded = true;

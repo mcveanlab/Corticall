@@ -839,6 +839,7 @@ public class GenotypeGraph extends Module {
         return gvc;
     }
 
+    /*
     private DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalGraph(Map<CortexKmer, Boolean> novelKmers, String stretch) {
         // first, explore each color and bring the local subgraphs into memory
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
@@ -937,6 +938,7 @@ public class GenotypeGraph extends Module {
 
         return ag;
     }
+    */
 
     private class AnnotateStartsAndEnds {
         private int color;
@@ -1352,7 +1354,7 @@ public class GenotypeGraph extends Module {
                 //log.debug("Graph printed");
                 //printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
 
-                if (true) {
+                if (false) {
                     // Extract parental stretches
                     PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
                     PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
@@ -1455,7 +1457,7 @@ public class GenotypeGraph extends Module {
                             }
                         }
 
-                        //break;
+                        break;
                     }
 
                     if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {

@@ -5,7 +5,6 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
 import uk.ac.ox.well.indiana.commands.gg.AnnotatedVertex;
 import uk.ac.ox.well.indiana.commands.gg.TraversalStopper;
@@ -517,38 +516,134 @@ public class CortexUtils {
         return (sk0.substring(1, sk0.length()).equals(sk1.substring(0, sk0.length() - 1)));
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper, boolean goForward) {
+    private static TraversalStopper<AnnotatedVertex, AnnotatedEdge> instantiateStopper(Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+        try {
+            return stopperClass.newInstance();
+        } catch (InstantiationException e) {
+            throw new IndianaException("Could not instantiate stopper: ", e);
+        } catch (IllegalAccessException e) {
+            throw new IndianaException("Illegal access while trying to instantiate stopper: ", e);
+        }
+    }
+
+    private static void addVertexAndConnect(DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs, AnnotatedVertex cv, Map<Integer, Set<String>> prevKmers, Map<Integer, Set<String>> nextKmers) {
+        dfs.addVertex(cv);
+
+        Map<Integer, Set<String>> adjKmers;
+        for (int c = 0; c < 3; c++) {
+            for (int i = 0; i < 2; i++) {
+                boolean edgesAreForward = i == 1;
+                adjKmers = edgesAreForward ? nextKmers : prevKmers;
+
+                for (String adjKmer : adjKmers.get(c)) {
+                    AnnotatedVertex av = new AnnotatedVertex(adjKmer);
+
+                    dfs.addVertex(av);
+
+                    AnnotatedEdge aen;
+
+                    if (edgesAreForward && dfs.containsEdge(cv, av)) {
+                        aen = dfs.getEdge(cv, av);
+                    } else if (!edgesAreForward && dfs.containsEdge(av, cv)) {
+                        aen = dfs.getEdge(av, cv);
+                    } else {
+                        aen = new AnnotatedEdge();
+                    }
+
+                    aen.setPresence(c);
+
+                    if (edgesAreForward) {
+                        if (!hasExpectedOverlap(cv, av)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
+
+                        dfs.addEdge(cv, av, aen);
+                    } else {
+                        if (!hasExpectedOverlap(av, cv)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
+
+                        dfs.addEdge(av, cv, aen);
+                    }
+                }
+            }
+        }
+    }
+
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, int depth, boolean goForward) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = instantiateStopper(stopperClass);
+
+        Map<Integer, Set<String>> adjKmers;
+
+        do {
+            AnnotatedVertex cv = new AnnotatedVertex(kmer);
+
+            CortexRecord cr = clean.findRecord(new CortexKmer(cv.getKmer()));
+            if (cr == null && dirty != null) {
+                cr = dirty.findRecord(new CortexKmer(cv.getKmer()));
+            }
+
+            Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
+            Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
+            adjKmers = goForward ? nextKmers : prevKmers;
+
+            addVertexAndConnect(dfs, cv, prevKmers, nextKmers);
+
+            if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size())) {
+                if (adjKmers.get(color).size() == 1) {
+                    kmer = adjKmers.get(color).iterator().next();
+                } else if (adjKmers.get(color).size() != 1) {
+                    for (String ak : adjKmers.get(color)) {
+                        DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward);
+                        //DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + 1, goForward);
+
+                        if (branch != null) {
+                            Graphs.addGraph(dfs, branch);
+                        }
+                    }
+                }
+            } else if (stopper.traversalSucceeded()) {
+                return dfs;
+            } else {
+                return null;
+            }
+        } while (adjKmers.get(color).size() == 1);
+
+        return dfs;
+    }
+
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs1(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, boolean goForward) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        class StackEntry {
+        class BranchEntry {
             public AnnotatedVertex cv;
             public int size = 0;
             public int depth = 0;
             public Set<AnnotatedVertex> kmersInBranch;
+            public TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper;
 
-            public StackEntry(AnnotatedVertex cv, int size, int depth, Set<AnnotatedVertex> kmersInBranch) {
+            public BranchEntry(AnnotatedVertex cv, int size, int depth, Set<AnnotatedVertex> kmersInBranch, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper) {
                 this.cv = cv;
                 this.size = size;
                 this.depth = depth;
                 this.kmersInBranch = kmersInBranch;
+                this.stopper = stopper;
             }
         }
 
-        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> verticesToRemove = new LinkedHashSet<AnnotatedVertex>();
 
-        Stack<StackEntry> kmerStack = new Stack<StackEntry>();
-        StackEntry se0 = new StackEntry(new AnnotatedVertex(kmer), 0, 0, new HashSet<AnnotatedVertex>());
-        kmerStack.push(se0);
+        Stack<BranchEntry> currentBranchStack = new Stack<BranchEntry>();
+        BranchEntry se0 = new BranchEntry(new AnnotatedVertex(kmer), 0, 0, new HashSet<AnnotatedVertex>(), instantiateStopper(stopperClass));
+        currentBranchStack.push(se0);
 
         dfs.addVertex(se0.cv);
 
-        while (!kmerStack.isEmpty()) {
-            StackEntry se = kmerStack.pop();
+        while (!currentBranchStack.isEmpty()) {
+            BranchEntry se = currentBranchStack.pop();
 
             AnnotatedVertex cv = se.cv;
             int size = se.size;
             int depth = se.depth;
             Set<AnnotatedVertex> kmersInBranch = se.kmersInBranch;
+            TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = se.stopper;
 
             kmersInBranch.add(cv);
 
@@ -561,53 +656,20 @@ public class CortexUtils {
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
             Map<Integer, Set<String>> adjKmers = goForward ? nextKmers : prevKmers;
 
-            if (stopper.keepGoing(cr, sg0, depth, size) && adjKmers.get(color).size() > 0 && dfs.vertexSet().size() < 5000) {
+            if (stopper.keepGoing(cr, sg0, depth, size, 1) && adjKmers.get(color).size() > 0 && dfs.vertexSet().size() < 500) {
                 for (String adjKmer : adjKmers.get(color)) {
                     AnnotatedVertex av = new AnnotatedVertex(adjKmer);
 
                     if (!dfs.containsVertex(av)) {
                         if (adjKmers.get(color).size() > 1) {
-                            kmerStack.push(new StackEntry( av, 0, depth + 1, new HashSet<AnnotatedVertex>() ));
+                            currentBranchStack.push(new BranchEntry( av, 0, depth + 1, new LinkedHashSet<AnnotatedVertex>(), instantiateStopper(stopperClass) ));
                         } else {
-                            kmerStack.push(new StackEntry( av, size + 1, depth, kmersInBranch ));
+                            currentBranchStack.push(new BranchEntry( av, size + 1, depth, kmersInBranch, stopper ));
                         }
                     }
                 }
 
-                for (int c = 0; c < 3; c++) {
-                    for (int i = 0; i < 2; i++) {
-                        boolean edgesAreForward = i == 1;
-                        adjKmers = edgesAreForward ? nextKmers : prevKmers;
-
-                        for (String adjKmer : adjKmers.get(c)) {
-                            AnnotatedVertex av = new AnnotatedVertex(adjKmer);
-
-                            dfs.addVertex(av);
-
-                            AnnotatedEdge aen;
-
-                            if (edgesAreForward && dfs.containsEdge(cv, av)) {
-                                aen = dfs.getEdge(cv, av);
-                            } else if (!edgesAreForward && dfs.containsEdge(av, cv)) {
-                                aen = dfs.getEdge(av, cv);
-                            } else {
-                                aen = new AnnotatedEdge();
-                            }
-
-                            aen.setPresence(c);
-
-                            if (edgesAreForward) {
-                                if (!hasExpectedOverlap(cv, av)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
-
-                                dfs.addEdge(cv, av, aen);
-                            } else {
-                                if (!hasExpectedOverlap(av, cv)) { throw new IndianaException("Kmers '" + cv.getKmer() + "' and '" + av.getKmer() + "' did not have expected overlap"); }
-
-                                dfs.addEdge(av, cv, aen);
-                            }
-                        }
-                    }
-                }
+                addVertexAndConnect(dfs, cv, prevKmers, nextKmers);
             } else if (stopper.traversalFailed() || adjKmers.get(color).size() == 0) {
                 verticesToRemove.addAll(kmersInBranch);
             } else if (stopper.traversalSucceeded()) {
@@ -702,7 +764,7 @@ public class CortexUtils {
 
             boolean isClean = cgcr.getFirst() == clean;
 
-            if (stopper.keepGoing(cgcr.getSecond(), sg0, depth, dfs.vertexSet().size())) {
+            if (stopper.keepGoing(cgcr.getSecond(), sg0, depth, dfs.vertexSet().size(), 1)) {
                 if (adjKmers.get(color).size() > 1) {
                     depth++;
                 }
@@ -758,13 +820,16 @@ public class CortexUtils {
         return dfs;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopper, true);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopper, false);
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
-        Graphs.addGraph(dfsf, dfsb);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, true);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false);
 
-        return dfsf;
+        if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
+        if (dfsb != null) { Graphs.addGraph(dfs, dfsb); }
+
+        return dfs;
     }
 
     /**

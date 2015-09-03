@@ -65,78 +65,16 @@ public class GenotypeGraphUtils {
             CortexKmer ck = new CortexKmer(sk);
 
             if (novelKmers.containsKey(ck) && !sg0.containsVertex(new AnnotatedVertex(sk, true))) {
-                for (boolean goForward : Arrays.asList(true, false)) {
-                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                        private int goalSize = 0;
-                        private int goalDepth = 0;
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, GRAPH_RAW, sk, 0, null, ChildTraversalStopper.class);
 
-                        private void reset() {
-                            goalSize = 0;
-                            goalDepth = 0;
-                        }
-
-                        private boolean isLowComplexity(CortexRecord cr) {
-                            byte edges[][] = cr.getEdgesAsBytes();
-
-                            int numEdges = 0;
-                            for (int e = 0; e < 8; e++) {
-                                if (edges[0][e] != '.') {
-                                    numEdges++;
-                                }
-                            }
-
-                            return numEdges > 6;
-                        }
-
-                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                            /* TODO: this doesn't work if there are multiple branches that need to be truncated.  Fix. */
-
-                            if (goalSize == 0 && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0)) {
-                                goalSize = size;
-                                goalDepth = depth;
-                            }
-
-                            if (goalSize > 0 && (cr.getCoverage(0) > 10 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0)) {
-                                goalSize = size;
-                                goalDepth = depth;
-                            }
-
-                            if (goalSize > 0 && (size >= goalSize + 50 || isLowComplexity(cr))) {
-                                reset();
-
-                                return true;
-                            }
-
-                            return false;
-                        }
-
-                        @Override
-                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size) {
-                            //return goalSize > 0 && depth >= goalDepth + 2;
-
-                            if (goalSize > 0 && depth >= goalDepth + 1) {
-                                reset();
-                                return true;
-                            }
-
-                            return false;
-                        }
-
-                        @Override
-                        public int maxJunctionsAllowed() {
-                            return 10;
-                        }
-                    };
-
-                    Graphs.addGraph(sg0, CortexUtils.dfs(GRAPH, GRAPH_RAW, sk, 0, null, stopper, goForward));
+                if (dfs != null) {
+                    Graphs.addGraph(sg0, dfs);
                 }
+
+                break;
             }
         }
 
-        //Set<AnnotatedVertex> predecessorList = getPredecessorList(sg0);
-        //Set<AnnotatedVertex> successorList = getSuccessorList(sg0);
-
-        //
         Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
         Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
 
@@ -149,9 +87,8 @@ public class GenotypeGraphUtils {
                 successorList.add(av);
             }
         }
-        //
 
-        //
+        /*
         for (int c = 1; c <= 2; c++) {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
@@ -159,46 +96,11 @@ public class GenotypeGraphUtils {
                 Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
                 for (AnnotatedVertex ak : psList) {
-                    TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = new AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge>() {
-                        private boolean isLowComplexity(CortexRecord cr) {
-                            byte edges[][] = cr.getEdgesAsBytes();
-
-                            int numEdges = 0;
-                            for (int e = 0; e < 8; e++) {
-                                if (edges[0][e] != '.') {
-                                    numEdges++;
-                                }
-                            }
-
-                            return numEdges > 6;
-                        }
-                        @Override
-                        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                            String fw = cr.getKmerAsString();
-                            String rc = SequenceUtils.reverseComplement(fw);
-
-                            return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)) || g.containsVertex(new AnnotatedVertex(fw, true)) || g.containsVertex(new AnnotatedVertex(rc, true)));
-                        }
-
-                        @Override
-                        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size) {
-                            return size > 100 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
-                        }
-
-                        @Override
-                        public int maxJunctionsAllowed() {
-                            return 3;
-                        }
-                    };
-
-                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, stopper, goForward);
-                    if (stopper.anyTraversalSucceeded()) {
-                        Graphs.addGraph(sg, dfs);
-                    }
+                    Graphs.addGraph(sg, CortexUtils.dfs(GRAPH, GRAPH_RAW, ak.getKmer(), c, sg0, ParentTraversalStopper.class, goForward));
                 }
             }
         }
-        //
+        */
 
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
