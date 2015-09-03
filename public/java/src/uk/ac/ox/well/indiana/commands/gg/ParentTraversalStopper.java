@@ -22,12 +22,29 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
         String fw = cr.getKmerAsString();
         String rc = SequenceUtils.reverseComplement(fw);
 
-        return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)) || g.containsVertex(new AnnotatedVertex(fw, true)) || g.containsVertex(new AnnotatedVertex(rc, true)));
+        AnnotatedVertex v = null;
+
+        boolean rejoinedGraph = false;
+
+        if (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)) || g.containsVertex(new AnnotatedVertex(fw, true)) || g.containsVertex(new AnnotatedVertex(rc, true))) {
+            rejoinedGraph = true;
+
+            for (AnnotatedVertex av : g.vertexSet()) {
+                if ((av.getKmer().equals(fw) || av.getKmer().equals(rc)) && (av.flagIsSet("predecessor") || av.flagIsSet("successor"))) {
+                    rejoinedGraph = false;
+
+                    break;
+                }
+            }
+        }
+
+        //return size > 1 && (g.containsVertex(new AnnotatedVertex(fw)) || g.containsVertex(new AnnotatedVertex(rc)) || g.containsVertex(new AnnotatedVertex(fw, true)) || g.containsVertex(new AnnotatedVertex(rc, true)));
+        return size > 1 && rejoinedGraph;
     }
 
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges) {
-        return size > 100 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
+        return size > 500 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
     }
 
     @Override

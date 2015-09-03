@@ -1276,6 +1276,28 @@ public class GenotypeGraph extends Module {
         gvc.attribute(0, "haplotypeBackground", scores[0] == scores[1] ? 0 : bc);
     }
 
+    private String recordToString(String sk, CortexRecord cr) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
+        for (int coverage : cr.getCoverages()) {
+            cov += " " + coverage;
+        }
+
+        for (String edge : cr.getEdgeAsStrings()) {
+            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+        }
+
+        return kmer + " " + cov + " " + ed;
+    }
+
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
@@ -1354,7 +1376,7 @@ public class GenotypeGraph extends Module {
                 //log.debug("Graph printed");
                 //printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
 
-                if (false) {
+                if (true) {
                     // Extract parental stretches
                     PathInfo p1 = computeBestMinWeightPath(ag, 1, stretch, novelKmers);
                     PathInfo p2 = computeBestMinWeightPath(ag, 2, stretch, novelKmers);
@@ -1426,12 +1448,32 @@ public class GenotypeGraph extends Module {
                                 gvc.getAttributeAsString(c, "knownAlt")
                         );
 
+                        /*
                         if (vi != null) {
                             String refSeq = vi.leftFlank + vi.ref + vi.rightFlank;
                             String altSeq = vi.leftFlank + (vi.alt == null ? "" : vi.alt) + vi.rightFlank;
 
                             boolean isFwd = true;
                             boolean isMissingKmers = false;
+
+                            for (int i = 0; i <= refSeq.length() - GRAPH.getKmerSize(); i++) {
+                                String fw = refSeq.substring(i, i + GRAPH.getKmerSize());
+                                String rc = SequenceUtils.reverseComplement(fw);
+                                CortexRecord cr = GRAPH.findRecord(new CortexKmer(fw));
+
+                                if (ag.containsVertex(new AnnotatedVertex(fw)) || ag.containsVertex(new AnnotatedVertex(fw, true))) {
+                                    log.info("    - ref {}/{}: fw {} {}", i, refSeq.length() - GRAPH.getKmerSize(), fw, recordToString(fw, cr));
+
+                                    isFwd = true;
+                                } else if (ag.containsVertex(new AnnotatedVertex(rc)) || ag.containsVertex(new AnnotatedVertex(rc, true))) {
+                                    log.info("    - ref {}/{}: rc {} {}", i, refSeq.length() - GRAPH.getKmerSize(), rc, recordToString(rc, cr));
+                                    isFwd = false;
+                                } else {
+                                    log.info("    - ref {}/{}: ?? {} {}", i, refSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc, recordToString(isFwd ? fw : rc, cr));
+                                    isMissingKmers = true;
+                                }
+                            }
+
 
                             for (int i = 0; i <= altSeq.length() - GRAPH.getKmerSize(); i++) {
                                 String fw = altSeq.substring(i, i + GRAPH.getKmerSize());
@@ -1447,7 +1489,7 @@ public class GenotypeGraph extends Module {
                                     //log.info("    - {}: rc {}", i, rc);
                                     isFwd = false;
                                 } else {
-                                    log.info("    - {}/{}: ?? {}", i, altSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc);
+                                    log.info("    - alt {}/{}: ?? {}", i, altSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc);
                                     isMissingKmers = true;
                                 }
                             }
@@ -1456,6 +1498,7 @@ public class GenotypeGraph extends Module {
                                 variantsMissingKmers++;
                             }
                         }
+                        */
 
                         break;
                     }
