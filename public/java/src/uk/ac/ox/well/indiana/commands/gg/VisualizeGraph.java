@@ -9,6 +9,7 @@ import org.jgrapht.DirectedGraph;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -151,6 +152,8 @@ public class VisualizeGraph extends Module {
         private List<CortexKmer> novelKmersList;
         private Random rng = new Random(0);
         private Map<CortexKmer, VariantInfo> vis;
+        private KmerLookup kl1;
+        private KmerLookup kl2;
 
         public Graph() {
             novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -162,6 +165,9 @@ public class VisualizeGraph extends Module {
             }
 
             vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
+
+            kl1 = new KmerLookup(REF1);
+            kl2 = new KmerLookup(REF2);
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
@@ -196,6 +202,37 @@ public class VisualizeGraph extends Module {
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = fetchGraph(stretch);
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
+
+            GraphicalVariantContext gvc = new GraphicalVariantContext()
+                    .attribute(0, "stretch", stretch)
+                    .attribute(0, "stretchLength", stretch.length())
+                    .attribute(0, "novelKmersTotal", novelKmers.size());
+
+            // Extract parental stretches
+            PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, a, 1, stretch, novelKmers);
+            PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, a, 2, stretch, novelKmers);
+
+            gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p1, 1, stretch, novelKmers, kl1));
+            gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p2, 2, stretch, novelKmers, kl2));
+
+            // Finalize into a single call
+            GenotypeGraphUtils.chooseVariant(gvc);
+
+            /*
+            String childStretch = gvc.getAttributeAsString(0, "childStretch");
+            Set<String> childStretchKmers = new HashSet<String>();
+
+            for (int i = 0; i <= childStretch.length() - GRAPH.getKmerSize(); i++) {
+                childStretchKmers.add(childStretch.substring(0, GRAPH.getKmerSize()));
+            }
+
+            String parentalStretch = gvc.getAttributeAsString(0, "parentalStretch");
+            Set<String> parentalStretchKmers = new HashSet<String>();
+
+            for (int i = 0; i <= parentalStretch.length() - GRAPH.getKmerSize(); i++) {
+                parentalStretchKmers.add(parentalStretch.substring(0, GRAPH.getKmerSize()));
+            }
+            */
 
             int numVertices = a.vertexSet().size();
 
@@ -266,6 +303,15 @@ public class VisualizeGraph extends Module {
                         m.put("source", is);
                         m.put("target", it);
                         m.put("sample", c);
+                        m.put("highlight", false);
+
+                        if (c == 0 && gvc.getAttributeAsString(0, "childStretch").contains(as) && gvc.getAttributeAsString(0, "childStretch").contains(at)) {
+                            m.put("highlight", true);
+                        }
+
+                        if ((c == gvc.getAttributeAsInt(0, "haplotypeBackground") || gvc.getAttributeAsInt(0, "haplotypeBackground") == 0) && gvc.getAttributeAsString(0, "parentalStretch").contains(as) && gvc.getAttributeAsString(0, "parentalStretch").contains(at)) {
+                            m.put("highlight", true);
+                        }
 
                         ea.put(m);
                     }

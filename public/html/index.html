@@ -91,6 +91,9 @@
                 .enter()
                 .append("path")
                 .attr("id", "link")
+                .attr("stroke-width", function(d) {
+                    return (d.highlight) ? "3.5px" : "1.5px";
+                })
                 .attr("class", function(d) {
                     switch (d.sample) {
                         case 0: return "linkChild"; break;

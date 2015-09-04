@@ -1,11 +1,16 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.util.Interval;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -14,6 +19,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -545,5 +551,471 @@ public class GenotypeGraphUtils {
         }
 
         return vis;
+    }
+
+    private static DirectedGraph<AnnotatedVertex, AnnotatedEdge> removeOtherColors(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int colorToRetain) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+
+        Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
+
+        for (AnnotatedEdge ae : b.edgeSet()) {
+            for (int c = 0; c < 10; c++) {
+                if (c != colorToRetain) {
+                    ae.set(c, false);
+                }
+            }
+
+            if (ae.isAbsent(colorToRetain)) {
+                edgesToRemove.add(ae);
+            }
+        }
+
+        b.removeAllEdges(edgesToRemove);
+
+        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
+        for (AnnotatedVertex av : b.vertexSet()) {
+            if (b.inDegreeOf(av) == 0 && b.outDegreeOf(av) == 0) {
+                verticesToRemove.add(av);
+            }
+        }
+
+        b.removeAllVertices(verticesToRemove);
+
+        return b;
+    }
+
+    private static List<String> getNovelStretch(String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        boolean[] novel = new boolean[stretch.length()];
+        int kmerLength = novelKmers.keySet().iterator().next().length();
+
+        for (int i = 0; i <= stretch.length() - kmerLength; i++) {
+            String sk = stretch.substring(i, i + kmerLength);
+            CortexKmer ck = new CortexKmer(sk);
+
+            novel[i] = novelKmers.containsKey(ck);
+        }
+
+        List<String> novelStretches = new ArrayList<String>();
+
+        StringBuilder novelStretchBuilder = new StringBuilder();
+
+        for (int i = 0; i <= stretch.length() - kmerLength; i++) {
+            String sk = stretch.substring(i, i + kmerLength);
+            boolean isNovel = novel[i];
+
+            if (!isNovel) {
+                if (novelStretchBuilder.length() > 0) {
+                    novelStretches.add(novelStretchBuilder.toString());
+                    novelStretchBuilder = new StringBuilder();
+                }
+            } else {
+                if (novelStretchBuilder.length() == 0) {
+                    novelStretchBuilder.append(sk);
+                } else {
+                    novelStretchBuilder.append(sk.charAt(sk.length() - 1));
+                }
+            }
+        }
+
+        if (novelStretchBuilder.length() > 0) {
+            novelStretches.add(novelStretchBuilder.toString());
+        }
+
+        return novelStretches;
+    }
+
+    private static String linearizePath(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, GraphPath<AnnotatedVertex, AnnotatedEdge> p) {
+        StringBuilder sb = new StringBuilder(p.getStartVertex().getKmer());
+
+        for (AnnotatedEdge ae : p.getEdgeList()) {
+            AnnotatedVertex av = a.getEdgeTarget(ae);
+
+            sb.append(av.getKmer().charAt(av.getKmer().length() - 1));
+        }
+
+        return sb.toString();
+    }
+
+    public static PathInfo computeBestMinWeightPath(CortexGraph clean, CortexGraph dirty, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        class AnnotateStartsAndEnds {
+            private int color;
+            private String stretch;
+            private Map<CortexKmer, Boolean> novelKmers;
+            private DirectedGraph<AnnotatedVertex, AnnotatedEdge> b;
+            private Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
+            private Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
+
+            public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b) {
+                this.color = color;
+                this.stretch = stretch;
+                this.novelKmers = novelKmers;
+                this.b = b;
+            }
+
+            public Set<AnnotatedVertex> getCandidateEnds() {
+                return candidateEnds;
+            }
+
+            public Set<AnnotatedVertex> getCandidateStarts() { return candidateStarts; }
+
+            public AnnotateStartsAndEnds invoke() {
+                for (AnnotatedVertex av : b.vertexSet()) {
+                    if (b.outDegreeOf(av) > 1) {
+                        Set<AnnotatedEdge> aes = b.outgoingEdgesOf(av);
+
+                        Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+
+                        for (AnnotatedEdge ae : aes) {
+                            if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                                childEdges.add(ae);
+                            }
+
+                            if (ae.isPresent(color)) {
+                                parentEdges.add(ae);
+                            }
+                        }
+
+                        if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                            av.setFlag("start");
+
+                            candidateStarts.add(av);
+                        }
+                    }
+
+                    if (b.inDegreeOf(av) > 1) {
+                        Set<AnnotatedEdge> aes = b.incomingEdgesOf(av);
+
+                        Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+
+                        for (AnnotatedEdge ae : aes) {
+                            if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
+                                childEdges.add(ae);
+                            }
+
+                            if (ae.isPresent(color)) {
+                                parentEdges.add(ae);
+                            }
+                        }
+
+                        if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                            av.setFlag("end");
+
+                            candidateEnds.add(av);
+                        }
+                    }
+                }
+
+                return this;
+            }
+        }
+
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+
+        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
+        Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
+        Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
+
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
+
+        List<String> novelStretches = getNovelStretch(stretch, novelKmers);
+
+        double minPl0 = Double.MAX_VALUE, minPlc = Double.MAX_VALUE;
+        String minLp0 = "", minLpc = "";
+        String start = "", stop = "";
+
+        for (AnnotatedVertex sv : candidateStarts) {
+            for (AnnotatedVertex ev : candidateEnds) {
+                String lp0, lpc;
+
+                if (b0.containsVertex(sv) && b0.containsVertex(ev) && bc.containsVertex(sv) && bc.containsVertex(ev)) {
+                    do {
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
+
+                        GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
+                        GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
+
+                        lp0 = p0 == null ? "" : linearizePath(b0, p0);
+                        lpc = pc == null ? "" : linearizePath(bc, pc);
+
+                        if (lp0.contains(sv.getKmer()) && lp0.contains(ev.getKmer()) && lpc.contains(sv.getKmer()) && lpc.contains(ev.getKmer())) {
+                            boolean stretchesArePresent = true;
+                            for (String novelStretch : novelStretches) {
+                                if (!lp0.contains(novelStretch)) {
+                                    stretchesArePresent = false;
+                                    break;
+                                }
+                            }
+
+                            if (novelStretches.size() > 0 && stretchesArePresent) {
+                                double pl0 = dsp0.getPathLength();
+                                double plc = dspc.getPathLength();
+
+                                if (pl0 < minPl0 && plc < minPlc) {
+                                    minPl0 = pl0;
+                                    minLp0 = lp0;
+
+                                    minPlc = plc;
+                                    minLpc = lpc;
+
+                                    start = sv.getKmer();
+                                    stop = ev.getKmer();
+                                }
+                            }
+                        }
+
+                        if (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > clean.getKmerSize() + 1) {
+                            for (int i = 1; i < lp0.length() - clean.getKmerSize(); i++) {
+                                AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + clean.getKmerSize()));
+
+                                b0.removeVertex(as);
+                            }
+                        }
+                    } while (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > clean.getKmerSize() + 1);
+                }
+            }
+        }
+
+        return new PathInfo(start, stop, minLp0, minLpc);
+    }
+
+    public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+        // Compute paths
+        //PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
+
+        // Trim back to reference and variant alleles
+        int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
+
+        for (s = 0; s < (p.child.length() < p.parent.length() ? p.child.length() : p.parent.length()) && p.child.charAt(s) == p.parent.charAt(s); s++) {
+        }
+
+        while (e0 > s && e1 > s && p.child.charAt(e0) == p.parent.charAt(e1)) {
+            e0--;
+            e1--;
+        }
+
+        String parentalAllele = p.parent == null || p.parent.equals("") || p.child.equals(p.parent) ? "A" : p.parent.substring(s, e1 + 1);
+        String childAllele = p.child == null || p.child.equals("") || p.child.equals(p.parent) ? "N" : p.child.substring(s, e0 + 1);
+
+        int e = s + parentalAllele.length() - 1;
+
+        // Decide if the event is actually a GC or NAHR event
+        boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
+        boolean isChimeric = isChimeric(stretch, kl);
+
+        List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
+        List<Set<Interval>> anovel = kl.align(stretch);
+
+        // Build the GVC
+        GraphicalVariantContext gvc = new GraphicalVariantContext()
+                .attribute(color, "start", s)
+                .attribute(color, "stop", e)
+                .attribute(color, "parentalAllele", parentalAllele)
+                .attribute(color, "childAllele", childAllele)
+                .attribute(color, "parentalStretch", p.parent)
+                .attribute(color, "childStretch", p.child)
+                .attribute(color, "event", "unknown")
+                .attribute(color, "traversalStatus", "complete")
+                .attribute(color, "parentalPathAlignment", alignment)
+                .attribute(color, "novelStretchAlignment", anovel)
+                .attribute(color, "haplotypeBackground", color);
+
+        if (childAllele.equals("N")) {
+            if (hasRecombs) {
+                gvc.attribute(color, "event", "GC");
+            } else if (isChimeric) {
+                gvc.attribute(color, "event", "NAHR");
+            } else {
+                gvc.attribute(color, "traversalStatus", "incomplete");
+            }
+        } else {
+            if (parentalAllele.length() == childAllele.length()) {
+                if (parentalAllele.length() == 1) {
+                    gvc.attribute(color, "event", "SNP");
+                } else if (SequenceUtils.reverseComplement(parentalAllele).equals(childAllele)) {
+                    gvc.attribute(color, "event", "INV");
+                }
+            } else if (parentalAllele.length() == 1 && childAllele.length() > 1) {
+                gvc.attribute(color, "event", "INS");
+
+                String childAlleleTrimmed = childAllele;
+                if (parentalAllele.length() == 1 && childAllele.charAt(0) == parentalAllele.charAt(0)) {
+                    childAlleleTrimmed = childAllele.substring(1, childAllele.length());
+                } else if (parentalAllele.length() == 1 && childAllele.charAt(childAllele.length() - 1) == parentalAllele.charAt(0)) {
+                    childAlleleTrimmed = childAllele.substring(0, childAllele.length() - 1);
+                }
+
+                String repUnit = "";
+                boolean isStrExp = false;
+                for (int repLength = 2; repLength <= 5 && repLength <= childAlleleTrimmed.length(); repLength++) {
+                    repUnit = childAlleleTrimmed.substring(0, repLength);
+
+                    boolean fits = true;
+                    for (int i = 0; i < childAlleleTrimmed.length(); i += repLength) {
+                        fits &= (i + repLength <= childAllele.length()) && childAllele.substring(i, i + repLength).equals(repUnit);
+                    }
+
+                    if (fits &&
+                            (p.parent.substring(s - repLength, s).equals(repUnit) ||
+                                    p.parent.substring(s, s + repLength).equals(repUnit))) {
+                        gvc.attribute(color, "event", "STR_EXP");
+                        gvc.attribute(color, "repeatingUnit", repUnit);
+                        isStrExp = true;
+                    }
+                }
+
+                if (!isStrExp && childAlleleTrimmed.length() >= 10 && childAlleleTrimmed.length() <= 50 &&
+                        ((s - childAlleleTrimmed.length() >= 0 && p.parent.substring(s - childAlleleTrimmed.length(), s).equals(childAlleleTrimmed)) ||
+                                (s + childAlleleTrimmed.length() <= p.parent.length() && p.parent.substring(s, s + childAlleleTrimmed.length()).equals(childAlleleTrimmed)))) {
+                    gvc.attribute(color, "event", "TD");
+                    gvc.attribute(color, "repeatingUnit", repUnit);
+                }
+            } else if (parentalAllele.length() > 1 && childAllele.length() == 1) {
+                gvc.attribute(color, "event", "DEL");
+
+                String parentalAlleleTrimmed = parentalAllele;
+                if (childAllele.length() == 1 && parentalAllele.charAt(0) == childAllele.charAt(0)) {
+                    parentalAlleleTrimmed = parentalAllele.substring(1, parentalAllele.length());
+                } else if (childAllele.length() == 1 && parentalAllele.charAt(parentalAllele.length() - 1) == childAllele.charAt(0)) {
+                    parentalAlleleTrimmed = parentalAllele.substring(0, parentalAllele.length() - 1);
+                }
+
+                String repUnit = "";
+                for (int repLength = 2; repLength <= 5 && repLength <= parentalAlleleTrimmed.length(); repLength++) {
+                    repUnit = parentalAlleleTrimmed.substring(0, repLength);
+
+                    boolean fits = true;
+                    for (int i = 0; i < parentalAlleleTrimmed.length(); i += repLength) {
+                        fits &= (i + repLength <= parentalAllele.length()) && parentalAllele.substring(i, i + repLength).equals(repUnit);
+                    }
+
+                    if (fits &&
+                            (p.child.substring(s - repLength, s).equals(repUnit) ||
+                                    p.child.substring(s + parentalAlleleTrimmed.length(), s + parentalAlleleTrimmed.length() + repLength).equals(repUnit))) {
+                        gvc.attribute(color, "event", "STR_CON");
+                        gvc.attribute(color, "repeatingUnit", repUnit);
+                    }
+                }
+            }
+        }
+
+        return gvc;
+    }
+
+    private static boolean hasRecombinations(CortexGraph clean, CortexGraph dirty, String stretch) {
+        StringBuilder inherit = new StringBuilder();
+        for (int i = 0; i <= stretch.length() - clean.getKmerSize(); i++) {
+            String sk = stretch.substring(i, i + clean.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+
+            CortexRecord cr = clean.findRecord(ck);
+
+            if (cr != null) {
+                int cov0 = cr.getCoverage(0);
+                int cov1 = cr.getCoverage(1);
+                int cov2 = cr.getCoverage(2);
+
+                if (cov0 > 0 && cov1 == 0 && cov2 == 0) {
+                    inherit.append("C");
+                } else if (cov0 > 0 && cov1 > 0 && cov2 == 0) {
+                    inherit.append("M");
+                } else if (cov0 > 0 && cov1 == 0 && cov2 > 0) {
+                    inherit.append("D");
+                } else if (cov0 > 0 && cov1 > 0 && cov2 > 0) {
+                    inherit.append("B");
+                } else {
+                    inherit.append("?");
+                }
+            }
+        }
+
+        for (int i = 0; i < inherit.length(); i++) {
+            if (inherit.charAt(i) == 'B') {
+                char prevContext = '?';
+                char nextContext = '?';
+
+                for (int j = i - 1; j >= 0; j--) {
+                    if (inherit.charAt(j) == 'M' || inherit.charAt(j) == 'D') {
+                        prevContext = inherit.charAt(j);
+                        break;
+                    }
+                }
+
+                for (int j = i + 1; j < inherit.length(); j++) {
+                    if (inherit.charAt(j) == 'M' || inherit.charAt(j) == 'D') {
+                        nextContext = inherit.charAt(j);
+                        break;
+                    }
+                }
+
+                char context = '?';
+                if (prevContext == nextContext && prevContext != '?') {
+                    context = prevContext;
+                } else if (prevContext != nextContext) {
+                    if (prevContext != '?') {
+                        context = prevContext;
+                    } else {
+                        context = nextContext;
+                    }
+                }
+
+                inherit.setCharAt(i, context);
+            }
+        }
+
+        String inheritStr = inherit.toString();
+        return inheritStr.matches(".*D+.C+.M+.*") || inheritStr.matches(".*M+.C+.D+.*");
+    }
+
+    private static boolean isChimeric(String stretch, KmerLookup kl) {
+        List<Set<Interval>> ils = kl.findKmers(stretch);
+
+        StringBuilder sb = new StringBuilder();
+
+        int nextAvailableCode = 0;
+        Map<String, Integer> chrCodes = new HashMap<String, Integer>();
+        Map<String, Integer> chrCount = new HashMap<String, Integer>();
+
+        for (int i = 0; i < ils.size(); i++) {
+            Set<Interval> il = ils.get(i);
+
+            if (il.size() == 1) {
+                Interval interval = il.iterator().next();
+
+                ContainerUtils.increment(chrCount, interval.getSequence());
+
+                if (!chrCodes.containsKey(interval.getSequence())) {
+                    chrCodes.put(interval.getSequence(), nextAvailableCode);
+                    nextAvailableCode++;
+                }
+
+                int code = chrCodes.get(interval.getSequence());
+                sb.append(code);
+            } else {
+                sb.append(".");
+            }
+        }
+
+        return chrCount.size() > 1;
+    }
+
+    public static void chooseVariant(GraphicalVariantContext gvc) {
+        int[] scores = new int[2];
+
+        for (int c = 1; c <= 2; c++) {
+            if (gvc.getAttribute(c, "traversalStatus").equals("complete")) { scores[c-1]++; }
+            if (!gvc.getAttribute(c, "event").equals("unknown")) { scores[c-1]++; }
+            if (gvc.getAttribute(c, "event").equals("GC") || gvc.getAttribute(c, "event").equals("NAHR")) { scores[c-1]++; }
+
+            gvc.attribute(c, "score", scores[c-1]);
+        }
+
+        int bc = MoreMathUtils.whichMax(scores) + 1;
+
+        gvc.addAttributes(0, gvc.getAttributes(bc));
+        gvc.attribute(0, "haplotypeBackground", scores[0] == scores[1] ? 0 : bc);
     }
 }
