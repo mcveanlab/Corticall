@@ -4,7 +4,6 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,7 +15,6 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -25,11 +23,11 @@ import java.net.InetSocketAddress;
 import java.util.*;
 
 public class VisualizeGraph extends Module {
-    @Argument(fullName = "graph", shortName = "g", doc = "Graph")
-    public CortexGraph GRAPH;
+    @Argument(fullName = "graphClean", shortName = "c", doc = "Graph (clean)")
+    public CortexGraph CLEAN;
 
-    @Argument(fullName = "graphRaw", shortName = "r", doc = "Graph (raw)", required = false)
-    public CortexGraph GRAPH_RAW;
+    @Argument(fullName = "graphDirty", shortName = "d", doc = "Graph (dirty)", required = false)
+    public CortexGraph DIRTY;
 
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
@@ -52,14 +50,8 @@ public class VisualizeGraph extends Module {
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
-    @Output(fullName = "gout", shortName = "go", doc = "Graph out")
-    public File gout;
-
     @Output
     public PrintStream out;
-
-    @Output(fullName = "evalOut", shortName = "eout", doc = "Eval out")
-    public PrintStream eout;
 
     private abstract class BaseHandler implements HttpHandler {
         public Map<String, String> query(String query) {
@@ -162,7 +154,7 @@ public class VisualizeGraph extends Module {
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
-            return GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, novelKmers);
+            return GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
         }
 
         @Override
@@ -186,7 +178,7 @@ public class VisualizeGraph extends Module {
             log.info(" kmer: {}", kmer);
             log.info(" known: {}", vi);
 
-            String stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, kmer, 0, true);
+            String stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, kmer, 0, true);
 
             log.info("  stretch: {} bp", stretch.length());
 
@@ -200,30 +192,14 @@ public class VisualizeGraph extends Module {
                     .attribute(0, "novelKmersTotal", novelKmers.size());
 
             // Extract parental stretches
-            PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, a, 1, stretch, novelKmers);
-            PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, a, 2, stretch, novelKmers);
+            PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 1, stretch, novelKmers);
+            PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 2, stretch, novelKmers);
 
-            gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p1, 1, stretch, novelKmers, kl1));
-            gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p2, 2, stretch, novelKmers, kl2));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, novelKmers, kl1));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, novelKmers, kl2));
 
             // Finalize into a single call
             GenotypeGraphUtils.chooseVariant(gvc);
-
-            /*
-            String childStretch = gvc.getAttributeAsString(0, "childStretch");
-            Set<String> childStretchKmers = new HashSet<String>();
-
-            for (int i = 0; i <= childStretch.length() - GRAPH.getKmerSize(); i++) {
-                childStretchKmers.add(childStretch.substring(0, GRAPH.getKmerSize()));
-            }
-
-            String parentalStretch = gvc.getAttributeAsString(0, "parentalStretch");
-            Set<String> parentalStretchKmers = new HashSet<String>();
-
-            for (int i = 0; i <= parentalStretch.length() - GRAPH.getKmerSize(); i++) {
-                parentalStretchKmers.add(parentalStretch.substring(0, GRAPH.getKmerSize()));
-            }
-            */
 
             int numVertices = a.vertexSet().size();
 
@@ -328,44 +304,22 @@ public class VisualizeGraph extends Module {
     }
 
     private class CrRecord extends BaseHandler {
-        private String recordToString(String sk, CortexRecord cr) {
-            String kmer = cr.getKmerAsString();
-            String cov = "";
-            String ed = "";
-
-            boolean fw = sk.equals(kmer);
-
-            if (!fw) {
-                kmer = SequenceUtils.reverseComplement(kmer);
-            }
-
-            for (int coverage : cr.getCoverages()) {
-                cov += " " + coverage;
-            }
-
-            for (String edge : cr.getEdgeAsStrings()) {
-                ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
-            }
-
-            return kmer + " " + cov + " " + ed;
-        }
-
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
 
             String seq = query.get("seq");
-            String sk = seq.substring(0, GRAPH.getKmerSize());
+            String sk = seq.substring(0, CLEAN.getKmerSize());
             CortexKmer ck = new CortexKmer(sk);
 
             boolean clean = true;
-            CortexRecord cr = GRAPH.findRecord(ck);
-            if (cr == null && GRAPH_RAW != null) {
-                cr = GRAPH_RAW.findRecord(ck);
+            CortexRecord cr = CLEAN.findRecord(ck);
+            if (cr == null && DIRTY != null) {
+                cr = DIRTY.findRecord(ck);
                 clean = false;
             }
 
-            String recordText = cr == null ? "not found" : recordToString(sk, cr) + " (" + (clean ? "clean" : "dirty") + ")";
+            String recordText = cr == null ? "not found" : GenotypeGraphUtils.recordToString(sk, cr) + " (" + (clean ? "clean" : "dirty") + ")";
 
             JSONObject jo = new JSONObject();
             jo.put("kmer", sk);
