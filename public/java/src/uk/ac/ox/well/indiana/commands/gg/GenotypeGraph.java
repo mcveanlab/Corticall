@@ -52,12 +52,6 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "novelKmerMap", shortName = "m", doc = "Novel kmer map", required = false)
     public File NOVEL_KMER_MAP;
 
-    @Argument(fullName = "beAggressive", shortName = "a", doc = "Be aggressive in extending novel stretches")
-    public Boolean AGGRESSIVE = false;
-
-    @Argument(fullName = "maxJunctionsAllowed", shortName = "j", doc = "Maximum number of junctions we'll permit ourselves to traverse")
-    public Integer MAX_JUNCTIONS_ALLOWED = 10;
-
     @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
     public String KMER;
 
@@ -513,9 +507,9 @@ public class GenotypeGraph extends Module {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
                 String stretch;
                 if (GRAPH_RAW == null) {
-                    stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
+                    stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, true);
                 } else {
-                    stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, novelKmer.getKmerAsString(), 0, AGGRESSIVE);
+                    stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, novelKmer.getKmerAsString(), 0, true);
                 }
 
                 log.info("  stretch {}: {} bp", stretchNum, stretch.length());
@@ -531,7 +525,7 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, null, AGGRESSIVE, novelKmers);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, novelKmers);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
                 //log.debug("Graph printed");
