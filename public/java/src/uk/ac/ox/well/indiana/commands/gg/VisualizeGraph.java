@@ -31,9 +31,6 @@ public class VisualizeGraph extends Module {
     @Argument(fullName = "graphRaw", shortName = "r", doc = "Graph (raw)", required = false)
     public CortexGraph GRAPH_RAW;
 
-    @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
-    public CortexLinksMap LINKS;
-
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
 
@@ -48,12 +45,6 @@ public class VisualizeGraph extends Module {
 
     @Argument(fullName = "novelKmerMap", shortName = "m", doc = "Novel kmer map", required = false)
     public File NOVEL_KMER_MAP;
-
-    @Argument(fullName = "beAggressive", shortName = "a", doc = "Be aggressive in extending novel stretches")
-    public Boolean AGGRESSIVE = false;
-
-    @Argument(fullName = "maxJunctionsAllowed", shortName = "j", doc = "Maximum number of junctions we'll permit ourselves to traverse")
-    public Integer MAX_JUNCTIONS_ALLOWED = 10;
 
     @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
     public String KMER;
@@ -171,7 +162,7 @@ public class VisualizeGraph extends Module {
         }
 
         private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
-            return GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, LINKS, AGGRESSIVE, novelKmers);
+            return GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, novelKmers);
         }
 
         @Override
