@@ -237,16 +237,19 @@ public class GenotypeGraph extends Module {
         evalTables.getTable("eventMatchStats").set("dummy", "match", 0l);
         evalTables.getTable("eventMatchStats").set("dummy", "mismatch", 0l);
 
+        Set<CortexKmer> novelKmersToVisit = new HashSet<CortexKmer>();
+
         if (KMER != null) {
-            novelKmers.clear();
-            novelKmers.put(new CortexKmer(KMER), true);
+            novelKmersToVisit.add(new CortexKmer(KMER));
+        } else {
+            novelKmersToVisit.addAll(novelKmers.keySet());
         }
 
         int variantsMissingKmers = 0;
 
         log.info("Genotyping novel kmer stretches in graph...");
         Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
-        for (CortexKmer novelKmer : novelKmers.keySet()) {
+        for (CortexKmer novelKmer : novelKmersToVisit) {
             if (novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
                 String stretch;
