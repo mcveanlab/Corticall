@@ -153,10 +153,6 @@ public class VisualizeGraph extends Module {
             kl2 = new KmerLookup(REF2);
         }
 
-        private DirectedGraph<AnnotatedVertex, AnnotatedEdge> fetchGraph(String stretch) {
-            return GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
-        }
-
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
@@ -175,14 +171,14 @@ public class VisualizeGraph extends Module {
 
             log.info("");
             log.info("Request: {}", httpExchange.getRequestURI());
-            log.info(" kmer: {}", kmer);
-            log.info(" known: {}", vi);
+            log.info("  kmer: {}", kmer);
+            log.info("  known: {}", vi);
 
             String stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, kmer, 0, true);
 
             log.info("  stretch: {} bp", stretch.length());
 
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = fetchGraph(stretch);
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
