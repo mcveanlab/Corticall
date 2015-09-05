@@ -5,6 +5,9 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
+    private boolean sawPredecessorFirst = false;
+    private boolean sawSuccessorFirst = false;
+
     private boolean isLowComplexity(CortexRecord cr) {
         byte edges[][] = cr.getEdgesAsBytes();
 
@@ -17,6 +20,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
 
         return numEdges > 6;
     }
+
     @Override
     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges) {
         String fw = cr.getKmerAsString();
@@ -30,10 +34,24 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
             rejoinedGraph = true;
 
             for (AnnotatedVertex av : g.vertexSet()) {
+                /*
                 if ((av.getKmer().equals(fw) || av.getKmer().equals(rc)) && (av.flagIsSet("predecessor") || av.flagIsSet("successor"))) {
                     rejoinedGraph = false;
 
                     break;
+                }
+                */
+
+                if (av.getKmer().equals(fw) || av.getKmer().equals(rc)) {
+                    if (!sawPredecessorFirst && !sawSuccessorFirst) {
+                        if (av.flagIsSet("predecessor")) { sawPredecessorFirst = true; }
+                        else if (av.flagIsSet("successor")) { sawSuccessorFirst = true; }
+                    }
+
+                    if ((sawPredecessorFirst && av.flagIsSet("predecessor")) || (sawSuccessorFirst && av.flagIsSet("successor"))) {
+                        rejoinedGraph = false;
+                        break;
+                    }
                 }
             }
         }
