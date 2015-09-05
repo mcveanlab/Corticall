@@ -30,8 +30,7 @@ import java.util.*;
 public class GenotypeGraphUtils {
     private GenotypeGraphUtils() {}
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsGraph(String stretch, CortexGraph clean, CortexGraph dirty, Map<CortexKmer, Boolean> novelKmers) {
-        // first, explore each color and bring the local subgraphs into memory
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalSubgraph(String stretch, CortexGraph clean, CortexGraph dirty, Map<CortexKmer, Boolean> novelKmers) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
@@ -910,4 +909,27 @@ public class GenotypeGraphUtils {
         gvc.addAttributes(0, gvc.getAttributes(bc));
         gvc.attribute(0, "haplotypeBackground", scores[0] == scores[1] ? 0 : bc);
     }
+
+    public static String recordToString(String sk, CortexRecord cr) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
+        for (int coverage : cr.getCoverages()) {
+            cov += " " + coverage;
+        }
+
+        for (String edge : cr.getEdgeAsStrings()) {
+            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+        }
+
+        return kmer + " " + cov + " " + ed;
+    }
+
 }

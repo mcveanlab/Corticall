@@ -1,26 +1,17 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.util.Interval;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.GraphPath;
-import org.jgrapht.Graphs;
-import org.jgrapht.alg.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.EdgeReversedGraph;
-import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.table.TableReader;
-import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -31,11 +22,11 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class GenotypeGraph extends Module {
-    @Argument(fullName = "graph", shortName = "g", doc = "Graph")
-    public CortexGraph GRAPH;
+    @Argument(fullName = "graphClean", shortName = "c", doc = "Graph (clean)")
+    public CortexGraph CLEAN;
 
-    @Argument(fullName = "graphRaw", shortName = "r", doc = "Graph (raw)", required = false)
-    public CortexGraph GRAPH_RAW;
+    @Argument(fullName = "graphDirty", shortName = "d", doc = "Graph (dirty)", required = false)
+    public CortexGraph DIRTY;
 
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
@@ -55,214 +46,8 @@ public class GenotypeGraph extends Module {
     @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
     public String KMER;
 
-    @Output(fullName = "gout", shortName = "go", doc = "Graph out")
-    public File gout;
-
     @Output
     public PrintStream out;
-
-    @Output(fullName = "evalOut", shortName = "eout", doc = "Eval out")
-    public PrintStream eout;
-
-    private String formatAttributes(Map<String, Object> attrs) {
-        List<String> attrArray = new ArrayList<String>();
-
-        for (String attr : attrs.keySet()) {
-            String value = attrs.get(attr).toString();
-
-            attrArray.add(attr + "=\"" + value + "\"");
-        }
-
-        return Joiner.on(" ").join(attrArray);
-    }
-
-    public void printGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, String prefix, boolean withText, boolean withPdf) {
-        try {
-            File f = new File(gout.getAbsolutePath() + "." + prefix + ".dot");
-            File p = new File(gout.getAbsolutePath() + "." + prefix + ".pdf");
-
-            log.info("  {}", gout.getAbsolutePath() + "." + prefix + ".pdf");
-
-            PrintStream o = new PrintStream(f);
-
-            String indent = "  ";
-
-            o.println("digraph G {");
-
-            if (withText) {
-                o.println(indent + "node [ shape=box fontname=\"Courier New\" style=filled fillcolor=white ];");
-            } else {
-                o.println(indent + "node [ shape=point style=filled fillcolor=white ];");
-            }
-
-            for (AnnotatedVertex v : g.vertexSet()) {
-                Map<String, Object> attrs = new TreeMap<String, Object>();
-
-                if (!withText || g.inDegreeOf(v) == 0 || g.outDegreeOf(v) == 0) {
-                    attrs.put("label", "");
-                }
-
-                if (v.isNovel()) {
-                    attrs.put("color", "red");
-                    attrs.put("fillcolor", "red");
-                    attrs.put("shape", withText ? "box" : "circle");
-                }
-
-                if (v.flagIsSet("start") || v.flagIsSet("end")) {
-                    attrs.put("label", v.getKmer());
-                    attrs.put("fillcolor", v.flagIsSet("start") ? "orange" : "purple");
-                    attrs.put("shape", "rect");
-                }
-
-                o.println(indent + "\"" + v.getKmer() + "\" [ " + formatAttributes(attrs) + " ];");
-            }
-
-            String[] colors = new String[]{"red", "blue", "green"};
-
-            for (AnnotatedEdge e : g.edgeSet()) {
-                String s = g.getEdgeSource(e).getKmer();
-                String t = g.getEdgeTarget(e).getKmer();
-
-                for (int c = 0; c < 3; c++) {
-                    if (e.isPresent(c)) {
-                        Map<String, Object> attrs = new TreeMap<String, Object>();
-                        attrs.put("color", colors[c]);
-                        attrs.put("weight", g.getEdgeWeight(e));
-                        attrs.put("label", g.getEdgeWeight(e));
-
-                        o.println(indent + "\"" + s + "\" -> \"" + t + "\" [ " + formatAttributes(attrs) + " ];");
-                    }
-                }
-            }
-
-            o.println("}");
-
-            o.close();
-
-            if (withPdf) {
-                Runtime.getRuntime().exec("dot -Tpdf -o" + p.getAbsolutePath() + " " + f.getAbsolutePath());
-            }
-        } catch (FileNotFoundException e) {
-            throw new IndianaException("File not found", e);
-        } catch (IOException e) {
-            throw new IndianaException("IO exception", e);
-        }
-    }
-
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> copyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-
-        for (AnnotatedVertex av : a.vertexSet()) {
-            AnnotatedVertex newAv = new AnnotatedVertex(av.getKmer(), av.isNovel());
-
-            newAv.setFlags(av.getFlags());
-
-            b.addVertex(newAv);
-        }
-
-        for (AnnotatedEdge ae : a.edgeSet()) {
-            AnnotatedVertex vs = a.getEdgeSource(ae);
-            AnnotatedVertex vt = a.getEdgeTarget(ae);
-
-            b.addEdge(vs, vt, new AnnotatedEdge(ae.getPresence()));
-        }
-
-        return b;
-    }
-
-    private DirectedGraph<AnnotatedVertex, AnnotatedEdge> simplifyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, boolean combine) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-
-        AnnotatedVertex thisVertex;
-        Set<AnnotatedVertex> usedStarts = new HashSet<AnnotatedVertex>();
-
-        Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
-        Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
-        for (AnnotatedVertex av : b.vertexSet()) {
-            if (av.flagIsSet("start")) {
-                candidateStarts.add(av);
-            } else if (av.flagIsSet("end")) {
-                candidateEnds.add(av);
-            }
-        }
-
-        do {
-            thisVertex = null;
-
-            Iterator<AnnotatedVertex> vertices = b.vertexSet().iterator();
-
-            while (thisVertex == null && vertices.hasNext()) {
-                AnnotatedVertex tv = vertices.next();
-
-                if (!usedStarts.contains(tv)) {
-                    while (b.inDegreeOf(tv) == 1) {
-                        AnnotatedVertex pv = b.getEdgeSource(b.incomingEdgesOf(tv).iterator().next());
-
-                        if (b.outDegreeOf(pv) == 1 && pv.isNovel() == tv.isNovel()) {
-                            tv = pv;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    thisVertex = tv;
-                }
-            }
-
-            if (thisVertex != null) {
-                usedStarts.add(thisVertex);
-
-                AnnotatedVertex nextVertex = b.outDegreeOf(thisVertex) == 0 ? null : b.getEdgeTarget(b.outgoingEdgesOf(thisVertex).iterator().next());
-
-                while (nextVertex != null && b.outDegreeOf(thisVertex) == 1 && b.inDegreeOf(nextVertex) == 1 && (combine || thisVertex.isNovel() == nextVertex.isNovel())) {
-                    AnnotatedVertex sv = new AnnotatedVertex(thisVertex.getKmer() + nextVertex.getKmer().charAt(nextVertex.getKmer().length() - 1), thisVertex.isNovel());
-
-                    b.addVertex(sv);
-
-                    Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
-
-                    for (AnnotatedEdge e : b.incomingEdgesOf(thisVertex)) {
-                        AnnotatedVertex pv = b.getEdgeSource(e);
-
-                        b.addEdge(pv, sv, new AnnotatedEdge(e.getPresence()));
-
-                        edgesToRemove.add(e);
-                    }
-
-                    for (AnnotatedEdge e : b.outgoingEdgesOf(nextVertex)) {
-                        AnnotatedVertex nv = b.getEdgeTarget(e);
-
-                        b.addEdge(sv, nv, new AnnotatedEdge(e.getPresence()));
-
-                        edgesToRemove.add(e);
-                    }
-
-                    b.removeVertex(thisVertex);
-                    b.removeVertex(nextVertex);
-                    b.removeAllEdges(edgesToRemove);
-
-                    thisVertex = sv;
-                    nextVertex = b.outDegreeOf(thisVertex) == 0 ? null : b.getEdgeTarget(b.outgoingEdgesOf(thisVertex).iterator().next());
-                }
-            }
-        } while (thisVertex != null);
-
-        for (AnnotatedVertex av : b.vertexSet()) {
-            for (AnnotatedVertex candidateStart : candidateStarts) {
-                if (av.getKmer().contains(candidateStart.getKmer())) {
-                    av.setFlag("start");
-                }
-            }
-
-            for (AnnotatedVertex candidateEnd : candidateEnds) {
-                if (av.getKmer().contains(candidateEnd.getKmer())) {
-                    av.setFlag("end");
-                }
-            }
-        }
-
-        return b;
-    }
 
     private void evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
@@ -412,47 +197,6 @@ public class GenotypeGraph extends Module {
         }
     }
 
-    /*
-    public void chooseVariant(GraphicalVariantContext gvc) {
-        int[] scores = new int[2];
-
-        for (int c = 1; c <= 2; c++) {
-            if (gvc.getAttribute(c, "traversalStatus").equals("complete")) { scores[c-1]++; }
-            if (!gvc.getAttribute(c, "event").equals("unknown")) { scores[c-1]++; }
-            if (gvc.getAttribute(c, "event").equals("GC") || gvc.getAttribute(c, "event").equals("NAHR")) { scores[c-1]++; }
-
-            gvc.attribute(c, "score", scores[c-1]);
-        }
-
-        int bc = MoreMathUtils.whichMax(scores) + 1;
-
-        gvc.addAttributes(0, gvc.getAttributes(bc));
-        gvc.attribute(0, "haplotypeBackground", scores[0] == scores[1] ? 0 : bc);
-    }
-    */
-
-    private String recordToString(String sk, CortexRecord cr) {
-        String kmer = cr.getKmerAsString();
-        String cov = "";
-        String ed = "";
-
-        boolean fw = sk.equals(kmer);
-
-        if (!fw) {
-            kmer = SequenceUtils.reverseComplement(kmer);
-        }
-
-        for (int coverage : cr.getCoverages()) {
-            cov += " " + coverage;
-        }
-
-        for (String edge : cr.getEdgeAsStrings()) {
-            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
-        }
-
-        return kmer + " " + cov + " " + ed;
-    }
-
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
@@ -506,10 +250,10 @@ public class GenotypeGraph extends Module {
             if (novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
                 String stretch;
-                if (GRAPH_RAW == null) {
-                    stretch = CortexUtils.getSeededStretch(GRAPH, novelKmer.getKmerAsString(), 0, true);
+                if (DIRTY == null) {
+                    stretch = CortexUtils.getSeededStretch(CLEAN, novelKmer.getKmerAsString(), 0, true);
                 } else {
-                    stretch = CortexUtils.getSeededStretch(GRAPH, GRAPH_RAW, novelKmer.getKmerAsString(), 0, true);
+                    stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, novelKmer.getKmerAsString(), 0, true);
                 }
 
                 log.info("  stretch {}: {} bp", stretchNum, stretch.length());
@@ -525,41 +269,36 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.dfsGraph(stretch, GRAPH, GRAPH_RAW, novelKmers);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
-                //log.debug("Graph printed");
-                //printGraph(simplifyGraph(ag, false), "call" + String.format("%04d", stretchNum), false, true);
+                // Extract parental stretches
+                PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 1, stretch, novelKmers);
+                PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 2, stretch, novelKmers);
 
-                if (true) {
-                    // Extract parental stretches
-                    PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, ag, 1, stretch, novelKmers);
-                    PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(GRAPH, GRAPH_RAW, ag, 2, stretch, novelKmers);
+                log.info("    paths:");
+                log.info("    - 1: {} ({} bp)", SequenceUtils.truncate(p1.parent, 100), p1.parent.length());
+                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p1.child, 100), p1.child.length());
+                log.info("    - 2: {} ({} bp)", SequenceUtils.truncate(p2.parent, 100), p2.parent.length());
+                log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
-                    log.info("    paths:");
-                    log.info("    - 1: {} ({} bp)", SequenceUtils.truncate(p1.parent, 100), p1.parent.length());
-                    log.info("      c: {} ({} bp)", SequenceUtils.truncate(p1.child, 100), p1.child.length());
-                    log.info("    - 2: {} ({} bp)", SequenceUtils.truncate(p2.parent, 100), p2.parent.length());
-                    log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
+                // Call variants
+                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, novelKmers, kl1));
+                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, novelKmers, kl2));
 
-                    // Call variants
-                    gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p1, 1, stretch, novelKmers, kl1));
-                    gvc.add(GenotypeGraphUtils.callVariant(GRAPH, GRAPH_RAW, p2, 2, stretch, novelKmers, kl2));
+                log.info("    variants:");
+                log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
+                log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
 
-                    log.info("    variants:");
-                    log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
-                    log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
-                    log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
-                    log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
+                // Finalize into a single call
+                GenotypeGraphUtils.chooseVariant(gvc);
 
-                    // Finalize into a single call
-                    GenotypeGraphUtils.chooseVariant(gvc);
-
-                    // Show alignment
-                    log.info("    alignment:");
-                    log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
-                    log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
-                }
+                // Show alignment
+                log.info("    alignment:");
+                log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
+                log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
 
                 // See how many novel kmers we've used up
                 int novelKmersUsed = 0;
@@ -611,27 +350,27 @@ public class GenotypeGraph extends Module {
                             boolean isFwd = true;
                             boolean isMissingKmers = false;
 
-                            for (int i = 0; i <= refSeq.length() - GRAPH.getKmerSize(); i++) {
-                                String fw = refSeq.substring(i, i + GRAPH.getKmerSize());
+                            for (int i = 0; i <= refSeq.length() - CLEAN.getKmerSize(); i++) {
+                                String fw = refSeq.substring(i, i + CLEAN.getKmerSize());
                                 String rc = SequenceUtils.reverseComplement(fw);
-                                CortexRecord cr = GRAPH.findRecord(new CortexKmer(fw));
+                                CortexRecord cr = CLEAN.findRecord(new CortexKmer(fw));
 
                                 if (ag.containsVertex(new AnnotatedVertex(fw)) || ag.containsVertex(new AnnotatedVertex(fw, true))) {
-                                    log.info("    - ref {}/{}: fw {} {}", i, refSeq.length() - GRAPH.getKmerSize(), fw, recordToString(fw, cr));
+                                    log.info("    - ref {}/{}: fw {} {}", i, refSeq.length() - CLEAN.getKmerSize(), fw, GenotypeGraphUtils.recordToString(fw, cr));
 
                                     isFwd = true;
                                 } else if (ag.containsVertex(new AnnotatedVertex(rc)) || ag.containsVertex(new AnnotatedVertex(rc, true))) {
-                                    log.info("    - ref {}/{}: rc {} {}", i, refSeq.length() - GRAPH.getKmerSize(), rc, recordToString(rc, cr));
+                                    log.info("    - ref {}/{}: rc {} {}", i, refSeq.length() - CLEAN.getKmerSize(), rc, GenotypeGraphUtils.recordToString(rc, cr));
                                     isFwd = false;
                                 } else {
-                                    log.info("    - ref {}/{}: ?? {} {}", i, refSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc, recordToString(isFwd ? fw : rc, cr));
+                                    log.info("    - ref {}/{}: ?? {} {}", i, refSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc, GenotypeGraphUtils.recordToString(isFwd ? fw : rc, cr));
                                     isMissingKmers = true;
                                 }
                             }
 
 
-                            for (int i = 0; i <= altSeq.length() - GRAPH.getKmerSize(); i++) {
-                                String fw = altSeq.substring(i, i + GRAPH.getKmerSize());
+                            for (int i = 0; i <= altSeq.length() - CLEAN.getKmerSize(); i++) {
+                                String fw = altSeq.substring(i, i + CLEAN.getKmerSize());
                                 String rc = SequenceUtils.reverseComplement(fw);
 
                                 //AnnotatedVertex afw = new AnnotatedVertex(fw);
@@ -644,7 +383,7 @@ public class GenotypeGraph extends Module {
                                     //log.info("    - {}: rc {}", i, rc);
                                     isFwd = false;
                                 } else {
-                                    log.info("    - alt {}/{}: ?? {}", i, altSeq.length() - GRAPH.getKmerSize(), isFwd ? fw : rc);
+                                    log.info("    - alt {}/{}: ?? {}", i, altSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc);
                                     isMissingKmers = true;
                                 }
                             }
