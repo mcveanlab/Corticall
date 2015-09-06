@@ -17,7 +17,9 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
             }
         }
 
-        return numEdges > 6;
+        //return numEdges > 6;
+
+        return false;
     }
 
     private boolean isNovel(CortexRecord cr) {

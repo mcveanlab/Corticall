@@ -612,11 +612,7 @@ public class CortexUtils {
             }
         } while (adjKmers.get(color).size() == 1);
 
-//        boolean shouldReturn = true;
-//        return shouldReturn ? dfs : null;
         return null;
-
-//        return dfs;
     }
 
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs1(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, boolean goForward) {
