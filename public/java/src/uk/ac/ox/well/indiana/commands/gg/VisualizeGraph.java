@@ -238,33 +238,6 @@ public class VisualizeGraph extends Module {
 
             int numVerticesSimplified = a.vertexSet().size();
 
-            /*
-            String seq = vi.leftFlank + vi.ref + vi.rightFlank;
-
-            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                String fw = seq.substring(i, i + GRAPH.getKmerSize());
-                String rc = SequenceUtils.reverseComplement(fw);
-
-                AnnotatedVertex af = new AnnotatedVertex(fw);
-                AnnotatedVertex ar = new AnnotatedVertex(rc);
-
-                CortexKmer ca = new CortexKmer(fw);
-                CortexRecord cr = GRAPH.findRecord(ca);
-
-                if (cr != null) {
-                    log.info("  ar: clean {} {} {}", a.vertexSet().contains(ar), rc, cr);
-                } else {
-                    cr = GRAPH_RAW.findRecord(ca);
-
-                    if (cr != null) {
-                        log.info("  ar: dirty {} {} {}", a.vertexSet().contains(ar), rc, cr);
-                    } else {
-                        log.info("  ar: unknown {} {}", a.vertexSet().contains(ar), rc);
-                    }
-                }
-            }
-            */
-
             JSONArray va = new JSONArray();
             JSONArray ea = new JSONArray();
 
@@ -277,6 +250,8 @@ public class VisualizeGraph extends Module {
                 m.put("isNovel", v.isNovel());
                 m.put("isPredecessor", v.flagIsSet("predecessor"));
                 m.put("isSuccessor", v.flagIsSet("successor"));
+                m.put("isStart", v.getKmer().equals(p1.start) || v.getKmer().equals(p2.start));
+                m.put("isStop", v.getKmer().equals(p1.stop) || v.getKmer().equals(p2.stop));
 
                 va.put(m);
 
