@@ -153,18 +153,49 @@ public class VisualizeGraph extends Module {
             kl2 = new KmerLookup(REF2);
         }
 
+        private String getRandomNovelKmer() {
+            int index = rng.nextInt(novelKmersList.size());
+            return novelKmersList.get(index).getKmerAsString();
+        }
+
+        private String getAppropriateKmer(String query) {
+            String kmer = query;
+
+            if (query.contains("random")) {
+                boolean isOfRequestedType = false;
+                String[] pieces = query.split("\\s+");
+                String type = pieces.length > 1 ? pieces[1].toUpperCase() : "ANY";
+
+                do {
+                    kmer = getRandomNovelKmer();
+
+                    CortexKmer ck = new CortexKmer(kmer);
+                    VariantInfo vi = vis.containsKey(ck) ? vis.get(ck) : null;
+
+                    if (type.equals("ANY") || (vi != null && vi.denovo.equals(type))) {
+                        isOfRequestedType = true;
+                    }
+                } while (!isOfRequestedType);
+            }
+
+            return kmer;
+        }
+
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
 
+            /*
             String kmer = query.get("kmer");
             if (kmer.contains("random")) {
                 int index = rng.nextInt(novelKmersList.size());
                 kmer = novelKmersList.get(index).getKmerAsString();
             }
+            */
+
+            String kmer = getAppropriateKmer(query.get("kmer"));
 
             CortexKmer ck = new CortexKmer(kmer);
-
             VariantInfo vi = vis.containsKey(ck) ? vis.get(ck) : null;
 
             boolean simplify = query.get("simplify").equals("true");

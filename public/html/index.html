@@ -55,13 +55,29 @@
                 .on("tick", tick)
                 .start();
 
+        var parent = d3.select("body").append("svg")
+                .attr("width", w)
+                .attr("height", h)
+                .on("dblclick.zoom", null)
+                .append("g")
+
+        /*
         var svg = d3.select("body").append("svg")
                 .attr("width", w)
                 .attr("height", h)
-                .append("g")
-                .call(d3.behavior.zoom().on("zoom", zoom))
                 .on("dblclick.zoom", null)
-                .append("g");
+                .append("g")
+                */
+
+        var svg = parent.append("g");
+
+        d3.select("body")
+                .on("keydown", function () {
+                    parent.call(d3.behavior.zoom().on("zoom", zoom))
+                })
+               .on("keyup", function () {
+                    parent.call(d3.behavior.zoom().on("zoom", null))
+                })
 
         svg.append("rect")
                 .attr("class", "overlay")
@@ -157,7 +173,7 @@
         setDefaultStatus(graph);
 
         function setDefaultStatus(graph) {
-            d3.select("#info").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ").  Known (id: " + graph.knownVariant + ", type: " + graph.knownType + " ref: " + graph.knownRef + " alt: " + graph.knownAlt + " left: " + graph.knownLeft + " right: " + graph.knownRight + ")");
+            d3.select("#info").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ").  Known (id: " + graph.knownVariant + ", type: " + graph.knownType + " ref: " + graph.knownRef + " alt: " + graph.knownAlt + ")");
             d3.select("#status").text("Ready.");
         }
 

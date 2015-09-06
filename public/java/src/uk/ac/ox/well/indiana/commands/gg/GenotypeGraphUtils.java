@@ -733,9 +733,6 @@ public class GenotypeGraphUtils {
     }
 
     public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
-        // Compute paths
-        //PathInfo p = computeBestMinWeightPath(a, color, stretch, novelKmers);
-
         // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
