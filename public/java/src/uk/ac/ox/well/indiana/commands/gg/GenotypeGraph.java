@@ -221,7 +221,7 @@ public class GenotypeGraph extends Module {
 
         DataTables evalTables = new DataTables();
 
-        evalTables.addTable("variantStats", "Statistics on variants", "knownVariantId", "knownVariantEvent", "knownVariantLength", "variantId", "variantEvent", "variantLength", "novelKmersUsed");
+        evalTables.addTable("variantStats", "Statistics on variants", "knownVariantId", "knownVariantEvent", "knownVariantLength", "variantId", "variantEvent", "variantLength", "novelKmersContained", "novelKmersUsed");
 
         evalTables.addTable("discoveryStats", "Statistics on variant discovery", "tp", "tn", "fp", "fn");
         evalTables.getTable("discoveryStats").set("dummy", "tp", 0l);
@@ -304,23 +304,30 @@ public class GenotypeGraph extends Module {
                 log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
 
                 // See how many novel kmers we've used up
+                int novelKmersContained = 0;
                 int novelKmersUsed = 0;
 
                 for (AnnotatedVertex av : ag.vertexSet()) {
                     CortexKmer ck = new CortexKmer(av.getKmer());
 
-                    if (novelKmers.containsKey(ck) && novelKmers.get(ck)) {
-                        totalNovelKmersUsed++;
-                        novelKmersUsed++;
-                        novelKmers.put(ck, false);
+                    if (novelKmers.containsKey(ck)) {
+                        novelKmersContained++;
+
+                        if (novelKmers.get(ck)) {
+                            totalNovelKmersUsed++;
+                            novelKmersUsed++;
+                            novelKmers.put(ck, false);
+                        }
                     }
                 }
 
+                gvc.attribute(0, "novelKmersContained", novelKmersContained);
                 gvc.attribute(0, "novelKmersUsed", novelKmersUsed);
 
                 log.info("    novelty:");
-                log.info("    - novel kmers used: {}/{}", novelKmersUsed, novelKmers.size());
-                log.info("    - cumulative usage: {}/{}", totalNovelKmersUsed, novelKmers.size());
+                log.info("    - novel kmers present:  {}/{}", novelKmersContained, novelKmers.size());
+                log.info("    - novel kmers utilized: {}/{}", novelKmersUsed, novelKmers.size());
+                log.info("    - cumulative usage:     {}/{}", totalNovelKmersUsed, novelKmers.size());
 
                 // Evaluate variants
                 if (BED != null) {
@@ -345,7 +352,7 @@ public class GenotypeGraph extends Module {
                                 gvc.getAttributeAsString(c, "knownAlt")
                         );
 
-                        /*
+                        //
                         if (vi != null) {
                             String refSeq = vi.leftFlank + vi.ref + vi.rightFlank;
                             String altSeq = vi.leftFlank + (vi.alt == null ? "" : vi.alt) + vi.rightFlank;
@@ -356,37 +363,45 @@ public class GenotypeGraph extends Module {
                             for (int i = 0; i <= refSeq.length() - CLEAN.getKmerSize(); i++) {
                                 String fw = refSeq.substring(i, i + CLEAN.getKmerSize());
                                 String rc = SequenceUtils.reverseComplement(fw);
+
                                 CortexRecord cr = CLEAN.findRecord(new CortexKmer(fw));
+                                boolean isClean = true;
+                                if (cr == null && DIRTY != null) {
+                                    cr = DIRTY.findRecord(new CortexKmer(fw));
+                                    isClean = false;
+                                }
 
                                 if (ag.containsVertex(new AnnotatedVertex(fw)) || ag.containsVertex(new AnnotatedVertex(fw, true))) {
-                                    log.info("    - ref {}/{}: fw {} {}", i, refSeq.length() - CLEAN.getKmerSize(), fw, GenotypeGraphUtils.recordToString(fw, cr));
-
+                                    log.info("    - ref {}/{}: fw {} {} {}", i, refSeq.length() - CLEAN.getKmerSize(), fw, GenotypeGraphUtils.recordToString(fw, cr), isClean);
                                     isFwd = true;
                                 } else if (ag.containsVertex(new AnnotatedVertex(rc)) || ag.containsVertex(new AnnotatedVertex(rc, true))) {
-                                    log.info("    - ref {}/{}: rc {} {}", i, refSeq.length() - CLEAN.getKmerSize(), rc, GenotypeGraphUtils.recordToString(rc, cr));
+                                    log.info("    - ref {}/{}: rc {} {} {}", i, refSeq.length() - CLEAN.getKmerSize(), rc, GenotypeGraphUtils.recordToString(rc, cr), isClean);
                                     isFwd = false;
                                 } else {
-                                    log.info("    - ref {}/{}: ?? {} {}", i, refSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc, GenotypeGraphUtils.recordToString(isFwd ? fw : rc, cr));
+                                    log.info("    - ref {}/{}: ?? {} {} {}", i, refSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc, GenotypeGraphUtils.recordToString(isFwd ? fw : rc, cr), isClean);
                                     isMissingKmers = true;
                                 }
                             }
-
 
                             for (int i = 0; i <= altSeq.length() - CLEAN.getKmerSize(); i++) {
                                 String fw = altSeq.substring(i, i + CLEAN.getKmerSize());
                                 String rc = SequenceUtils.reverseComplement(fw);
 
-                                //AnnotatedVertex afw = new AnnotatedVertex(fw);
-                                //AnnotatedVertex arc = new AnnotatedVertex(SequenceUtils.reverseComplement(fw));
+                                CortexRecord cr = CLEAN.findRecord(new CortexKmer(fw));
+                                boolean isClean = true;
+                                if (cr == null && DIRTY != null) {
+                                    cr = DIRTY.findRecord(new CortexKmer(fw));
+                                    isClean = false;
+                                }
 
                                 if (ag.containsVertex(new AnnotatedVertex(fw)) || ag.containsVertex(new AnnotatedVertex(fw, true))) {
-                                    //log.info("    - {}: fw {}", i, fw);
+                                    log.info("    - alt {}/{}: fw {} {} {}", i, altSeq.length() - CLEAN.getKmerSize(), fw, GenotypeGraphUtils.recordToString(fw, cr), isClean);
                                     isFwd = true;
                                 } else if (ag.containsVertex(new AnnotatedVertex(rc)) || ag.containsVertex(new AnnotatedVertex(rc, true))) {
-                                    //log.info("    - {}: rc {}", i, rc);
+                                    log.info("    - alt {}/{}: rc {} {} {}", i, altSeq.length() - CLEAN.getKmerSize(), rc, GenotypeGraphUtils.recordToString(rc, cr), isClean);
                                     isFwd = false;
                                 } else {
-                                    log.info("    - alt {}/{}: ?? {}", i, altSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc);
+                                    log.info("    - alt {}/{}: ?? {} {} {}", i, altSeq.length() - CLEAN.getKmerSize(), isFwd ? fw : rc, GenotypeGraphUtils.recordToString(isFwd ? fw : rc, cr), isClean);
                                     isMissingKmers = true;
                                 }
                             }
@@ -397,7 +412,7 @@ public class GenotypeGraph extends Module {
                         }
 
                         break;
-                        */
+                        //
                     }
 
                     if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {
@@ -417,6 +432,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
                         evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
+                        evalTables.getTable("variantStats").set(pk, "novelKmersContained", novelKmersContained);
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                         evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
 
@@ -444,6 +460,7 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "variantId", gvc.getAttributeAsInt(0, "stretchNum"));
                         evalTables.getTable("variantStats").set(pk, "variantEvent", gvc.getAttributeAsString(0, "event"));
                         evalTables.getTable("variantStats").set(pk, "variantLength", Math.abs(gvc.getAttributeAsString(0, "parentalAllele").length() - gvc.getAttributeAsString(0, "childAllele").length()));
+                        evalTables.getTable("variantStats").set(pk, "novelKmersContained", novelKmersContained);
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                         evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
                     }
@@ -478,6 +495,7 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantStats").set(pk, "variantId", "none");
                 evalTables.getTable("variantStats").set(pk, "variantEvent", "none");
                 evalTables.getTable("variantStats").set(pk, "variantLength", 0);
+                evalTables.getTable("variantStats").set(pk, "novelKmersContained", 0);
                 evalTables.getTable("variantStats").set(pk, "novelKmersUsed", 0);
                 evalTables.getTable("variantStats").set(pk, "seedKmer", "none");
             }
