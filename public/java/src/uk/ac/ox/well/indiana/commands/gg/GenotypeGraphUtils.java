@@ -658,6 +658,12 @@ public class GenotypeGraphUtils {
         String minLp0 = "", minLpc = "";
         String start = "", stop = "";
 
+        Set<AnnotatedVertex> sought = new HashSet<AnnotatedVertex>();
+        sought.add(new AnnotatedVertex("GATAATATATTTTGTAGAATATTTTTATTATTTTTAATTAACATGAA"));
+        sought.add(new AnnotatedVertex("AAGAATTTTTTTACACTTTTATTTTCGTTATTTGTATCTTCATTATT"));
+        sought.add(new AnnotatedVertex("TTATATGTGGAAGAATTATGTATAATATTATTATTATCATTATTATT"));
+        sought.add(new AnnotatedVertex("TTTTTTTGCATATTTAATTGATCCATTTTATTATAATCCTTATCATT"));
+
         for (AnnotatedVertex sv : candidateStarts) {
             for (AnnotatedVertex ev : candidateEnds) {
                 String lp0, lpc;
@@ -952,22 +958,26 @@ public class GenotypeGraphUtils {
     }
 
     public static String recordToString(String sk, CortexRecord cr) {
-        String kmer = cr.getKmerAsString();
+        String kmer = "";
         String cov = "";
         String ed = "";
 
-        boolean fw = sk.equals(kmer);
+        if (cr != null) {
+            kmer = cr.getKmerAsString();
 
-        if (!fw) {
-            kmer = SequenceUtils.reverseComplement(kmer);
-        }
+            boolean fw = sk.equals(kmer);
 
-        for (int coverage : cr.getCoverages()) {
-            cov += " " + coverage;
-        }
+            if (!fw) {
+                kmer = SequenceUtils.reverseComplement(kmer);
+            }
 
-        for (String edge : cr.getEdgeAsStrings()) {
-            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+            for (int coverage : cr.getCoverages()) {
+                cov += " " + coverage;
+            }
+
+            for (String edge : cr.getEdgeAsStrings()) {
+                ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+            }
         }
 
         return kmer + " " + cov + " " + ed;
