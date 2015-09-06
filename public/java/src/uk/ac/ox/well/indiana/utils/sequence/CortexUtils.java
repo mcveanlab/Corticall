@@ -590,12 +590,19 @@ public class CortexUtils {
                 if (adjKmers.get(color).size() == 1) {
                     kmer = adjKmers.get(color).iterator().next();
                 } else if (adjKmers.get(color).size() != 1) {
+                    boolean childrenWereSuccessful = false;
+
                     for (String ak : adjKmers.get(color)) {
                         DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward);
 
                         if (branch != null) {
                             Graphs.addGraph(dfs, branch);
+                            childrenWereSuccessful = true;
                         }
+                    }
+
+                    if (childrenWereSuccessful || stopper.hasTraversalSucceeded(cr, g, depth, dfs.vertexSet().size(), 0)) {
+                        return dfs;
                     }
                 }
             } else if (stopper.traversalSucceeded()) {
@@ -605,7 +612,11 @@ public class CortexUtils {
             }
         } while (adjKmers.get(color).size() == 1);
 
-        return dfs;
+//        boolean shouldReturn = true;
+//        return shouldReturn ? dfs : null;
+        return null;
+
+//        return dfs;
     }
 
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs1(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, boolean goForward) {

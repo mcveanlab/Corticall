@@ -62,7 +62,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
 
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges) {
-        return size > 500 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
+        return size > 100 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
     }
 
     @Override

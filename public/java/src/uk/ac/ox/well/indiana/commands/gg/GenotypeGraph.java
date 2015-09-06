@@ -352,7 +352,7 @@ public class GenotypeGraph extends Module {
                                 gvc.getAttributeAsString(c, "knownAlt")
                         );
 
-                        //
+                        /*
                         if (vi != null) {
                             String refSeq = vi.leftFlank + vi.ref + vi.rightFlank;
                             String altSeq = vi.leftFlank + (vi.alt == null ? "" : vi.alt) + vi.rightFlank;
@@ -412,7 +412,7 @@ public class GenotypeGraph extends Module {
                         }
 
                         break;
-                        //
+                        */
                     }
 
                     if (gvc.getAttributeAsBoolean(0, "isKnownVariant")) {

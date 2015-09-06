@@ -177,7 +177,7 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         addGraph(ag, sg0, 0, novelKmers);
         addGraph(ag, sg1, 1, novelKmers);
-        addGraph(ag, sg2, 2, novelKmers);
+//        addGraph(ag, sg2, 2, novelKmers);
 
         /*
         for (AnnotatedVertex ava : ag.vertexSet()) {
@@ -568,7 +568,7 @@ public class GenotypeGraphUtils {
         return sb.toString();
     }
 
-    public static PathInfo computeBestMinWeightPath(CortexGraph clean, CortexGraph dirty, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+    public static PathInfo computeBestMinWeightPath(CortexGraph clean, CortexGraph dirty, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, boolean beAggressive) {
         class AnnotateStartsAndEnds {
             private int color;
             private String stretch;
@@ -576,12 +576,14 @@ public class GenotypeGraphUtils {
             private DirectedGraph<AnnotatedVertex, AnnotatedEdge> b;
             private Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
             private Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
+            private boolean beAggressive = false;
 
-            public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b) {
+            public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b, boolean beAggressive) {
                 this.color = color;
                 this.stretch = stretch;
                 this.novelKmers = novelKmers;
                 this.b = b;
+                this.beAggressive = beAggressive;
             }
 
             public Set<AnnotatedVertex> getCandidateEnds() {
@@ -608,7 +610,7 @@ public class GenotypeGraphUtils {
                             }
                         }
 
-                        if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                        if ((childEdges.size() > 0 && parentEdges.size() > 0) || beAggressive) {
                             av.setFlag("start");
 
                             candidateStarts.add(av);
@@ -631,7 +633,7 @@ public class GenotypeGraphUtils {
                             }
                         }
 
-                        if (childEdges.size() > 0 && parentEdges.size() > 0) {
+                        if ((childEdges.size() > 0 && parentEdges.size() > 0) || beAggressive) {
                             av.setFlag("end");
 
                             candidateEnds.add(av);
@@ -645,7 +647,7 @@ public class GenotypeGraphUtils {
 
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
-        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b).invoke();
+        AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b, beAggressive).invoke();
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
         Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
@@ -718,6 +720,16 @@ public class GenotypeGraphUtils {
         }
 
         return new PathInfo(start, stop, minLp0, minLpc);
+    }
+
+    public static PathInfo computeBestMinWeightPath(CortexGraph clean, CortexGraph dirty, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
+        PathInfo pi = computeBestMinWeightPath(clean, dirty, a, color, stretch, novelKmers, false);
+
+        if (pi.start.equals("") && pi.stop.equals("")) {
+            pi = computeBestMinWeightPath(clean, dirty, a, color, stretch, novelKmers, true);
+        }
+
+        return pi;
     }
 
     public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
