@@ -1,5 +1,8 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
+
+import htsjdk.samtools.util.Interval;
+
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -7,6 +10,8 @@ public class AnnotatedVertex {
     private String kmer;
     private boolean isNovel = false;
     private Set<String> flags = new TreeSet<String>();
+    private Set<Interval> ml = new TreeSet<Interval>();
+    private Set<Interval> pl = new TreeSet<Interval>();
 
     public AnnotatedVertex(String kmer) {
         this.kmer = kmer;
@@ -26,12 +31,24 @@ public class AnnotatedVertex {
     public void setFlags(Set<String> flags) { this.flags = flags; }
 
     public String getKmer() { return kmer; }
+
     public boolean isNovel() { return isNovel; }
     public void setNovel() { isNovel = true; }
 
-    public boolean isAnnotated() {
-        return isNovel || flags.size() > 0;
+    public boolean isAnnotated() { return isNovel || flags.size() > 0; }
+
+    public void setMaternalLocations(Set<Interval> l) {
+        ml.clear();
+        ml.addAll(l);
     }
+
+    public void setPaternalLocations(Set<Interval> l) {
+        pl.clear();
+        pl.addAll(l);
+    }
+
+    public Set<Interval> getMaternalLocations() { return ml; }
+    public Set<Interval> getPaternalLocations() { return pl; }
 
     @Override
     public boolean equals(Object o) {

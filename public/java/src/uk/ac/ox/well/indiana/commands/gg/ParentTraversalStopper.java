@@ -18,9 +18,9 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
             }
         }
 
-        //return numEdges > 6;
+        return numEdges > 6;
 
-        return false;
+//        return false;
     }
 
     @Override

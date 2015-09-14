@@ -5,9 +5,12 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerIndex;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -211,6 +214,20 @@ public class VisualizeGraph extends Module {
 
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
 
+            /*
+            for (AnnotatedVertex av : a.vertexSet()) {
+                if (!av.isNovel()) {
+                    log.info("  aligning: {}", av);
+
+                    av.setMaternalLocations(kl1.findKmer(av.getKmer()));
+
+                    log.info("  aligning: {}", av);
+
+                    av.setPaternalLocations(kl2.findKmer(av.getKmer()));
+                }
+            }
+            */
+
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
             GraphicalVariantContext gvc = new GraphicalVariantContext()
@@ -219,6 +236,7 @@ public class VisualizeGraph extends Module {
                     .attribute(0, "novelKmersTotal", novelKmers.size());
 
             // Extract parental stretches
+            //
             PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 1, stretch, novelKmers);
             PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 2, stretch, novelKmers);
 
@@ -227,6 +245,7 @@ public class VisualizeGraph extends Module {
 
             // Finalize into a single call
             GenotypeGraphUtils.chooseVariant(gvc);
+            //
 
             int numVertices = a.vertexSet().size();
 
@@ -250,8 +269,13 @@ public class VisualizeGraph extends Module {
                 m.put("isNovel", v.isNovel());
                 m.put("isPredecessor", v.flagIsSet("predecessor"));
                 m.put("isSuccessor", v.flagIsSet("successor"));
+                m.put("branchRejected", v.flagIsSet("branchRejected"));
+                /*
                 m.put("isStart", v.getKmer().equals(p1.start) || v.getKmer().equals(p2.start));
                 m.put("isStop", v.getKmer().equals(p1.stop) || v.getKmer().equals(p2.stop));
+                m.put("maternalLocations", v.getMaternalLocations());
+                m.put("paternalLocations", v.getPaternalLocations());
+                */
 
                 va.put(m);
 
@@ -274,13 +298,15 @@ public class VisualizeGraph extends Module {
                         m.put("sample", c);
                         m.put("highlight", false);
 
+                        //
                         if (c == 0 && gvc.getAttributeAsString(0, "childStretch").contains(as) && gvc.getAttributeAsString(0, "childStretch").contains(at)) {
                             m.put("highlight", true);
                         }
 
-                        if ((c == gvc.getAttributeAsInt(0, "haplotypeBackground") || gvc.getAttributeAsInt(0, "haplotypeBackground") == 0) && gvc.getAttributeAsString(0, "parentalStretch").contains(as) && gvc.getAttributeAsString(0, "parentalStretch").contains(at)) {
+                        if (c != 0 && (c == gvc.getAttributeAsInt(0, "haplotypeBackground") || gvc.getAttributeAsInt(0, "haplotypeBackground") == 0) && gvc.getAttributeAsString(0, "parentalStretch").contains(as) && gvc.getAttributeAsString(0, "parentalStretch").contains(at)) {
                             m.put("highlight", true);
                         }
+                        //
 
                         ea.put(m);
                     }
@@ -331,6 +357,73 @@ public class VisualizeGraph extends Module {
         }
     }
 
+    private class Explore extends BaseHandler {
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            Map<String, String> query = query(httpExchange.getRequestURI().getQuery());
+
+            log.info("");
+            log.info("Request: {}", httpExchange.getRequestURI());
+            log.info("  kmer: {}", query.get("kmer"));
+
+            String sk = query.get("kmer");
+
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+            Graphs.addGraph(a, CortexUtils.dfs(CLEAN, DIRTY, sk, 0, null, ExplorationStopper.class));
+            Graphs.addGraph(a, CortexUtils.dfs(CLEAN, DIRTY, sk, 1, null, ExplorationStopper.class));
+            Graphs.addGraph(a, CortexUtils.dfs(CLEAN, DIRTY, sk, 2, null, ExplorationStopper.class));
+
+            JSONArray va = new JSONArray();
+            JSONArray ea = new JSONArray();
+
+            Map<String, Integer> indices = new HashMap<String, Integer>();
+            int index = Integer.valueOf(query.get("sindex"));
+
+            for (AnnotatedVertex v : a.vertexSet()) {
+                Map<String, Object> m = new HashMap<String, Object>();
+                m.put("kmer", v.getKmer());
+                m.put("isNovel", v.isNovel());
+                m.put("isPredecessor", false);
+                m.put("isSuccessor", false);
+                m.put("isStart", false);
+                m.put("isStop", false);
+                m.put("expandedFrom", sk);
+
+                va.put(m);
+
+                indices.put(v.getKmer(), index);
+                index++;
+            }
+
+            for (AnnotatedEdge e : a.edgeSet()) {
+                String as = a.getEdgeSource(e).getKmer();
+                String at = a.getEdgeTarget(e).getKmer();
+
+                int is = indices.get(as);
+                int it = indices.get(at);
+
+                for (int c = 0; c < 3; c++) {
+                    if (e.isPresent(c)) {
+                        Map<String, Object> m = new HashMap<String, Object>();
+                        m.put("source", is);
+                        m.put("target", it);
+                        m.put("sample", c);
+                        m.put("highlight", false);
+                        m.put("expandedFrom", sk);
+
+                        ea.put(m);
+                    }
+                }
+            }
+
+            JSONObject jo = new JSONObject();
+            jo.put("nodes", va);
+            jo.put("links", ea);
+
+            write(httpExchange, jo.toString());
+        }
+    }
+
     @Override
     public void execute() {
         log.info("Starting server...");
@@ -340,6 +433,7 @@ public class VisualizeGraph extends Module {
             server.createContext("/", new PageHandler());
             server.createContext("/graph", new Graph());
             server.createContext("/crrecord", new CrRecord());
+            server.createContext("/explore", new Explore());
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {

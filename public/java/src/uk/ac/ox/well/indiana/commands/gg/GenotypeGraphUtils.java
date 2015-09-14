@@ -175,9 +175,26 @@ public class GenotypeGraphUtils {
 
         // Now, combine them all into an annotated graph
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-        addGraph(ag, sg0, 0, novelKmers);
-        addGraph(ag, sg1, 1, novelKmers);
-//        addGraph(ag, sg2, 2, novelKmers);
+        addGraph(ag, sg0, novelKmers);
+        addGraph(ag, sg1, novelKmers);
+        addGraph(ag, sg2, novelKmers);
+
+        // Extend from any other kmers we'd like to see
+        /*
+        Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
+        extendAnyway.add(new AnnotatedVertex("ATTTTTTAAGAGATCACCTTCTTCATTTTTTAAGAGATCACCTTCTA"));
+        extendAnyway.add(new AnnotatedVertex("TATTTTTTAAGAGGTCACCTTTATTTTTTAAGAGGTCACCTTCTTTA"));
+
+        for (int c = 0; c <= 2; c++) {
+            for (AnnotatedVertex ak : extendAnyway) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, ag, ExplorationStopper.class);
+
+                if (dfs != null) {
+                    Graphs.addGraph(ag, dfs);
+                }
+            }
+        }
+        */
 
         /*
         for (AnnotatedVertex ava : ag.vertexSet()) {
@@ -276,9 +293,11 @@ public class GenotypeGraphUtils {
         }
     }
 
-    public static void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int color, Map<CortexKmer, Boolean> novelKmers) {
+    public static void addGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, Map<CortexKmer, Boolean> novelKmers) {
         for (AnnotatedVertex v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v.getKmer(), novelKmers.containsKey(new CortexKmer(v.getKmer())));
+
+            av.setFlags(new HashSet<String>(v.getFlags()));
 
             a.addVertex(av);
         }
@@ -992,4 +1011,11 @@ public class GenotypeGraphUtils {
         return kmer + " " + cov + " " + ed;
     }
 
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> shaveGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
+
+        //for (AnnotatedVertex )
+
+        return b;
+    }
 }

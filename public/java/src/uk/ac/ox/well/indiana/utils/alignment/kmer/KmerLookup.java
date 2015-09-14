@@ -1,16 +1,24 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.Interval;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import uk.ac.ox.well.indiana.commands.gg.CompactSerializableInterval;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 public class KmerLookup {
     private int kmerSize;
-    private KmerIndex ki;
+    private Map<String, Set<CompactSerializableInterval>> index;
+    private Map<Integer, String> contigIndexToNameMap = new HashMap<Integer, String>();
 
     public KmerLookup(File ref) {
         initialize(ref, 47);
@@ -23,15 +31,47 @@ public class KmerLookup {
     private void initialize(File ref, int kmerSize) {
         this.kmerSize = kmerSize;
 
-        this.ki = loadIndex(ref, kmerSize);
+        loadIndex(ref, kmerSize);
     }
 
-    private KmerIndex loadIndex(File ref, int kmerSize) {
-        return new KmerIndex(ref, kmerSize);
+    private void loadIndex(File ref, int kmerSize) {
+        File dbFile = new File(ref.getAbsoluteFile() + ".kmerdb");
+
+        DB db = DBMaker.newFileDB(dbFile)
+                .transactionDisable()
+                .mmapFileEnable()
+                .cacheSize(1000000)
+                .closeOnJvmShutdown()
+                .readOnly()
+                .make();
+
+        index = db.getHashMap("index" + kmerSize);
+
+        try {
+            IndexedFastaSequenceFile fa = new IndexedFastaSequenceFile(ref);
+
+            ReferenceSequence rseq;
+            while ((rseq = fa.nextSequence()) != null) {
+                contigIndexToNameMap.put(rseq.getContigIndex(), rseq.getName().split("\\s+")[0]);
+            }
+        } catch (FileNotFoundException e) {
+            throw new IndianaException("File not found", e);
+        }
     }
 
-    public KmerIndex.KmerIndexRecord findKmer(String sk) {
-        return ki.lookup(sk);
+    public Set<Interval> findKmer(String sk) {
+        Set<CompactSerializableInterval> csis = index.get(sk);
+        if (csis != null) {
+            Set<Interval> is = new HashSet<Interval>();
+
+            for (CompactSerializableInterval csi : csis) {
+                is.add(asInterval(csi));
+            }
+
+            return is;
+        }
+
+        return null;
     }
 
     public List<Set<Interval>> findKmers(String s) {
@@ -40,16 +80,20 @@ public class KmerLookup {
         for (int i = 0; i <= s.length() - kmerSize; i++) {
             String sk = s.substring(i, i + kmerSize);
 
-            KmerIndex.KmerIndexRecord kir = findKmer(sk);
+            Set<Interval> is = findKmer(sk);
 
-            if (kir == null) {
+            if (is == null) {
                 allIntervals.add(new HashSet<Interval>());
             } else {
-                allIntervals.add(kir.getLocations());
+                allIntervals.add(is);
             }
         }
 
         return allIntervals;
+    }
+
+    private Interval asInterval(CompactSerializableInterval csi) {
+        return new Interval(contigIndexToNameMap.get(csi.getChrIndex()), csi.getStart(), csi.getStart() + kmerSize);
     }
 
     private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals, boolean isNegative) {
