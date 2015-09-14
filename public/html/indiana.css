@@ -1,5 +1,4 @@
 body {
-    /*font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;*/
     font-family: Lucidatypewriter, monospace;
     font-size: 16.0px;
 
@@ -25,7 +24,7 @@ body {
 }
 
 #tip {
-    font-family: "Courier New";
+    font-family: Lucidatypewriter, monospace;
     font-size: 10px;
     color: #000000;
 }
@@ -45,6 +44,21 @@ body {
 
 .nodeNovel {
     fill: #F41C54;
+}
+
+.nodeRejected {
+    fill: #ffffff;
+    stroke: #000000;
+}
+
+.nodePredecessor {
+    fill: #ccc;
+    stroke: #00ff00;
+}
+
+.nodeSuccessor {
+    fill: #ccc;
+    stroke: #0000ff;
 }
 
 #link {

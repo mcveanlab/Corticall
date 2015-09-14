@@ -10,7 +10,7 @@
 <body>
 
 <div id="nav">
-    <div id="kmerSelection"><input type="text" id="kmerBox" /><input type="checkbox" id="simplify" checked></div>
+    <div id="kmerSelection"><input type="text" id="kmerBox" /><input type="checkbox" id="simplify"></div>
     <div id="info"></div>
     <div id="status"></div>
 </div>
@@ -36,24 +36,19 @@
         nodes = graph.nodes;
         links = graph.links;
 
+        d3.selectAll("#kmerBox").property("value", graph.kmer);
+        setDefaultStatus(graph);
+
         var w = window.innerWidth, h = window.innerHeight;
 
-        var force = d3.layout.force()
-                .nodes(d3.values(nodes))
-                .links(links)
-                .size([w, h])
-                .linkDistance(20)
-                .charge(function (d) {
-                    return d.isNovel ? -300 : -200;
+        d3.select("body")
+                .on("dblclick.zoom", null)
+                .on("keydown", function () {
+                    parent.call(d3.behavior.zoom().on("zoom", zoom))
                 })
-
-        force.start();
-        for (var i = 0; i < nodes.length * nodes.length; i++) force.tick();
-        force.stop();
-
-        force
-                .on("tick", tick)
-                .start();
+                .on("keyup", function () {
+                    parent.call(d3.behavior.zoom().on("zoom", null))
+                })
 
         var parent = d3.select("body").append("svg")
                 .attr("width", w)
@@ -61,39 +56,26 @@
                 .on("dblclick.zoom", null)
                 .append("g")
 
-        /*
-        var svg = d3.select("body").append("svg")
-                .attr("width", w)
-                .attr("height", h)
-                .on("dblclick.zoom", null)
-                .append("g")
-                */
-
         var svg = parent.append("g");
-
-        d3.select("body")
-                .on("keydown", function () {
-                    parent.call(d3.behavior.zoom().on("zoom", zoom))
-                })
-               .on("keyup", function () {
-                    parent.call(d3.behavior.zoom().on("zoom", null))
-                })
 
         svg.append("rect")
                 .attr("class", "overlay")
                 .attr("width", w)
                 .attr("height", h)
+                .on("dblclick.zoom", null)
                 .on("click", function () {
                     setDefaultStatus(graph)
                 });
 
+        var defs = svg.append("defs");
+
         var markerClasses = ["Child", "Mother", "Father"];
         markerClasses.map(function(markerClass) {
-            svg.append("defs").append("marker")
+            defs.append("marker")
                     .attr("id", "marker" + markerClass)
                     .attr("class", "marker" + markerClass)
                     .attr("viewBox", "0 -5 10 10")
-                    .attr("refX", 15)
+                    .attr("refX", 12)
                     .attr("refY", 0)
                     .attr("markerWidth", 3)
                     .attr("markerHeight", 3)
@@ -102,75 +84,116 @@
                     .attr("d", "M0,-5L10,0L0,5");
         });
 
-        var path = svg.append("g").selectAll("path")
+        var link = svg.selectAll("path");
+        var node = svg.selectAll("circle");
+
+        start();
+
+        function start() {
+            d3.selectAll("#link").remove();
+            d3.selectAll("#node").remove();
+
+            link = svg.append("g").selectAll("#link");
+            node = svg.append("g").selectAll("#node");
+
+            var force = d3.layout.force()
+                    .nodes(nodes)
+                    .links(links)
+                    .size([w, h])
+                    .linkDistance(20)
+                    .on("tick", tick)
+                    .charge(-200)
+//                    .charge(function (d) {
+//                        return d.isNovel ? -300 : -200;
+//                    })
+
+            force.start();
+            for (var i = 0; i < nodes.length * nodes.length; i++) { force.tick(); }
+            force.stop();
+
+            link = link
                 .data(force.links())
                 .enter()
                 .append("path")
                 .attr("id", "link")
-                .attr("stroke-width", function(d) {
+                .attr("stroke-width", function (d) {
                     return (d.highlight) ? "3.5px" : "1.5px";
                 })
-                .attr("class", function(d) {
+                .attr("class", function (d) {
                     switch (d.sample) {
-                        case 0: return "linkChild"; break;
-                        case 1: return "linkMother"; break;
-                        case 2: return "linkFather"; break;
+                        case 0:
+                            return "linkChild";
+                            break;
+                        case 1:
+                            return "linkMother";
+                            break;
+                        case 2:
+                            return "linkFather";
+                            break;
                     }
                 })
-                .attr("marker-end", function(d) {
+                .attr("marker-end", function (d) {
                     switch (d.sample) {
-                        case 0: return "url(#markerChild)"; break;
-                        case 1: return "url(#markerMother)"; break;
-                        case 2: return "url(#markerFather)"; break;
+                        case 0:
+                            return "url(#markerChild)";
+                            break;
+                        case 1:
+                            return "url(#markerMother)";
+                            break;
+                        case 2:
+                            return "url(#markerFather)";
+                            break;
                     }
-                })
+                });
 
-        var circle = svg.append("g").selectAll("circle")
+            node = node
                 .data(force.nodes())
                 .enter().append("circle")
                 .attr("id", "node")
-                .attr("class", function(d) {
-                    return (d.isNovel ? "nodeNovel" : "nodeNormal")
+                .attr("class", function (d) {
+                    if (d.isNovel) { return "nodeNovel"; }
+                    else if (d.branchRejected) { return "nodeRejected"; }
+                    else if (d.isPredecessor) { return "nodePredecessor"; }
+                    else if (d.isSuccessor) { return "nodeSuccessor"; }
+                    else { return "nodeNormal"; }
                 })
-                .attr("stroke", function(d) {
-                    if (d.isPredecessor) {
-                        return "#00ff00";
-                    } else if (d.isSuccessor) {
-                        return "#0000ff";
-                    }
+                .attr("r", function (d) {
+                    return 3 + Math.sqrt(d.kmer.length / 47)
                 })
-                .attr("r", function(d) {
-                    return 3 + Math.sqrt(d.kmer.length/47)
+                .attr("title", function (d) {
+                    return d.kmer;
                 })
-                .attr("title", function(d) { return d.kmer; })
-                .on("mouseover", function(d) {
-                    d3.json("crrecord?seq=" + d.kmer, function(result) {
+                .on("mouseover", function (d) {
+                    d3.json("crrecord?seq=" + d.kmer, function (result) {
                         d3.select("#status").text(result.recordText);
                     });
 
                     svg.append("text")
-                        .attr("id", "tip")
-                        .attr("x", d.x + 10)
-                        .attr("y", d.y - 10)
-                        .attr("width", 100)
-                        .attr("height", 50)
-                        .text(d.kmer)
+                            .attr("id", "tip")
+                            .attr("x", d.x + 10)
+                            .attr("y", d.y - 10)
+                            .attr("width", 100)
+                            .attr("height", 50)
+                            .text(d.kmer)
                 })
-                .on("mouseout", function(d) {
+                .on("mouseout", function (d) {
                     svg.selectAll("#tip").remove();
                 })
-                .on("click", function(d) {
+                .on("click", function (d) {
                     d3.select("#status").text(d.kmer + " (" + (d.kmer.length) + " bp)");
                 })
-                .on("dblclick", function(d) {
-                    d3.json("crrecord?seq=" + d.kmer, function(result) {
-                        d3.select("#status").text(result.recordText);
+                .on("dblclick", function (d) {
+                    d3.json("explore?kmer=" + d.kmer + "&sindex=" + nodes.length, function (result) {
+                        nodes = nodes.concat(result.nodes);
+                        links = links.concat(result.links);
+
+                        start();
                     });
                 })
                 .call(force.drag);
 
-        d3.selectAll("#kmerBox").property("value", graph.kmer);
-        setDefaultStatus(graph);
+            force.start();
+        }
 
         function setDefaultStatus(graph) {
             d3.select("#info").text("Vertices (full: " + graph.numVertices + ", simplified: " + graph.numVerticesSimplified + ").  Known (id: " + graph.knownVariant + ", type: " + graph.knownType + " ref: " + graph.knownRef + " alt: " + graph.knownAlt + ")");
@@ -178,7 +201,7 @@
         }
 
         function tick() {
-            path.attr("d", function(d) {
+            link.attr("d", function(d) {
                 switch (d.sample) {
                     case 1:
                         return "M" + d.source.x + "," + d.source.y + " " +
@@ -194,7 +217,7 @@
                 }
             });
 
-            circle.attr("transform", function(d) {
+            node.attr("transform", function(d) {
                 return "translate(" + d.x + "," + d.y + ")";
             });
         }

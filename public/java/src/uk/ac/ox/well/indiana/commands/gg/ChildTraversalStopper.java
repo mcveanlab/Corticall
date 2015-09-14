@@ -48,6 +48,6 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
 
     @Override
     public int maxJunctionsAllowed() {
-        return 1;
+        return 5;
     }
 }
