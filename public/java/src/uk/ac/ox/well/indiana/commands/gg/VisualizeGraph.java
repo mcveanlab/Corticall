@@ -214,19 +214,19 @@ public class VisualizeGraph extends Module {
 
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
 
-            /*
+            //
             for (AnnotatedVertex av : a.vertexSet()) {
                 if (!av.isNovel()) {
-                    log.info("  aligning: {}", av);
+                    log.info("  aligning: {} {}", av, kl1.findKmer(av.getKmer()));
 
                     av.setMaternalLocations(kl1.findKmer(av.getKmer()));
 
-                    log.info("  aligning: {}", av);
+                    log.info("  aligning: {} {}", av, kl2.findKmer(av.getKmer()));
 
                     av.setPaternalLocations(kl2.findKmer(av.getKmer()));
                 }
             }
-            */
+            //
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 

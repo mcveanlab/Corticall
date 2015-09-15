@@ -20,7 +20,7 @@
         <dependency org="com.typesafe.akka" name="akka" rev="2.1.4" />
         <dependency org="org.yaml" name="snakeyaml" rev="1.14" />
         <dependency org="uk.com.robust-it" name="cloning" rev="1.9.2" />
-        <dependency org="org.mapdb" name="mapdb" rev="1.0.8" />
+        <dependency org="org.mapdb" name="mapdb" rev="2.0-beta6" />
         <!--<dependency org="net.sf.proguard" name="proguard-anttask" rev="5.0" />-->
 
         <!-- Dependencies that can be satisifed with local repository -->
