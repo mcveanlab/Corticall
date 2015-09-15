@@ -8,16 +8,10 @@ import org.mapdb.DBMaker;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
 
 public class IndexReference extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference sequence")
@@ -25,6 +19,9 @@ public class IndexReference extends Module {
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
     public Integer KMER_SIZE = 47;
+
+    @Argument(fullName="cacheSize", shortName="c", doc="Cache size")
+    public Integer CACHE_SIZE = 1000000;
 
     @Output
     public PrintStream out;
@@ -37,7 +34,7 @@ public class IndexReference extends Module {
                 .closeOnJvmShutdown()
                 .transactionDisable()
                 .fileMmapEnable()
-                .cacheSize(1000000)
+                .cacheSize(CACHE_SIZE)
                 .make();
 
         NavigableSet<Object[]> kmerIndex = db.treeSetCreate("index" + KMER_SIZE)
