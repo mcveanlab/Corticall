@@ -7,6 +7,7 @@ import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.Interval;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.Fun;
 import uk.ac.ox.well.indiana.commands.gg.CompactSerializableInterval;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -17,8 +18,7 @@ import java.util.*;
 
 public class KmerLookup {
     private int kmerSize;
-    private Map<String, Set<CompactSerializableInterval>> index;
-    private Map<Integer, String> contigIndexToNameMap = new HashMap<Integer, String>();
+    private NavigableSet<Object[]> kmerIndex;
 
     public KmerLookup(File ref) {
         initialize(ref, 47);
@@ -37,41 +37,27 @@ public class KmerLookup {
     private void loadIndex(File ref, int kmerSize) {
         File dbFile = new File(ref.getAbsoluteFile() + ".kmerdb");
 
-        DB db = DBMaker.newFileDB(dbFile)
+        DB db = DBMaker.fileDB(dbFile)
                 .transactionDisable()
-                .mmapFileEnable()
+                .fileMmapEnable()
                 .cacheSize(1000000)
                 .closeOnJvmShutdown()
                 .readOnly()
                 .make();
 
-        index = db.getHashMap("index" + kmerSize);
-
-        try {
-            IndexedFastaSequenceFile fa = new IndexedFastaSequenceFile(ref);
-
-            ReferenceSequence rseq;
-            while ((rseq = fa.nextSequence()) != null) {
-                contigIndexToNameMap.put(rseq.getContigIndex(), rseq.getName().split("\\s+")[0]);
-            }
-        } catch (FileNotFoundException e) {
-            throw new IndianaException("File not found", e);
-        }
+        kmerIndex = db.treeSet("index" + kmerSize);
     }
 
     public Set<Interval> findKmer(String sk) {
-        Set<CompactSerializableInterval> csis = index.get(sk);
-        if (csis != null) {
-            Set<Interval> is = new HashSet<Interval>();
+        Set<Interval> intervals = new HashSet<Interval>();
 
-            for (CompactSerializableInterval csi : csis) {
-                is.add(asInterval(csi));
-            }
-
-            return is;
+        for (Object l[] : Fun.filter(kmerIndex, sk)) {
+            String chr = (String) l[1];
+            int pos = (Integer) l[2];
+            intervals.add(new Interval(chr, pos, pos + kmerSize));
         }
 
-        return null;
+        return intervals;
     }
 
     public List<Set<Interval>> findKmers(String s) {
@@ -80,20 +66,10 @@ public class KmerLookup {
         for (int i = 0; i <= s.length() - kmerSize; i++) {
             String sk = s.substring(i, i + kmerSize);
 
-            Set<Interval> is = findKmer(sk);
-
-            if (is == null) {
-                allIntervals.add(new HashSet<Interval>());
-            } else {
-                allIntervals.add(is);
-            }
+            allIntervals.add(findKmer(sk));
         }
 
         return allIntervals;
-    }
-
-    private Interval asInterval(CompactSerializableInterval csi) {
-        return new Interval(contigIndexToNameMap.get(csi.getChrIndex()), csi.getStart(), csi.getStart() + kmerSize);
     }
 
     private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals, boolean isNegative) {
