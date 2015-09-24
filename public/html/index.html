@@ -44,6 +44,12 @@
         d3.select("body")
                 .on("dblclick.zoom", null)
                 .on("keydown", function () {
+//                    if (d3.behavior.zoom().on("zoom") == null) {
+//                        parent.call(d3.behavior.zoom().on("zoom", zoom))
+//                    } else {
+//                        parent.call(d3.behavior.zoom().on("zoom", null))
+//                    }
+
                     parent.call(d3.behavior.zoom().on("zoom", zoom))
                 })
                 .on("keyup", function () {
@@ -168,13 +174,23 @@
                         d3.select("#status").text(result.recordText);
                     });
 
+                    console.log(d.maternalLoci.length);
+                    console.log(d.paternalLoci.length);
+
+                    var tiptext = d.kmer;
+
+                    if (d.maternalLoci.length == 1) { tiptext += " m:" + d.maternalLoci[0].sequence + ":" + d.maternalLoci[0].start + "-" + d.maternalLoci[0].end; }
+                    if (d.paternalLoci.length == 1) { tiptext += " d:" + d.paternalLoci[0].sequence + ":" + d.paternalLoci[0].start + "-" + d.paternalLoci[0].end; }
+
+                    //console.log(d);
+
                     svg.append("text")
                             .attr("id", "tip")
                             .attr("x", d.x + 10)
                             .attr("y", d.y - 10)
                             .attr("width", 100)
                             .attr("height", 50)
-                            .text(d.kmer)
+                            .text(tiptext);
                 })
                 .on("mouseout", function (d) {
                     svg.selectAll("#tip").remove();

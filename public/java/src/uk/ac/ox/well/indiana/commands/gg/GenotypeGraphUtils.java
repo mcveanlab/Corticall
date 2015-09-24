@@ -210,6 +210,15 @@ public class GenotypeGraphUtils {
         return ag;
     }
 
+    public static void annotateAlignmentInformation(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, KmerLookup kl1, KmerLookup kl2) {
+        for (AnnotatedVertex av : a.vertexSet()) {
+            if (!av.isNovel()) {
+                av.setMaternalLocations(kl1.findKmer(av.getKmer()));
+                av.setPaternalLocations(kl2.findKmer(av.getKmer()));
+            }
+        }
+    }
+
     private static String formatAttributes(Map<String, Object> attrs) {
         List<String> attrArray = new ArrayList<String>();
 
@@ -679,12 +688,6 @@ public class GenotypeGraphUtils {
         String minLp0 = "", minLpc = "";
         String start = "", stop = "";
 
-        Set<AnnotatedVertex> sought = new HashSet<AnnotatedVertex>();
-        sought.add(new AnnotatedVertex("GATAATATATTTTGTAGAATATTTTTATTATTTTTAATTAACATGAA"));
-        sought.add(new AnnotatedVertex("AAGAATTTTTTTACACTTTTATTTTCGTTATTTGTATCTTCATTATT"));
-        sought.add(new AnnotatedVertex("TTATATGTGGAAGAATTATGTATAATATTATTATTATCATTATTATT"));
-        sought.add(new AnnotatedVertex("TTTTTTTGCATATTTAATTGATCCATTTTATTATAATCCTTATCATT"));
-
         for (AnnotatedVertex sv : candidateStarts) {
             for (AnnotatedVertex ev : candidateEnds) {
                 String lp0, lpc;
@@ -751,12 +754,11 @@ public class GenotypeGraphUtils {
         return pi;
     }
 
-    public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, Map<CortexKmer, Boolean> novelKmers, KmerLookup kl) {
+    public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
         // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
-        for (s = 0; s < (p.child.length() < p.parent.length() ? p.child.length() : p.parent.length()) && p.child.charAt(s) == p.parent.charAt(s); s++) {
-        }
+        for (s = 0; s < (p.child.length() < p.parent.length() ? p.child.length() : p.parent.length()) && p.child.charAt(s) == p.parent.charAt(s); s++) {}
 
         while (e0 > s && e1 > s && p.child.charAt(e0) == p.parent.charAt(e1)) {
             e0--;
@@ -768,12 +770,40 @@ public class GenotypeGraphUtils {
 
         int e = s + parentalAllele.length() - 1;
 
+        if (s > 0 && e > 0) {
+            System.out.println(p.parent);
+            System.out.println(p.child);
+
+            String startKmer = p.parent.substring(s - 1, s - 1 + clean.getKmerSize());
+            Set<Interval> startLocations = new HashSet<Interval>();
+
+            String endKmer = p.parent.substring(s - 1 + parentalAllele.length(), s - 1 + parentalAllele.length() + clean.getKmerSize());
+            Set<Interval> endLocations = new HashSet<Interval>();
+
+            for (AnnotatedVertex av : a.vertexSet()) {
+                if (av.getKmer().equals(startKmer)) {
+                    System.out.println("start: " + av + " " + av.getMaternalLocations() + " " + av.getPaternalLocations());
+
+                    startLocations = color == 1 ? av.getMaternalLocations() : av.getPaternalLocations();
+                }
+
+                if (av.getKmer().equals(endKmer)) {
+                    System.out.println("end: " + av + " " + av.getMaternalLocations() + " " + av.getPaternalLocations());
+
+                    endLocations = color == 1 ? av.getMaternalLocations() : av.getPaternalLocations();
+                }
+            }
+
+            Interval startLocation = startLocations.size() == 1 ? startLocations.iterator().next() : null;
+            Interval endLocation = endLocations.size() == 1 ? endLocations.iterator().next() : null;
+        }
+
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
-        boolean isChimeric = isChimeric(stretch, kl);
+        boolean isChimeric = false; //isChimeric(stretch, kl);
 
-        List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
-        List<Set<Interval>> anovel = kl.align(stretch);
+        //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
+        //List<Set<Interval>> anovel = kl.align(stretch);
 
         // Build the GVC
         GraphicalVariantContext gvc = new GraphicalVariantContext()
@@ -785,8 +815,8 @@ public class GenotypeGraphUtils {
                 .attribute(color, "childStretch", p.child)
                 .attribute(color, "event", "unknown")
                 .attribute(color, "traversalStatus", "complete")
-                .attribute(color, "parentalPathAlignment", alignment)
-                .attribute(color, "novelStretchAlignment", anovel)
+                //.attribute(color, "parentalPathAlignment", alignment)
+                //.attribute(color, "novelStretchAlignment", anovel)
                 .attribute(color, "haplotypeBackground", color);
 
         if (childAllele.equals("N")) {

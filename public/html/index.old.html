@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Test</title>
+    <link rel="stylesheet" href="indiana.css" />
+    <script src="d3.v3.min.js" charset="utf-8"></script>
+    <script src="autocomplete.js" charset="utf-8"></script>
+</head>
+
+<body>
+<h1>Contig context viewer</h1>
+
+<div id="dataset">
+</div>
+
+<div id="contigSelection"></div>
+<div id="kmerSelection"></div>
+<div id="contigDisplay"></div>
+
+<script type="text/javascript">
+    d3.json("dataset", function(json) {
+        d3.select("#dataset").append("p").text("contigsFile: " + json.contigsFile);
+        d3.select("#dataset").append("p").attr("class", "all").attr("id", "selected").text("graphName: all").on("click", function() {
+            k = 0;
+
+            d3.selectAll("#dataset").selectAll("p").attr("id", "");
+            d3.select(".all").attr("id", "selected");
+
+            drawEdges(ci, "all");
+            drawMasked(ci, "all");
+            drawLinks(ci, "all");
+            drawContext(ci, "all");
+            drawKmerCoverage(ci, "all");
+            drawLinkCoverage(ci, "all");
+        });
+
+        json.graphs.map(function(o) {
+            d3.select("#dataset")
+                    .append("p")
+                    .attr("class", o.graphName)
+                    .text("graphName: " + o.graphName + " (" + o.graphFile + ", " + o.kmerSize + ", " + o.numRecords + ", " + o.sampleName + ")")
+                    .on("click", function() {
+                        k = o.kmerSize;
+
+                        d3.selectAll(".linkline").remove();
+
+                        d3.selectAll("#dataset").selectAll("p").attr("id", "");
+                        d3.select("." + o.graphName).attr("id", "selected");
+
+                        drawEdges(ci, o.graphName);
+                        drawMasked(ci, o.graphName);
+                        drawLinks(ci, o.graphName);
+                        drawContext(ci, o.graphName);
+                        drawKmerCoverage(ci, o.graphName);
+                        drawLinkCoverage(ci, o.graphName);
+                    });
+        });
+    });
+</script>
+
+<script type="text/javascript">
+    var keys;
+    var seq;
+    var edges;
+    var masked;
+    var ci;
+    var lastTranslate;
+    var lastScale;
+    var svg;
+    var k = 0;
+
+    var margin = {top: 40, right: 40, bottom: 40, left: 40},
+            width = window.innerWidth - margin.left - margin.right,
+            height = window.innerHeight - margin.top - margin.bottom;
+
+    d3.csv("contigs.csv", function(csv) {
+        keys=csv;
+        start();
+    });
+
+    function drawEdges(d, currentGraph) {
+        d3.json("edges?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            edges = json;
+
+            d3.selectAll(".outedge").remove();
+            d3.selectAll(".outedgeline").remove();
+            d3.selectAll(".inedge").remove();
+            d3.selectAll(".inedgeline").remove();
+
+            for (e in edges) {
+                outKeys = d3.keys(edges[e].out);
+
+                for (outKey in outKeys) {
+                    svg.append("text")
+                            .attr("class", "outedge")
+                            .attr("id", edges[e].out[outKey] + "_" + e)
+                            .attr("text-anchor", "end")
+                            .attr("x", e)
+                            .attr("y", (height/2) - 3*(parseInt(outKey) + 1))
+                            .attr("font-family", "monospace")
+                            .attr("font-size", "1.5px")
+                            .attr("fill", "black")
+                            .text(edges[e].out[outKey]);
+
+                    svg.append("line")
+                            .attr("class", "outedgeline")
+                            .attr("x1", e - 1 - 0.2)
+                            .attr("y1", (height/2) - 0.5)
+                            .attr("x2", e - 0.5)
+                            .attr("y2", (height/2) - 3*(parseInt(outKey) + 1))
+                            .attr("stroke-width", 0.1)
+                            .attr("stroke", "black")
+                            .attr("opacity", 0.5)
+                }
+
+                inKeys = d3.keys(edges[e].in);
+
+                for (inKey in inKeys) {
+                    svg.append("text")
+                            .attr("class", "inedge")
+                            .attr("id", edges[e].in[inKey] + "_" + e)
+                            .attr("text-anchor", "end")
+                            .attr("x", e)
+                            .attr("y", (height/2) + 3*(parseInt(inKey) + 1))
+                            .attr("font-family", "monospace")
+                            .attr("font-size", "1.5px")
+                            .attr("fill", "black")
+                            .text(edges[e].in[inKey]);
+
+                    svg.append("line")
+                            .attr("class", "inedgeline")
+                            .attr("x1", parseInt(e) + 0.2)
+                            .attr("y1", (height/2) - 0.5)
+                            .attr("x2", parseInt(e) - 0.5)
+                            .attr("y2", (height/2) + 3*(parseInt(inKey) + 1) - 1)
+                            .attr("stroke-width", 0.1)
+                            .attr("stroke", "black")
+                            .attr("opacity", 0.5)
+                }
+            }
+        });
+    }
+
+    function drawMasked(d, currentGraph) {
+        d3.json("masked?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            masked = json;
+
+            d3.selectAll(".masked").remove();
+
+            json.masked.map(function(o) {
+                svg.append("line")
+                        .attr("class", "masked")
+                        .attr("x1", o-1)
+                        .attr("y1", (height/2) - 0.5)
+                        .attr("x2", o)
+                        .attr("y2", (height/2) - 0.5)
+                        .attr("stroke-width", 0.3)
+                        .attr("stroke", "gray");
+            });
+        });
+    }
+
+    function drawLinks(d, currentGraph) {
+        d3.selectAll(".ctxlink").remove();
+
+        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph + "&orientation=forward", function(json) {
+            json.linkStarts.map(function(o) {
+                svg.append("circle")
+                        .attr("class", "ctxlink")
+                        .attr("cx", o-0.5)
+                        .attr("cy", parseInt(height)/2 - 1.2)
+                        .attr("r", 0.17)
+                        .attr("stroke-width", 0.1)
+                        .attr("stroke", "gray")
+                        .attr("fill", "white")
+                        .on("click", function(a) {
+                            d3.json("link?contigName=" + d.contigName + "&graphName=" + currentGraph + "&pos=" + o, function(jsonLink) {
+                                d3.selectAll(".linkline").remove();
+
+                                jsonLink.linkEntries.map(function(q) {
+                                    var idStart = "#" + q.linkStartId;
+                                    var idEnd = "#" + q.linkEndId;
+                                    var cov = parseInt(q.linkCoverage);
+
+                                    var elemStart = d3.select(idStart);
+                                    var elemEnd = d3.select(idEnd);
+
+                                    svg.append("svg:path")
+                                            .attr("class", "linkline")
+                                            .attr("fill", "none")
+                                            .attr("stroke-width", cov/100)
+                                            .attr("stroke", "blue")
+                                            .attr("stroke-opacity", 0.5)
+                                            .attr("d", function(d) {
+                                                if (elemStart.attr("x") != elemEnd.attr("x")) {
+                                                    return draw_curve(elemStart.attr("x") - 0.5, elemStart.attr("y") - 1, elemEnd.attr("x") - 0.5, elemEnd.attr("y") - 1, 1);
+                                                }
+                                            })
+                                            .on("mouseover", function() { d3.select(this).attr("stroke-opacity", 0.9); })
+                                            .on("mouseout", function() { d3.select(this).attr("stroke-opacity", 0.5); })
+                                            .append("svg:title")
+                                            .text(cov)
+                                });
+                            });
+                        });
+            });
+        });
+
+        d3.json("links?contigName=" + d.contigName + "&graphName=" + currentGraph + "&orientation=reverse", function(json) {
+            json.linkStarts.map(function(o) {
+                svg.append("circle")
+                        .attr("class", "ctxlink")
+                        .attr("cx", o-0.5)
+                        .attr("cy", parseInt(height)/2 + 0.4)
+                        .attr("r", 0.17)
+                        .attr("stroke-width", 0.1)
+                        .attr("stroke", "gray")
+                        .attr("fill", "white")
+                        .on("click", function(a) {
+                            d3.json("link?contigName=" + d.contigName + "&graphName=" + currentGraph + "&pos=" + o, function(jsonLink) {
+                                d3.selectAll(".linkline").remove();
+
+                                jsonLink.linkEntries.map(function(q) {
+                                    var idStart = "#" + q.linkStartId;
+                                    var idEnd = "#" + q.linkEndId;
+                                    var cov = parseInt(q.linkCoverage);
+
+                                    var elemStart = d3.select(idStart);
+                                    var elemEnd = d3.select(idEnd);
+
+                                    svg.append("svg:path")
+                                            .attr("class", "linkline")
+                                            .attr("fill", "none")
+                                            .attr("stroke-width", cov/100)
+                                            .attr("stroke", "blue")
+                                            .attr("stroke-opacity", 0.5)
+                                            .attr("d", function(d) {
+                                                if (elemStart.attr("x") != elemEnd.attr("x")) {
+                                                    return draw_curve(elemStart.attr("x") - 0.5, parseInt(elemStart.attr("y")) + 0.2, elemEnd.attr("x") - 0.5, parseInt(elemEnd.attr("y")) + 0.2, 1);
+                                                }
+                                            })
+                                            .on("mouseover", function() { d3.select(this).attr("stroke-opacity", 0.9); })
+                                            .on("mouseout", function() { d3.select(this).attr("stroke-opacity", 0.5); })
+                                            .append("svg:title")
+                                            .text(cov);
+                                });
+                            });
+                        });
+            });
+        });
+    }
+
+    function draw_curve(Ax, Ay, Bx, By, M) {
+        // side is either 1 or -1 depending on which side you want the curve to be on.
+        // Find midpoint J
+        var Jx = Ax + (Bx - Ax) / 2
+        var Jy = Ay + (By - Ay) / 2
+
+        // We need a and b to find theta, and we need to know the sign of each to make sure that the orientation is correct.
+        var a = Bx - Ax
+        //var asign = (a < 0 ? -1 : 1)
+        var asign = (a < 0 ? 1 : -1)
+        var b = By - Ay
+        var bsign = (b < 0 ? -1 : 1)
+        var theta = Math.atan(b / a)
+
+        // Find the point that's perpendicular to J on side
+        var costheta = asign * Math.cos(theta)
+        var sintheta = asign * Math.sin(theta)
+
+        // Find c and d
+        var c = M * sintheta
+        var d = M * costheta
+
+        // Use c and d to find Kx and Ky
+        var Kx = Jx - c
+        var Ky = Jy + d
+
+        if (isNaN(Ky)) {
+            console.log(Ax + " " + Ay + " " + Bx + " " + By + " " + M);
+        }
+
+        return "M" + Ax + "," + Ay +
+                "Q" + Kx + "," + Ky +
+                " " + Bx + "," + By;
+    }
+
+    function drawContext(d, currentGraph) {
+        d3.json("context?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            d3.selectAll(".context").remove();
+
+            for (key in json) {
+                id = json[key] + "_" + key;
+
+                svg.append("svg:text")
+                        .attr("class", "context")
+                        .attr("id", id)
+                        .attr("x", key - 1)
+                        .attr("y", height/2)
+                        .attr("font-family", "monospace")
+                        .attr("font-size", "1.5px")
+                        .attr("fill", "gray")
+                        .text(json[key]);
+            }
+        });
+    }
+
+    function drawLinkCoverage(d, currentGraph) {
+        d3.selectAll(".linksplot").remove();
+
+        d3.json("linksplot?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            var line = d3.svg.line()
+                    .x(function(d, i) { return i - 1; })
+                    .y(function(d, i) {
+                        v = (-20*d / d3.max(json.cov)) + ((height/2) - 10)
+                        return v;
+                    })
+                    //.interpolate("basis");
+
+            for (i = 0; i < json.cov.length; i++) {
+                d = json.cov[i];
+                v = (-20*d / d3.max(json.cov)) + ((height/2) - 10)
+
+                svg.append("rect")
+                        .attr("class", "linksplot")
+                        .attr("width", 1)
+                        .attr("height", 20)
+                        .attr("x", i - 1)
+                        .attr("y", (height/2) - 30)
+                        .attr("fill", "white")
+                        .on("mouseover", function() {
+                            var x0 = Math.round(d3.mouse(this)[0]);
+                            var y0 = (-20*json.cov[x0] / d3.max(json.cov)) + ((height/2) - 10);
+
+                            svg.append("rect")
+                                    .attr("class", "axislabel")
+                                    .attr("width", 0.1)
+                                    .attr("height", 20)
+                                    .attr("x", x0 - 1)
+                                    .attr("y", (height/2) - 30);
+
+                            svg.append("text")
+                                    .attr("class", "axislabel")
+                                    .attr("x", x0 - 1)
+                                    .attr("y", y0)
+                                    .attr("font-family", "monospace")
+                                    .attr("font-size", "1.5px")
+                                    .text(json.cov[x0]);
+                        })
+                        .on("mouseout", function() {
+                            svg.selectAll(".axislabel").remove();
+                        })
+                        .append("svg:title")
+                        .text(d)
+            }
+
+            svg.append("svg:path")
+                    .attr("class", "linksplot")
+                    .attr("stroke-width", 0.2)
+                    .attr("stroke", "gray")
+                    .attr("fill", "none")
+                    .attr("d", line(json.cov));
+
+        });
+    }
+
+    function drawKmerCoverage(d, currentGraph) {
+        d3.selectAll(".covplot").remove();
+
+        d3.json("covplot?contigName=" + d.contigName + "&graphName=" + currentGraph, function(json) {
+            var line = d3.svg.line()
+                    .x(function(d, i) { return i - 1; })
+                    .y(function(d, i) {
+                        v = (-20*d / d3.max(json.cov)) + ((height/2) - 40)
+                        return v;
+                    })
+                    //.interpolate("basis");
+
+            for (i = 0; i < json.cov.length; i++) {
+                d = json.cov[i];
+                v = (-20*d / d3.max(json.cov)) + ((height/2) - 40)
+
+                svg.append("rect")
+                        .attr("class", "covplot")
+                        .attr("width", 1)
+                        .attr("height", 20)
+                        .attr("x", i - 1)
+                        .attr("y", (height/2) - 60)
+                        .attr("fill", "white")
+                        .on("mouseover", function() {
+                            var x0 = Math.round(d3.mouse(this)[0]);
+                            var y0 = (-20*json.cov[x0] / d3.max(json.cov)) + ((height/2) - 40);
+
+                            svg.append("rect")
+                                    .attr("class", "axislabel2")
+                                    .attr("width", 0.1)
+                                    .attr("height", 20)
+                                    .attr("x", x0 - 1)
+                                    .attr("y", (height/2) - 60);
+
+                            svg.append("text")
+                                    .attr("class", "axislabel2")
+                                    .attr("x", x0 - 1)
+                                    .attr("y", y0)
+                                    .attr("font-family", "monospace")
+                                    .attr("font-size", "1.5px")
+                                    .text(json.cov[x0]);
+                        })
+                        .on("mouseout", function() {
+                            svg.selectAll(".axislabel2").remove();
+                        })
+                        .append("svg:title")
+                        .text(d)
+            }
+
+            svg.append("svg:path")
+                    .attr("class", "linksplot")
+                    .attr("stroke-width", 0.2)
+                    .attr("stroke", "gray")
+                    .attr("fill", "none")
+                    .attr("d", line(json.cov));
+
+        });
+    }
+
+    //Call back for when user selects an option
+    function onSelect(d) {
+        ci = d;
+        k = 0;
+
+        d3.json("contig?contigName=" + d.contigName, function(json) {
+            console.log(json);
+            seq=json;
+
+            d3.select("#contigDisplay").select("svg").remove();
+
+            var x = d3.scale.linear()
+                      .domain([-json.seq.length / 2, json.seq.length / 2])
+                      .range([0, width]);
+
+            var y = d3.scale.linear()
+                      .domain([-height / 2, height / 2])
+                      .range([height, 0]);
+
+            svg = d3.select("#contigDisplay").append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + (width - json.seq.length)/2 + "," + 0 + ")")
+                        .call(d3.behavior.zoom().scaleExtent([1, 30]).on("zoom", zoom))
+                        .append("g");
+
+            svg.append("rect")
+               .attr("width", width)
+               .attr("height", height/2)
+               .attr("fill", "white")
+
+            var xPos = d3.range(0, json.seq.length, 1).map(function(n) {
+                var base = json.seq.charAt(n);
+                var color = "#cccccc";
+
+                switch (base) {
+                    case 'A':
+                    case 'a':
+                        color = "#00ff00";
+                        break;
+                    case 'C':
+                    case 'c':
+                        color = "#0000ff";
+                        break;
+                    case 'G':
+                    case 'g':
+                        color = "#ff8000";
+                        break;
+                    case 'T':
+                    case 't':
+                        color = "#ff0000";
+                        break;
+                }
+
+                svg.append("text")
+                   .attr("class", "xlabel")
+                   .attr("id", base + "_" + n)
+                   .attr("text-anchor", "end")
+                   .attr("x", n)
+                   .attr("y", height/2)
+                   .attr("font-family", "monospace")
+                   .attr("font-size", "1.5px")
+                   .attr("fill", color)
+                   .text(base)
+                   .on("mouseover", function(a) {
+                            if (k != 0) {
+                                svg.append("rect")
+                                        .attr("class", "focus")
+                                        .attr("width", n - 1 + k < json.seq.length ? k : json.seq.length - n)
+                                        .attr("height", 0.15)
+                                        .attr("x", n - 1)
+                                        .attr("y", (height / 2) + 0.5)
+                                        .attr("fill", "gray");
+                            }
+                        })
+                   .on("mouseout", function(a) {
+                            d3.selectAll(".focus").remove();
+                        })
+                   .on("click", function(a) {
+                            if (k == 0) {
+                                window.prompt("Contig: ", json.seq);
+                            } else {
+                                window.prompt("Kmer: ", json.seq.substring(n, n + k));
+                            }
+                        });
+            });
+
+            drawEdges(d, "all");
+            drawMasked(d, "all");
+            drawLinks(d, "all");
+            drawContext(d, "all");
+            drawKmerCoverage(d, "all");
+            drawLinkCoverage(d, "all");
+
+            function zoom() {
+                svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+                lastTranslate = d3.event.translate;
+                lastScale = d3.event.scale;
+            }
+        });
+    }
+
+    //Setup and render the autocomplete
+    function start() {
+        var mc = autocomplete(document.getElementById('contigSelection'))
+                .keys(keys)
+                .dataField("contigName")
+                .placeHolder("Contig name")
+                .width(960)
+                .height(500)
+                .onSelected(onSelect)
+                .render();
+    }
+</script>
+
+</body>
+
+</html>
