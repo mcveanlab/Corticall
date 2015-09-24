@@ -22,9 +22,6 @@ public class KmersFromVariants extends Module {
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 47;
 
-    @Argument(fullName="includeFilteredSites", shortName="f", doc="Include filtered sites")
-    public Boolean INCLUDE_FILTERED_SITES = true;
-
     @Argument(fullName="windowSize", shortName="w", doc="Window size")
     public Integer WINDOW_SIZE = 50;
 

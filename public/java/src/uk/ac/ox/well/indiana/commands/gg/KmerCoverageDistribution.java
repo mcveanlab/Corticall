@@ -20,6 +20,9 @@ public class KmerCoverageDistribution extends Module {
     @Argument(fullName="color", shortName="c", doc="Color to use")
     public Integer COLOR = 0;
 
+    @Argument(fullName="recordLimit", shortName="l", doc="Record limit")
+    public Integer RECORD_LIMIT = 200000000;
+
     @Output
     public PrintStream out;
 
@@ -41,6 +44,10 @@ public class KmerCoverageDistribution extends Module {
                 kmerCoverageHist.put(cov, 1);
             } else {
                 kmerCoverageHist.put(cov, kmerCoverageHist.get(cov) + 1);
+            }
+
+            if (numRecords >= RECORD_LIMIT) {
+                break;
             }
         }
 
