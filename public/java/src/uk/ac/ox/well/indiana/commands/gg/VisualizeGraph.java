@@ -214,21 +214,9 @@ public class VisualizeGraph extends Module {
 
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
 
-            //
-            for (AnnotatedVertex av : a.vertexSet()) {
-                if (!av.isNovel()) {
-                    log.info("  aligning: {} {}", av, kl1.findKmer(av.getKmer()));
-
-                    av.setMaternalLocations(kl1.findKmer(av.getKmer()));
-
-                    log.info("  aligning: {} {}", av, kl2.findKmer(av.getKmer()));
-
-                    av.setPaternalLocations(kl2.findKmer(av.getKmer()));
-                }
-            }
-            //
-
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
+
+            GenotypeGraphUtils.annotateAlignmentInformation(a, kl1, kl2);
 
             GraphicalVariantContext gvc = new GraphicalVariantContext()
                     .attribute(0, "stretch", stretch)
@@ -236,16 +224,14 @@ public class VisualizeGraph extends Module {
                     .attribute(0, "novelKmersTotal", novelKmers.size());
 
             // Extract parental stretches
-            //
             PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 1, stretch, novelKmers);
             PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 2, stretch, novelKmers);
 
-            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, novelKmers, kl1));
-            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, novelKmers, kl2));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, a));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, a));
 
             // Finalize into a single call
             GenotypeGraphUtils.chooseVariant(gvc);
-            //
 
             int numVertices = a.vertexSet().size();
 
@@ -270,6 +256,8 @@ public class VisualizeGraph extends Module {
                 m.put("isPredecessor", v.flagIsSet("predecessor"));
                 m.put("isSuccessor", v.flagIsSet("successor"));
                 m.put("branchRejected", v.flagIsSet("branchRejected"));
+                m.put("maternalLoci", v.getMaternalLocations());
+                m.put("paternalLoci", v.getPaternalLocations());
                 /*
                 m.put("isStart", v.getKmer().equals(p1.start) || v.getKmer().equals(p2.start));
                 m.put("isStop", v.getKmer().equals(p1.stop) || v.getKmer().equals(p2.stop));

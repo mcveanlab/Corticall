@@ -1,19 +1,12 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
-import htsjdk.samtools.*;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.util.CigarUtil;
 import htsjdk.samtools.util.Interval;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Fun;
-import uk.ac.ox.well.indiana.commands.gg.CompactSerializableInterval;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 public class KmerLookup {

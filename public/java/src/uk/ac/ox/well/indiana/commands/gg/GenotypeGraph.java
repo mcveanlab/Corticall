@@ -275,6 +275,8 @@ public class GenotypeGraph extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
                 log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
 
+                GenotypeGraphUtils.annotateAlignmentInformation(ag, kl1, kl2);
+
                 // Extract parental stretches
                 PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 1, stretch, novelKmers);
                 PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 2, stretch, novelKmers);
@@ -286,8 +288,8 @@ public class GenotypeGraph extends Module {
                 log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
                 // Call variants
-                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, novelKmers, kl1));
-                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, novelKmers, kl2));
+                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, ag));
+                gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, ag));
 
                 log.info("    variants:");
                 log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
