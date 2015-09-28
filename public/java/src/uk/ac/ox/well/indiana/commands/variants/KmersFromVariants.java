@@ -99,7 +99,14 @@ public class KmersFromVariants extends Module {
     public void execute() {
         Map<String, Map<Integer, Set<VariantContext>>> allVcs = new HashMap<String, Map<Integer, Set<VariantContext>>>();
 
+        log.info("Loading variants...");
+        int numVariants = 0;
         for (VariantContext vc : VCF) {
+            if (numVariants % 10000 == 0) {
+                log.info("  loaded {}", numVariants);
+            }
+            numVariants++;
+
             if (!vc.getGenotype(0).isHomRef() && !vc.getGenotype(0).getGenotypeString().equals(".")) {
                 if (!allVcs.containsKey(vc.getChr())) {
                     allVcs.put(vc.getChr(), new HashMap<Integer, Set<VariantContext>>());
@@ -113,12 +120,15 @@ public class KmersFromVariants extends Module {
             }
         }
 
+        log.info("Processing reference...");
         ReferenceSequence rseq;
         while ((rseq = REFERENCE.nextSequence()) != null) {
             String name = rseq.getName().split("\\s+")[0];
             String seq = new String(rseq.getBases());
 
             List<String> alleles = new ArrayList<String>();
+
+            log.info("  {}", name);
 
             for (int i = 0; i < seq.length(); i++) {
                 alleles.add(seq.substring(i, i + 1));
