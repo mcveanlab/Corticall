@@ -269,6 +269,13 @@ public class SimReads extends Module {
                 mmErrorDist[i]  /= mmErrorNorm;
             }
 
+            log.debug("{}", read);
+            log.debug("{} {}", isFirstEndOfRead, fragmentIsNegativeStrand);
+            log.debug("{}", mmErrorDist);
+            log.debug("{}", insErrorDist);
+            log.debug("{}", delErrorDist);
+            log.debug("{}");
+
             EmpiricalDistribution mmd  = new EmpiricalDistribution(mmErrorDist, rng);
             EmpiricalDistribution insd = new EmpiricalDistribution(insErrorDist, rng);
             EmpiricalDistribution deld = new EmpiricalDistribution(delErrorDist, rng);
@@ -478,7 +485,6 @@ public class SimReads extends Module {
                             if (fragmentOnNegativeStrand) {
                                 fragment = SequenceUtils.reverseComplement(fragment);
                             }
-
 
                             String read1 = generateRead(fragment, posErrorRates, readLength, true, fragmentOnNegativeStrand, numErrors < j);
                             String read2 = generateRead(fragment, posErrorRates, readLength, false, fragmentOnNegativeStrand, numErrors < j);
