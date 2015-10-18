@@ -269,7 +269,7 @@ public class SimReads extends Module {
                 mmErrorDist[i]  /= mmErrorNorm;
             }
 
-            log.debug("{}", read);
+            log.debug("{}", read.substring(2, readLength + 2));
             log.debug("{} {}", isFirstEndOfRead, fragmentIsNegativeStrand);
             log.debug("{}", mmErrorDist);
             log.debug("{}", insErrorDist);
