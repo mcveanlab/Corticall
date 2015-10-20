@@ -770,6 +770,7 @@ public class GenotypeGraphUtils {
 
         int e = s + parentalAllele.length() - 1;
 
+        /*
         if (s > 0 && e > 0) {
             System.out.println(p.parent);
             System.out.println(p.child);
@@ -797,6 +798,7 @@ public class GenotypeGraphUtils {
             Interval startLocation = startLocations.size() == 1 ? startLocations.iterator().next() : null;
             Interval endLocation = endLocations.size() == 1 ? endLocations.iterator().next() : null;
         }
+        */
 
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
