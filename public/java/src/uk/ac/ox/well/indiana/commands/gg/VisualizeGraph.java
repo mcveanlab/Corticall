@@ -227,8 +227,8 @@ public class VisualizeGraph extends Module {
             PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 1, stretch, novelKmers);
             PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, a, 2, stretch, novelKmers);
 
-            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, a));
-            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, a));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, a, kl1));
+            gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, a, kl2));
 
             // Finalize into a single call
             GenotypeGraphUtils.chooseVariant(gvc);
