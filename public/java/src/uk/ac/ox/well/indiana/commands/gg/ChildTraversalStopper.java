@@ -43,7 +43,7 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges) {
         //return (goalSize > 0 && depth >= goalDepth + 1) || edges == 0;
-        return !isNovel(cr) && (isLowComplexity(cr) || edges == 0 || depth >= maxJunctionsAllowed());
+        return size > 10000 || !isNovel(cr) && (isLowComplexity(cr) || edges == 0 || depth >= maxJunctionsAllowed());
     }
 
     @Override

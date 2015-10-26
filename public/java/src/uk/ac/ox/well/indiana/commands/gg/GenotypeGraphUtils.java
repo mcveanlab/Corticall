@@ -754,7 +754,7 @@ public class GenotypeGraphUtils {
         return pi;
     }
 
-    public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
+    public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, KmerLookup kl) {
         // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
 
@@ -802,7 +802,7 @@ public class GenotypeGraphUtils {
 
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
-        boolean isChimeric = false; //isChimeric(stretch, kl);
+        boolean isChimeric = isChimeric(stretch, kl);
 
         //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
         //List<Set<Interval>> anovel = kl.align(stretch);
@@ -897,6 +897,8 @@ public class GenotypeGraphUtils {
                         gvc.attribute(color, "repeatingUnit", repUnit);
                     }
                 }
+            } else {
+                gvc.attribute(color, "event", "MNP");
             }
         }
 
