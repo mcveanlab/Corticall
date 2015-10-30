@@ -144,9 +144,6 @@ public class GenotypeGraphUtils {
                 }
             }
 
-            System.out.println("Pre: " + predecessorList.size());
-            System.out.println("Suc: " + successorList.size());
-
             //
             if (predecessorList.size() < 40 && successorList.size() < 40) {
                 for (int c = 1; c <= 2; c++) {

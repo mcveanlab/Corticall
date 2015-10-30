@@ -273,7 +273,13 @@ public class GenotypeGraph extends Module {
 
                 // Fetch the local subgraph context from disk
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
-                log.info("    subgraph : {} vertices, {} edges", ag.vertexSet().size(), ag.edgeSet().size());
+                int numPredecessors = 0, numSuccessors = 0;
+                for (AnnotatedVertex av : ag.vertexSet()) {
+                    if (av.flagIsSet("predecessor")) { numPredecessors++; }
+                    if (av.flagIsSet("successor")) { numSuccessors++; }
+                }
+
+                log.info("    subgraph : {} vertices, {} edges, {} predecessors, {} successors", ag.vertexSet().size(), ag.edgeSet().size(), numPredecessors, numSuccessors);
 
                 GenotypeGraphUtils.annotateAlignmentInformation(ag, kl1, kl2);
 
@@ -442,6 +448,8 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                         evalTables.getTable("variantStats").set(pk, "filterStatus", gvc.getAttributeAsString(0, "filter"));
                         evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
+                        evalTables.getTable("variantStats").set(pk, "numPredecessors", numPredecessors);
+                        evalTables.getTable("variantStats").set(pk, "numSuccessors", numSuccessors);
 
                         viSeen.put(vi.variantId, true);
 
@@ -476,6 +484,8 @@ public class GenotypeGraph extends Module {
                         evalTables.getTable("variantStats").set(pk, "novelKmersUsed", novelKmersUsed);
                         evalTables.getTable("variantStats").set(pk, "filterStatus", gvc.getAttributeAsString(0, "filter"));
                         evalTables.getTable("variantStats").set(pk, "seedKmer", novelKmer.getKmerAsString());
+                        evalTables.getTable("variantStats").set(pk, "numPredecessors", numPredecessors);
+                        evalTables.getTable("variantStats").set(pk, "numSuccessors", numSuccessors);
                     }
                 }
 
@@ -513,6 +523,8 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantStats").set(pk, "novelKmersUsed", 0);
                 evalTables.getTable("variantStats").set(pk, "filterStatus", "NONE");
                 evalTables.getTable("variantStats").set(pk, "seedKmer", "none");
+                evalTables.getTable("variantStats").set(pk, "numPredecessors", 0);
+                evalTables.getTable("variantStats").set(pk, "numSuccessors", 0);
             }
         }
 
