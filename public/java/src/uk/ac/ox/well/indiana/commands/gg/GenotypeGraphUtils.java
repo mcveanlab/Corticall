@@ -100,7 +100,6 @@ public class GenotypeGraphUtils {
                                     }
                                 }
                             }
-
                         }
                     }
 
@@ -145,32 +144,36 @@ public class GenotypeGraphUtils {
                 }
             }
 
+            System.out.println("Pre: " + predecessorList.size());
+            System.out.println("Suc: " + successorList.size());
+
             //
-            for (int c = 1; c <= 2; c++) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
+            if (predecessorList.size() < 40 && successorList.size() < 40) {
+                for (int c = 1; c <= 2; c++) {
+                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
 
-                for (boolean goForward : Arrays.asList(true, false)) {
-                    Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
+                    for (boolean goForward : Arrays.asList(true, false)) {
+                        Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
-                    for (AnnotatedVertex ak : psList) {
-                        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward);
+                        for (AnnotatedVertex ak : psList) {
+                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward);
 
-                        if (dfs != null) {
-                            Graphs.addGraph(sg, dfs);
+                            if (dfs != null) {
+                                Graphs.addGraph(sg, dfs);
+                            }
                         }
                     }
-                }
 
-                for (AnnotatedVertex av : sg.vertexSet()) {
-                    CortexKmer ck = new CortexKmer(av.getKmer());
+                    for (AnnotatedVertex av : sg.vertexSet()) {
+                        CortexKmer ck = new CortexKmer(av.getKmer());
 
-                    if (novelKmers.containsKey(ck) && !localNovelKmers.containsKey(av.getKmer())) {
-                        localNovelKmers.put(av.getKmer(), true);
+                        if (novelKmers.containsKey(ck) && !localNovelKmers.containsKey(av.getKmer())) {
+                            localNovelKmers.put(av.getKmer(), true);
+                        }
                     }
                 }
             }
             //
-
         } while (numRemainingLocalNovelKmers(localNovelKmers) > 0);
 
         // Now, combine them all into an annotated graph
