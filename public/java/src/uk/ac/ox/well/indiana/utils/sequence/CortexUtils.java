@@ -581,8 +581,6 @@ public class CortexUtils {
 
         Map<Integer, Set<String>> adjKmers;
 
-        System.out.println(Joiner.on(", ").join(sourceKmers));
-
         do {
             AnnotatedVertex cv = new AnnotatedVertex(kmer);
 
@@ -602,15 +600,11 @@ public class CortexUtils {
 
                 if (adjKmers.get(color).size() == 1) {
                     kmer = adjKmers.get(color).iterator().next();
-
-                    System.out.println(kmer + " " + depth);
                 } else if (adjKmers.get(color).size() != 1) {
                     boolean childrenWereSuccessful = false;
 
                     for (String ak : adjKmers.get(color)) {
                         if (!ak.equals(firstKmer)) {
-                            System.out.println(ak + " " + CortexUtils.isNovelKmer(cr) + " " + (depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1)));
-
                             DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward, history);
 
                             if (branch != null) {
