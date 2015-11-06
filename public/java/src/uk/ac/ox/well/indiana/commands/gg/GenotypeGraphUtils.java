@@ -153,7 +153,7 @@ public class GenotypeGraphUtils {
                         Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
                         for (AnnotatedVertex ak : psList) {
-                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward);
+                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward, new HashSet<String>());
 
                             if (dfs != null) {
                                 Graphs.addGraph(sg, dfs);
