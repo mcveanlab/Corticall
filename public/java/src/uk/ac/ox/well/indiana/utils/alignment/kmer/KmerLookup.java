@@ -30,24 +30,30 @@ public class KmerLookup {
     private void loadIndex(File ref, int kmerSize) {
         File dbFile = new File(ref.getAbsoluteFile() + ".kmerdb");
 
-        DB db = DBMaker.fileDB(dbFile)
-                .transactionDisable()
-                .fileMmapEnable()
-                .cacheSize(1000000)
-                .closeOnJvmShutdown()
-                .readOnly()
-                .make();
+        if (dbFile.exists()) {
+            DB db = DBMaker.fileDB(dbFile)
+                    .transactionDisable()
+                    .fileMmapEnable()
+                    .cacheSize(1000000)
+                    .closeOnJvmShutdown()
+                    .readOnly()
+                    .make();
 
-        kmerIndex = db.treeSet("index" + kmerSize);
+            kmerIndex = db.treeSet("index" + kmerSize);
+        } else {
+            System.err.println("No index for '" + dbFile + "'");
+        }
     }
 
     public Set<Interval> findKmer(String sk) {
         Set<Interval> intervals = new HashSet<Interval>();
 
-        for (Object l[] : Fun.filter(kmerIndex, sk)) {
-            String chr = (String) l[1];
-            int pos = (Integer) l[2];
-            intervals.add(new Interval(chr, pos, pos + kmerSize));
+        if (kmerIndex != null) {
+            for (Object l[] : Fun.filter(kmerIndex, sk)) {
+                String chr = (String) l[1];
+                int pos = (Integer) l[2];
+                intervals.add(new Interval(chr, pos, pos + kmerSize));
+            }
         }
 
         return intervals;
