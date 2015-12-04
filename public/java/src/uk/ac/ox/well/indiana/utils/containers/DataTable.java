@@ -109,6 +109,10 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
         sb.append(tableName);
         for (String columnName : columnNames) {
+            if (!columnWidths.containsKey(columnName)) {
+                System.err.println("Not populated: " + columnName);
+            }
+
             int fieldWidth = columnWidths.get(columnName);
             sb.append(" ");
             sb.append(String.format("%-" + fieldWidth + "s", columnName));
