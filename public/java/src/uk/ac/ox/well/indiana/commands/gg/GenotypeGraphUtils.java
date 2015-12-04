@@ -180,10 +180,13 @@ public class GenotypeGraphUtils {
         addGraph(ag, sg2, novelKmers);
 
         // Extend from any other kmers we'd like to see
-        /*
+        //
         Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
-        extendAnyway.add(new AnnotatedVertex("ATTTTTTAAGAGATCACCTTCTTCATTTTTTAAGAGATCACCTTCTA"));
-        extendAnyway.add(new AnnotatedVertex("TATTTTTTAAGAGGTCACCTTTATTTTTTAAGAGGTCACCTTCTTTA"));
+        /*
+        extendAnyway.add(new AnnotatedVertex("TATTTGCTATACTCAAGCCATTAAAAGTTATTATAACTACGCAAATC"));
+        extendAnyway.add(new AnnotatedVertex("ATAACTACGCAAATTATAATGACGCTCCTGATTATGAACATATCCAA"));
+        extendAnyway.add(new AnnotatedVertex("TCTACGCAAATTATAATGACGCTCCTGATTATGAACATATCCACAAT"));
+        extendAnyway.add(new AnnotatedVertex("AAATTATAATGACGCTCCTGATTATGAACATATCCACAATCTAGTTT"));
 
         for (int c = 0; c <= 2; c++) {
             for (AnnotatedVertex ak : extendAnyway) {
@@ -769,36 +772,6 @@ public class GenotypeGraphUtils {
         String childAllele = p.child == null || p.child.equals("") || p.child.equals(p.parent) ? "N" : p.child.substring(s, e0 + 1);
 
         int e = s + parentalAllele.length() - 1;
-
-        /*
-        if (s > 0 && e > 0) {
-            System.out.println(p.parent);
-            System.out.println(p.child);
-
-            String startKmer = p.parent.substring(s - 1, s - 1 + clean.getKmerSize());
-            Set<Interval> startLocations = new HashSet<Interval>();
-
-            String endKmer = p.parent.substring(s - 1 + parentalAllele.length(), s - 1 + parentalAllele.length() + clean.getKmerSize());
-            Set<Interval> endLocations = new HashSet<Interval>();
-
-            for (AnnotatedVertex av : a.vertexSet()) {
-                if (av.getKmer().equals(startKmer)) {
-                    System.out.println("start: " + av + " " + av.getMaternalLocations() + " " + av.getPaternalLocations());
-
-                    startLocations = color == 1 ? av.getMaternalLocations() : av.getPaternalLocations();
-                }
-
-                if (av.getKmer().equals(endKmer)) {
-                    System.out.println("end: " + av + " " + av.getMaternalLocations() + " " + av.getPaternalLocations());
-
-                    endLocations = color == 1 ? av.getMaternalLocations() : av.getPaternalLocations();
-                }
-            }
-
-            Interval startLocation = startLocations.size() == 1 ? startLocations.iterator().next() : null;
-            Interval endLocation = endLocations.size() == 1 ? endLocations.iterator().next() : null;
-        }
-        */
 
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
