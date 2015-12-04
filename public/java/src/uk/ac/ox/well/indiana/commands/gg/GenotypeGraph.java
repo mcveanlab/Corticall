@@ -433,20 +433,26 @@ public class GenotypeGraph extends Module {
 
                 gvcs.add(gvc);
 
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "novelKmer", novelKmer);
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "stretchNum", stretchNum);
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "stretch", stretch);
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "novelKmersTotal", novelKmers.size());
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "traversalStatus", gvc.getAttributeAsString(0, "traversalStatus"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "event", gvc.getAttributeAsString(0, "event"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "score", gvc.getAttributeAsInt(0, "score"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "haplotypicBackground", gvc.getAttributeAsInt(0, "haplotypicBackground"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "start", gvc.getAttributeAsInt(0, "start"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "stop", gvc.getAttributeAsInt(0, "stop"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "parentalAllele", gvc.getAttributeAsString(0, "parentalAllele"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "childAllele", gvc.getAttributeAsString(0, "childAllele"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "parentalStretch", gvc.getAttributeAsString(0, "parentalStretch"));
-                evalTables.getTable("variantCalls").set(String.valueOf(stretchNum), "childStretch", gvc.getAttributeAsString(0, "childStretch"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmer", novelKmer);
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretchNum", stretchNum);
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "event", gvc.getAttributeAsString(0, "event"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAlleleLength", gvc.getAttributeAsString(0, "parentalAllele").length());
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childAlleleLength", gvc.getAttributeAsString(0, "childAllele").length());
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAllele", gvc.getAttributeAsString(0, "parentalAllele"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childAllele", gvc.getAttributeAsString(0, "childAllele"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "score", gvc.getAttributeAsInt(0, "score"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "haplotypicBackground", gvc.getAttributeAsInt(0, "haplotypicBackground"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "start", gvc.getAttributeAsInt(0, "start"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stop", gvc.getAttributeAsInt(0, "stop"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersContained", novelKmersContained);
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersUsed", novelKmersUsed);
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersTotal", novelKmers.size());
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "traversalStatus", gvc.getAttributeAsString(0, "traversalStatus"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretch", stretch);
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalStretch", gvc.getAttributeAsString(0, "parentalStretch"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childStretch", gvc.getAttributeAsString(0, "childStretch"));
+
+                stretchNum++;
             }
         }
 
