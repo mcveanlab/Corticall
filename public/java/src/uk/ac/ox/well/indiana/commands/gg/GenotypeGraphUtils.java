@@ -54,6 +54,12 @@ public class GenotypeGraphUtils {
             if (novelKmers.containsKey(ck)) {
                 localNovelKmers.put(sk, true);
             }
+
+            AnnotatedVertex cv  = new AnnotatedVertex(sk, novelKmers.containsKey(ck));
+
+            Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
+            Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
+            CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
         }
 
         do {

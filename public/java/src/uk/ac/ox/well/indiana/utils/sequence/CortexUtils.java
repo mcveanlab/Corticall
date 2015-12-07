@@ -526,7 +526,7 @@ public class CortexUtils {
         }
     }
 
-    private static int addVertexAndConnect(DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs, AnnotatedVertex cv, Map<Integer, Set<String>> prevKmers, Map<Integer, Set<String>> nextKmers) {
+    public static int addVertexAndConnect(DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs, AnnotatedVertex cv, Map<Integer, Set<String>> prevKmers, Map<Integer, Set<String>> nextKmers) {
         int numVerticesBefore = dfs.vertexSet().size();
 
         dfs.addVertex(cv);
