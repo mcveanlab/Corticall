@@ -1,8 +1,8 @@
 package uk.ac.ox.well.indiana.utils.alignment.pairwise;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.*;
+import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
@@ -18,6 +18,41 @@ public class LastzAligner {
     //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
     //private final String lastzPath = "lastz";
     private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz";
+
+    public List<SAMRecord> align(String query, File targets) {
+        try {
+            File tempQuery = File.createTempFile("query", ".fa");
+
+            PrintStream qw = new PrintStream(tempQuery);
+            qw.println(">query");
+            qw.println(query);
+            qw.close();
+
+            String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQuery.getAbsolutePath(), "sam-"));
+
+            tempQuery.delete();
+
+            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+
+            FastaSequenceFile fa = new FastaSequenceFile(targets, true);
+            SAMFileHeader sfh = new SAMFileHeader();
+            sfh.setSequenceDictionary(fa.getSequenceDictionary());
+            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+
+            for (String samLine : result.split("\n")) {
+                //System.out.println(samLine);
+
+                if (!samLine.isEmpty()) {
+                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                }
+            }
+
+            return recs;
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
 
     public void align(ReferenceSequence query, File targets, String format) {
         try {
