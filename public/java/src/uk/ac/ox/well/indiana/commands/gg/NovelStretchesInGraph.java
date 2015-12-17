@@ -90,6 +90,7 @@ public class NovelStretchesInGraph extends Module {
                 te.put("novelKmer", novelKmer.getKmerAsString());
                 te.put("length", String.valueOf(stretch.length()));
                 te.put("novelKmers", String.valueOf(novelKmersUsed));
+                te.put("cumNovelKmers", String.valueOf(totalNovelKmersUsed));
                 te.put("totalNovelKmers", String.valueOf(novelKmersToVisit.size()));
                 te.put("stretch", stretch);
 
