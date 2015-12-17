@@ -27,7 +27,10 @@ public class CoverageHistogram extends Module {
         IntervalTreeMap<Float> hist = new IntervalTreeMap<Float>();
         int unaligned = 0;
 
+        log.info("Processing chromosomes...");
         for (SAMSequenceRecord ssr : dict.getSequences()) {
+            log.info("  {} ({} bp)", ssr.getSequenceName(), ssr.getSequenceLength());
+
             for (int binStart = 0; binStart < ssr.getSequenceLength(); binStart += BIN_SIZE) {
                 int binEnd = (binStart + BIN_SIZE) > ssr.getSequenceLength() ? ssr.getSequenceLength() : binStart + BIN_SIZE;
 
@@ -43,9 +46,10 @@ public class CoverageHistogram extends Module {
                     SAMRecord sr = sri.next();
 
                     for (int i = sr.getAlignmentStart(); i < sr.getAlignmentEnd(); i++) {
-                        int binPos = binStart + 1 - i;
+                        //int binPos = binStart + 1 - i;
 
-                        if (binPos >= binStart + 1 && binPos < binEnd) {
+                        //if (binPos >= binStart + 1 && binPos < binEnd) {
+                        if (i >= binStart + 1 && i < binEnd) {
                             //covs[binPos]++;
 
                             covSum++;
