@@ -1,10 +1,15 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
+import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
@@ -12,6 +17,7 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -31,6 +37,9 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
 
+    @Argument(fullName = "ref", shortName = "r", doc = "Fasta file for finished reference sequence")
+    public File REF;
+
     @Argument(fullName = "ref1", shortName = "r1", doc = "Fasta file for first parent")
     public File REF1;
 
@@ -43,11 +52,17 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "novelKmerMap", shortName = "m", doc = "Novel kmer map", required = false)
     public File NOVEL_KMER_MAP;
 
-    @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
+    @Argument(fullName = "skipToKmer", shortName = "s", doc = "Skip processing to given kmer", required = false)
     public String KMER;
+
+    @Argument(fullName = "haplotypes", shortName="hap", doc="Haplotypes file", required=false)
+    public File HAPLOTYPES;
 
     @Output
     public PrintStream out;
+
+    @Output(fullName="cout", shortName="co", doc="Circos track output")
+    public PrintStream cout;
 
     private void evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
@@ -197,11 +212,219 @@ public class GenotypeGraph extends Module {
         }
     }
 
+    private IntervalTreeMap<Integer> loadHaplotypes() {
+        TableReader tr = new TableReader(HAPLOTYPES);
+
+        String currentChr = "none";
+        int currentParent = -1;
+        int startPos = 0;
+        int endPos = 0;
+
+        IntervalTreeMap<Integer> itm = new IntervalTreeMap<Integer>();
+
+        for (Map<String, String> te : tr) {
+            for (String columnName : te.keySet()) {
+                if (columnName.contains("/")) {
+                    String[] pieces = columnName.split("/");
+                    String newColumnName = pieces[1] + "." + pieces[2];
+
+                    if (CLEAN.getColor(0).getSampleName().contains(newColumnName)) {
+                        String chr = te.get("CHROM");
+                        endPos = Integer.valueOf(te.get("POS"));
+                        int parent = Integer.valueOf(te.get(columnName));
+
+                        if (!currentChr.equals(chr)) {
+                            startPos = 0;
+                        }
+
+                        if (currentParent != parent || !currentChr.equals(chr)) {
+                            if (!currentChr.equals("none")) {
+                                Interval interval = new Interval(currentChr, startPos, endPos);
+
+                                itm.put(interval, currentParent);
+                            }
+
+                            currentChr = chr;
+                            currentParent = parent;
+                            startPos = endPos;
+                        }
+                    }
+                }
+            }
+        }
+
+        Interval interval = new Interval(currentChr, startPos, endPos);
+
+        itm.put(interval, currentParent);
+
+        return itm;
+    }
+
+    private int closestHaplotypeBackground(int[] hb, int index) {
+        int hbFinal = 0;
+        if (hb[index] == 1 || hb[index] == 2) {
+            hbFinal = hb[index];
+        } else if (hb[index] == 3) {
+            int hbp = 3, dp = Integer.MAX_VALUE, hbn = 3, dn = Integer.MAX_VALUE;
+
+            for (int i = index; i < hb.length; i++) {
+                if (hb[i] == 1 || hb[i] == 2) {
+                    hbn = hb[i];
+                    dn = i - index;
+                }
+            }
+
+            for (int i = index; i >= 0; i--) {
+                if (hb[i] == 1 || hb[i] == 2) {
+                    hbp = hb[i];
+                    dp = index - i;
+                }
+            }
+
+            hbFinal = (dp < dn) ? hbp : hbn;
+        }
+
+        return hbFinal;
+    }
+
+    private int[] getHaplotypeBackgroundVector(String alignmentStretch, KmerLookup kl, KmerLookup kl1, KmerLookup kl2, IntervalTreeMap<Integer> itm) {
+        int[] hb = new int[alignmentStretch.length() - CLEAN.getKmerSize() + 1];
+
+        for (int i = 0; i <= alignmentStretch.length() - CLEAN.getKmerSize(); i++) {
+            String sk = alignmentStretch.substring(i, i + CLEAN.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+            CortexRecord cr = CLEAN.findRecord(ck);
+            if (cr == null) {
+                cr = DIRTY.findRecord(ck);
+            }
+
+            //log.info("  {} {} {}", sk, ck, cr);
+
+            if (cr != null) {
+                if      (cr.getCoverage(1) >  0 && cr.getCoverage(2) == 0) { hb[i] = 1; }
+                else if (cr.getCoverage(1) == 0 && cr.getCoverage(2) >  0) { hb[i] = 2; }
+                else if (cr.getCoverage(1) >  0 && cr.getCoverage(2) >  0) { hb[i] = 3; }
+                else { hb[i] = 0; }
+            }
+        }
+
+        for (int i = 0; i < hb.length; i++) {
+            int oldhb = hb[i];
+
+            if (hb[i] == 3) {
+                hb[i] = closestHaplotypeBackground(hb, i);
+            }
+            int newhb = hb[i];
+
+            if (hb[i] == 3) {
+                String sk = alignmentStretch.substring(i, i + CLEAN.getKmerSize());
+
+                Set<Interval> sis = kl.findKmer(sk);
+                if (sis.size() == 0) { sis = kl.findKmer(SequenceUtils.reverseComplement(sk)); }
+
+                if (sis.size() == 1) {
+                    Interval si = sis.iterator().next();
+
+                    if (itm.containsOverlapping(si)) {
+                        hb[i] = itm.getOverlapping(si).iterator().next();
+                    }
+                } else {
+                    sis = kl1.findKmer(sk);
+                    if (sis.size() == 0) { sis = kl1.findKmer(SequenceUtils.reverseComplement(sk)); }
+
+                    if (sis.size() == 1) {
+                        hb[i] = 1;
+                    } else {
+                        sis = kl2.findKmer(sk);
+                        if (sis.size() == 0) { sis = kl2.findKmer(SequenceUtils.reverseComplement(sk)); }
+
+                        if (sis.size() == 1) {
+                            hb[i] = 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < hb.length; i++) {
+            if (hb[i] == 3) {
+                hb[i] = closestHaplotypeBackground(hb, i);
+            }
+        }
+
+//        for (int i = 0; i < hb.length; i++) {
+//            log.info("  {}", hb[i]);
+//        }
+
+        return hb;
+    }
+
+    private List<SAMRecord> getAlignment(String alignmentStretch, KmerLookup kl, KmerLookup kl1, KmerLookup kl2, IntervalTreeMap<Integer> itm) {
+        int[] hb = getHaplotypeBackgroundVector(alignmentStretch, kl, kl1, kl2, itm);
+
+        Map<String, Integer> pieces = new LinkedHashMap<String, Integer>();
+        int currentHb = hb[0];
+        int currentStart = 0;
+        for (int i = 1; i < hb.length; i++) {
+            if (hb[i] != currentHb) {
+                String piece = alignmentStretch.substring(currentStart, i + CLEAN.getKmerSize());
+                pieces.put(piece, currentHb);
+
+                currentHb = hb[i];
+                currentStart = i;
+            }
+        }
+
+        String piece = alignmentStretch.substring(currentStart, alignmentStretch.length());
+        pieces.put(piece, hb[currentStart]);
+
+        Map<String, SAMRecord> alignments = new LinkedHashMap<String, SAMRecord>();
+        Map<String, Integer> parentage = new LinkedHashMap<String, Integer>();
+
+        LastzAligner la = new LastzAligner();
+        for (String p : pieces.keySet()) {
+            List<SAMRecord> srs;
+            if (pieces.get(p) == 1) {
+                srs = la.align(p, REF1);
+            } else if (pieces.get(p) == 2) {
+                srs = la.align(p, REF2);
+            } else {
+                srs = new ArrayList<SAMRecord>();
+            }
+
+            if (srs.size() == 1) {
+                alignments.put(p, srs.iterator().next());
+            } else {
+                alignments.put(p, null);
+            }
+
+            parentage.put(p, pieces.get(p));
+        }
+
+        List<SAMRecord> alignmentsSimplified = new ArrayList<SAMRecord>();
+
+        for (String p : alignments.keySet()) {
+            SAMRecord sr = alignments.get(p);
+            int pa = parentage.get(p);
+
+            if (sr != null) {
+                sr.setAttribute("PA", pa);
+
+                alignmentsSimplified.add(sr);
+            }
+        }
+
+        return alignmentsSimplified;
+    }
+
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
+        KmerLookup kl  = new KmerLookup(REF);
         KmerLookup kl1 = new KmerLookup(REF1);
         KmerLookup kl2 = new KmerLookup(REF2);
+
+        IntervalTreeMap<Integer> itm = loadHaplotypes();
 
         Map<CortexKmer, VariantInfo> vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
         Map<String, VariantInfo> vids = new HashMap<String, VariantInfo>();
@@ -451,6 +674,33 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretch", stretch);
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalStretch", gvc.getAttributeAsString(0, "parentalStretch"));
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childStretch", gvc.getAttributeAsString(0, "childStretch"));
+
+                String alignmentStretch = (!gvc.getAttributeAsString(0, "parentalStretch").isEmpty()) ? gvc.getAttributeAsString(0, "parentalStretch") : gvc.getAttributeAsString(0, "stretch");
+
+                List<SAMRecord> alignments = getAlignment(alignmentStretch, kl, kl1, kl2, itm);
+
+                for (SAMRecord sr : alignments) {
+                    log.info("  {}", sr.getSAMString());
+                }
+
+                if (alignments.size() == 1) {
+                    SAMRecord sr = alignments.get(0);
+                    int radius = sr.getIntegerAttribute("PA") == 1 ? 8 : 6;
+
+                    cout.printf("stretch%d %s %d %d radius1=0.%dr\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius);
+                    cout.printf("stretch%d %s %d %d radius2=0.%dr\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius);
+                } else if (alignments.size() > 1) {
+                    for (int i = 0; i < alignments.size() - 1; i++) {
+                        SAMRecord sr1 = alignments.get(i);
+                        SAMRecord sr2 = alignments.get(i + 1);
+
+                        int r1 = sr1.getIntegerAttribute("PA") == 1 ? 8 : 6;
+                        int r2 = sr2.getIntegerAttribute("PA") == 1 ? 8 : 6;
+
+                        cout.printf("stretch%d.%d %s %d %d radius1=0.%dr\n", stretchNum, i, sr1.getReferenceName(), sr1.getAlignmentStart(), sr1.getAlignmentEnd(), r1);
+                        cout.printf("stretch%d.%d %s %d %d radius2=0.%dr\n", stretchNum, i, sr2.getReferenceName(), sr2.getAlignmentStart(), sr2.getAlignmentEnd(), r2);
+                    }
+                }
 
                 stretchNum++;
             }
