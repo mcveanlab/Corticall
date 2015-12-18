@@ -12,10 +12,7 @@ import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class GenesCloseToLinks extends Module {
     @Argument(fullName="links", shortName="l", doc="Links")
@@ -23,6 +20,9 @@ public class GenesCloseToLinks extends Module {
 
     @Argument(fullName="gff", shortName="g", doc="Gff")
     public GFF3 GFF;
+
+    @Argument(fullName="proximity", shortName="p", doc="Gene proximity")
+    public Integer PROXIMITY = 500;
 
     @Output
     public PrintStream out;
@@ -32,6 +32,8 @@ public class GenesCloseToLinks extends Module {
         Set<GFF3Record> records = new HashSet<GFF3Record>();
 
         LineReader lr = new LineReader(LINKS);
+
+        Map<String, Boolean> overlaps = new HashMap<String, Boolean>();
 
         while (lr.hasNext()) {
             String[] p = lr.getNextRecord().split("\\s+");
@@ -48,13 +50,24 @@ public class GenesCloseToLinks extends Module {
                 if (genes.size() > 0) {
                     records.addAll(genes);
 
+                    for (GFF3Record gr : genes) {
+                        if (w < PROXIMITY) {
+                            overlaps.put(gr.getAttribute("ID"), true);
+                        } else {
+                            overlaps.put(gr.getAttribute("ID"), false);
+                        }
+
+                        log.info("  {}:{}-{} {}", gr.getSeqid(), gr.getStart(), gr.getEnd(), w);
+                    }
+
                     break;
                 }
             }
         }
 
         for (GFF3Record g : records) {
-            out.println(Joiner.on(" ").join(g.getSeqid(), g.getStart(), g.getEnd(), g.getAttribute("ID")));
+            String name = overlaps.get(g.getAttribute("ID")) ? g.getAttribute("ID") : "(" + g.getAttribute("ID") + ")";
+            out.println(Joiner.on(" ").join(g.getSeqid(), g.getStart(), g.getEnd(), name));
         }
     }
 }
