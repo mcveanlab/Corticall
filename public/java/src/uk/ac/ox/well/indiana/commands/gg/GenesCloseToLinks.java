@@ -43,7 +43,7 @@ public class GenesCloseToLinks extends Module {
             int stop = Integer.valueOf(p[3]);
 
             for (int w = 0; w < 1000000; w++) {
-                Interval interval = new Interval(chr, start + w, stop + w);
+                Interval interval = new Interval(chr, start - w, stop + w);
 
                 Collection<GFF3Record> genes = GFF3.getType("gene", GFF.getOverlapping(interval));
 
