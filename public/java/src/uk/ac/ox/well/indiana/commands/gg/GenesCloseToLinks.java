@@ -66,7 +66,7 @@ public class GenesCloseToLinks extends Module {
         }
 
         for (GFF3Record g : records) {
-            String style = "color=" + (overlaps.get(g.getAttribute("ID")) ? "black" : "red");
+            String style = "color=" + (overlaps.get(g.getAttribute("ID")) ? "black" : "grey");
             String name = g.getAttribute("ID");
             out.println(Joiner.on(" ").join(g.getSeqid(), g.getStart(), g.getEnd(), name, style));
         }
