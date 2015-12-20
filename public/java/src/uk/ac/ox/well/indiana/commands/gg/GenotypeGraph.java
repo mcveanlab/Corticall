@@ -687,8 +687,13 @@ public class GenotypeGraph extends Module {
                     SAMRecord sr = alignments.get(0);
                     int radius = sr.getIntegerAttribute("PA") == 1 ? 8 : 6;
 
-                    cout.printf("stretch%d %s %d %d radius1=0.%dr\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius);
-                    cout.printf("stretch%d %s %d %d radius2=0.%dr\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius);
+                    if (gvc.getAttribute(0, "event").equals("GC")) {
+                        cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), 8, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), 6, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                    } else {
+                        cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                    }
                 } else if (alignments.size() > 1) {
                     for (int i = 0; i < alignments.size() - 1; i++) {
                         SAMRecord sr1 = alignments.get(i);
@@ -697,9 +702,12 @@ public class GenotypeGraph extends Module {
                         int r1 = sr1.getIntegerAttribute("PA") == 1 ? 8 : 6;
                         int r2 = sr2.getIntegerAttribute("PA") == 1 ? 8 : 6;
 
-                        cout.printf("stretch%d.%d %s %d %d radius1=0.%dr\n", stretchNum, i, sr1.getReferenceName(), sr1.getAlignmentStart(), sr1.getAlignmentEnd(), r1);
-                        cout.printf("stretch%d.%d %s %d %d radius2=0.%dr\n", stretchNum, i, sr2.getReferenceName(), sr2.getAlignmentStart(), sr2.getAlignmentEnd(), r2);
+                        cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getReferenceName(), sr1.getAlignmentStart(), sr1.getAlignmentEnd(), r1, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getReferenceName(), sr2.getAlignmentStart(), sr2.getAlignmentEnd(), r2, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
                     }
+                } else {
+                    cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                    cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
                 }
 
                 stretchNum++;
