@@ -17,7 +17,8 @@ import java.util.*;
 public class LastzAligner {
     //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
     //private final String lastzPath = "lastz";
-    private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz";
+    //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz";
+    private final String lastzPath = System.getProperty("user.home") + "/opt/lastz-distrib-1.03.66/bin/lastz";
 
     public List<SAMRecord> align(String query, File targets) {
         try {
