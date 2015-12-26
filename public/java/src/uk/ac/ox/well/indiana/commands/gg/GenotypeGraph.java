@@ -424,7 +424,7 @@ public class GenotypeGraph extends Module {
         KmerLookup kl1 = new KmerLookup(REF1);
         KmerLookup kl2 = new KmerLookup(REF2);
 
-        IntervalTreeMap<Integer> itm = loadHaplotypes();
+        IntervalTreeMap<Integer> itm = (HAPLOTYPES.exists()) ? loadHaplotypes() : new IntervalTreeMap<Integer>();
 
         Map<CortexKmer, VariantInfo> vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
         Map<String, VariantInfo> vids = new HashMap<String, VariantInfo>();
