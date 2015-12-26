@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
@@ -57,6 +58,9 @@ public class GenotypeGraph extends Module {
 
     @Argument(fullName = "haplotypes", shortName="hap", doc="Haplotypes file", required=false)
     public File HAPLOTYPES;
+
+    @Argument(fullName = "novelKmerLimit", shortName="l", doc="Novel kmer count limit")
+    public Integer NOVEL_KMER_LIMIT = 10000;
 
     @Output
     public PrintStream out;
@@ -437,6 +441,10 @@ public class GenotypeGraph extends Module {
         Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
         for (CortexRecord cr : NOVEL) {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
+        }
+
+        if (novelKmers.size() > NOVEL_KMER_LIMIT) {
+            throw new IndianaException("Too many novel kmers (for now)");
         }
 
         int totalNovelKmersUsed = 0;
