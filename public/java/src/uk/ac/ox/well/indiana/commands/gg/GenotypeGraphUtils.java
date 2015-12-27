@@ -756,6 +756,8 @@ public class GenotypeGraphUtils {
                             for (int i = 1; i < lp0.length() - clean.getKmerSize(); i++) {
                                 AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + clean.getKmerSize()));
 
+                                System.out.println("Remove: " + as + " (" + as.getKmer().length() + ")");
+
                                 b0.removeVertex(as);
                             }
                         }
