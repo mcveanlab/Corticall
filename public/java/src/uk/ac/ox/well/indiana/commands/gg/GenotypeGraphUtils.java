@@ -705,7 +705,7 @@ public class GenotypeGraphUtils {
 
         List<String> novelStretches = getNovelStretch(stretch, novelKmers);
 
-        System.out.println("e");
+        System.out.println("e " + candidateStarts.size() + " " + candidateEnds.size());
 
         double minPl0 = Double.MAX_VALUE, minPlc = Double.MAX_VALUE;
         String minLp0 = "", minLpc = "";
