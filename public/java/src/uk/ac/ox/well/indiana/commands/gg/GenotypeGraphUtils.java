@@ -759,6 +759,11 @@ public class GenotypeGraphUtils {
                                 b0.removeVertex(as);
                             }
                         }
+
+                        System.out.println("lp0: " + lp0);
+                        System.out.println("lpc: " + lpc);
+                        System.out.println("len: " + lp0.length());
+                        System.out.println("len: " + clean.getKmerSize() + 1);
                     } while (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > clean.getKmerSize() + 1);
                 }
             }
