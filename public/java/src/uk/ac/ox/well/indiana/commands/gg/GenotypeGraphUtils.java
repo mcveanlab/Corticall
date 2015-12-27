@@ -686,26 +686,16 @@ public class GenotypeGraphUtils {
             }
         }
 
-        System.out.println("a");
-
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
-
-        System.out.println("b");
 
         AnnotateStartsAndEnds annotateStartsAndEnds = new AnnotateStartsAndEnds(color, stretch, novelKmers, b, beAggressive).invoke();
         Set<AnnotatedVertex> candidateStarts = annotateStartsAndEnds.getCandidateStarts();
         Set<AnnotatedVertex> candidateEnds = annotateStartsAndEnds.getCandidateEnds();
 
-        System.out.println("c");
-
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b0 = removeOtherColors(b, 0);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> bc = removeOtherColors(b, color);
 
-        System.out.println("d");
-
         List<String> novelStretches = getNovelStretch(stretch, novelKmers);
-
-        System.out.println("e " + candidateStarts.size() + " " + candidateEnds.size());
 
         double minPl0 = Double.MAX_VALUE, minPlc = Double.MAX_VALUE;
         String minLp0 = "", minLpc = "";
@@ -757,23 +747,14 @@ public class GenotypeGraphUtils {
                                 AnnotatedVertex asf = new AnnotatedVertex(lpc.substring(i, i + clean.getKmerSize()), false);
                                 AnnotatedVertex ast = new AnnotatedVertex(lpc.substring(i, i + clean.getKmerSize()), true);
 
-                                System.out.println("Remove: " + asf + " (" + asf.getKmer().length() + ") " + b0.containsVertex(asf));
-
                                 b0.removeVertex(asf);
                                 b0.removeVertex(ast);
                             }
                         }
-
-                        System.out.println("lp0: " + lp0);
-                        System.out.println("lpc: " + lpc);
-                        System.out.println("len: " + lp0.length());
-                        System.out.println("len: " + clean.getKmerSize() + 1);
                     } while (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > clean.getKmerSize() + 1);
                 }
             }
         }
-
-        System.out.println("f");
 
         return new PathInfo(start, stop, minLp0, minLpc);
     }
