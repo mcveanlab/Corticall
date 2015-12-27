@@ -150,6 +150,10 @@ public class GenotypeGraphUtils {
                 }
             }
 
+            if (predecessorList.size() == 0 && successorList.size() == 0) {
+                break;
+            }
+
             //
             if (predecessorList.size() < 40 && successorList.size() < 40) {
                 for (int c = 1; c <= 2; c++) {
