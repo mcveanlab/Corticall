@@ -513,10 +513,12 @@ public class GenotypeGraph extends Module {
                 }
 
                 log.info("    subgraph : {} vertices, {} edges, {} predecessors, {} successors", ag.vertexSet().size(), ag.edgeSet().size(), numPredecessors, numSuccessors);
+                log.info("    alignment info...");
 
                 GenotypeGraphUtils.annotateAlignmentInformation(ag, kl1, kl2);
 
                 // Extract parental stretches
+                log.info("    min weight paths...");
                 PathInfo p1 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 1, stretch, novelKmers);
                 PathInfo p2 = GenotypeGraphUtils.computeBestMinWeightPath(CLEAN, DIRTY, ag, 2, stretch, novelKmers);
 
@@ -527,6 +529,7 @@ public class GenotypeGraph extends Module {
                 log.info("      c: {} ({} bp)", SequenceUtils.truncate(p2.child, 100), p2.child.length());
 
                 // Call variants
+                log.info("    variants...");
                 gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, ag, kl1));
                 gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, ag, kl2));
 
