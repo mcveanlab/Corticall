@@ -752,13 +752,15 @@ public class GenotypeGraphUtils {
                             }
                         }
 
-                        if (lp0.equals(lpc) && !lp0.isEmpty() && lp0.length() > clean.getKmerSize() + 1) {
-                            for (int i = 1; i < lp0.length() - clean.getKmerSize(); i++) {
-                                AnnotatedVertex as = new AnnotatedVertex(lp0.substring(i, i + clean.getKmerSize()));
+                        if (lp0.equals(lpc) && !lpc.isEmpty() && lpc.length() > clean.getKmerSize() + 1) {
+                            for (int i = 1; i < lpc.length() - clean.getKmerSize(); i++) {
+                                AnnotatedVertex asf = new AnnotatedVertex(lpc.substring(i, i + clean.getKmerSize()), false);
+                                AnnotatedVertex ast = new AnnotatedVertex(lpc.substring(i, i + clean.getKmerSize()), true);
 
-                                System.out.println("Remove: " + as + " (" + as.getKmer().length() + ") " + b0.containsVertex(as));
+                                System.out.println("Remove: " + asf + " (" + asf.getKmer().length() + ") " + b0.containsVertex(asf));
 
-                                b0.removeVertex(as);
+                                b0.removeVertex(asf);
+                                b0.removeVertex(ast);
                             }
                         }
 
