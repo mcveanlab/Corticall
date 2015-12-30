@@ -22,6 +22,8 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
     private int nextRecordIndex;
     private int firstRecord = 1;
 
+    private String sep = "\t";
+
     private Logger log;
 
     public TableReader(String fileToRead) {
@@ -110,9 +112,11 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
         return next();
     }
 
-    public int getNumRecords() {
-        return lineBreakPositions.size();
-    }
+    public int getNumRecords() { return lineBreakPositions.size(); }
+
+    public void setSeparator(String newsep) { sep = newsep; }
+
+    public String getSeparator() { return sep; }
 
     @Override
     public Iterator<Map<String, String>> iterator() {
@@ -139,7 +143,7 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
             mappedRecordBuffer.read(record);
             mappedRecordBuffer.read(new byte[1]);
 
-            String[] fields = (new String(record)).split("\t");
+            String[] fields = (new String(record)).split(sep);
             //Map<String, String> entry = new HashMap<String, String>();
             Map<String, String> entry = new LinkedHashMap<String, String>();
 

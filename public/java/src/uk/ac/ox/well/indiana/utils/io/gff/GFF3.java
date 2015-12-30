@@ -65,7 +65,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
                     } else {
                         headers.put(fields[0], fields[1]);
                     }
-                } else {
+                } else if (!line.startsWith("#")) {
                     GFF3Record record = new GFF3Record(line);
                     Interval interval = new Interval(record.getSeqid(), record.getStart(), record.getEnd());
 

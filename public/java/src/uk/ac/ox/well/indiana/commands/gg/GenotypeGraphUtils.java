@@ -760,11 +760,9 @@ public class GenotypeGraphUtils {
     }
 
     public static PathInfo computeBestMinWeightPath(CortexGraph clean, CortexGraph dirty, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int color, String stretch, Map<CortexKmer, Boolean> novelKmers) {
-        System.out.println("Begin");
         PathInfo pi = computeBestMinWeightPath(clean, dirty, a, color, stretch, novelKmers, false);
 
         if (pi.start.equals("") && pi.stop.equals("")) {
-            System.out.println("Take 2");
             pi = computeBestMinWeightPath(clean, dirty, a, color, stretch, novelKmers, true);
         }
 

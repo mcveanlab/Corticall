@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
-public class LastzAligner {
+public class LastzAligner implements ExternalAligner {
     //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
     //private final String lastzPath = "lastz";
     //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz";
@@ -22,11 +22,46 @@ public class LastzAligner {
 
     public List<SAMRecord> align(String query, File targets) {
         try {
+            File tempQueries = File.createTempFile("query", ".fa");
+
+            PrintStream qw = new PrintStream(tempQueries);
+            qw.println(">query");
+            qw.println(query);
+            qw.close();
+
+            String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
+
+            tempQueries.delete();
+
+            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+
+            FastaSequenceFile fa = new FastaSequenceFile(targets, true);
+            SAMFileHeader sfh = new SAMFileHeader();
+            sfh.setSequenceDictionary(fa.getSequenceDictionary());
+            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+
+            for (String samLine : result.split("\n")) {
+                if (!samLine.isEmpty()) {
+                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                }
+            }
+
+            return recs;
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
+
+    public List<SAMRecord> align(List<ReferenceSequence> queries, File targets) {
+        try {
             File tempQuery = File.createTempFile("query", ".fa");
 
             PrintStream qw = new PrintStream(tempQuery);
-            qw.println(">query");
-            qw.println(query);
+            for (ReferenceSequence query : queries) {
+                qw.println(">" + query.getName());
+                qw.println(new String(query.getBases()));
+            }
             qw.close();
 
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
@@ -42,8 +77,6 @@ public class LastzAligner {
             sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
 
             for (String samLine : result.split("\n")) {
-                //System.out.println(samLine);
-
                 if (!samLine.isEmpty()) {
                     recs.add(new SAMLineParser(sfh).parseLine(samLine));
                 }
@@ -88,8 +121,6 @@ public class LastzAligner {
 
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
-
-            System.out.println(result);
 
             Map<String, Set<String[]>> alignments = new HashMap<String, Set<String[]>>();
             for (String line : result.split("\n")) {
