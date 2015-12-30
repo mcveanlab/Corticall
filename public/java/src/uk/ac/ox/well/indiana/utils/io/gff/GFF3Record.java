@@ -18,6 +18,8 @@ public class GFF3Record implements Comparable<GFF3Record> {
     private String phase;
     private TreeMap<String, String> attributes = new TreeMap<String, String>();
 
+    public GFF3Record() {}
+
     public GFF3Record(String line) {
         String[] fields = line.split("\\s+");
 
@@ -36,6 +38,8 @@ public class GFF3Record implements Comparable<GFF3Record> {
             attributes.put(keyvalue[0], keyvalue[1]);
         }
     }
+
+    //public static GFF3Record construct(String seqid, String source, String type, int start, int end, int score, Strand strand, String phase)
 
     public GFF3Record(GFF3Record record) {
         this.seqid = record.seqid;
