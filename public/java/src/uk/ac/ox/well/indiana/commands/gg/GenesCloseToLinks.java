@@ -42,29 +42,30 @@ public class GenesCloseToLinks extends Module {
             int start = Integer.valueOf(p[2]);
             int stop = Integer.valueOf(p[3]);
 
-            for (int w = 0; w < 1000000; w++) {
-                Interval interval = new Interval(chr, start - w, stop + w);
+            Interval interval = new Interval(chr, start - 100000, stop + 100000);
 
-                Collection<GFF3Record> genes = new HashSet<GFF3Record>();
-                for (GFF3 gff : GFFS) {
-                    genes.addAll(GFF3.getType("gene", gff.getOverlapping(interval)));
-                }
+            Collection<GFF3Record> genes = new HashSet<GFF3Record>();
+            for (GFF3 gff : GFFS) {
+                genes.addAll(GFF3.getType("gene", gff.getOverlapping(interval)));
+            }
 
-                if (genes.size() > 0) {
-                    records.addAll(genes);
-
-                    for (GFF3Record gr : genes) {
-                        if (w < PROXIMITY) {
-                            overlaps.put(gr.getAttribute("ID"), true);
-                        } else {
-                            overlaps.put(gr.getAttribute("ID"), false);
-                        }
-
-                        log.info("  {}:{}-{} {}", gr.getSeqid(), gr.getStart(), gr.getEnd(), w);
+            if (genes.size() > 0) {
+                GFF3Record closestGene = genes.iterator().next();
+                for (GFF3Record gene : genes) {
+                    if (Math.abs(gene.getStart() - start) < Math.abs(closestGene.getStart() - start)) {
+                        closestGene = gene;
                     }
-
-                    break;
                 }
+
+                if (start >= closestGene.getStart() && stop <= closestGene.getEnd()) {
+                    overlaps.put(closestGene.getAttribute("ID"), true);
+                } else {
+                    overlaps.put(closestGene.getAttribute("ID"), false);
+                }
+
+                log.info("  {} {}:{}-{} {} {}", closestGene.getAttribute("ID"), closestGene.getSeqid(), closestGene.getStart(), closestGene.getEnd(), start, stop);
+
+                records.add(closestGene);
             }
         }
 
