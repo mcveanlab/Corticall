@@ -18,11 +18,11 @@ public class GenesCloseToLinks extends Module {
     @Argument(fullName="links", shortName="l", doc="Links")
     public File LINKS;
 
-    @Argument(fullName="gff", shortName="g", doc="Gff")
-    public GFF3 GFF;
+    @Argument(fullName="gffs", shortName="g", doc="Gff")
+    public ArrayList<GFF3> GFFS;
 
     @Argument(fullName="proximity", shortName="p", doc="Gene proximity")
-    public Integer PROXIMITY = 500;
+    public Integer PROXIMITY = 50;
 
     @Output
     public PrintStream out;
@@ -45,7 +45,10 @@ public class GenesCloseToLinks extends Module {
             for (int w = 0; w < 1000000; w++) {
                 Interval interval = new Interval(chr, start - w, stop + w);
 
-                Collection<GFF3Record> genes = GFF3.getType("gene", GFF.getOverlapping(interval));
+                Collection<GFF3Record> genes = new HashSet<GFF3Record>();
+                for (GFF3 gff : GFFS) {
+                    genes.addAll(GFF3.getType("gene", gff.getOverlapping(interval)));
+                }
 
                 if (genes.size() > 0) {
                     records.addAll(genes);
