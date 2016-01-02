@@ -102,8 +102,8 @@ public class AnnotateCalls extends Module {
         while (lr.hasNext()) {
             Map<String, String> te = parseLine(lr.getNextRecord());
 
-            //String[] sampleAndId = te.get("s_id").split("_");
-            String[] sampleAndId = te.get("s_id").split("_", 1);
+            String[] sampleAndId = te.get("s_id").split("_stretch");
+            //String[] sampleAndId = te.get("s_id").split("_", 1);
 
             log.info("{}", Joiner.on(", ").join(sampleAndId));
 
@@ -115,7 +115,7 @@ public class AnnotateCalls extends Module {
             Map<String, String> entry = new LinkedHashMap<String, String>();
             entry.put("cross", CROSS);
             entry.put("sample", sampleAndId[0]);
-            entry.put("id", sampleAndId[1].split("\\.")[0]);
+            entry.put("id", "stretch" + sampleAndId[1].split("\\.")[0]);
             entry.put("subid", sampleAndId[1]);
             entry.put("type", typeAndCompleteness[0].replace("STR", "STR_"));
             entry.put("completeness", typeAndCompleteness[1]);
