@@ -104,6 +104,9 @@ public class AnnotateCalls extends Module {
 
             //String[] sampleAndId = te.get("s_id").split("_");
             String[] sampleAndId = te.get("s_id").split("_", 1);
+
+            log.info("{}", Joiner.on(", ").join(sampleAndId));
+
             String[] typeAndCompleteness = te.get("type_completeness").replaceAll("STR_", "STR").split("_");
 
             Interval intervalSmall = new Interval(te.get("chr"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
