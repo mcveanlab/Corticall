@@ -114,7 +114,7 @@ public class AnnotateCalls extends Module {
             entry.put("cross", CROSS);
             entry.put("sample", sampleAndId[0]);
             entry.put("id", "stretch" + sampleAndId[1].split("\\.")[0]);
-            entry.put("subid", sampleAndId[1]);
+            entry.put("subid", "stretch" + sampleAndId[1]);
             entry.put("type", typeAndCompleteness[0].replace("STR", "STR_"));
             entry.put("completeness", typeAndCompleteness[1]);
             entry.put("locus", String.format("%s:%d-%d", intervalSmall.getSequence(), intervalSmall.getStart(), intervalSmall.getEnd()));
