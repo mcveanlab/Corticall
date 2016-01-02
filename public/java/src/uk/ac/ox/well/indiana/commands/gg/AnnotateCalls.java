@@ -102,7 +102,8 @@ public class AnnotateCalls extends Module {
         while (lr.hasNext()) {
             Map<String, String> te = parseLine(lr.getNextRecord());
 
-            String[] sampleAndId = te.get("s_id").split("_");
+            //String[] sampleAndId = te.get("s_id").split("_");
+            String[] sampleAndId = te.get("s_id").split("_", 1);
             String[] typeAndCompleteness = te.get("type_completeness").replaceAll("STR_", "STR").split("_");
 
             Interval intervalSmall = new Interval(te.get("chr"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
