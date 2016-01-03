@@ -820,6 +820,8 @@ public class GenotypeGraphUtils {
                     gvc.attribute(color, "event", "SNP");
                 } else if (SequenceUtils.reverseComplement(parentalAllele).equals(childAllele)) {
                     gvc.attribute(color, "event", "INV");
+                } else {
+                    gvc.attribute(color, "event", "MNP");
                 }
             } else if (parentalAllele.length() == 1 && childAllele.length() > 1) {
                 gvc.attribute(color, "event", "INS");
