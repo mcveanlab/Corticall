@@ -43,7 +43,6 @@ public class BwaAligner implements ExternalAligner {
 
             for (String samLine : result.split("\n")) {
                 if (!samLine.isEmpty() && !samLine.startsWith("@")) {
-                    System.out.println("Line: '" + samLine + "'");
                     recs.add(new SAMLineParser(sfh).parseLine(samLine));
                 }
             }
@@ -73,7 +72,9 @@ public class BwaAligner implements ExternalAligner {
             sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
 
             for (String samLine : result.split("\n")) {
-                recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
+                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                }
             }
 
             tempQuery.delete();
