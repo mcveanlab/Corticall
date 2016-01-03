@@ -43,6 +43,7 @@ public class LastzAligner implements ExternalAligner {
 
             for (String samLine : result.split("\n")) {
                 if (!samLine.isEmpty()) {
+                    System.out.println(samLine);
                     recs.add(new SAMLineParser(sfh).parseLine(samLine));
                 }
             }
