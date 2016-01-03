@@ -43,6 +43,7 @@ public class BwaAligner implements ExternalAligner {
 
             for (String samLine : result.split("\n")) {
                 if (!samLine.isEmpty() && !samLine.startsWith("@")) {
+                    System.out.println("Line: '" + samLine + "'");
                     recs.add(new SAMLineParser(sfh).parseLine(samLine));
                 }
             }
