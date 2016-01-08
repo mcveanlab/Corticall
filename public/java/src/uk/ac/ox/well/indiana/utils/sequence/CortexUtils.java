@@ -77,7 +77,11 @@ public class CortexUtils {
 
     public static String getNextKmer(CortexGraph clean, CortexGraph dirty, String kmer, int color, boolean beAggressive) {
         String nextClean = getNextKmer(clean, kmer, color, beAggressive);
-        String nextDirty = getNextKmer(dirty, kmer, color, beAggressive);
+        String nextDirty = null;
+
+        if (dirty != null) {
+            nextDirty = getNextKmer(dirty, kmer, color, beAggressive);
+        }
 
         if (nextClean != null) { return nextClean; }
         else if (nextDirty != null) { return nextDirty; }
@@ -204,7 +208,11 @@ public class CortexUtils {
 
     public static String getPrevKmer(CortexGraph clean, CortexGraph dirty, String kmer, int color, boolean beAggressive) {
         String prevClean = getPrevKmer(clean, kmer, color, beAggressive);
-        String prevDirty = getPrevKmer(dirty, kmer, color, beAggressive);
+        String prevDirty = null;
+
+        if (dirty != null) {
+            prevDirty = getPrevKmer(dirty, kmer, color, beAggressive);
+        }
 
         if (prevClean != null) { return prevClean; }
         else if (prevDirty != null) { return prevDirty; }
