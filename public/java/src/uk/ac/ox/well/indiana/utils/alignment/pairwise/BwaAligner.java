@@ -1,9 +1,6 @@
 package uk.ac.ox.well.indiana.utils.alignment.pairwise;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMLineParser;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -43,9 +40,58 @@ public class BwaAligner implements ExternalAligner {
 
             for (String samLine : result.split("\n")) {
                 if (!samLine.isEmpty() && !samLine.startsWith("@")) {
+                    //System.out.println("samLine: '" + samLine + "'");
+
                     recs.add(new SAMLineParser(sfh).parseLine(samLine));
                 }
             }
+
+            return recs;
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
+
+    public List<SAMRecord> align(String query, String target) {
+        try {
+            File tempQuery = File.createTempFile("query", ".fa");
+
+            PrintStream qw = new PrintStream(tempQuery);
+            qw.println(">query");
+            qw.println(query);
+            qw.close();
+
+            File tempTarget = File.createTempFile("target", ".fa");
+
+            PrintStream tw = new PrintStream(tempTarget);
+            tw.println(">target");
+            tw.println(target);
+            tw.close();
+
+            File tempTargetIdx = File.createTempFile("target", ".fa.fai");
+
+            ProcessExecutor.executeAndReturnResult(String.format("%s index %s", bwaPath, tempTarget.getAbsolutePath()));
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath()));
+
+            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+
+            SAMFileHeader sfh = new SAMFileHeader();
+            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+            SAMSequenceDictionary ssd = new SAMSequenceDictionary();
+            ssd.addSequence(new SAMSequenceRecord("target", target.length()));
+            sfh.setSequenceDictionary(ssd);
+
+            for (String samLine : result.split("\n")) {
+                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
+                    System.out.println("test: '" + samLine + "'");
+
+                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                }
+            }
+
+            tempQuery.delete();
+            tempTarget.delete();
+            tempTargetIdx.delete();
 
             return recs;
         } catch (IOException e) {
