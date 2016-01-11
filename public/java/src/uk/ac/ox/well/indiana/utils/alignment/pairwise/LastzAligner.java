@@ -88,6 +88,50 @@ public class LastzAligner implements ExternalAligner {
         }
     }
 
+    public List<SAMRecord> align(String query, String target) {
+        try {
+            File tempQuery = File.createTempFile("query", ".fa");
+
+            PrintStream qw = new PrintStream(tempQuery);
+            qw.println(">query");
+            qw.println(query);
+            qw.close();
+
+            File tempTarget = File.createTempFile("target", ".fa");
+
+            PrintStream tw = new PrintStream(tempTarget);
+            tw.println(">target");
+            tw.println(target);
+            tw.close();
+
+            //String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath()));
+            //String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
+            //String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath(), "sam-"));
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s %s --notransition --step=20 --nogapped --format=%s --queryhspbest=1", lastzPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath(), "sam-"));
+
+            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+
+            SAMFileHeader sfh = new SAMFileHeader();
+            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+            SAMSequenceDictionary ssd = new SAMSequenceDictionary();
+            ssd.addSequence(new SAMSequenceRecord("target", target.length()));
+            sfh.setSequenceDictionary(ssd);
+
+            for (String samLine : result.split("\n")) {
+                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
+                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
+                }
+            }
+
+            tempQuery.delete();
+            tempTarget.delete();
+
+            return recs;
+        } catch (IOException e) {
+            throw new IndianaException("IOException: " + e);
+        }
+    }
+
     public void align(ReferenceSequence query, File targets, String format) {
         try {
             File tempQuery = File.createTempFile("query", ".fa");

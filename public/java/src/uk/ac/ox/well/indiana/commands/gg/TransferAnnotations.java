@@ -86,6 +86,8 @@ public class TransferAnnotations extends Module {
 
         log.info("Loading exons...");
 
+        Map<String, String> gffInfo = new HashMap<String, String>();
+
         for (int i = 0; i < REFS.size(); i++) {
             IndexedFastaSequenceFile ref = REFS.get(i);
             GFF3 gff = GFFS.get(i);
@@ -108,6 +110,8 @@ public class TransferAnnotations extends Module {
 
                     ReferenceSequence exon = new ReferenceSequence(id, index, seq.getBytes());
                     exons.add(exon);
+
+                    gffInfo.put(id, String.format("%s:%d-%d:%s", chr, start, stop, fw ? "+" : "-"));
 
                     index++;
                 }
@@ -205,6 +209,10 @@ public class TransferAnnotations extends Module {
 
                         currentRecord.setAttribute("names", currentRecord.getAttribute("names") + "," + rec.getReadName());
                     } else {
+                        if (gffInfo.containsKey(currentRecord.getAttribute("ID"))) {
+                            currentRecord.setAttribute("orig", gffInfo.get(currentRecord.getAttribute("ID")));
+                        }
+
                         out.println(currentRecord);
 
                         currentRecord = new GFF3Record();
@@ -246,6 +254,10 @@ public class TransferAnnotations extends Module {
                     }
                 }
             }
+        }
+
+        if (currentRecord != null && gffInfo.containsKey(currentRecord.getAttribute("ID"))) {
+            currentRecord.setAttribute("orig", gffInfo.get(currentRecord.getAttribute("ID")));
         }
 
         out.println(currentRecord);
