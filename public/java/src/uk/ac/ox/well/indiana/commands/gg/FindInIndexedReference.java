@@ -62,7 +62,9 @@ public class FindInIndexedReference extends Module {
                 log.info("  rc: {} {} {}", rc, index, i);
             }
 
-            index++;
+            if (fwi.size() > 0 || rci.size() > 0) {
+                index++;
+            }
         }
     }
 }
