@@ -45,21 +45,24 @@ public class FindInIndexedReference extends Module {
             }
         }
 
+        int index = 0;
         for (String fw : kmersToCheck) {
             String rc = SequenceUtils.reverseComplement(fw);
 
             Set<Interval> fwi = kl.findKmer(fw);
             Set<Interval> rci = kl.findKmer(rc);
 
-            log.info("kmer: {} {} {}", fw, fwi.size(), rci.size());
+            log.info("kmer: {} {} {} {}", fw, index, fwi.size(), rci.size());
 
             for (Interval i : fwi) {
-                log.info("  fw: {} {}", fw, i);
+                log.info("  fw: {} {} {}", fw, index, i);
             }
 
             for (Interval i : rci) {
-                log.info("  rc: {} {}", rc, i);
+                log.info("  rc: {} {} {}", rc, index, i);
             }
+
+            index++;
         }
     }
 }
