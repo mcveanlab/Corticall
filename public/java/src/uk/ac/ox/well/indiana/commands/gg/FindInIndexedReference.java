@@ -54,11 +54,11 @@ public class FindInIndexedReference extends Module {
             log.info("kmer: {} {} {}", fw, fwi.size(), rci.size());
 
             for (Interval i : fwi) {
-                log.info("fw {} {}", fw, i);
+                log.info("  fw: {} {}", fw, i);
             }
 
             for (Interval i : rci) {
-                log.info("rc {} {}", rc, i);
+                log.info("  rc: {} {}", rc, i);
             }
         }
     }
