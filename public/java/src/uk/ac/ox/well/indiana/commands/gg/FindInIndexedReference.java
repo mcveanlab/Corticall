@@ -51,7 +51,7 @@ public class FindInIndexedReference extends Module {
             Set<Interval> fwi = kl.findKmer(fw);
             Set<Interval> rci = kl.findKmer(rc);
 
-            //log.info("{} {}", fwi.size(), rci.size());
+            log.info("kmer: {} {} {}", fw, fwi.size(), rci.size());
 
             for (Interval i : fwi) {
                 log.info("fw {} {}", fw, i);
