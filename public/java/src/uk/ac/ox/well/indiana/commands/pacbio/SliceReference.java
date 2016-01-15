@@ -24,7 +24,7 @@ public class SliceReference extends Module {
         while ((rseq = REF.nextSequence()) != null) {
             String seq = new String(rseq.getBases());
 
-            for (int i = 0; i < rseq.length(); i += LENGTH) {
+            for (int i = 0; i + LENGTH < rseq.length(); i += LENGTH) {
                 String slice = seq.substring(i, i + LENGTH);
 
                 out.println(">" + rseq.getName() + "." + i);
