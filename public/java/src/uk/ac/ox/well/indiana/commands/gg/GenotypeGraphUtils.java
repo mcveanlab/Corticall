@@ -154,7 +154,7 @@ public class GenotypeGraphUtils {
                 break;
             }
 
-            //
+            /*
             if (predecessorList.size() < 40 && successorList.size() < 40) {
                 for (int c = 1; c <= 2; c++) {
                     DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
@@ -180,7 +180,7 @@ public class GenotypeGraphUtils {
                     }
                 }
             }
-            //
+            */
         } while (numRemainingLocalNovelKmers(localNovelKmers) > 0);
 
         // Now, combine them all into an annotated graph
