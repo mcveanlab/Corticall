@@ -652,10 +652,10 @@ public class CortexUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
 
 //        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, true, new HashSet<String>());
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false, new HashSet<String>());
+//        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false, new HashSet<String>());
 
 //        if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
-        if (dfsb != null) { Graphs.addGraph(dfs, dfsb); }
+//        if (dfsb != null) { Graphs.addGraph(dfs, dfsb); }
 
         return dfs;
     }
