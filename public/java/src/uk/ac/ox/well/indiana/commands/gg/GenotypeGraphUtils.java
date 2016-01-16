@@ -55,11 +55,13 @@ public class GenotypeGraphUtils {
                 localNovelKmers.put(sk, true);
             }
 
-            AnnotatedVertex cv  = new AnnotatedVertex(sk, novelKmers.containsKey(ck));
+            /*
+            AnnotatedVertex cv = new AnnotatedVertex(sk, novelKmers.containsKey(ck));
 
             Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
             CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
+            */
         }
 
         do {
@@ -142,19 +144,12 @@ public class GenotypeGraphUtils {
             }
 
             for (AnnotatedVertex ava : sg0.vertexSet()) {
-                if (predecessorList.contains(ava)) {
-                    ava.setFlag("predecessor");
-                }
-                if (successorList.contains(ava)) {
-                    ava.setFlag("successor");
-                }
+                if (predecessorList.contains(ava)) { ava.setFlag("predecessor"); }
+                if (successorList.contains(ava)) { ava.setFlag("successor"); }
             }
 
-            if (predecessorList.size() == 0 && successorList.size() == 0) {
-                break;
-            }
+            if (predecessorList.size() == 0 && successorList.size() == 0) { break; }
 
-            //
             if (predecessorList.size() < 40 && successorList.size() < 40) {
                 for (int c = 1; c <= 2; c++) {
                     DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg = (c == 1) ? sg1 : sg2;
@@ -180,7 +175,6 @@ public class GenotypeGraphUtils {
                     }
                 }
             }
-            //
         } while (numRemainingLocalNovelKmers(localNovelKmers) > 0);
 
         // Now, combine them all into an annotated graph
@@ -189,10 +183,9 @@ public class GenotypeGraphUtils {
         addGraph(ag, sg1, novelKmers);
         addGraph(ag, sg2, novelKmers);
 
-        // Extend from any other kmers we'd like to see
-        //
-        Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
         /*
+        // Extend from any other kmers we'd like to see
+        Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
         extendAnyway.add(new AnnotatedVertex("TATTTGCTATACTCAAGCCATTAAAAGTTATTATAACTACGCAAATC"));
         extendAnyway.add(new AnnotatedVertex("ATAACTACGCAAATTATAATGACGCTCCTGATTATGAACATATCCAA"));
         extendAnyway.add(new AnnotatedVertex("TCTACGCAAATTATAATGACGCTCCTGATTATGAACATATCCACAAT"));
@@ -207,9 +200,7 @@ public class GenotypeGraphUtils {
                 }
             }
         }
-        */
 
-        /*
         for (AnnotatedVertex ava : ag.vertexSet()) {
             if (predecessorList.contains(ava)) {
                 ava.setFlag("predecessor");
