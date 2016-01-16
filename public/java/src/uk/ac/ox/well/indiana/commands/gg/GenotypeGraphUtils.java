@@ -59,7 +59,7 @@ public class GenotypeGraphUtils {
 
             Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
-            //CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
+            CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
         }
 
         do {
