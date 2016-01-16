@@ -561,6 +561,23 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
+                if (ag.vertexSet().size() == 0) {
+                    for (int i = 0; i <= stretch.length() - CLEAN.getKmerSize(); i++) {
+                        String sk = stretch.substring(i, i + CLEAN.getKmerSize());
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        if (novelKmers.containsKey(ck)) {
+                            novelKmersContained++;
+
+                            if (novelKmers.get(ck)) {
+                                totalNovelKmersUsed++;
+                                novelKmersUsed++;
+                                novelKmers.put(ck, false);
+                            }
+                        }
+                    }
+                }
+
                 gvc.attribute(0, "novelKmersContained", novelKmersContained);
                 gvc.attribute(0, "novelKmersUsed", novelKmersUsed);
 
