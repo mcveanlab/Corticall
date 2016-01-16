@@ -65,12 +65,21 @@ public class GenotypeGraphUtils {
         }
 
         do {
+            int kmersWithEmptyGraphs = 0;
             for (String sk : localNovelKmers.keySet()) {
+                if (kmersWithEmptyGraphs >= 50) {
+                    break;
+                }
+
                 if (localNovelKmers.get(sk)) {
                     DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, sk, 0, null, ChildTraversalStopper.class);
 
                     if (dfs != null) {
                         Graphs.addGraph(sg0, dfs);
+
+                        if (sg0.vertexSet().size() == 0) {
+                            kmersWithEmptyGraphs++;
+                        }
                     }
 
                     localNovelKmers.put(sk, false);
