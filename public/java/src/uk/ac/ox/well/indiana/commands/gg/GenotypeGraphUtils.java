@@ -67,7 +67,7 @@ public class GenotypeGraphUtils {
         do {
             int kmersWithEmptyGraphs = 0;
             for (String sk : localNovelKmers.keySet()) {
-                if (kmersWithEmptyGraphs >= 50) {
+                if (kmersWithEmptyGraphs >= 10) {
                     break;
                 }
 
