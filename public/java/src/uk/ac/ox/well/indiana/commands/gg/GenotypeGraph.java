@@ -505,7 +505,7 @@ public class GenotypeGraph extends Module {
                         .attribute(0, "novelKmersTotal", novelKmers.size());
 
                 // Fetch the local subgraph context from disk
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers, false);
                 int numPredecessors = 0, numSuccessors = 0;
                 for (AnnotatedVertex av : ag.vertexSet()) {
                     if (av.flagIsSet("predecessor")) { numPredecessors++; }
