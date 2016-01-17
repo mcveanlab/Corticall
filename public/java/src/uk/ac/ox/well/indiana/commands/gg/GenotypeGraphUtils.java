@@ -41,7 +41,7 @@ public class GenotypeGraphUtils {
         return numRemainingLocalNovelKmers;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalSubgraph(String stretch, CortexGraph clean, CortexGraph dirty, Map<CortexKmer, Boolean> novelKmers) {
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalSubgraph(String stretch, CortexGraph clean, CortexGraph dirty, Map<CortexKmer, Boolean> novelKmers, boolean addStretchToGraph) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
@@ -55,13 +55,13 @@ public class GenotypeGraphUtils {
                 localNovelKmers.put(sk, true);
             }
 
-            /*
-            AnnotatedVertex cv = new AnnotatedVertex(sk, novelKmers.containsKey(ck));
+            if (addStretchToGraph) {
+                AnnotatedVertex cv = new AnnotatedVertex(sk, novelKmers.containsKey(ck));
 
-            Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
-            Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
-            CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
-            */
+                Map<Integer, Set<String>> prevKmers = CortexUtils.getPrevKmers(clean, dirty, cv.getKmer());
+                Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
+                CortexUtils.addVertexAndConnect(sg0, cv, prevKmers, nextKmers);
+            }
         }
 
         do {

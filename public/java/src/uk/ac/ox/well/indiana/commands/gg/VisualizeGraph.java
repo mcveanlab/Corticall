@@ -212,7 +212,7 @@ public class VisualizeGraph extends Module {
 
             log.info("  stretch: {} bp", stretch.length());
 
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers, true);
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
