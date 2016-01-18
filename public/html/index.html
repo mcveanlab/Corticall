@@ -213,6 +213,7 @@
                 .call(force.drag);
 
             d3.selectAll(".nodeRejected")
+                    .attr("rejectText")
                     .append("text")
                     .text("x");
 
