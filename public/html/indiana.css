@@ -46,6 +46,11 @@ body {
     fill: #F41C54;
 }
 
+.branchRejected {
+    fill: #ffffff;
+    stroke: #000000;
+}
+
 .nodeRejected {
     fill: #ffffff;
     stroke: #000000;

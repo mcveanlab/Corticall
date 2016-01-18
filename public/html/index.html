@@ -158,7 +158,7 @@
                 .attr("id", "node")
                 .attr("class", function (d) {
                     if (d.isNovel) { return "nodeNovel"; }
-                    else if (d.branchRejected) { return "nodeRejected"; }
+                    else if (d.branchRejected) { return "branchRejected"; }
                     else if (d.isRejected) { return "nodeRejected"; }
                     else if (d.isPredecessor) { return "nodePredecessor"; }
                     else if (d.isSuccessor) { return "nodeSuccessor"; }
@@ -211,6 +211,10 @@
                     });
                 })
                 .call(force.drag);
+
+            d3.selectAll(".nodeRejected")
+                    .append("text")
+                    .text("x");
 
             force.start();
         }
