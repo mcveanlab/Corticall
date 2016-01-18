@@ -159,7 +159,15 @@
                 .attr("class", function (d) {
                     if (d.isNovel) { return "nodeNovel"; }
                     else if (d.branchRejected) { return "branchRejected"; }
-                    else if (d.isRejected) { return "nodeRejected"; }
+                    else if (d.isRejected) {
+                        return "nodeRejected";
+
+                        d3.selectAll(this)
+                                .attr("fill", "none")
+                                .attr("rejectText")
+                                .append("text")
+                                .text("x");
+                    }
                     else if (d.isPredecessor) { return "nodePredecessor"; }
                     else if (d.isSuccessor) { return "nodeSuccessor"; }
                     else { return "nodeNormal"; }
@@ -214,13 +222,13 @@
 
             force.start();
 
-            //
+            /*
             d3.selectAll(".nodeRejected")
                     .attr("fill", "none")
                     .attr("rejectText")
                     .append("text")
                     .text("x");
-            //
+            */
         }
 
         function setDefaultStatus(graph) {
