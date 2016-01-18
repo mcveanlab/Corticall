@@ -50,6 +50,9 @@ public class VisualizeGraph extends Module {
     @Argument(fullName="skipToKmer", shortName="s", doc="Skip processing to given kmer", required=false)
     public String KMER;
 
+    @Argument(fullName="rejectedKmers", shortName="x", doc="Rejected kmers", required=false)
+    public CortexGraph REJECTED_KMERS;
+
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
@@ -140,6 +143,7 @@ public class VisualizeGraph extends Module {
         private Map<CortexKmer, VariantInfo> vis;
         private KmerLookup kl1;
         private KmerLookup kl2;
+        private Set<CortexKmer> rejectedKmers = new HashSet<CortexKmer>();
 
         public Graph() {
             novelKmers = new HashMap<CortexKmer, Boolean>();
@@ -154,6 +158,12 @@ public class VisualizeGraph extends Module {
 
             kl1 = new KmerLookup(REF1);
             kl2 = new KmerLookup(REF2);
+
+            if (REJECTED_KMERS != null) {
+                for (CortexRecord cr : REJECTED_KMERS) {
+                    rejectedKmers.add(cr.getCortexKmer());
+                }
+            }
         }
 
         private String getRandomNovelKmer() {
@@ -255,6 +265,7 @@ public class VisualizeGraph extends Module {
                 m.put("isNovel", v.isNovel());
                 m.put("isPredecessor", v.flagIsSet("predecessor"));
                 m.put("isSuccessor", v.flagIsSet("successor"));
+                m.put("isRejected", rejectedKmers.contains(new CortexKmer(v.getKmer())));
                 m.put("branchRejected", v.flagIsSet("branchRejected"));
                 m.put("maternalLoci", v.getMaternalLocations());
                 m.put("paternalLoci", v.getPaternalLocations());

@@ -159,6 +159,7 @@
                 .attr("class", function (d) {
                     if (d.isNovel) { return "nodeNovel"; }
                     else if (d.branchRejected) { return "nodeRejected"; }
+                    else if (d.isRejected) { return "nodeRejected"; }
                     else if (d.isPredecessor) { return "nodePredecessor"; }
                     else if (d.isSuccessor) { return "nodeSuccessor"; }
                     else { return "nodeNormal"; }
