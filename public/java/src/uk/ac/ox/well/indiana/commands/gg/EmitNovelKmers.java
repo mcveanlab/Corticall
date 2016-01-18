@@ -20,6 +20,9 @@ public class EmitNovelKmers extends Module {
     @Argument(fullName="threshold", shortName="t", doc="Threshold file", required=false)
     public File THRESHOLD_FILE;
 
+    @Argument(fullName="upperThreshold", shortName="u", doc="Upper threshold")
+    public Integer UPPER_THRESHOLD = 1000000;
+
     @Output
     public File out;
 
@@ -52,7 +55,7 @@ public class EmitNovelKmers extends Module {
                 }
             }
 
-            if (cov > threshold && !hasCoverageInOtherColors) {
+            if (cov > threshold && cov < UPPER_THRESHOLD && !hasCoverageInOtherColors) {
                 cgw.addRecord(cr);
                 numNovelRecords++;
             }
