@@ -164,6 +164,9 @@
                     else if (d.isSuccessor) { return "nodeSuccessor"; }
                     else { return "nodeNormal"; }
                 })
+                .attr("content", function(d) {
+                    if (d.isRejected) { return "x"; }
+                })
                 .attr("r", function (d) {
                     return 3 + Math.sqrt(d.kmer.length / 47)
                 })
