@@ -212,12 +212,13 @@
                 })
                 .call(force.drag);
 
-            /*
+            //
             d3.selectAll(".nodeRejected")
+                    .attr("fill", "none")
                     .attr("rejectText")
                     .append("text")
                     .text("x");
-                    */
+                    //
 
             force.start();
         }
