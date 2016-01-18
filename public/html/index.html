@@ -212,15 +212,15 @@
                 })
                 .call(force.drag);
 
+            force.start();
+
             //
             d3.selectAll(".nodeRejected")
                     .attr("fill", "none")
                     .attr("rejectText")
                     .append("text")
                     .text("x");
-                    //
-
-            force.start();
+            //
         }
 
         function setDefaultStatus(graph) {
