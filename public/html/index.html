@@ -153,78 +153,67 @@
                 });
 
             node = node
-                .data(force.nodes())
-                .enter().append("circle")
-                .attr("id", "node")
-                .attr("class", function (d) {
-                    if (d.isNovel) { return "nodeNovel"; }
-                    else if (d.branchRejected) { return "branchRejected"; }
-                    else if (d.isRejected) {
-                        d3.select(this).append("text").text("x");
+                    .data(force.nodes())
+                    .enter().append("g")
+                    .attr("class", function(d) { return (d.isRejected ? "groupRejected" : "groupNormal"); })
+                    .append("path")
+                    .attr("id", "node")
+                    .attr("class", function (d) {
+                        if (d.isNovel) { return "nodeNovel"; }
+                        else if (d.branchRejected) { return "branchRejected"; }
+                        else if (d.isRejected) { return "nodeRejected"; }
+                        else if (d.isPredecessor) { return "nodePredecessor"; }
+                        else if (d.isSuccessor) { return "nodeSuccessor"; }
+                        else { return "nodeNormal"; }
+                    })
+                    .attr("d", function(d) { return !d.branchRejected && d.isRejected ? "M-5,-5 L5,5 M5,-5 L-5,5" : "M-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" })
+                    //.attr("d", function(d) { return !d.branchRejected && d.isRejected ? "M-5,-5 L5,5 M5,-5 L-5,5" : "M-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" })
+                                                                  //M32 30 L38 24 L40 26 L34 32 L40 38 L38 40 L32 34 L26 40 L24 38 L30 32 L24 26 L26 24 Z
+                    //.attr("d", function(d) { return d.isRejected ? "M2 0 L8 -6 L10 -4 L4 2 L10 8 L8 10 L2 4 L-4 10 L-6 8 L0 2 L-6 -4 L-4 -6 Z" : "M-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" })
+                    //.attr("d", function(d) { return d.isRejected ? "M0 -2 L6 -8 L8 -6 L2 0 L8 6 L6 8 L0 2 L-6 8 L-8 6 L-2 0 L-8 -6 L-6 -8 Z" : "M-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" })
+                    .attr("title", function (d) {
+                        return d.kmer;
+                    })
+                    .on("mouseover", function (d) {
+                        d3.json("crrecord?seq=" + d.kmer, function (result) {
+                            d3.select("#status").text(result.recordText);
+                        });
 
-                        return "nodeRejected";
-                    }
-                    else if (d.isPredecessor) { return "nodePredecessor"; }
-                    else if (d.isSuccessor) { return "nodeSuccessor"; }
-                    else { return "nodeNormal"; }
-                })
-                .attr("content", function(d) {
-                    if (d.isRejected) { return "x"; }
-                })
-                .attr("r", function (d) {
-                    return 3 + Math.sqrt(d.kmer.length / 47)
-                })
-                .attr("title", function (d) {
-                    return d.kmer;
-                })
-                .on("mouseover", function (d) {
-                    d3.json("crrecord?seq=" + d.kmer, function (result) {
-                        d3.select("#status").text(result.recordText);
-                    });
+                        console.log(d.maternalLoci.length);
+                        console.log(d.paternalLoci.length);
 
-                    console.log(d.maternalLoci.length);
-                    console.log(d.paternalLoci.length);
+                        var tiptext = d.kmer;
 
-                    var tiptext = d.kmer;
+                        if (d.maternalLoci.length == 1) { tiptext += " m:" + d.maternalLoci[0].sequence + ":" + d.maternalLoci[0].start + "-" + d.maternalLoci[0].end; }
+                        if (d.paternalLoci.length == 1) { tiptext += " d:" + d.paternalLoci[0].sequence + ":" + d.paternalLoci[0].start + "-" + d.paternalLoci[0].end; }
 
-                    if (d.maternalLoci.length == 1) { tiptext += " m:" + d.maternalLoci[0].sequence + ":" + d.maternalLoci[0].start + "-" + d.maternalLoci[0].end; }
-                    if (d.paternalLoci.length == 1) { tiptext += " d:" + d.paternalLoci[0].sequence + ":" + d.paternalLoci[0].start + "-" + d.paternalLoci[0].end; }
+                        //console.log(d);
 
-                    //console.log(d);
+                        svg.append("text")
+                                .attr("id", "tip")
+                                .attr("x", d.x + 10)
+                                .attr("y", d.y - 10)
+                                .attr("width", 100)
+                                .attr("height", 50)
+                                .text(tiptext);
+                    })
+                    .on("mouseout", function (d) {
+                        svg.selectAll("#tip").remove();
+                    })
+                    .on("click", function (d) {
+                        d3.select("#status").text(d.kmer + " (" + (d.kmer.length) + " bp)");
+                    })
+                    .on("dblclick", function (d) {
+                        d3.json("explore?kmer=" + d.kmer + "&sindex=" + nodes.length, function (result) {
+                            nodes = nodes.concat(result.nodes);
+                            links = links.concat(result.links);
 
-                    svg.append("text")
-                            .attr("id", "tip")
-                            .attr("x", d.x + 10)
-                            .attr("y", d.y - 10)
-                            .attr("width", 100)
-                            .attr("height", 50)
-                            .text(tiptext);
-                })
-                .on("mouseout", function (d) {
-                    svg.selectAll("#tip").remove();
-                })
-                .on("click", function (d) {
-                    d3.select("#status").text(d.kmer + " (" + (d.kmer.length) + " bp)");
-                })
-                .on("dblclick", function (d) {
-                    d3.json("explore?kmer=" + d.kmer + "&sindex=" + nodes.length, function (result) {
-                        nodes = nodes.concat(result.nodes);
-                        links = links.concat(result.links);
-
-                        start();
-                    });
-                })
-                .call(force.drag);
+                            start();
+                        });
+                    })
+                    .call(force.drag);
 
             force.start();
-
-            /*
-            d3.selectAll(".nodeRejected")
-                    .attr("fill", "none")
-                    .attr("rejectText")
-                    .append("text")
-                    .text("x");
-            */
         }
 
         function setDefaultStatus(graph) {
