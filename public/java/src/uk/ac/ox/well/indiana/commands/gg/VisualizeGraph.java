@@ -259,13 +259,32 @@ public class VisualizeGraph extends Module {
             Map<String, Integer> indices = new HashMap<String, Integer>();
             int index = 0;
 
+            Set<CortexKmer> moreRejectedKmers = new HashSet<CortexKmer>();
+            //
+            for (AnnotatedVertex v : a.vertexSet()) {
+                if (rejectedKmers.contains(new CortexKmer(v.getKmer()))) {
+                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, v.getKmer(), 0, null, ContaminantStopper.class);
+
+                    moreRejectedKmers.add(new CortexKmer(v.getKmer()));
+
+                    for (AnnotatedVertex rv : dfs.vertexSet()) {
+                        CortexRecord cr = CLEAN.findRecord(new CortexKmer(rv.getKmer()));
+
+                        if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0) {
+                            moreRejectedKmers.add(new CortexKmer(rv.getKmer()));
+                        }
+                    }
+                }
+            }
+            //
+
             for (AnnotatedVertex v : a.vertexSet()) {
                 Map<String, Object> m = new HashMap<String, Object>();
                 m.put("kmer", v.getKmer());
                 m.put("isNovel", v.isNovel());
                 m.put("isPredecessor", v.flagIsSet("predecessor"));
                 m.put("isSuccessor", v.flagIsSet("successor"));
-                m.put("isRejected", rejectedKmers.contains(new CortexKmer(v.getKmer())));
+                m.put("isRejected", moreRejectedKmers.contains(new CortexKmer(v.getKmer())));
                 m.put("branchRejected", v.flagIsSet("branchRejected"));
                 m.put("maternalLoci", v.getMaternalLocations());
                 m.put("paternalLoci", v.getPaternalLocations());
