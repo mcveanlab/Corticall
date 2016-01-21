@@ -85,8 +85,10 @@ public class FilterNovels extends Module {
 
         log.info("Finding orphans...");
         for (CortexRecord cr : NOVEL_KMERS) {
-            if (!contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
+            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, cr.getKmerAsString(), 0, null, ChildTraversalStopper.class);
+
+                log.info("  {} {}", dfs.vertexSet(), dfs.edgeSet());
 
                 Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
                 boolean isOrphaned = true;
