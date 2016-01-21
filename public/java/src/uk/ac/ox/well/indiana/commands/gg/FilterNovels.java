@@ -12,7 +12,9 @@ import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class FilterNovels extends Module {
@@ -81,12 +83,21 @@ public class FilterNovels extends Module {
         }
         log.info("  {} contaminants found", contaminatingKmers.size());
 
+        Map<CortexKmer, Boolean> remainingNovelKmers = new HashMap<CortexKmer, Boolean>();
+        for (CortexRecord cr : NOVEL_KMERS) {
+            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer())) {
+                remainingNovelKmers.put(cr.getCortexKmer(), true);
+            }
+        }
+
         Set<CortexKmer> orphanedKmers = new HashSet<CortexKmer>();
 
         log.info("Finding orphans...");
         for (CortexRecord cr : NOVEL_KMERS) {
             if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, cr.getKmerAsString(), 0, null, ChildTraversalStopper.class);
+                String stretch = CortexUtils.getSeededStretch(CLEAN, null, cr.getKmerAsString(), 0, true);
+
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, null, remainingNovelKmers, true);
 
                 log.info("  {} {} {}", cr.getKmerAsString(), dfs.vertexSet().size(), dfs.edgeSet().size());
 
@@ -108,6 +119,8 @@ public class FilterNovels extends Module {
                 }
 
                 if (isOrphaned) {
+                    log.info("    orphaned");
+
                     orphanedKmers.addAll(novelKmers);
                 }
             }
