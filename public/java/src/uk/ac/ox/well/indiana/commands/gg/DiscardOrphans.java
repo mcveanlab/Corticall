@@ -33,27 +33,29 @@ public class DiscardOrphans extends Module {
             CortexKmer ck = cr.getCortexKmer();
             String sk = ck.getKmerAsString();
 
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, sk, 0, null, ChildTraversalStopper.class);
+            if (CLEAN.findRecord(ck) != null) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, sk, 0, null, ChildTraversalStopper.class);
 
-            Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
-            boolean isOrphaned = true;
+                Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+                boolean isOrphaned = true;
 
-            for (AnnotatedVertex av : dfs.vertexSet()) {
-                CortexKmer ak = new CortexKmer(av.getKmer());
-                CortexRecord ar = CLEAN.findRecord(ak);
+                for (AnnotatedVertex av : dfs.vertexSet()) {
+                    CortexKmer ak = new CortexKmer(av.getKmer());
+                    CortexRecord ar = CLEAN.findRecord(ak);
 
-                if (ar != null) {
-                    if (ar.getCoverage(0) > 0 && ar.getCoverage(1) == 0 && ar.getCoverage(2) == 0) {
-                        novelKmers.add(ak);
-                    } else if (ar.getCoverage(1) > 0 || ar.getCoverage(2) > 0) {
-                        isOrphaned = false;
-                        break;
+                    if (ar != null) {
+                        if (ar.getCoverage(0) > 0 && ar.getCoverage(1) == 0 && ar.getCoverage(2) == 0) {
+                            novelKmers.add(ak);
+                        } else if (ar.getCoverage(1) > 0 || ar.getCoverage(2) > 0) {
+                            isOrphaned = false;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (isOrphaned) {
-                novelKmersToDiscard.addAll(novelKmers);
+                if (isOrphaned) {
+                    novelKmersToDiscard.addAll(novelKmers);
+                }
             }
         }
 
