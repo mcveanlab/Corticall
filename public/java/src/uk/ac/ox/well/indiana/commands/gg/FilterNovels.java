@@ -119,9 +119,17 @@ public class FilterNovels extends Module {
         }
         log.info("  {} orphaned kmers", orphanedKmers.size());
 
-        int count = 0;
+        int covs = 0, contams = 0, orphans = 0, count = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
-            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
+            CortexKmer ck = cr.getCortexKmer();
+
+            if (coverageOutliers.contains(ck)) {
+                covs++;
+            } else if (contaminatingKmers.contains(ck)) {
+                contams++;
+            } else if (orphanedKmers.contains(ck)) {
+                orphans++;
+            } else {
                 out.println(">" + count);
                 out.println(cr.getKmerAsString());
 
@@ -131,9 +139,9 @@ public class FilterNovels extends Module {
 
         log.info("Results");
         log.info("  {} before filtering", NOVEL_KMERS.getNumRecords());
-        log.info("  {} rejected for coverage", coverageOutliers.size());
-        log.info("  {} rejected for contamination", contaminatingKmers.size());
-        log.info("  {} rejected for orphan status", orphanedKmers.size());
+        log.info("  {} rejected for coverage", covs);
+        log.info("  {} rejected for contamination", contams);
+        log.info("  {} rejected for orphan status", orphans);
         log.info("  {} remaining", count);
     }
 }
