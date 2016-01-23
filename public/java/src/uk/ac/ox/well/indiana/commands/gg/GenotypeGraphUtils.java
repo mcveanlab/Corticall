@@ -195,6 +195,7 @@ public class GenotypeGraphUtils {
         // Extend from any other kmers we'd like to see
         Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
         extendAnyway.add(new AnnotatedVertex("GTTTAGGGTTCAGGGTTCATGGTTTAGGTTTAGGGTTTAGGGTTCAG"));
+        extendAnyway.add(new AnnotatedVertex("GGGTTTAGGGTTTAGGGTTCAAGGTTTAGGGTTTAGGGTTCAGGGTT"));
 
         for (int c = 0; c <= 2; c++) {
             for (AnnotatedVertex ak : extendAnyway) {
