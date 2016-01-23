@@ -136,7 +136,7 @@ public class FilterNovels extends Module {
                     for (String adjKmer : adjKmers) {
                         CortexKmer cAdjKmer = new CortexKmer(adjKmer);
 
-                        if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer)) {
+                        if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer) || adjacentToRejection.contains(cAdjKmer)) {
                             adjacentToRejection.add(ck);
                             addedStuff = true;
                             break;
