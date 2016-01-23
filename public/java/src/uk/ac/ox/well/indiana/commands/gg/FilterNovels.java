@@ -97,10 +97,6 @@ public class FilterNovels extends Module {
             if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
                 String stretch = CortexUtils.getSeededStretch(CLEAN, null, cr.getKmerAsString(), 0, true);
 
-                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, null, remainingNovelKmers, true);
-
-                //log.info("  {} {} {}", cr.getKmerAsString(), dfs.vertexSet().size(), dfs.edgeSet().size());
-
                 Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
                 boolean isOrphaned = true;
 
@@ -119,8 +115,6 @@ public class FilterNovels extends Module {
                 }
 
                 if (isOrphaned) {
-                    log.info("    orphaned");
-
                     orphanedKmers.addAll(novelKmers);
                 }
             }
@@ -137,7 +131,11 @@ public class FilterNovels extends Module {
             }
         }
 
-        log.info("Before: {}", NOVEL_KMERS.getNumRecords());
-        log.info("After: {}", count);
+        log.info("Results");
+        log.info("  {} before filtering", NOVEL_KMERS.getNumRecords());
+        log.info("  {} rejected for coverage", coverageOutliers.size());
+        log.info("  {} rejected for contamination", contaminatingKmers.size());
+        log.info("  {} rejected for orphan status", orphanedKmers.size());
+        log.info("  {} remaining", count);
     }
 }
