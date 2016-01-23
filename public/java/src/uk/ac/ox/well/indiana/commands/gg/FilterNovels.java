@@ -148,7 +148,7 @@ public class FilterNovels extends Module {
 
         log.info("  {} adjacent kmers", adjacentToRejection.size());
 
-        int covs = 0, contams = 0, orphans = 0, count = 0;
+        int covs = 0, contams = 0, orphans = 0, adj = 0, count = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
             CortexKmer ck = cr.getCortexKmer();
 
@@ -158,6 +158,8 @@ public class FilterNovels extends Module {
                 contams++;
             } else if (orphanedKmers.contains(ck)) {
                 orphans++;
+            } else if (adjacentToRejection.contains(ck)) {
+                adj++;
             } else {
                 out.println(">" + count);
                 out.println(cr.getKmerAsString());
@@ -171,6 +173,7 @@ public class FilterNovels extends Module {
         log.info("  {} rejected for coverage", covs);
         log.info("  {} rejected for contamination", contams);
         log.info("  {} rejected for orphan status", orphans);
+        log.info("  {} rejected for adjacency", adj);
         log.info("  {} remaining", count);
     }
 }
