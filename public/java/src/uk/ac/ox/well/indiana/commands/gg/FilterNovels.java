@@ -72,9 +72,12 @@ public class FilterNovels extends Module {
 
                 for (AnnotatedVertex rv : dfs.vertexSet()) {
                     CortexRecord rr = CLEAN.findRecord(new CortexKmer(rv.getKmer()));
+                    CortexKmer rk = rr.getCortexKmer();
 
                     if (rr.getCoverage(0) > 0 && rr.getCoverage(1) == 0 && rr.getCoverage(2) == 0) {
-                        contaminatingKmers.add(rr.getCortexKmer());
+                        if (!coverageOutliers.contains(rk) && !contaminatingKmers.contains(rk)) {
+                            contaminatingKmers.add(rr.getCortexKmer());
+                        }
                     }
                 }
 
@@ -82,13 +85,6 @@ public class FilterNovels extends Module {
             }
         }
         log.info("  {} contaminants found", contaminatingKmers.size());
-
-        Map<CortexKmer, Boolean> remainingNovelKmers = new HashMap<CortexKmer, Boolean>();
-        for (CortexRecord cr : NOVEL_KMERS) {
-            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer())) {
-                remainingNovelKmers.put(cr.getCortexKmer(), true);
-            }
-        }
 
         Set<CortexKmer> orphanedKmers = new HashSet<CortexKmer>();
 
@@ -106,7 +102,9 @@ public class FilterNovels extends Module {
 
                     if (ar != null) {
                         if (ar.getCoverage(0) > 0 && ar.getCoverage(1) == 0 && ar.getCoverage(2) == 0) {
-                            novelKmers.add(ak);
+                            if (!coverageOutliers.contains(ak) && !contaminatingKmers.contains(ak) && !orphanedKmers.contains(ak)) {
+                                novelKmers.add(ak);
+                            }
                         } else if (ar.getCoverage(1) > 0 || ar.getCoverage(2) > 0) {
                             isOrphaned = false;
                             break;
