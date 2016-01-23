@@ -119,6 +119,35 @@ public class FilterNovels extends Module {
         }
         log.info("  {} orphaned kmers", orphanedKmers.size());
 
+        Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
+        boolean addedStuff;
+        do {
+            addedStuff = false;
+            for (CortexRecord cr : NOVEL_KMERS) {
+                CortexKmer ck = cr.getCortexKmer();
+
+                if (!adjacentToRejection.contains(ck)) {
+                    String sk = cr.getKmerAsString();
+
+                    Set<String> adjKmers = new HashSet<String>();
+                    adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
+                    adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
+
+                    for (String adjKmer : adjKmers) {
+                        CortexKmer cAdjKmer = new CortexKmer(adjKmer);
+
+                        if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer)) {
+                            adjacentToRejection.add(ck);
+                            addedStuff = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } while (addedStuff);
+
+        log.info("  {} adjacent kmers", adjacentToRejection.size());
+
         int covs = 0, contams = 0, orphans = 0, count = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
             CortexKmer ck = cr.getCortexKmer();
