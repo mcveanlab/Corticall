@@ -196,6 +196,7 @@ public class GenotypeGraphUtils {
         Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
         extendAnyway.add(new AnnotatedVertex("GTTTAGGGTTCAGGGTTCATGGTTTAGGTTTAGGGTTTAGGGTTCAG"));
         extendAnyway.add(new AnnotatedVertex("GGGTTTAGGGTTTAGGGTTCAAGGTTTAGGGTTTAGGGTTCAGGGTT"));
+        extendAnyway.add(new AnnotatedVertex("TCAGGGTTTAGGGTTTAGGGTTTAGGGTTCAAGGTTTAGGGTTTAGG"));
 
         for (int c = 0; c <= 2; c++) {
             for (AnnotatedVertex ak : extendAnyway) {
