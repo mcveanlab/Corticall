@@ -97,15 +97,15 @@ public class FilterNovels extends Module {
             if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
                 String stretch = CortexUtils.getSeededStretch(CLEAN, null, cr.getKmerAsString(), 0, true);
 
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, null, remainingNovelKmers, true);
+                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, null, remainingNovelKmers, true);
 
-                log.info("  {} {} {}", cr.getKmerAsString(), dfs.vertexSet().size(), dfs.edgeSet().size());
+                //log.info("  {} {} {}", cr.getKmerAsString(), dfs.vertexSet().size(), dfs.edgeSet().size());
 
                 Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
                 boolean isOrphaned = true;
 
-                for (AnnotatedVertex av : dfs.vertexSet()) {
-                    CortexKmer ak = new CortexKmer(av.getKmer());
+                for (int i = 0; i <= stretch.length() - CLEAN.getKmerSize(); i++) {
+                    CortexKmer ak = new CortexKmer(stretch.substring(i, i + CLEAN.getKmerSize()));
                     CortexRecord ar = CLEAN.findRecord(ak);
 
                     if (ar != null) {
