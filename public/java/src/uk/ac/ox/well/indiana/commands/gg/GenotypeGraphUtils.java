@@ -193,6 +193,7 @@ public class GenotypeGraphUtils {
         addGraph(ag, sg2, novelKmers);
 
         // Extend from any other kmers we'd like to see
+        /*
         Set<AnnotatedVertex> extendAnyway = new HashSet<AnnotatedVertex>();
         extendAnyway.add(new AnnotatedVertex("GTTTAGGGTTCAGGGTTCATGGTTTAGGTTTAGGGTTTAGGGTTCAG"));
         extendAnyway.add(new AnnotatedVertex("GGGTTTAGGGTTTAGGGTTCAAGGTTTAGGGTTTAGGGTTCAGGGTT"));
@@ -207,6 +208,7 @@ public class GenotypeGraphUtils {
                 }
             }
         }
+        */
 
         /*
         for (AnnotatedVertex ava : ag.vertexSet()) {
