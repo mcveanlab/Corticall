@@ -222,7 +222,7 @@ public class VisualizeGraph extends Module {
 
             log.info("  stretch: {} bp", stretch.length());
 
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers, true);
+            DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers, simplify);
 
             log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
@@ -245,11 +245,13 @@ public class VisualizeGraph extends Module {
 
             int numVertices = a.vertexSet().size();
 
+            /*
             if (simplify) {
                 a = GenotypeGraphUtils.simplifyGraph(a, false);
 
                 log.info("    simplified: {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
             }
+            */
 
             int numVerticesSimplified = a.vertexSet().size();
 
