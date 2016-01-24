@@ -48,7 +48,9 @@ public class PacBioStatsNovelKmers extends Module {
             } else {
                 un++;
 
-                log.info("un: {}", cr);
+                if (presentInPacBio && !presentInParent) {
+                    log.info("un: {}", cr);
+                }
             }
         }
     }
