@@ -41,26 +41,26 @@ public class PacBioStatsNovelKmers extends Module {
                 if (presentInPacBio && presentInChild && !presentInParent) {
                     tp++;
 
-                    log.info("tp: {}", cr);
+                    log.debug("tp: {}", cr);
                 } else {
                     fp++;
 
-                    log.info("fp: {}", cr);
+                    log.debug("fp: {}", cr);
                 }
             } else if (rejectedNovel) {
                 // Correct? TN
                 if (!presentInPacBio) {
                     tn++;
 
-                    log.info("tn: {}", cr);
+                    log.debug("tn: {}", cr);
                 } else {
                     fn++;
 
-                    log.info("fn: {}", cr);
+                    log.debug("fn: {}", cr);
                 }
             } else {
                 if (presentInPacBio && !presentInParent) {
-                    log.info("un: {}", cr);
+                    log.debug("un: {}", cr);
 
                     un++;
                 }
