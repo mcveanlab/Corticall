@@ -36,6 +36,9 @@ public class FilterNovels extends Module {
     @Output
     public PrintStream out;
 
+    @Output(fullName="rejectedOut", shortName="rout", doc="Rejected out")
+    public PrintStream rout;
+
     private int loadThreshold(String threshold) {
         File f = new File(threshold);
         if (f.exists()) {
@@ -153,17 +156,19 @@ public class FilterNovels extends Module {
             CortexKmer ck = cr.getCortexKmer();
 
             if (coverageOutliers.contains(ck)) {
+                rout.println(">covs" + covs + "\n" + cr.getKmerAsString());
                 covs++;
             } else if (contaminatingKmers.contains(ck)) {
+                rout.println(">contams" + contams + "\n" + cr.getKmerAsString());
                 contams++;
             } else if (orphanedKmers.contains(ck)) {
+                rout.println(">orphans" + orphans + "\n" + cr.getKmerAsString());
                 orphans++;
             } else if (adjacentToRejection.contains(ck)) {
+                rout.println(">adj" + adj + "\n" + cr.getKmerAsString());
                 adj++;
             } else {
-                out.println(">" + count);
-                out.println(cr.getKmerAsString());
-
+                out.println(">" + count + "\n" + cr.getKmerAsString());
                 count++;
             }
         }
