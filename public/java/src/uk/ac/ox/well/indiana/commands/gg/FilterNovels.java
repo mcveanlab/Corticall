@@ -36,7 +36,7 @@ public class FilterNovels extends Module {
     @Output
     public PrintStream out;
 
-    @Output(fullName="rejectedOut", shortName="rout", doc="Rejected out")
+    @Output(fullName="rejectedOut", shortName="ro", doc="Rejected out")
     public PrintStream rout;
 
     private int loadThreshold(String threshold) {
