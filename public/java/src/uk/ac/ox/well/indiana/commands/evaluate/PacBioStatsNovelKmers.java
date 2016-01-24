@@ -2,18 +2,30 @@ package uk.ac.ox.well.indiana.commands.evaluate;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+
+import java.io.PrintStream;
 
 public class PacBioStatsNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
+    @Output
+    public PrintStream out;
+
     @Override
     public void execute() {
         int tp = 0, tn = 0, fp = 0, fn = 0, un = 0;
 
+        log.info("Processing records...");
+        int index = 0;
         for (CortexRecord cr : GRAPH) {
+            if (index % (GRAPH.getNumRecords() / 10) == 0) {
+                log.info("  {} records", index);
+            }
+
             boolean calledNovel = cr.getCoverage(0) > 0;
             boolean rejectedNovel = cr.getCoverage(1) > 0;
             boolean presentInPacBio = cr.getCoverage(2) > 0;
@@ -46,12 +58,21 @@ public class PacBioStatsNovelKmers extends Module {
                     log.info("fn: {}", cr);
                 }
             } else {
-                un++;
-
                 if (presentInPacBio && !presentInParent) {
                     log.info("un: {}", cr);
+
+                    un++;
                 }
             }
         }
+
+        //int tp = 0, tn = 0, fp = 0, fn = 0, un = 0;
+
+        out.println("tp: " + tp);
+        out.println("tn: " + tn);
+        out.println("fp: " + fp);
+        out.println("fn: " + fn);
+        out.println("un: " + un);
+
     }
 }
