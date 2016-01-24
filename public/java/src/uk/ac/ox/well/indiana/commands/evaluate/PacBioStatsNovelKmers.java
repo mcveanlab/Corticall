@@ -25,6 +25,7 @@ public class PacBioStatsNovelKmers extends Module {
             if (index % (GRAPH.getNumRecords() / 10) == 0) {
                 log.info("  {} records", index);
             }
+            index++;
 
             boolean calledNovel = cr.getCoverage(0) > 0;
             boolean rejectedNovel = cr.getCoverage(1) > 0;
