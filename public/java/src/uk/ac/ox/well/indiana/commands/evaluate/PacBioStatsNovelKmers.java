@@ -23,7 +23,7 @@ public class PacBioStatsNovelKmers extends Module {
         int index = 0;
         for (CortexRecord cr : GRAPH) {
             if (index % (GRAPH.getNumRecords() / 10) == 0) {
-                log.info("  {} records", index);
+                log.info("  {}/{} records", index, GRAPH.getNumRecords());
             }
             index++;
 
@@ -64,6 +64,10 @@ public class PacBioStatsNovelKmers extends Module {
 
                     un++;
                 }
+            }
+
+            if (presentInPacBio && presentInChild && !presentInParent && !calledNovel && !rejectedNovel) {
+                log.info("huh?: {}", cr);
             }
         }
 
