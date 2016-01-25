@@ -41,7 +41,7 @@ public class PacBioStatsNovelKmers extends Module {
                 if (presentInPacBio && presentInChild && !presentInParent) {
                     tp++;
 
-                    log.debug("tp: {}", cr);
+                    //log.debug("tp: {}", cr);
                 } else {
                     fp++;
 
@@ -52,7 +52,7 @@ public class PacBioStatsNovelKmers extends Module {
                 if (!presentInPacBio) {
                     tn++;
 
-                    log.debug("tn: {}", cr);
+                    //log.debug("tn: {}", cr);
                 } else {
                     fn++;
 
