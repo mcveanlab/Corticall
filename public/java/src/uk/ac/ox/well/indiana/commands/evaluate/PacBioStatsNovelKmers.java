@@ -59,16 +59,13 @@ public class PacBioStatsNovelKmers extends Module {
                     log.debug("fn: {}", cr);
                 }
             } else {
-                if (presentInPacBio && !presentInParent) {
-                    log.debug("un: {}", cr);
+                if (presentInPacBio && presentInChild && !presentInParent) {
+                    fn++;
 
-                    un++;
+                    log.info("huh?: {}", cr);
                 }
             }
 
-            if (presentInPacBio && presentInChild && !presentInParent && !calledNovel && !rejectedNovel) {
-                log.info("huh?: {}", cr);
-            }
         }
 
         float sens = (float) tp / (float) (tp + fn);
