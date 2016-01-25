@@ -71,13 +71,15 @@ public class PacBioStatsNovelKmers extends Module {
             }
         }
 
-        //int tp = 0, tn = 0, fp = 0, fn = 0, un = 0;
+        float sens = (float) tp / (float) (tp + fn);
+        float spec = (float) tn / (float) (tn + fp);
 
         out.println("tp: " + tp);
         out.println("tn: " + tn);
         out.println("fp: " + fp);
         out.println("fn: " + fn);
         out.println("un: " + un);
-
+        out.println("sens: " + sens);
+        out.println("spec: " + spec);
     }
 }
