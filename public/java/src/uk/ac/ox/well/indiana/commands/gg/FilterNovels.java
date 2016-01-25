@@ -33,6 +33,9 @@ public class FilterNovels extends Module {
     @Argument(fullName="upperThreshold", shortName="u", doc="Upper coverage threshold")
     public String UPPER_THRESHOLD = "100";
 
+    @Argument(fullName="performAdjacencyPass", shortName="p", doc="Perform adjacency pass")
+    public Boolean PERFORM_ADJACENCY_PASS = false;
+
     @Output
     public PrintStream out;
 
@@ -124,36 +127,38 @@ public class FilterNovels extends Module {
 
         log.info("Looking for adjacent kmers to discard...");
         Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
-        boolean addedStuff;
-        int passes = 0;
-        do {
-            log.info("  pass {}, {} kmers", passes, adjacentToRejection.size());
+        if (PERFORM_ADJACENCY_PASS) {
+            boolean addedStuff;
+            int passes = 0;
+            do {
+                log.info("  pass {}, {} kmers", passes, adjacentToRejection.size());
 
-            addedStuff = false;
-            for (CortexRecord cr : NOVEL_KMERS) {
-                CortexKmer ck = cr.getCortexKmer();
+                addedStuff = false;
+                for (CortexRecord cr : NOVEL_KMERS) {
+                    CortexKmer ck = cr.getCortexKmer();
 
-                if (!adjacentToRejection.contains(ck)) {
-                    String sk = cr.getKmerAsString();
+                    if (!adjacentToRejection.contains(ck)) {
+                        String sk = cr.getKmerAsString();
 
-                    Set<String> adjKmers = new HashSet<String>();
-                    adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
-                    adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
+                        Set<String> adjKmers = new HashSet<String>();
+                        adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
+                        adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
 
-                    for (String adjKmer : adjKmers) {
-                        CortexKmer cAdjKmer = new CortexKmer(adjKmer);
+                        for (String adjKmer : adjKmers) {
+                            CortexKmer cAdjKmer = new CortexKmer(adjKmer);
 
-                        if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer) || adjacentToRejection.contains(cAdjKmer)) {
-                            adjacentToRejection.add(ck);
-                            addedStuff = true;
-                            break;
+                            if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer) || adjacentToRejection.contains(cAdjKmer)) {
+                                adjacentToRejection.add(ck);
+                                addedStuff = true;
+                                break;
+                            }
                         }
                     }
                 }
-            }
 
-            passes++;
-        } while (addedStuff);
+                passes++;
+            } while (addedStuff);
+        }
 
         log.info("  {} adjacent kmers", adjacentToRejection.size());
 
