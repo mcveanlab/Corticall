@@ -122,9 +122,13 @@ public class FilterNovels extends Module {
         }
         log.info("  {} orphaned kmers", orphanedKmers.size());
 
+        log.info("Looking for adjacent kmers to discard...");
         Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
         boolean addedStuff;
+        int passes = 0;
         do {
+            log.info("  pass {}, {} kmers", passes, adjacentToRejection.size());
+
             addedStuff = false;
             for (CortexRecord cr : NOVEL_KMERS) {
                 CortexKmer ck = cr.getCortexKmer();
@@ -147,6 +151,8 @@ public class FilterNovels extends Module {
                     }
                 }
             }
+
+            passes++;
         } while (addedStuff);
 
         log.info("  {} adjacent kmers", adjacentToRejection.size());
