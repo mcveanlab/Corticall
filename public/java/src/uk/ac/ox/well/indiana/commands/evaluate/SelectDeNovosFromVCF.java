@@ -70,6 +70,8 @@ public class SelectDeNovosFromVCF extends Module {
 
                 if (itm.containsOverlapping(it)) {
                     region = Joiner.on(",").join(itm.getOverlapping(it));
+                } else if (itm.containsContained(it)) {
+                    region = Joiner.on(",").join(itm.getContained(it));
                 }
 
                 VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
