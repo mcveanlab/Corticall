@@ -72,7 +72,7 @@ public class SelectDeNovosFromVCF extends Module {
                     region = Joiner.on(",").join(itm.getOverlapping(it));
                 }
 
-                VariantContext newvc = new VariantContextBuilder().attribute("region", region).make();
+                VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
 
                 out.println(Joiner.on(",").join(vc.getFilters()) + " " + newvc);
             }
