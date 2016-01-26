@@ -27,7 +27,7 @@ public class SelectDeNovosFromVCF extends Module {
     @Override
     public void execute() {
         for (VariantContext vc : VCF) {
-            if ( vc.getGenotype(CHILD).isCalled() &&
+            if ( vc.getGenotype(CHILD).isCalled() && vc.getGenotype(MOTHER).isCalled() && vc.getGenotype(FATHER).isCalled() &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(MOTHER).getType()) &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(FATHER).getType())) {
                 out.println(vc);
