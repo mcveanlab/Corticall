@@ -171,7 +171,7 @@ public class KmersFromVariants extends Module {
 
                     int kindex = 0;
                     for (String kmer : kmers) {
-                        out.println(">" + name + ":" + i + "." + kindex);
+                        out.println(">" + name + ":" + (i+1) + "." + kindex);
                         out.println(kmer);
 
                         kindex++;
