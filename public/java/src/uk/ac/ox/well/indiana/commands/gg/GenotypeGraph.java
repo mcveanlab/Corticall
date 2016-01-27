@@ -230,7 +230,7 @@ public class GenotypeGraph extends Module {
             for (String columnName : te.keySet()) {
                 if (columnName.contains("/")) {
                     String[] pieces = columnName.split("/");
-                    String newColumnName = pieces[1] + "." + pieces[2];
+                    String newColumnName = pieces.length > 2 ? pieces[1] + "." + pieces[2] : pieces[0] + "." + pieces[1];
 
                     if (CLEAN.getColor(0).getSampleName().contains(newColumnName)) {
                         String chr = te.get("CHROM");
