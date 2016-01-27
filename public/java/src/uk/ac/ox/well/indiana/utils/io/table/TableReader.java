@@ -83,10 +83,10 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
                 mappedRecordBuffer.read(headerBuffer);
 
                 this.header = (new String(headerBuffer)).split("\t");
-
-                firstRecord = 1;
             } else {
                 this.header = header;
+
+                lineBreakPositions.add(0, -1l);
             }
 
             moveToBeginningOfRecords();
