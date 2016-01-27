@@ -8,9 +8,7 @@ import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.VCFFileReader;
-import htsjdk.variant.vcf.VCFHeader;
-import htsjdk.variant.vcf.VCFUtils;
+import htsjdk.variant.vcf.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -65,6 +63,9 @@ public class SelectDeNovosFromVCF extends Module {
                 .clearIndexCreator()
                 .setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary())
                 .build();
+
+        VCFHeader vh = VCF.getFileHeader();
+        vh.addMetaDataLine(new VCFInfoHeaderLine("region", 1, VCFHeaderLineType.String, "region type in which the variant occurs"));
 
         vcw.writeHeader(VCF.getFileHeader());
 
