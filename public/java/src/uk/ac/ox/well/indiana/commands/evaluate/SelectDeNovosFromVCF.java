@@ -74,6 +74,10 @@ public class SelectDeNovosFromVCF extends Module {
                     region = Joiner.on(",").join(itm.getContained(it));
                 }
 
+                if (region.equals("unknown")) {
+                    log.info("{}", it);
+                }
+
                 VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
 
                 out.println(Joiner.on(",").join(vc.getFilters()) + " " + newvc);
