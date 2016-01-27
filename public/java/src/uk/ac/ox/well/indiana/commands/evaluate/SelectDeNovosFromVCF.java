@@ -5,7 +5,12 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFFileReader;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFUtils;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -32,7 +37,7 @@ public class SelectDeNovosFromVCF extends Module {
     public File REGIONS;
 
     @Output
-    public PrintStream out;
+    public File out;
 
     private IntervalTreeMap<String> loadRegions() {
         TableReader tr = new TableReader(REGIONS, "chr", "start", "stop", "region");
@@ -55,6 +60,14 @@ public class SelectDeNovosFromVCF extends Module {
 
     @Override
     public void execute() {
+        VariantContextWriter vcw = new VariantContextWriterBuilder()
+                .setOutputFile(out)
+                .clearIndexCreator()
+                .setReferenceDictionary(VCF.getFileHeader().getSequenceDictionary())
+                .build();
+
+        vcw.writeHeader(VCF.getFileHeader());
+
         IntervalTreeMap<String> itm = loadRegions();
 
         for (VariantContext vc : VCF) {
@@ -74,14 +87,12 @@ public class SelectDeNovosFromVCF extends Module {
                     region = Joiner.on(",").join(itm.getContained(it));
                 }
 
-                if (region.equals("unknown")) {
-                    log.info("{}", it);
-                }
-
                 VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
 
-                out.println(Joiner.on(",").join(vc.getFilters()) + " " + newvc);
+                vcw.add(newvc);
             }
         }
+
+        vcw.close();
     }
 }
