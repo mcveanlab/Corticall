@@ -220,7 +220,7 @@ public class VisualizeGraph extends Module {
 
             String stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, kmer, 0, true);
 
-            log.info("  stretch: {} bp", stretch.length());
+            log.info("  stretch: {} bp, {}", stretch.length(), stretch);
 
             DirectedGraph<AnnotatedVertex, AnnotatedEdge> a = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers, simplify);
 
@@ -242,6 +242,8 @@ public class VisualizeGraph extends Module {
 
             // Finalize into a single call
             GenotypeGraphUtils.chooseVariant(gvc);
+
+            log.info("    subgraph  : {} vertices, {} edges", a.vertexSet().size(), a.edgeSet().size());
 
             int numVertices = a.vertexSet().size();
 
