@@ -994,9 +994,18 @@ public class GenotypeGraphUtils {
         int[] scores = new int[2];
 
         for (int c = 1; c <= 2; c++) {
+            String event = gvc.getAttributeAsString(c, "event");
+
             if (gvc.getAttribute(c, "traversalStatus").equals("complete")) { scores[c-1]++; }
-            if (!gvc.getAttribute(c, "event").equals("unknown")) { scores[c-1]++; }
-            if (gvc.getAttribute(c, "event").equals("GC") || gvc.getAttribute(c, "event").equals("NAHR")) { scores[c-1]++; }
+
+            //if (!event.equals("unknown")) { scores[c-1]++; }
+            //if (gvc.getAttribute(c, "event").equals("GC") || gvc.getAttribute(c, "event").equals("NAHR")) { scores[c-1]++; }
+
+            if (!event.equals("unknown")) {
+                if (!event.equals("GC") && !event.equals("NAHR")) {
+                    scores[c - 1]++;
+                }
+            }
 
             gvc.attribute(c, "score", scores[c-1]);
         }
