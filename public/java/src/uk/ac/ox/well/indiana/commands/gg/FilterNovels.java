@@ -221,6 +221,7 @@ public class FilterNovels extends Module {
         log.info("  {} rejected for contamination", contams);
         log.info("  {} rejected for orphan status", orphans);
         log.info("  {} rejected for adjacency", adj);
+        log.info("  {} rejected for overcleaning", overcleaned);
         log.info("  {} remaining", count);
     }
 }
