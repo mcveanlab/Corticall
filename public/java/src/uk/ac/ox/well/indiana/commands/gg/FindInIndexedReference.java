@@ -22,7 +22,7 @@ public class FindInIndexedReference extends Module {
     public File REFERENCE;
 
     @Argument(fullName="kmer", shortName="s", doc="Kmer sequence", required=false)
-    public String KMER;
+    public HashSet<String> KMERS;
 
     @Argument(fullName="novelKmers", shortName="n", doc="Novel kmers", required=false)
     public CortexGraph NOVEL_KMERS;
@@ -35,8 +35,8 @@ public class FindInIndexedReference extends Module {
         KmerLookup kl = new KmerLookup(REFERENCE);
 
         Set<String> kmersToCheck = new HashSet<String>();
-        if (KMER != null) {
-            kmersToCheck.add(KMER);
+        if (KMERS != null) {
+            kmersToCheck.addAll(KMERS);
         }
 
         if (NOVEL_KMERS != null) {
