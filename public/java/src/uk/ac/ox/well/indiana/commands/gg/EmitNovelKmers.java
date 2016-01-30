@@ -5,6 +5,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
@@ -46,6 +47,10 @@ public class EmitNovelKmers extends Module {
             }
 
             int cov = cr.getCoverage(0);
+
+            if (cr.getCortexKmer().equals(new CortexKmer("AAATAAATAAAAAATATAAATATAAATATAAATATATATATATATAT"))) {
+                log.info("Hi!");
+            }
 
             boolean hasCoverageInOtherColors = false;
             for (int c = 1; c < cr.getNumColors(); c++) {
