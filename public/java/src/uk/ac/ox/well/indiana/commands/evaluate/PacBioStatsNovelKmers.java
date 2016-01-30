@@ -56,7 +56,7 @@ public class PacBioStatsNovelKmers extends Module {
                 } else {
                     fn++;
 
-                    log.debug("fn: {}", cr);
+                    log.info("fn: {}", cr);
                 }
             } else {
                 if (presentInPacBio && presentInChild && !presentInParent) {
