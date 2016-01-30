@@ -18,8 +18,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class FilterNovels extends Module {
-    @Argument(fullName="clean", shortName="c", doc="Graph")
+    @Argument(fullName="clean", shortName="c", doc="Graph (clean)")
     public CortexGraph CLEAN;
+
+    @Argument(fullName="dirty", shortName="d", doc="Graph (dirty)")
+    public CortexGraph DIRTY;
 
     @Argument(fullName="novelKmers", shortName="n", doc="Novel kmers")
     public CortexGraph NOVEL_KMERS;
@@ -159,10 +162,35 @@ public class FilterNovels extends Module {
                 passes++;
             } while (addedStuff);
         }
-
         log.info("  {} adjacent kmers", adjacentToRejection.size());
 
-        int covs = 0, contams = 0, orphans = 0, adj = 0, count = 0;
+        Set<CortexKmer> overcleanedKmers = new HashSet<CortexKmer>();
+        for (CortexRecord cr : NOVEL_KMERS) {
+            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !adjacentToRejection.contains(cr.getCortexKmer())) {
+                Set<CortexKmer> kmers = new HashSet<CortexKmer>();
+                boolean hasTaintedNovelKmers = false;
+
+                String stretch = CortexUtils.getNovelStretch(CLEAN, cr.getKmerAsString(), 0, true);
+                for (int i = 0; i <= stretch.length() - CLEAN.getKmerSize(); i++) {
+                    String sk = stretch.substring(i , i + CLEAN.getKmerSize());
+                    CortexKmer ck = new CortexKmer(sk);
+                    CortexRecord cleanRecord = CLEAN.findRecord(ck);
+                    CortexRecord dirtyRecord = DIRTY.findRecord(ck);
+
+                    if (CortexUtils.isNovelKmer(cleanRecord, 0) && !CortexUtils.isNovelKmer(dirtyRecord, 0)) {
+                        hasTaintedNovelKmers = true;
+                    }
+
+                    kmers.add(ck);
+                }
+
+                if (hasTaintedNovelKmers) {
+                    overcleanedKmers.addAll(kmers);
+                }
+            }
+        }
+
+        int covs = 0, contams = 0, orphans = 0, adj = 0, overcleaned = 0, count = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
             CortexKmer ck = cr.getCortexKmer();
 
@@ -178,6 +206,9 @@ public class FilterNovels extends Module {
             } else if (adjacentToRejection.contains(ck)) {
                 rout.println(">adj" + adj + "\n" + cr.getKmerAsString());
                 adj++;
+            } else if (overcleanedKmers.contains(ck)) {
+                rout.println(">overcleaned" + overcleaned + "\n" + cr.getKmerAsString());
+                overcleaned++;
             } else {
                 out.println(">" + count + "\n" + cr.getKmerAsString());
                 count++;
