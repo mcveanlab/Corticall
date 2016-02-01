@@ -76,7 +76,7 @@ public class SelectDeNovosFromVCF extends Module {
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(MOTHER).getType()) &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(FATHER).getType()) &&
                  vc.getGenotype(CHILD).getGQ() > 90 && vc.getGenotype(MOTHER).getGQ() > 90 && vc.getGenotype(FATHER).getGQ() > 90 &&
-                 vc.getGenotype(CHILD).getDP() > 50 && vc.getGenotype(MOTHER).getDP() > 50 && vc.getGenotype(FATHER).getDP() > 50
+                 vc.getGenotype(CHILD).getDP() > 20 && vc.getGenotype(MOTHER).getDP() > 20 && vc.getGenotype(FATHER).getDP() > 20
                 ) {
                 Interval it = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
 
