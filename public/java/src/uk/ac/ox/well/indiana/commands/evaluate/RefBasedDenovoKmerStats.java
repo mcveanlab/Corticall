@@ -27,12 +27,12 @@ public class RefBasedDenovoKmerStats extends Module {
         for (CortexRecord cr : DENOVO_KMERS) {
             CortexKmer ck = cr.getCortexKmer();
 
-            CortexRecord crp  = PACBIO_KMERS.findRecord(ck);
-            CortexRecord crcc = CHILD_CLEAN.findRecord(ck);
-            CortexRecord crcd = CHILD_DIRTY.findRecord(ck);
-            CortexRecord crpa = PARENTS_DIRTY.findRecord(ck);
+            boolean crp  = PACBIO_KMERS.findRecord(ck) != null;
+            boolean crcc = CHILD_CLEAN.findRecord(ck) != null;
+            boolean crcd = CHILD_DIRTY.findRecord(ck) != null;
+            boolean crpa = PARENTS_DIRTY.findRecord(ck) != null;
 
-            log.info("{}", ck);
+            log.info("{} inPacBio={} inClean={} inDirty={} inParents={}", ck, crp, crcc, crcd, crpa);
         }
     }
 }
