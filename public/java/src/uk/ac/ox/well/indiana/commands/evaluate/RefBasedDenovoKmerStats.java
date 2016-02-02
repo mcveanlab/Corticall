@@ -39,7 +39,7 @@ public class RefBasedDenovoKmerStats extends Module {
         log.info("Processing ref-based novel kmers...");
         for (CortexRecord cr : DENOVO_KMERS) {
             if (records % (DENOVO_KMERS.getNumRecords()/10) == 0) {
-
+                log.info("  {}/{} records", records, DENOVO_KMERS.getNumRecords());
             }
 
             CortexKmer ck = cr.getCortexKmer();
