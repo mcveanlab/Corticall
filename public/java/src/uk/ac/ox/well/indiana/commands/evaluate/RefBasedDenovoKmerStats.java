@@ -53,10 +53,10 @@ public class RefBasedDenovoKmerStats extends Module {
 
             Map<String, String> te = new LinkedHashMap<String, String>();
             te.put("kmer", ck.getKmerAsString());
-            te.put("crp", String.valueOf(crp));
-            te.put("crcc", String.valueOf(crcc));
-            te.put("crcd", String.valueOf(crcd));
-            te.put("crpa", String.valueOf(crpa));
+            te.put("crp",  crp  ? "1" : "0");
+            te.put("crcc", crcc ? "1" : "0");
+            te.put("crcd", crcd ? "1" : "0");
+            te.put("crpa", crpa ? "1" : "0");
 
             tw.addEntry(te);
 
