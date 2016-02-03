@@ -164,6 +164,7 @@ public class FilterNovels extends Module {
         }
         log.info("  {} adjacent kmers", adjacentToRejection.size());
 
+        log.info("Looking for overcleaning...");
         Set<CortexKmer> overcleanedKmers = new HashSet<CortexKmer>();
         for (CortexRecord cr : NOVEL_KMERS) {
             if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !adjacentToRejection.contains(cr.getCortexKmer())) {
@@ -189,6 +190,7 @@ public class FilterNovels extends Module {
                 }
             }
         }
+        log.info("  {} overcleaned kmers", overcleanedKmers.size());
 
         int covs = 0, contams = 0, orphans = 0, adj = 0, overcleaned = 0, count = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
