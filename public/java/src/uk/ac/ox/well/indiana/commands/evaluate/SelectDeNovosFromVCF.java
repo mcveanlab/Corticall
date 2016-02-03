@@ -84,6 +84,9 @@ public class SelectDeNovosFromVCF extends Module {
                 int[] adm = vc.getGenotype(MOTHER).getAD();
                 int[] adf = vc.getGenotype(FATHER).getAD();
 
+                boolean bigdiff = true;
+
+                /*
                 boolean bigdiff = false;
 
                 if (adc.length == 1) {
@@ -95,6 +98,7 @@ public class SelectDeNovosFromVCF extends Module {
                         }
                     }
                 }
+                */
 
                 if (bigdiff) {
                     String region = "unknown";
