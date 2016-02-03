@@ -88,9 +88,11 @@ public class SelectDeNovosFromVCF extends Module {
 
                 if (adc.length == 1) {
                     bigdiff = true;
-                } else if (adc.length > 1) {
-                    if (adc[0] < adc[1]/10 || adc[1] < adc[0]/10) {
-                        bigdiff = true;
+                } else if (adc.length > 1 && (adc[0] < adc[1]/10 || adc[1] < adc[0]/10)) {
+                    if (adm.length > 1 && (adm[0] < adm[1]/10 || adm[1] < adm[0]/10)) {
+                        if (adf.length > 1 && (adf[0] < adf[1]/10 || adf[1] < adf[0]/10)) {
+                            bigdiff = true;
+                        }
                     }
                 }
 
