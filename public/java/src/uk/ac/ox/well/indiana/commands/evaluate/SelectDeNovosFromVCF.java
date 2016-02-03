@@ -80,17 +80,33 @@ public class SelectDeNovosFromVCF extends Module {
                 ) {
                 Interval it = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
 
-                String region = "unknown";
+                int[] adc = vc.getGenotype(CHILD).getAD();
+                int[] adm = vc.getGenotype(MOTHER).getAD();
+                int[] adf = vc.getGenotype(FATHER).getAD();
 
-                if (itm.containsOverlapping(it)) {
-                    region = Joiner.on(",").join(itm.getOverlapping(it));
-                } else if (itm.containsContained(it)) {
-                    region = Joiner.on(",").join(itm.getContained(it));
+                boolean bigdiff = false;
+
+                if (adc.length == 1) {
+                    bigdiff = true;
+                } else if (adc.length > 2) {
+                    if (adc[0] < adc[1]/10 || adc[1] < adc[0]/10) {
+                        bigdiff = true;
+                    }
                 }
 
-                VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
+                if (bigdiff) {
+                    String region = "unknown";
 
-                vcw.add(newvc);
+                    if (itm.containsOverlapping(it)) {
+                        region = Joiner.on(",").join(itm.getOverlapping(it));
+                    } else if (itm.containsContained(it)) {
+                        region = Joiner.on(",").join(itm.getContained(it));
+                    }
+
+                    VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
+
+                    vcw.add(newvc);
+                }
             }
         }
 
