@@ -177,7 +177,7 @@ public class FilterNovels extends Module {
                     CortexRecord cleanRecord = CLEAN.findRecord(ck);
                     CortexRecord dirtyRecord = DIRTY.findRecord(ck);
 
-                    if (CortexUtils.isNovelKmer(cleanRecord, 0) && !CortexUtils.isNovelKmer(dirtyRecord, 0)) {
+                    if (cleanRecord != null && dirtyRecord != null && CortexUtils.isNovelKmer(cleanRecord, 0) && !CortexUtils.isNovelKmer(dirtyRecord, 0)) {
                         hasTaintedNovelKmers = true;
                     }
 
