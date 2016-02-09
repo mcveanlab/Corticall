@@ -825,9 +825,8 @@ public class GenotypeGraphUtils {
                 .attribute(color, "childStretch", p.child)
                 .attribute(color, "event", "unknown")
                 .attribute(color, "traversalStatus", "complete")
-                //.attribute(color, "parentalPathAlignment", alignment)
-                //.attribute(color, "novelStretchAlignment", anovel)
-                .attribute(color, "haplotypeBackground", color);
+                .attribute(color, "haplotypeBackground", color)
+                .attribute(color, "isPolymorphic", isPolymorphic);
 
         if (childAllele.equals("N")) {
             if (hasRecombs) {
