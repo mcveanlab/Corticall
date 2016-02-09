@@ -538,6 +538,9 @@ public class GenotypeGraph extends Module {
                 // Finalize into a single call
                 GenotypeGraphUtils.chooseVariant(gvc);
 
+                // Align alleles
+
+
                 // Show alignment
                 log.info("    alignment:");
                 log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
