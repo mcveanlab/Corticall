@@ -683,7 +683,7 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmer", novelKmer);
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretchNum", stretchNum);
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "event", gvc.getAttributeAsString(0, "event"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "isPolymorphic", gvc.getAttributeAsString(0, "isPolymorphic"));
+                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "isPolymorphic", gvc.getAttributeAsBoolean(0, "isPolymorphic"));
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAlleleLength", gvc.getAttributeAsString(0, "parentalAllele").length());
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childAlleleLength", gvc.getAttributeAsString(0, "childAllele").length());
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAllele", gvc.getAttributeAsString(0, "parentalAllele"));
