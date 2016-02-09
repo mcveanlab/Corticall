@@ -544,6 +544,8 @@ public class GenotypeGraph extends Module {
                     KmerLookup klp = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1 : kl2;
 
                     List<Set<Interval>> kmers = klp.findKmers(pstretch);
+
+                    log.info("{}", kmers.size());
                 }
 
 
