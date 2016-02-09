@@ -539,6 +539,12 @@ public class GenotypeGraph extends Module {
                 GenotypeGraphUtils.chooseVariant(gvc);
 
                 // Align alleles
+                if ( gvc.getAttributeAsString(0, "traversalStatus").equals("complete") && ( (gvc.getAttributeAsString(0, "event").equals("SNP") || gvc.getAttributeAsString(0, "event").equals("INS") || gvc.getAttributeAsString(0, "event").equals("DEL") || gvc.getAttributeAsString(0, "event").equals("MNP")) ) ) {
+                    String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
+                    KmerLookup klp = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1 : kl2;
+
+                    List<Set<Interval>> kmers = klp.findKmers(pstretch);
+                }
 
 
                 // Show alignment
