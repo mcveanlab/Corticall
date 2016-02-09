@@ -770,6 +770,27 @@ public class GenotypeGraphUtils {
         return pi;
     }
 
+    private static boolean isPolymorphic(CortexGraph clean, CortexGraph dirty, PathInfo p) {
+        boolean poly = false;
+
+        if (p.parent != null && p.child != null && p.parent.length() > clean.getKmerSize() && p.child.length() > dirty.getKmerSize()) {
+            poly = true;
+
+            for (int i = 0; i <= p.parent.length() - clean.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(p.parent.substring(i, i + clean.getKmerSize()));
+
+                CortexRecord cr = clean.findRecord(ck);
+                if (cr == null) {
+                    cr = dirty.findRecord(ck);
+                }
+
+                poly &= cr != null && cr.getCoverage(0) > 0;
+            }
+        }
+
+        return poly;
+    }
+
     public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, KmerLookup kl) {
         // Trim back to reference and variant alleles
         int s, e0 = p.child.length() - 1, e1 = p.parent.length() - 1;
@@ -789,6 +810,7 @@ public class GenotypeGraphUtils {
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
         boolean isChimeric = isChimeric(stretch, kl);
+        boolean isPolymorphic = isPolymorphic(clean, dirty, p);
 
         //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
         //List<Set<Interval>> anovel = kl.align(stretch);
