@@ -10,6 +10,7 @@ import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
+import uk.ac.ox.well.indiana.utils.alignment.pairwise.ExternalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -385,7 +386,8 @@ public class GenotypeGraph extends Module {
         Map<String, SAMRecord> alignments = new LinkedHashMap<String, SAMRecord>();
         Map<String, Integer> parentage = new LinkedHashMap<String, Integer>();
 
-        LastzAligner la = new LastzAligner();
+        //ExternalAligner la = new LastzAligner();
+        ExternalAligner la = new BwaAligner();
         for (String p : pieces.keySet()) {
             List<SAMRecord> srs;
             if (pieces.get(p) == 1) {
