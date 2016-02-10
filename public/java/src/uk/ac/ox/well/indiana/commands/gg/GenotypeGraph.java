@@ -14,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.alignment.pairwise.ExternalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -423,6 +424,18 @@ public class GenotypeGraph extends Module {
         return alignmentsSimplified;
     }
 
+    private void smooth(List<List<Interval>> al) {
+        DataTable dt = new DataTable("alignment", "alignment");
+
+        for (int i = 0; i < al.size(); i++) {
+            for (int j = 0; j < al.get(i).size(); j++) {
+                dt.set(String.valueOf(j), String.valueOf(i), al.get(i).get(j));
+            }
+        }
+
+        log.info("\n{}", dt);
+    }
+
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
@@ -580,6 +593,25 @@ public class GenotypeGraph extends Module {
                 log.info("          sb: {}", sb.toString());
                 log.info("          a1: {}", a1.toString());
                 log.info("          a2: {}", a2.toString());
+
+                List<List<Interval>> kfw1 = new ArrayList<List<Interval>>();
+                List<List<Interval>> krc1 = new ArrayList<List<Interval>>();
+                List<List<Interval>> kfw2 = new ArrayList<List<Interval>>();
+                List<List<Interval>> krc2 = new ArrayList<List<Interval>>();
+                for (int i = 0; i <= pstretch.length() - CLEAN.getKmerSize(); i++) {
+                    String fw = pstretch.substring(i, i + CLEAN.getKmerSize());
+                    String rc = SequenceUtils.reverseComplement(fw);
+
+                    kfw1.add(new ArrayList<Interval>(kl1.findKmer(fw)));
+                    krc1.add(new ArrayList<Interval>(kl1.findKmer(rc)));
+
+                    kfw2.add(new ArrayList<Interval>(kl2.findKmer(fw)));
+                    krc2.add(new ArrayList<Interval>(kl2.findKmer(rc)));
+                }
+
+                smooth(kfw1);
+
+                log.info("");
 
                 // Align alleles
                 /*
