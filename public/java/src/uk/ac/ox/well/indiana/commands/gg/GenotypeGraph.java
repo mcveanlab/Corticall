@@ -544,10 +544,22 @@ public class GenotypeGraph extends Module {
                     String cstretch = gvc.getAttributeAsString(0, "childStretch");
                     KmerLookup klp = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1 : kl2;
 
-                    List<Set<Interval>> kmers1 = klp.findKmers(pstretch);
-                    List<Set<Interval>> kmers2 = klp.findKmers(cstretch);
+                    //List<Set<Interval>> kmers1 = klp.findKmers(pstretch);
+                    //List<Set<Interval>> kmers2 = klp.findKmers(cstretch);
 
-                    log.info("{} {}", kmers1.size(), kmers2.size());
+                    for (int i = 0; i <= pstretch.length() - CLEAN.getKmerSize(); i++) {
+                        String sk = pstretch.substring(i, i + CLEAN.getKmerSize());
+                        String rk = SequenceUtils.reverseComplement(sk);
+
+                        Set<Interval> sks = klp.findKmer(sk);
+                        Set<Interval> rks = klp.findKmer(rk);
+
+                        log.info("{}", Joiner.on(", ").join(sks));
+                        log.info("{}", Joiner.on(", ").join(rks));
+                        log.info("");
+                    }
+
+                    log.info("test");
                 }
 
 
