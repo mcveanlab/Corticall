@@ -540,6 +540,9 @@ public class GenotypeGraph extends Module {
                 // Finalize into a single call
                 GenotypeGraphUtils.chooseVariant(gvc);
 
+                log.info("    pstretch: {}", gvc.getAttributeAsString(0, "parentalStretch"));
+                log.info("    cstretch: {}", gvc.getAttributeAsString(0, "childStretch"));
+
                 // Align alleles
                 /*
                 if ( gvc.getAttributeAsString(0, "traversalStatus").equals("complete") && ( (gvc.getAttributeAsString(0, "event").equals("SNP") || gvc.getAttributeAsString(0, "event").equals("INS") || gvc.getAttributeAsString(0, "event").equals("DEL") || gvc.getAttributeAsString(0, "event").equals("MNP")) ) ) {
