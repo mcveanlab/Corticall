@@ -544,8 +544,13 @@ public class GenotypeGraph extends Module {
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
 
                 StringBuilder sb = new StringBuilder();
+                StringBuilder a1 = new StringBuilder();
+                StringBuilder a2 = new StringBuilder();
                 for (int i = 0; i <= cstretch.length() - CLEAN.getKmerSize(); i++) {
+                    String sk = cstretch.substring(i, i + CLEAN.getKmerSize());
+                    String rk = SequenceUtils.reverseComplement(sk);
                     CortexKmer ck = new CortexKmer(cstretch.substring(i, i + CLEAN.getKmerSize()));
+
                     CortexRecord cr = CLEAN.findRecord(ck);
                     if (cr == null) {
                         cr = DIRTY.findRecord(ck);
@@ -556,11 +561,25 @@ public class GenotypeGraph extends Module {
                     } else {
                         sb.append(" ");
                     }
+
+                    if (kl1.findKmer(sk).size() > 0 || kl1.findKmer(rk).size() > 0) {
+                        a1.append("*");
+                    } else {
+                        a1.append(" ");
+                    }
+
+                    if (kl2.findKmer(sk).size() > 0 || kl2.findKmer(rk).size() > 0) {
+                        a2.append("*");
+                    } else {
+                        a2.append(" ");
+                    }
                 }
 
                 log.info("    pstretch: {}", pstretch);
                 log.info("    cstretch: {}", cstretch);
                 log.info("          sb: {}", sb.toString());
+                log.info("          a1: {}", a1.toString());
+                log.info("          a2: {}", a2.toString());
 
                 // Align alleles
                 /*
