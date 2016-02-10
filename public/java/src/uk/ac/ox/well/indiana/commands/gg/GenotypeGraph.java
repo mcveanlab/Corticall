@@ -554,8 +554,8 @@ public class GenotypeGraph extends Module {
                         Set<Interval> sks = klp.findKmer(sk);
                         Set<Interval> rks = klp.findKmer(rk);
 
-                        log.info("{}", Joiner.on(", ").join(sks));
-                        log.info("{}", Joiner.on(", ").join(rks));
+                        log.info(" fw {}", Joiner.on(", ").join(sks));
+                        log.info(" rc {}", Joiner.on(", ").join(rks));
                         log.info("");
                     }
 
