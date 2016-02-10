@@ -541,6 +541,7 @@ public class GenotypeGraph extends Module {
                 GenotypeGraphUtils.chooseVariant(gvc);
 
                 // Align alleles
+                /*
                 if ( gvc.getAttributeAsString(0, "traversalStatus").equals("complete") && ( (gvc.getAttributeAsString(0, "event").equals("SNP") || gvc.getAttributeAsString(0, "event").equals("INS") || gvc.getAttributeAsString(0, "event").equals("DEL") || gvc.getAttributeAsString(0, "event").equals("MNP")) ) ) {
                     String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                     String cstretch = gvc.getAttributeAsString(0, "childStretch");
@@ -564,11 +565,11 @@ public class GenotypeGraph extends Module {
                     log.info("test");
                 }
 
-
                 // Show alignment
                 log.info("    alignment:");
                 log.info("    - novel stretch: {}", gvc.getAttribute(0, "novelStretchAlignment"));
                 log.info("    - parental path: {}", gvc.getAttribute(0, "parentalPathAlignment"));
+                */
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
@@ -727,6 +728,7 @@ public class GenotypeGraph extends Module {
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalStretch", gvc.getAttributeAsString(0, "parentalStretch"));
                 evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childStretch", gvc.getAttributeAsString(0, "childStretch"));
 
+                /*
                 String alignmentStretch = (!gvc.getAttributeAsString(0, "parentalStretch").isEmpty()) ? gvc.getAttributeAsString(0, "parentalStretch") : gvc.getAttributeAsString(0, "stretch");
 
                 List<SAMRecord> alignments = getAlignment(alignmentStretch, kl, kl1, kl2, itm);
@@ -761,6 +763,7 @@ public class GenotypeGraph extends Module {
                     cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
                     cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
                 }
+                */
 
                 stretchNum++;
             }
