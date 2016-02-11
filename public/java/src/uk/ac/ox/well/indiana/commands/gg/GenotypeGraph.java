@@ -560,6 +560,8 @@ public class GenotypeGraph extends Module {
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
 
+                Interval finalPos = null;
+
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
                     pstretch = stretch;
 
@@ -583,8 +585,6 @@ public class GenotypeGraph extends Module {
                     Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
-                    Interval finalPos = null;
-
                     if (start != null) {
                         if (end != null) {
                             if (start.getSequence().equals(end.getSequence())) {
@@ -597,9 +597,9 @@ public class GenotypeGraph extends Module {
                     } else {
                         log.info("{} {}", start, end);
                     }
-
-                    log.info("final: {}", finalPos);
                 }
+
+                log.info("final: {}", finalPos);
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
