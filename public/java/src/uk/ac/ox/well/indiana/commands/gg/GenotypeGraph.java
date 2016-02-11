@@ -636,6 +636,11 @@ public class GenotypeGraph extends Module {
 
                 log.info("");
 
+                smooth(kl1.alignSmoothly(pstretch), "test1");
+                smooth(kl2.alignSmoothly(pstretch), "test2");
+
+                log.info("");
+
                 // Align alleles
                 /*
                 if ( gvc.getAttributeAsString(0, "traversalStatus").equals("complete") && ( (gvc.getAttributeAsString(0, "event").equals("SNP") || gvc.getAttributeAsString(0, "event").equals("INS") || gvc.getAttributeAsString(0, "event").equals("DEL") || gvc.getAttributeAsString(0, "event").equals("MNP")) ) ) {
