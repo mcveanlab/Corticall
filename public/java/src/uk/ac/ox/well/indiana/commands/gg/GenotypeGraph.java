@@ -575,7 +575,7 @@ public class GenotypeGraph extends Module {
                     smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                     Interval start = alignment.get(gvc.getAttributeAsInt(0, "start") - CLEAN.getKmerSize()).get(0);
-                    Interval end = alignment.get(gvc.getAttributeAsInt(0, "e0") - CLEAN.getKmerSize()).get(0);
+                    Interval end = alignment.get(gvc.getAttributeAsInt(0, "e1") - CLEAN.getKmerSize()).get(0);
 
                     log.info("{} {}", start, end);
                 }
