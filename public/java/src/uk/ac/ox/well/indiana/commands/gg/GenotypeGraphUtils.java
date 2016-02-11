@@ -818,8 +818,8 @@ public class GenotypeGraphUtils {
         // Build the GVC
         GraphicalVariantContext gvc = new GraphicalVariantContext()
                 .attribute(color, "start", s)
-                .attribute(color, "e0", e0)
-                .attribute(color, "e1", e1)
+                .attribute(color, "e0", e0 + 1)
+                .attribute(color, "e1", e1 + 1)
                 .attribute(color, "stop", e)
                 .attribute(color, "parentalAllele", parentalAllele)
                 .attribute(color, "childAllele", childAllele)
