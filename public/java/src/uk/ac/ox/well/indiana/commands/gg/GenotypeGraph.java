@@ -570,7 +570,10 @@ public class GenotypeGraph extends Module {
                 List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                 smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
-                log.info("");
+                Interval start = alignment.get(gvc.getAttributeAsInt(0, "start")).get(0);
+                Interval end = alignment.get(gvc.getAttributeAsInt(0, "e0")).get(0);
+
+                log.info("{} {}", start, end);
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
