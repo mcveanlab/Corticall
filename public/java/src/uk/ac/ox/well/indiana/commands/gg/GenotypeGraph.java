@@ -588,7 +588,7 @@ public class GenotypeGraph extends Module {
                 gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p1, 1, stretch, ag, kl1));
                 gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, ag, kl2));
 
-                log.info("    variants:");
+                log.info("    candidates:");
                 log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
                 log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
                 log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
@@ -596,6 +596,12 @@ public class GenotypeGraph extends Module {
 
                 // Finalize into a single call
                 GenotypeGraphUtils.chooseVariant(gvc);
+
+                int h = gvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 1 : 2;
+
+                log.info("    variant:");
+                log.info("    - {}: {} {} ({} bp)", h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "parentalAllele"), 70), gvc.getAttributeAsString(h, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)",  h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "childAllele"), 70), gvc.getAttributeAsString(h, "childAllele").length());
 
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
