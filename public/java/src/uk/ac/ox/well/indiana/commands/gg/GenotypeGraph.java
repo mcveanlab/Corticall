@@ -560,84 +560,85 @@ public class GenotypeGraph extends Module {
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
 
-                StringBuilder sb = new StringBuilder();
-                StringBuilder a1 = new StringBuilder();
-                StringBuilder a2 = new StringBuilder();
-                for (int i = 0; i <= cstretch.length() - CLEAN.getKmerSize(); i++) {
-                    String sk = cstretch.substring(i, i + CLEAN.getKmerSize());
-                    String rk = SequenceUtils.reverseComplement(sk);
-                    CortexKmer ck = new CortexKmer(cstretch.substring(i, i + CLEAN.getKmerSize()));
-
-                    CortexRecord cr = CLEAN.findRecord(ck);
-                    if (cr == null) {
-                        cr = DIRTY.findRecord(ck);
-                    }
-
-                    if (CortexUtils.isNovelKmer(cr, 0)) {
-                        sb.append(".");
-                    } else {
-                        sb.append(" ");
-                    }
-
-                    if (kl1.findKmer(sk).size() > 0 || kl1.findKmer(rk).size() > 0) {
-                        a1.append("*");
-                    } else {
-                        a1.append(" ");
-                    }
-
-                    if (kl2.findKmer(sk).size() > 0 || kl2.findKmer(rk).size() > 0) {
-                        a2.append("*");
-                    } else {
-                        a2.append(" ");
-                    }
-                }
+//                StringBuilder sb = new StringBuilder();
+//                StringBuilder a1 = new StringBuilder();
+//                StringBuilder a2 = new StringBuilder();
+//                for (int i = 0; i <= cstretch.length() - CLEAN.getKmerSize(); i++) {
+//                    String sk = cstretch.substring(i, i + CLEAN.getKmerSize());
+//                    String rk = SequenceUtils.reverseComplement(sk);
+//                    CortexKmer ck = new CortexKmer(cstretch.substring(i, i + CLEAN.getKmerSize()));
+//
+//                    CortexRecord cr = CLEAN.findRecord(ck);
+//                    if (cr == null) {
+//                        cr = DIRTY.findRecord(ck);
+//                    }
+//
+//                    if (CortexUtils.isNovelKmer(cr, 0)) {
+//                        sb.append(".");
+//                    } else {
+//                        sb.append(" ");
+//                    }
+//
+//                    if (kl1.findKmer(sk).size() > 0 || kl1.findKmer(rk).size() > 0) {
+//                        a1.append("*");
+//                    } else {
+//                        a1.append(" ");
+//                    }
+//
+//                    if (kl2.findKmer(sk).size() > 0 || kl2.findKmer(rk).size() > 0) {
+//                        a2.append("*");
+//                    } else {
+//                        a2.append(" ");
+//                    }
+//                }
+//
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
                     pstretch = stretch;
                 }
 
-                log.info("    pstretch: {}", pstretch);
-                log.info("    cstretch: {}", cstretch);
-                log.info("          sb: {}", sb.toString());
-                log.info("          a1: {}", a1.toString());
-                log.info("          a2: {}", a2.toString());
+//                log.info("    pstretch: {}", pstretch);
+//                log.info("    cstretch: {}", cstretch);
+//                log.info("          sb: {}", sb.toString());
+//                log.info("          a1: {}", a1.toString());
+//                log.info("          a2: {}", a2.toString());
+//
+//                List<List<Interval>> kfw1 = new ArrayList<List<Interval>>();
+//                List<List<Interval>> krc1 = new ArrayList<List<Interval>>();
+//                List<List<Interval>> kfw2 = new ArrayList<List<Interval>>();
+//                List<List<Interval>> krc2 = new ArrayList<List<Interval>>();
+//                for (int i = 0; i <= pstretch.length() - CLEAN.getKmerSize(); i++) {
+//                    String fw = pstretch.substring(i, i + CLEAN.getKmerSize());
+//                    String rc = SequenceUtils.reverseComplement(fw);
+//
+//                    kfw1.add(new ArrayList<Interval>(kl1.findKmer(fw)));
+//                    krc1.add(new ArrayList<Interval>(kl1.findKmer(rc)));
+//
+//                    kfw2.add(new ArrayList<Interval>(kl2.findKmer(fw)));
+//                    krc2.add(new ArrayList<Interval>(kl2.findKmer(rc)));
+//                }
+//
+//                int numKFw1 = 0, numKRc1 = 0, numKFw2 = 0, numKRc2 = 0;
+//
+//                for (int i = 0; i < kfw1.size(); i++) {
+//                    if (kfw1.get(i).size() > 0) { numKFw1++; }
+//                    if (kfw2.get(i).size() > 0) { numKFw2++; }
+//                    if (krc1.get(i).size() > 0) { numKRc1++; }
+//                    if (krc2.get(i).size() > 0) { numKRc2++; }
+//                }
 
-                List<List<Interval>> kfw1 = new ArrayList<List<Interval>>();
-                List<List<Interval>> krc1 = new ArrayList<List<Interval>>();
-                List<List<Interval>> kfw2 = new ArrayList<List<Interval>>();
-                List<List<Interval>> krc2 = new ArrayList<List<Interval>>();
-                for (int i = 0; i <= pstretch.length() - CLEAN.getKmerSize(); i++) {
-                    String fw = pstretch.substring(i, i + CLEAN.getKmerSize());
-                    String rc = SequenceUtils.reverseComplement(fw);
+//                smooth(kfw1, "kfw1." + numKFw1);
+//                smooth(krc1, "krc1." + numKRc1);
+//                smooth(kfw2, "kfw2." + numKFw2);
+//                smooth(krc2, "krc2." + numKRc2);
+//
+//                smooth(kl1.alignSmoothly(pstretch), "test1");
+//                smooth(kl2.alignSmoothly(pstretch), "test2");
+//
+//                log.info("");
 
-                    kfw1.add(new ArrayList<Interval>(kl1.findKmer(fw)));
-                    krc1.add(new ArrayList<Interval>(kl1.findKmer(rc)));
-
-                    kfw2.add(new ArrayList<Interval>(kl2.findKmer(fw)));
-                    krc2.add(new ArrayList<Interval>(kl2.findKmer(rc)));
-                }
-
-                int numKFw1 = 0, numKRc1 = 0, numKFw2 = 0, numKRc2 = 0;
-
-                for (int i = 0; i < kfw1.size(); i++) {
-                    if (kfw1.get(i).size() > 0) { numKFw1++; }
-                    if (kfw2.get(i).size() > 0) { numKFw2++; }
-                    if (krc1.get(i).size() > 0) { numKRc1++; }
-                    if (krc2.get(i).size() > 0) { numKRc2++; }
-                }
-
-                smooth(kfw1, "kfw1." + numKFw1);
-                smooth(krc1, "krc1." + numKRc1);
-                smooth(kfw2, "kfw2." + numKFw2);
-                smooth(krc2, "krc2." + numKRc2);
-
-                smooth(kl1.alignSmoothly(pstretch), "test1");
-                smooth(kl2.alignSmoothly(pstretch), "test2");
-
-                log.info("");
-
-                smooth(kl1.alignSmoothly(pstretch), "test1");
-                smooth(kl2.alignSmoothly(pstretch), "test2");
+                smooth(kl1.alignSmoothly(pstretch), "kl1");
+                smooth(kl2.alignSmoothly(pstretch), "kl2");
 
                 log.info("");
 
