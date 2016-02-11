@@ -613,10 +613,19 @@ public class GenotypeGraph extends Module {
                     krc2.add(new ArrayList<Interval>(kl2.findKmer(rc)));
                 }
 
-                smooth(kfw1, "kfw1");
-                smooth(krc1, "krc1");
-                smooth(kfw2, "kfw2");
-                smooth(krc2, "krc2");
+                int numKFw1 = 0, numKRc1 = 0, numKFw2 = 0, numKRc2 = 0;
+
+                for (int i = 0; i < kfw1.size(); i++) {
+                    if (kfw1.get(i).size() > 0) { numKFw1++; }
+                    if (kfw2.get(i).size() > 0) { numKFw2++; }
+                    if (krc1.get(i).size() > 0) { numKRc1++; }
+                    if (krc2.get(i).size() > 0) { numKRc2++; }
+                }
+
+                smooth(kfw1, "kfw1." + numKFw1);
+                smooth(krc1, "krc1." + numKRc1);
+                smooth(kfw2, "kfw2." + numKFw2);
+                smooth(krc2, "krc2." + numKRc2);
 
                 log.info("");
 
