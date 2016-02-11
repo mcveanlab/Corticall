@@ -1016,21 +1016,35 @@ public class GenotypeGraphUtils {
     public static void chooseVariant(GraphicalVariantContext gvc) {
         int[] scores = new int[2];
 
+        boolean bubbleAllele = true;
+        int[] alleleLengths = new int[] {0, 0};
+
         for (int c = 1; c <= 2; c++) {
             String event = gvc.getAttributeAsString(c, "event");
 
             if (gvc.getAttribute(c, "traversalStatus").equals("complete")) { scores[c-1]++; }
 
-            //if (!event.equals("unknown")) { scores[c-1]++; }
-            //if (gvc.getAttribute(c, "event").equals("GC") || gvc.getAttribute(c, "event").equals("NAHR")) { scores[c-1]++; }
-
             if (!event.equals("unknown")) {
                 if (!event.equals("GC") && !event.equals("NAHR")) {
+                    alleleLengths[c - 1] = Math.abs(gvc.getAttributeAsString(c, "parentalAllele").length() - gvc.getAttributeAsString(c, "childAllele").length());
+
                     scores[c - 1]++;
+                } else {
+                    bubbleAllele = false;
                 }
             }
 
             gvc.attribute(c, "score", scores[c-1]);
+        }
+
+        if (bubbleAllele) {
+            if (alleleLengths[0] < alleleLengths[1]) {
+                scores[0]++;
+                gvc.attribute(1, "score", scores[0]);
+            } else {
+                scores[1]++;
+                gvc.attribute(2, "score", scores[1]);
+            }
         }
 
         int bc = MoreMathUtils.whichMax(scores) + 1;
