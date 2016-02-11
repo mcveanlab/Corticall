@@ -440,6 +440,41 @@ public class GenotypeGraph extends Module {
         log.info("\n{}", dt);
     }
 
+    private List<Interval> combineIntervals(List<List<Interval>> allIntervals) {
+        List<Interval> combinedIntervals = new ArrayList<Interval>();
+
+        Interval currentInterval = null;
+        for (List<Interval> intervals : allIntervals) {
+            if (intervals.size() == 1) {
+                Interval interval = intervals.iterator().next();
+
+                if (currentInterval == null) {
+                    currentInterval = new Interval(interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isNegativeStrand(), "none");
+                } else {
+                    if (currentInterval.getSequence().equals(interval.getSequence()) && interval.abuts(currentInterval)) {
+                        currentInterval = new Interval(
+                                currentInterval.getSequence(),
+                                currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
+                                currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd(),
+                                interval.isNegativeStrand(),
+                                "."
+                        );
+                    } else {
+                        combinedIntervals.add(currentInterval);
+
+                        currentInterval = interval;
+                    }
+                }
+            }
+        }
+
+        if (currentInterval != null) {
+            combinedIntervals.add(currentInterval);
+        }
+
+        return combinedIntervals;
+    }
+
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
@@ -574,7 +609,9 @@ public class GenotypeGraph extends Module {
                     Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
-                    log.info("{} {}", start, end);
+                    List<Interval> sa = combineIntervals(alignment);
+
+                    log.info("{}", Joiner.on(", ").join(sa));
                 } else {
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                     smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
