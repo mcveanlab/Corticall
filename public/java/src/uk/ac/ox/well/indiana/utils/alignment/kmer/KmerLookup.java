@@ -201,20 +201,20 @@ public class KmerLookup {
         List<List<Interval>> kfw = new ArrayList<List<Interval>>();
         List<List<Interval>> krc = new ArrayList<List<Interval>>();
 
+        int ufw = 0, urc = 0;
+
         for (int i = 0; i <= sFw.length() - kmerSize; i++) {
             String fw = sFw.substring(i, i + kmerSize);
             String rc = SequenceUtils.reverseComplement(fw);
 
             kfw.add(new ArrayList<Interval>(findKmer(fw)));
             krc.add(flipStrands(new ArrayList<Interval>(findKmer(rc))));
-        }
 
-        int ufw = 0, urc = 0;
-
-        for (int i = 0; i < kfw.size(); i++) {
             if (kfw.get(i).size() == 1) { ufw++; }
             if (krc.get(i).size() == 1) { urc++; }
+        }
 
+        for (int i = 0; i < kfw.size(); i++) {
             if (kfw.get(i).size() > 1) {
                 Interval ita = closestMatchingAlignment(closestUniqueAlignment(kfw, i), kfw.get(i));
                 List<Interval> its = new ArrayList<Interval>();
@@ -233,6 +233,7 @@ public class KmerLookup {
                 krc.set(i, its);
             }
         }
+
 
         List<List<Interval>> finalLis = (ufw > urc) ? kfw : krc;
 
