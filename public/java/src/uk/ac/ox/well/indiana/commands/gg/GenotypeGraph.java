@@ -591,7 +591,6 @@ public class GenotypeGraph extends Module {
                                 if (start.isNegativeStrand() && end.isNegativeStrand()) {
                                     finalPos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
                                 } else {
-                                    log.info("Hiyers!");
                                 }
                             }
                         }
