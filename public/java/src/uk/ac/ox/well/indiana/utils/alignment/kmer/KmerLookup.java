@@ -181,17 +181,19 @@ public class KmerLookup {
     }
 
     private Interval closestMatchingAlignment(Interval it, List<Interval> ka) {
-        Map<Integer, Interval> cands = new TreeMap<Integer, Interval>();
+        if (it != null) {
+            Map<Integer, Interval> cands = new TreeMap<Integer, Interval>();
 
-        for (Interval ita : ka) {
-            if (it.getSequence().equals(ita.getSequence())) {
-                cands.put(Math.abs(ita.getStart() - it.getStart()), ita);
+            for (Interval ita : ka) {
+                if (it.getSequence().equals(ita.getSequence())) {
+                    cands.put(Math.abs(ita.getStart() - it.getStart()), ita);
+                }
             }
-        }
 
-        if (cands.size() > 0) {
-            int i = cands.keySet().iterator().next();
-            return cands.get(i);
+            if (cands.size() > 0) {
+                int i = cands.keySet().iterator().next();
+                return cands.get(i);
+            }
         }
 
         return null;
