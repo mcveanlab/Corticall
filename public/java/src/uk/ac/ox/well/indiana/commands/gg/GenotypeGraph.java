@@ -592,6 +592,10 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
+                if (pstretch.isEmpty() && cstretch.isEmpty()) {
+                    pstretch = stretch;
+                }
+
                 log.info("    pstretch: {}", pstretch);
                 log.info("    cstretch: {}", cstretch);
                 log.info("          sb: {}", sb.toString());
