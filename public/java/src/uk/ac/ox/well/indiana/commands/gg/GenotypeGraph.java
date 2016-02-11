@@ -451,7 +451,7 @@ public class GenotypeGraph extends Module {
                 if (currentInterval == null) {
                     currentInterval = new Interval(interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isNegativeStrand(), "none");
                 } else {
-                    if (currentInterval.getSequence().equals(interval.getSequence()) && interval.abuts(currentInterval)) {
+                    if (currentInterval.getSequence().equals(interval.getSequence()) && interval.intersects(currentInterval)) {
                         currentInterval = new Interval(
                                 currentInterval.getSequence(),
                                 currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
