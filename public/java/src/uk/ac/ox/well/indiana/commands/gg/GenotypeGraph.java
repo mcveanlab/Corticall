@@ -562,18 +562,23 @@ public class GenotypeGraph extends Module {
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
                     pstretch = stretch;
+
+                    List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
+                    smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
+
+                    Interval start = alignment.get(0).get(0);
+                    Interval end = alignment.get(alignment.size() - 1).get(0);
+
+                    log.info("{} {}", start, end);
+                } else {
+                    List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
+                    smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
+
+                    Interval start = alignment.get(gvc.getAttributeAsInt(0, "start")).get(0);
+                    Interval end = alignment.get(gvc.getAttributeAsInt(0, "e0")).get(0);
+
+                    log.info("{} {}", start, end);
                 }
-
-//                smooth(kl1.alignSmoothly(pstretch), "kl1");
-//                smooth(kl2.alignSmoothly(pstretch), "kl2");
-
-                List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
-                smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
-
-                Interval start = alignment.get(gvc.getAttributeAsInt(0, "start")).get(0);
-                Interval end = alignment.get(gvc.getAttributeAsInt(0, "e0")).get(0);
-
-                log.info("{} {}", start, end);
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
