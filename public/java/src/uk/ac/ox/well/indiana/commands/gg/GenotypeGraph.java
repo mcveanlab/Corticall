@@ -608,12 +608,6 @@ public class GenotypeGraph extends Module {
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                     smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
-                    int startIndex = 0;
-                    int endIndex = alignment.size() - 1;
-
-                    Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
-                    Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
-
                     finalPos = combineIntervals(alignment);
                 } else {
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
@@ -634,6 +628,8 @@ public class GenotypeGraph extends Module {
                                 }
                             }
                         }
+
+                        log.info("{} {}", start, end);
                     } else {
                         log.info("{} {}", start, end);
                     }
