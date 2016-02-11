@@ -424,8 +424,8 @@ public class GenotypeGraph extends Module {
         return alignmentsSimplified;
     }
 
-    private void smooth(List<List<Interval>> al) {
-        DataTable dt = new DataTable("alignment", "alignment");
+    private void smooth(List<List<Interval>> al, String tag) {
+        DataTable dt = new DataTable(tag, "alignment");
 
         for (int i = 0; i < al.size(); i++) {
             if (al.get(i).size() == 0) {
@@ -613,7 +613,10 @@ public class GenotypeGraph extends Module {
                     krc2.add(new ArrayList<Interval>(kl2.findKmer(rc)));
                 }
 
-                smooth(kfw1);
+                smooth(kfw1, "kfw1");
+                smooth(krc1, "krc1");
+                smooth(kfw2, "kfw2");
+                smooth(krc2, "krc2");
 
                 log.info("");
 
