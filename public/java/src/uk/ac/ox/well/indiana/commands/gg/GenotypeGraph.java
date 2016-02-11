@@ -583,7 +583,19 @@ public class GenotypeGraph extends Module {
                     Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
-                    log.info("{} {}", start, end);
+                    Interval finalPos = null;
+
+                    if (start != null && end != null) {
+                        if (start.getSequence().equals(end.getSequence())) {
+                            if (start.isNegativeStrand() && end.isNegativeStrand()) {
+                                finalPos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
+                            }
+                        }
+                    } else {
+                        log.info("{} {}", start, end);
+                    }
+
+                    log.info("final: {}", finalPos);
                 }
 
                 // See how many novel kmers we've used up
