@@ -428,8 +428,12 @@ public class GenotypeGraph extends Module {
         DataTable dt = new DataTable("alignment", "alignment");
 
         for (int i = 0; i < al.size(); i++) {
-            for (int j = 0; j < al.get(i).size(); j++) {
-                dt.set(String.valueOf(j), String.valueOf(i), al.get(i).get(j));
+            if (al.get(i).size() == 0) {
+                dt.set("0", String.valueOf(i), "none");
+            } else {
+                for (int j = 0; j < al.get(i).size(); j++) {
+                    dt.set(String.valueOf(j), String.valueOf(i), String.format("%s:%d", al.get(i).get(j).getSequence(), al.get(i).get(j).getStart()));
+                }
             }
         }
 
