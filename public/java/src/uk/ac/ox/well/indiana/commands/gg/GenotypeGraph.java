@@ -444,16 +444,14 @@ public class GenotypeGraph extends Module {
         List<Interval> combinedIntervals = new ArrayList<Interval>();
 
         Interval currentInterval = null;
-        int unalignedPos = 1;
-        for (List<Interval> intervals : allIntervals) {
+        for (int i = 0; i < allIntervals.size(); i++) {
+            List<Interval> intervals = allIntervals.get(i);
             Interval interval;
 
             if (intervals.size() == 1) {
                 interval = intervals.iterator().next();
-                unalignedPos = 1;
             } else {
-                interval = new Interval("*", unalignedPos, unalignedPos + 1);
-                unalignedPos++;
+                interval = new Interval("*", i, i + 1);
             }
 
             if (currentInterval == null) {
