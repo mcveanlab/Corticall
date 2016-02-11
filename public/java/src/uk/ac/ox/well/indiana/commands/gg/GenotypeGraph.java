@@ -600,7 +600,7 @@ public class GenotypeGraph extends Module {
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
 
-                Interval finalPos = null;
+                List<Interval> finalPos = new ArrayList<Interval>();
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
                     pstretch = stretch;
@@ -614,9 +614,7 @@ public class GenotypeGraph extends Module {
                     Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
-                    List<Interval> sa = combineIntervals(alignment);
-
-                    log.info("{}", Joiner.on(", ").join(sa));
+                    finalPos = combineIntervals(alignment);
                 } else {
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                     smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
@@ -631,7 +629,7 @@ public class GenotypeGraph extends Module {
                         if (end != null) {
                             if (start.getSequence().equals(end.getSequence())) {
                                 if (start.isNegativeStrand() && end.isNegativeStrand()) {
-                                    finalPos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
+                                    finalPos.add(new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none"));
                                 } else {
                                 }
                             }
