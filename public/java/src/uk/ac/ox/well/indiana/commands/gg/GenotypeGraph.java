@@ -631,6 +631,9 @@ public class GenotypeGraph extends Module {
                 smooth(kfw2, "kfw2." + numKFw2);
                 smooth(krc2, "krc2." + numKRc2);
 
+                smooth(kl1.alignSmoothly(pstretch), "test1");
+                smooth(kl2.alignSmoothly(pstretch), "test2");
+
                 log.info("");
 
                 // Align alleles

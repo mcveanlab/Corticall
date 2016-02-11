@@ -145,4 +145,111 @@ public class KmerLookup {
 
         return combinedIntervals;
     }
+
+    private List<Interval> flipStrands(List<Interval> lis) {
+        List<Interval> newLis = new ArrayList<Interval>();
+
+        for (Interval li : newLis) {
+            newLis.add(new Interval(li.getSequence(), li.getStart(), li.getEnd(), true, li.getName()));
+        }
+
+        return newLis;
+    }
+
+    private Interval closestUniqueAlignment(List<List<Interval>> ka, int index) {
+        Interval k1 = null, k2 = null;
+        int i1 = Integer.MAX_VALUE, i2 = Integer.MAX_VALUE;
+
+        for (int i = index - 1; i >= 0; i--) {
+            if (ka.get(i).size() == 1) {
+                k1 = ka.get(i).get(0);
+                i1 = i;
+            }
+        }
+
+        for (int i = index + 1; i < ka.size(); i++) {
+            if (ka.get(i).size() == 1) {
+                k2 = ka.get(i).get(0);
+                i2 = i;
+            }
+        }
+
+        if      (i1 < i2) { return k1; }
+        else if (i2 < i1) { return k2; }
+
+        return null;
+    }
+
+    private Interval closestMatchingAlignment(Interval it, List<Interval> ka) {
+        Map<Integer, Interval> cands = new TreeMap<Integer, Interval>();
+
+        for (Interval ita : ka) {
+            if (it.getSequence().equals(ita.getSequence())) {
+                cands.put(Math.abs(ita.getStart() - it.getStart()), ita);
+            }
+        }
+
+        if (cands.size() > 0) {
+            int i = cands.keySet().iterator().next();
+            return cands.get(i);
+        }
+
+        return null;
+    }
+
+    public List<List<Interval>> alignSmoothly(String sFw) {
+        List<List<Interval>> kfw = new ArrayList<List<Interval>>();
+        List<List<Interval>> krc = new ArrayList<List<Interval>>();
+
+        for (int i = 0; i <= sFw.length() - kmerSize; i++) {
+            String fw = sFw.substring(i, i + kmerSize);
+            String rc = SequenceUtils.reverseComplement(fw);
+
+            kfw.add(new ArrayList<Interval>(findKmer(fw)));
+            krc.add(flipStrands(new ArrayList<Interval>(findKmer(rc))));
+        }
+
+        int ufw = 0, urc = 0;
+
+        for (int i = 0; i < kfw.size(); i++) {
+            if (kfw.get(i).size() == 1) { ufw++; }
+            if (krc.get(i).size() == 1) { urc++; }
+
+            if (kfw.get(i).size() > 1) {
+                Interval ita = closestMatchingAlignment(closestUniqueAlignment(kfw, i), kfw.get(i));
+                List<Interval> its = new ArrayList<Interval>();
+
+                if (ita != null) { its.add(ita); }
+
+                kfw.set(i, its);
+            }
+
+            if (krc.get(i).size() > 1) {
+                Interval ita = closestMatchingAlignment(closestUniqueAlignment(krc, i), krc.get(i));
+                List<Interval> its = new ArrayList<Interval>();
+
+                if (ita != null) { its.add(ita); }
+
+                krc.set(i, its);
+            }
+        }
+
+        List<List<Interval>> finalLis = (ufw > urc) ? kfw : krc;
+
+        /*
+        List<Interval> finalLi = new ArrayList<Interval>();
+
+        for (List<Interval> li : finalLis) {
+            if (li.size() == 1) {
+                finalLi.add(li.get(0));
+            } else {
+                finalLi.add(null);
+            }
+        }
+
+        return finalLi;
+        */
+
+        return finalLis;
+    }
 }
