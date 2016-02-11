@@ -564,8 +564,11 @@ public class GenotypeGraph extends Module {
                     pstretch = stretch;
                 }
 
-                smooth(kl1.alignSmoothly(pstretch), "kl1");
-                smooth(kl2.alignSmoothly(pstretch), "kl2");
+//                smooth(kl1.alignSmoothly(pstretch), "kl1");
+//                smooth(kl2.alignSmoothly(pstretch), "kl2");
+
+                List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
+                smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                 log.info("");
 
