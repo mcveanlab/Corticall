@@ -601,7 +601,7 @@ public class GenotypeGraph extends Module {
 
                 log.info("    variant:");
                 log.info("    - {}: {} {} ({} bp)", h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "parentalAllele"), 70), gvc.getAttributeAsString(h, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)",  h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "childAllele"), 70), gvc.getAttributeAsString(h, "childAllele").length());
+                log.info("      c: {} {} ({} bp)",     gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "childAllele"), 70), gvc.getAttributeAsString(h, "childAllele").length());
 
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
