@@ -444,26 +444,33 @@ public class GenotypeGraph extends Module {
         List<Interval> combinedIntervals = new ArrayList<Interval>();
 
         Interval currentInterval = null;
+        int unalignedPos = 1;
         for (List<Interval> intervals : allIntervals) {
+            Interval interval;
+
             if (intervals.size() == 1) {
-                Interval interval = intervals.iterator().next();
+                interval = intervals.iterator().next();
+                unalignedPos = 1;
+            } else {
+                interval = new Interval("*", unalignedPos, unalignedPos + 1);
+                unalignedPos++;
+            }
 
-                if (currentInterval == null) {
-                    currentInterval = new Interval(interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isNegativeStrand(), "none");
+            if (currentInterval == null) {
+                currentInterval = new Interval(interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isNegativeStrand(), "none");
+            } else {
+                if (currentInterval.getSequence().equals(interval.getSequence()) && interval.intersects(currentInterval)) {
+                    currentInterval = new Interval(
+                            currentInterval.getSequence(),
+                            currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
+                            currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd(),
+                            interval.isNegativeStrand(),
+                            "."
+                    );
                 } else {
-                    if (currentInterval.getSequence().equals(interval.getSequence()) && interval.intersects(currentInterval)) {
-                        currentInterval = new Interval(
-                                currentInterval.getSequence(),
-                                currentInterval.getStart() < interval.getStart() ? currentInterval.getStart() : interval.getStart(),
-                                currentInterval.getEnd()   > interval.getEnd()   ? currentInterval.getEnd()   : interval.getEnd(),
-                                interval.isNegativeStrand(),
-                                "."
-                        );
-                    } else {
-                        combinedIntervals.add(currentInterval);
+                    combinedIntervals.add(currentInterval);
 
-                        currentInterval = interval;
-                    }
+                    currentInterval = interval;
                 }
             }
         }
