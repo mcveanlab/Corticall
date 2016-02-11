@@ -149,7 +149,7 @@ public class KmerLookup {
     private List<Interval> flipStrands(List<Interval> lis) {
         List<Interval> newLis = new ArrayList<Interval>();
 
-        for (Interval li : newLis) {
+        for (Interval li : lis) {
             newLis.add(new Interval(li.getSequence(), li.getStart(), li.getEnd(), true, li.getName()));
         }
 
