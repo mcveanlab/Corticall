@@ -606,12 +606,12 @@ public class GenotypeGraph extends Module {
                     pstretch = stretch;
 
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
-                    smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
+                    //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                     finalPos = combineIntervals(alignment);
                 } else {
                     List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
-                    smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
+                    //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                     int startIndex = gvc.getAttributeAsInt(0, "start") - CLEAN.getKmerSize();
                     int endIndex = gvc.getAttributeAsInt(0, "e1") - CLEAN.getKmerSize();
