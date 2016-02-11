@@ -639,13 +639,14 @@ public class GenotypeGraph extends Module {
 
                         finalPos.add(pos);
 
-                        log.info("{} {}", start, end);
+                        log.info("    {} {}", start, end);
                     } else {
-                        log.info("{} {}", start, end);
+                        log.info("    {} {}", start, end);
                     }
                 }
 
-                log.info("final: {}", finalPos);
+                log.info("    alignment:");
+                log.info("    - {}", finalPos);
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
