@@ -620,14 +620,18 @@ public class GenotypeGraph extends Module {
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
                     if (start != null) {
+                        Interval pos = new Interval(start.getSequence(), start.getStart() + startIndex + 1, start.getStart() + startIndex + 1);
+
                         if (end != null) {
                             if (start.getSequence().equals(end.getSequence())) {
                                 if (start.isNegativeStrand() && end.isNegativeStrand()) {
-                                    finalPos.add(new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none"));
+                                    pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
                                 } else {
                                 }
                             }
                         }
+
+                        finalPos.add(pos);
 
                         log.info("{} {}", start, end);
                     } else {
