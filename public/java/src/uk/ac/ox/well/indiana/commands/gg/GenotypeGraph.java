@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.Cigar;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
@@ -12,6 +13,7 @@ import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.ExternalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
+import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
@@ -782,6 +784,17 @@ public class GenotypeGraph extends Module {
                 }
 
                 log.info("");
+
+                // Separate MNPs into separate events if necessary
+                if (gvc.getAttribute(0, "event").equals("MNP") && gvc.getAttributeAsString(0, "childAllele").length() == gvc.getAttributeAsString(0, "parentAllele").length()) {
+                    String parentalAllele = gvc.getAttributeAsString(0, "parentalAllele");
+                    String childAllele = gvc.getAttributeAsString(0, "childAllele");
+
+                    SmithWaterman sw = new SmithWaterman(parentalAllele, childAllele);
+                    Cigar cig = sw.getCigar();
+
+                    log.info("cig: {}", cig);
+                }
 
                 gvcs.add(gvc);
 
