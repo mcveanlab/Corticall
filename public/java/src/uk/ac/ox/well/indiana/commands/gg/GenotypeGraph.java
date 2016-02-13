@@ -5,6 +5,7 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
+import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.Indiana;
@@ -13,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.ExternalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
+import uk.ac.ox.well.indiana.utils.alignment.pairwise.LocalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -41,6 +43,9 @@ public class GenotypeGraph extends Module {
 
     @Argument(fullName = "novelGraph", shortName = "n", doc = "Graph of novel kmers")
     public CortexGraph NOVEL;
+
+    @Argument(fullName = "rejectGraph", shortName = "x", doc = "Graph of reject kmers")
+    public CortexGraph REJECT;
 
     @Argument(fullName = "ref", shortName = "r", doc = "Fasta file for finished reference sequence")
     public File REF;
@@ -482,6 +487,26 @@ public class GenotypeGraph extends Module {
         return combinedIntervals;
     }
 
+    private Set<CortexKmer> loadRejectedKmers() {
+        Set<CortexKmer> rejects = new HashSet<CortexKmer>();
+
+        for (CortexRecord cr : REJECT) {
+            rejects.add(cr.getCortexKmer());
+        }
+
+        return rejects;
+    }
+
+    private String compactAlignments(List<Interval> intervals) {
+        List<String> compactIntervals = new ArrayList<String>();
+
+        for (Interval interval : intervals) {
+            compactIntervals.add(String.format("%s:%d-%d:%s", interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-"));
+        }
+
+        return Joiner.on(";").join(compactIntervals);
+    }
+
     @Override
     public void execute() {
         log.info("Loading reference indices for fast kmer lookup...");
@@ -503,6 +528,8 @@ public class GenotypeGraph extends Module {
         for (CortexRecord cr : NOVEL) {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
         }
+
+        Set<CortexKmer> rejects = loadRejectedKmers();
 
         if (novelKmers.size() > NOVEL_KMER_LIMIT) {
             throw new IndianaException("Too many novel kmers (for now)");
@@ -591,10 +618,10 @@ public class GenotypeGraph extends Module {
                 gvc.add(GenotypeGraphUtils.callVariant(CLEAN, DIRTY, p2, 2, stretch, ag, kl2));
 
                 log.info("    candidates:");
-                log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 70), gvc.getAttributeAsString(1, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 70), gvc.getAttributeAsString(1, "childAllele").length());
-                log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 70), gvc.getAttributeAsString(2, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 70), gvc.getAttributeAsString(2, "childAllele").length());
+                log.info("    - 1: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "parentalAllele"), 80), gvc.getAttributeAsString(1, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(1, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(1, "childAllele"), 80), gvc.getAttributeAsString(1, "childAllele").length());
+                log.info("    - 2: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "parentalAllele"), 80), gvc.getAttributeAsString(2, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)", gvc.getAttributeAsString(2, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(2, "childAllele"), 80), gvc.getAttributeAsString(2, "childAllele").length());
 
                 // Finalize into a single call
                 GenotypeGraphUtils.chooseVariant(gvc);
@@ -602,23 +629,23 @@ public class GenotypeGraph extends Module {
                 int h = gvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 1 : 2;
 
                 log.info("    variant:");
-                log.info("    - {}: {} {} ({} bp)", h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "parentalAllele"), 70), gvc.getAttributeAsString(h, "parentalAllele").length());
-                log.info("      c: {} {} ({} bp)",     gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "childAllele"), 70), gvc.getAttributeAsString(h, "childAllele").length());
+                log.info("    - {}: {} {} ({} bp)", h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "parentalAllele"), 80), gvc.getAttributeAsString(h, "parentalAllele").length());
+                log.info("      c: {} {} ({} bp)",     gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "childAllele"), 80), gvc.getAttributeAsString(h, "childAllele").length());
 
                 String pstretch = gvc.getAttributeAsString(0, "parentalStretch");
                 String cstretch = gvc.getAttributeAsString(0, "childStretch");
 
+                String astretch = (pstretch.isEmpty() && cstretch.isEmpty()) ? stretch : pstretch;
+                String bstretch = (pstretch.isEmpty() && cstretch.isEmpty()) ? stretch : cstretch;
+
                 List<Interval> finalPos = new ArrayList<Interval>();
+                List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(astretch) : kl2.alignSmoothly(astretch);
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
-                    pstretch = stretch;
-
-                    List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                     //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                     finalPos = combineIntervals(alignment);
                 } else {
-                    List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(pstretch) : kl2.alignSmoothly(pstretch);
                     //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
                     int startIndex = gvc.getAttributeAsInt(0, "start") - CLEAN.getKmerSize();
@@ -635,6 +662,7 @@ public class GenotypeGraph extends Module {
                                 if (start.isNegativeStrand() && end.isNegativeStrand()) {
                                     pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
                                 } else {
+                                    log.info("Hi!");
                                 }
                             }
                         }
@@ -647,12 +675,29 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
+                boolean hasDirtyKmers = false;
+                for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(bstretch.substring(i, i + CLEAN.getKmerSize()));
+
+                    if (CLEAN.findRecord(ck) == null && DIRTY.findRecord(ck) != null) {
+                        hasDirtyKmers = true;
+                    }
+                }
+
+                boolean isAlignedSomewhere = false;
+                for (Interval iv : finalPos) {
+                    if (!iv.getSequence().equals("*")) {
+                        isAlignedSomewhere = true;
+                    }
+                }
+
                 log.info("    alignment:");
                 log.info("    - {}", finalPos);
 
                 // See how many novel kmers we've used up
                 int novelKmersContained = 0;
                 int novelKmersUsed = 0;
+                boolean hasRejectedKmers = false;
 
                 for (AnnotatedVertex av : ag.vertexSet()) {
                     CortexKmer ck = new CortexKmer(av.getKmer());
@@ -665,6 +710,10 @@ public class GenotypeGraph extends Module {
                             novelKmersUsed++;
                             novelKmers.put(ck, false);
                         }
+                    }
+
+                    if (rejects.contains(ck)) {
+                        hasRejectedKmers = true;
                     }
                 }
 
@@ -693,7 +742,19 @@ public class GenotypeGraph extends Module {
                 log.info("    - novel kmers utilized: {}/{}", novelKmersUsed, novelKmers.size());
                 log.info("    - cumulative usage:     {}/{}", totalNovelKmersUsed, novelKmers.size());
 
-                gvc.attribute(0, "filter", (novelKmersContained <= 1 && gvc.getAttributeAsString(0, "event").equals("unknown")) ? "FAIL" : "PASS");
+                //gvc.attribute(0, "filter", (novelKmersContained <= 1 && gvc.getAttributeAsString(0, "event").equals("unknown")) ? "FAIL" : "PASS");
+                gvc.attribute(0, "filter", "PASS");
+
+                if (gvc.getAttribute(0, "event").equals("unknown")) {
+                    if (hasRejectedKmers) {
+                        gvc.attribute(0, "filter", "HAS_REJECTED_KMERS");
+                    } else if (!isAlignedSomewhere) {
+                        gvc.attribute(0, "filter", "NO_ALIGNMENTS");
+                    } else if (hasDirtyKmers) {
+                        gvc.attribute(0, "filter", "HAS_DIRTY_KMERS");
+                    }
+                }
+
                 log.info("    filter: {}", gvc.getAttributeAsString(0, "filter"));
 
                 // Evaluate variants
@@ -785,38 +846,83 @@ public class GenotypeGraph extends Module {
 
                 log.info("");
 
+                Set<GraphicalVariantContext> newGvcs = new LinkedHashSet<GraphicalVariantContext>();
+
                 // Separate MNPs into separate events if necessary
-                if (gvc.getAttribute(0, "event").equals("MNP") && gvc.getAttributeAsString(0, "childAllele").length() == gvc.getAttributeAsString(0, "parentAllele").length()) {
+                if (gvc.getAttribute(0, "event").equals("MNP") && gvc.getAttributeAsString(0, "childAllele").length() == gvc.getAttributeAsString(0, "parentalAllele").length()) {
                     String parentalAllele = gvc.getAttributeAsString(0, "parentalAllele");
                     String childAllele = gvc.getAttributeAsString(0, "childAllele");
 
-                    SmithWaterman sw = new SmithWaterman(parentalAllele, childAllele);
-                    Cigar cig = sw.getCigar();
+                    boolean[] mma = new boolean[parentalAllele.length()];
+                    for (int i = 0; i < parentalAllele.length(); i++) {
+                        mma[i] = (parentalAllele.charAt(i) != childAllele.charAt(i));
+                    }
 
-                    log.info("cig: {}", cig);
+                    int startPos = 0;
+                    StringBuilder sap = new StringBuilder();
+                    StringBuilder sac = new StringBuilder();
+                    for (int i = 0; i < parentalAllele.length(); i++) {
+                        if (mma[i]) {
+                            sap.append(parentalAllele.charAt(i));
+                            sac.append(childAllele.charAt(i));
+                        } else {
+                            if (sap.length() > 0) {
+                                GraphicalVariantContext newGvc = new GraphicalVariantContext(gvc);
+                                newGvc.attribute(0, "event", sap.length() > 1 ? "MNP" : "SNP");
+                                newGvc.attribute(0, "parentalAllele", sap.toString());
+                                newGvc.attribute(0, "childAllele", sac.toString());
+                                newGvcs.add(newGvc);
+
+                                log.info("{} {} {}", startPos, sap.toString(), sac.toString());
+
+                                sap = new StringBuilder();
+                                sac = new StringBuilder();
+                            }
+                            startPos = i + 1;
+                        }
+                    }
+
+                    if (sap.length() > 0) {
+                        GraphicalVariantContext newGvc = new GraphicalVariantContext(gvc);
+                        newGvc.attribute(0, "event", sap.length() > 1 ? "MNP" : "SNP");
+                        newGvc.attribute(0, "parentalAllele", sap.toString());
+                        newGvc.attribute(0, "childAllele", sac.toString());
+                        newGvcs.add(newGvc);
+
+                        log.info("{} {} {}", startPos, sap.toString(), sac.toString());
+                    }
+                } else {
+                    newGvcs.add(gvc);
                 }
 
-                gvcs.add(gvc);
+                gvcs.addAll(newGvcs);
 
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmer", novelKmer);
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretchNum", stretchNum);
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "event", gvc.getAttributeAsString(0, "event"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "isPolymorphic", gvc.getAttributeAsBoolean(0, "isPolymorphic"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAlleleLength", gvc.getAttributeAsString(0, "parentalAllele").length());
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childAlleleLength", gvc.getAttributeAsString(0, "childAllele").length());
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalAllele", gvc.getAttributeAsString(0, "parentalAllele"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childAllele", gvc.getAttributeAsString(0, "childAllele"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "score", gvc.getAttributeAsInt(0, "score"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "haplotypicBackground", gvc.getAttributeAsInt(0, "haplotypicBackground"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "start", gvc.getAttributeAsInt(0, "start"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stop", gvc.getAttributeAsInt(0, "stop"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersContained", novelKmersContained);
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersUsed", novelKmersUsed);
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "novelKmersTotal", novelKmers.size());
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "traversalStatus", gvc.getAttributeAsString(0, "traversalStatus"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "stretch", stretch);
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "parentalStretch", gvc.getAttributeAsString(0, "parentalStretch"));
-                evalTables.getTable("variantCalls").set(novelKmer.getKmerAsString(), "childStretch", gvc.getAttributeAsString(0, "childStretch"));
+                int id = 0;
+                for (GraphicalVariantContext newGvc : newGvcs) {
+                    String key = novelKmer.getKmerAsString() + id;
+                    evalTables.getTable("variantCalls").set(key, "novelKmer", novelKmer);
+                    evalTables.getTable("variantCalls").set(key, "stretchNum", stretchNum);
+                    evalTables.getTable("variantCalls").set(key, "filter", newGvc.getAttributeAsString(0, "filter"));
+                    evalTables.getTable("variantCalls").set(key, "event", newGvc.getAttributeAsString(0, "event"));
+                    evalTables.getTable("variantCalls").set(key, "isPolymorphic", newGvc.getAttributeAsBoolean(0, "isPolymorphic"));
+                    evalTables.getTable("variantCalls").set(key, "locus", compactAlignments(finalPos));
+                    evalTables.getTable("variantCalls").set(key, "parentalAlleleLength", newGvc.getAttributeAsString(0, "parentalAllele").length());
+                    evalTables.getTable("variantCalls").set(key, "childAlleleLength", newGvc.getAttributeAsString(0, "childAllele").length());
+                    evalTables.getTable("variantCalls").set(key, "parentalAllele", newGvc.getAttributeAsString(0, "parentalAllele"));
+                    evalTables.getTable("variantCalls").set(key, "childAllele", newGvc.getAttributeAsString(0, "childAllele"));
+                    evalTables.getTable("variantCalls").set(key, "score", newGvc.getAttributeAsInt(0, "score"));
+                    evalTables.getTable("variantCalls").set(key, "haplotypeBackground", newGvc.getAttributeAsInt(0, "haplotypeBackground"));
+                    evalTables.getTable("variantCalls").set(key, "start", newGvc.getAttributeAsInt(0, "start"));
+                    evalTables.getTable("variantCalls").set(key, "stop", newGvc.getAttributeAsInt(0, "stop"));
+                    evalTables.getTable("variantCalls").set(key, "novelKmersContained", novelKmersContained);
+                    evalTables.getTable("variantCalls").set(key, "novelKmersUsed", novelKmersUsed);
+                    evalTables.getTable("variantCalls").set(key, "novelKmersTotal", novelKmers.size());
+                    evalTables.getTable("variantCalls").set(key, "traversalStatus", newGvc.getAttributeAsString(0, "traversalStatus"));
+                    evalTables.getTable("variantCalls").set(key, "stretch", stretch);
+                    evalTables.getTable("variantCalls").set(key, "parentalStretch", newGvc.getAttributeAsString(0, "parentalStretch"));
+                    evalTables.getTable("variantCalls").set(key, "childStretch", newGvc.getAttributeAsString(0, "childStretch"));
+                    id++;
+                }
 
                 /*
                 String alignmentStretch = (!gvc.getAttributeAsString(0, "parentalStretch").isEmpty()) ? gvc.getAttributeAsString(0, "parentalStretch") : gvc.getAttributeAsString(0, "stretch");
