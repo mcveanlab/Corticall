@@ -34,10 +34,13 @@ public class FilterNovels extends Module {
     public String LOWER_THRESHOLD = "10";
 
     @Argument(fullName="upperThreshold", shortName="u", doc="Upper coverage threshold")
-    public String UPPER_THRESHOLD = "100";
+    public String UPPER_THRESHOLD = "200";
 
     @Argument(fullName="performAdjacencyPass", shortName="p", doc="Perform adjacency pass")
     public Boolean PERFORM_ADJACENCY_PASS = false;
+
+    @Argument(fullName="excludeDirtyRecords", shortName="edr", doc="Exclude dirty records")
+    public Boolean EXCLUDE_DIRTY_RECORDS = false;
 
     @Output
     public PrintStream out;
@@ -57,34 +60,45 @@ public class FilterNovels extends Module {
 
     @Override
     public void execute() {
-        int upperThreshold = loadThreshold(UPPER_THRESHOLD);
         int lowerThreshold = loadThreshold(LOWER_THRESHOLD);
+        int upperThreshold = loadThreshold(UPPER_THRESHOLD);
+
+        if (lowerThreshold > 10) { lowerThreshold = 10; }
 
         log.info("Filtering novel kmers...");
         log.info("  {} kmers to start with", NOVEL_KMERS.getNumRecords());
 
         log.info("Examining coverage...");
-        Set<CortexKmer> coverageOutliers = new HashSet<CortexKmer>();
+        Map<CortexKmer, CortexRecord> remainingRecords = new HashMap<CortexKmer, CortexRecord>();
+        int coverageOutliers = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
             if (cr.getCoverage(0) < lowerThreshold || cr.getCoverage(0) > upperThreshold) {
-                coverageOutliers.add(cr.getCortexKmer());
+                coverageOutliers++;
+            } else {
+                remainingRecords.put(cr.getCortexKmer(), cr);
             }
         }
-        log.info("  {} kmers outside coverage limits {} and {}", coverageOutliers.size(), lowerThreshold, upperThreshold);
+
+        log.info("  {} kmers outside coverage limits {} and {}", coverageOutliers, lowerThreshold, upperThreshold);
+        log.info("  {} kmers remaining", remainingRecords.size());
 
         Set<CortexKmer> contaminatingKmers = new HashSet<CortexKmer>();
 
         log.info("Exploring contaminants...");
         for (CortexRecord cr : REJECTED_KMERS) {
-            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, null, cr.getKmerAsString(), 0, null, ContaminantStopper.class);
+            if (!contaminatingKmers.contains(cr.getCortexKmer())) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, DIRTY, cr.getKmerAsString(), 0, null, ContaminantStopper.class);
 
                 for (AnnotatedVertex rv : dfs.vertexSet()) {
                     CortexRecord rr = CLEAN.findRecord(new CortexKmer(rv.getKmer()));
+                    if (rr == null) {
+                        rr = DIRTY.findRecord(new CortexKmer(rv.getKmer()));
+                    }
+
                     CortexKmer rk = rr.getCortexKmer();
 
                     if (rr.getCoverage(0) > 0 && rr.getCoverage(1) == 0 && rr.getCoverage(2) == 0) {
-                        if (!coverageOutliers.contains(rk) && !contaminatingKmers.contains(rk)) {
+                        if (remainingRecords.containsKey(rk) && !contaminatingKmers.contains(rk)) {
                             contaminatingKmers.add(rr.getCortexKmer());
                         }
                     }
@@ -98,9 +112,9 @@ public class FilterNovels extends Module {
         Set<CortexKmer> orphanedKmers = new HashSet<CortexKmer>();
 
         log.info("Finding orphans...");
-        for (CortexRecord cr : NOVEL_KMERS) {
-            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
-                String stretch = CortexUtils.getSeededStretch(CLEAN, null, cr.getKmerAsString(), 0, true);
+        for (CortexRecord cr : remainingRecords.values()) {
+            if (remainingRecords.containsKey(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
+                String stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, cr.getKmerAsString(), 0, true);
 
                 Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
                 boolean isOrphaned = true;
@@ -108,10 +122,13 @@ public class FilterNovels extends Module {
                 for (int i = 0; i <= stretch.length() - CLEAN.getKmerSize(); i++) {
                     CortexKmer ak = new CortexKmer(stretch.substring(i, i + CLEAN.getKmerSize()));
                     CortexRecord ar = CLEAN.findRecord(ak);
+                    if (ar == null) {
+                        ar = DIRTY.findRecord(ak);
+                    }
 
                     if (ar != null) {
                         if (ar.getCoverage(0) > 0 && ar.getCoverage(1) == 0 && ar.getCoverage(2) == 0) {
-                            if (!coverageOutliers.contains(ak) && !contaminatingKmers.contains(ak) && !orphanedKmers.contains(ak)) {
+                            if (remainingRecords.containsKey(ak) && !contaminatingKmers.contains(ak) && !orphanedKmers.contains(ak)) {
                                 novelKmers.add(ak);
                             }
                         } else if (ar.getCoverage(1) > 0 || ar.getCoverage(2) > 0) {
@@ -128,46 +145,10 @@ public class FilterNovels extends Module {
         }
         log.info("  {} orphaned kmers", orphanedKmers.size());
 
-        log.info("Looking for adjacent kmers to discard...");
-        Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
-        if (PERFORM_ADJACENCY_PASS) {
-            boolean addedStuff;
-            int passes = 0;
-            do {
-                log.info("  pass {}, {} kmers", passes, adjacentToRejection.size());
-
-                addedStuff = false;
-                for (CortexRecord cr : NOVEL_KMERS) {
-                    CortexKmer ck = cr.getCortexKmer();
-
-                    if (!adjacentToRejection.contains(ck)) {
-                        String sk = cr.getKmerAsString();
-
-                        Set<String> adjKmers = new HashSet<String>();
-                        adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
-                        adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
-
-                        for (String adjKmer : adjKmers) {
-                            CortexKmer cAdjKmer = new CortexKmer(adjKmer);
-
-                            if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer) || adjacentToRejection.contains(cAdjKmer)) {
-                                adjacentToRejection.add(ck);
-                                addedStuff = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                passes++;
-            } while (addedStuff);
-        }
-        log.info("  {} adjacent kmers", adjacentToRejection.size());
-
         log.info("Looking for overcleaning...");
         Set<CortexKmer> overcleanedKmers = new HashSet<CortexKmer>();
-        for (CortexRecord cr : NOVEL_KMERS) {
-            if (!coverageOutliers.contains(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !adjacentToRejection.contains(cr.getCortexKmer())) {
+        for (CortexRecord cr : remainingRecords.values()) {
+            if (remainingRecords.containsKey(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
                 Set<CortexKmer> kmers = new HashSet<CortexKmer>();
                 boolean hasTaintedNovelKmers = false;
 
@@ -182,7 +163,9 @@ public class FilterNovels extends Module {
                         hasTaintedNovelKmers = true;
                     }
 
-                    kmers.add(ck);
+                    if (remainingRecords.containsKey(ck)) {
+                        kmers.add(ck);
+                    }
                 }
 
                 if (hasTaintedNovelKmers) {
@@ -192,38 +175,75 @@ public class FilterNovels extends Module {
         }
         log.info("  {} overcleaned kmers", overcleanedKmers.size());
 
-        int covs = 0, contams = 0, orphans = 0, adj = 0, overcleaned = 0, count = 0;
-        for (CortexRecord cr : NOVEL_KMERS) {
-            CortexKmer ck = cr.getCortexKmer();
+        log.info("Looking for adjacent kmers to discard...");
+        Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
+        if (PERFORM_ADJACENCY_PASS) {
+            boolean addedStuff;
+            int passes = 0;
+            do {
+                addedStuff = false;
+                for (CortexRecord cr : remainingRecords.values()) {
+                    CortexKmer ck = cr.getCortexKmer();
 
-            if (coverageOutliers.contains(ck)) {
-                rout.println(">covs" + covs + "\n" + cr.getKmerAsString());
-                covs++;
-            } else if (contaminatingKmers.contains(ck)) {
-                rout.println(">contams" + contams + "\n" + cr.getKmerAsString());
+                    if (!contaminatingKmers.contains(ck) && !orphanedKmers.contains(ck) && !adjacentToRejection.contains(ck) && !overcleanedKmers.contains(ck)) {
+                        String sk = cr.getKmerAsString();
+
+                        Set<String> adjKmers = new HashSet<String>();
+                        adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
+                        adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
+
+                        for (String adjKmer : adjKmers) {
+                            CortexKmer cAdjKmer = new CortexKmer(adjKmer);
+
+                            if (contaminatingKmers.contains(cAdjKmer) || orphanedKmers.contains(cAdjKmer) || adjacentToRejection.contains(cAdjKmer) || overcleanedKmers.contains(cAdjKmer)) {
+                                adjacentToRejection.add(ck);
+
+                                addedStuff = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                log.info("  pass {}, {} kmers", passes, adjacentToRejection.size());
+
+                passes++;
+            } while (addedStuff);
+        }
+        log.info("  {} adjacent kmers", adjacentToRejection.size());
+
+
+        int contams = 0, orphans = 0, adj = 0, overcleaned = 0, dirty = 0, count = 0;
+        for (CortexKmer ck : remainingRecords.keySet()) {
+            if (contaminatingKmers.contains(ck)) {
+                rout.println(">contams" + contams + "\n" + ck.getKmerAsString());
                 contams++;
             } else if (orphanedKmers.contains(ck)) {
-                rout.println(">orphans" + orphans + "\n" + cr.getKmerAsString());
+                rout.println(">orphans" + orphans + "\n" + ck.getKmerAsString());
                 orphans++;
             } else if (adjacentToRejection.contains(ck)) {
-                rout.println(">adj" + adj + "\n" + cr.getKmerAsString());
+                rout.println(">adj" + adj + "\n" + ck.getKmerAsString());
                 adj++;
             } else if (overcleanedKmers.contains(ck)) {
-                rout.println(">overcleaned" + overcleaned + "\n" + cr.getKmerAsString());
+                rout.println(">overcleaned" + overcleaned + "\n" + ck.getKmerAsString());
                 overcleaned++;
+            } else if (EXCLUDE_DIRTY_RECORDS && CLEAN.findRecord(ck) == null) {
+                rout.println(">dirty" + dirty + "\n" + ck.getKmerAsString());
+                dirty++;
             } else {
-                out.println(">" + count + "\n" + cr.getKmerAsString());
+                out.println(">" + count + "\n" + ck.getKmerAsString());
                 count++;
             }
         }
 
         log.info("Results");
         log.info("  {} before filtering", NOVEL_KMERS.getNumRecords());
-        log.info("  {} rejected for coverage", covs);
+        log.info("  {} rejected for coverage", coverageOutliers);
         log.info("  {} rejected for contamination", contams);
         log.info("  {} rejected for orphan status", orphans);
-        log.info("  {} rejected for adjacency", adj);
         log.info("  {} rejected for overcleaning", overcleaned);
+        log.info("  {} rejected for adjacency", adj);
+        log.info("  {} rejected for dirtiness", dirty);
         log.info("  {} remaining", count);
     }
 }

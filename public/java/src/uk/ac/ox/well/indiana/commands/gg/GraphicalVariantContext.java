@@ -18,6 +18,14 @@ public class GraphicalVariantContext {
         }
     }
 
+    public GraphicalVariantContext(GraphicalVariantContext g) {
+        for (int i = 0; i <= 2; i++) {
+            attrs.add(new TreeMap<String, Object>());
+
+            addAttributes(i, g.getAttributes(i));
+        }
+    }
+
     public GraphicalVariantContext attribute(int c, String k, Object v) {
         attrs.get(c).put(k, v);
 
