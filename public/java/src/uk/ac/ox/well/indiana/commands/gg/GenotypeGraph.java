@@ -821,7 +821,6 @@ public class GenotypeGraph extends Module {
                 }
 
                 List<List<Interval>> sa = kl.alignSmoothly(astretch);
-                Map<String, Integer> chrCount = new HashMap<String, Integer>();
                 int newh = 0;
                 for (List<Interval> s : sa) {
                     if (s.size() == 1) {
@@ -837,7 +836,7 @@ public class GenotypeGraph extends Module {
 
                 int finalh = -1;
 
-                if (h == 0) {
+                if (h == 0 || newh > 0) {
                     if (newh > 0) {
                         finalh = newh;
                     } else {
@@ -849,6 +848,7 @@ public class GenotypeGraph extends Module {
 
                 log.info("    inferred background: {} ({},{})", finalh, newh, h);
 
+                h = finalh;
                 gvc.attribute(0, "haplotypeBackground", finalh);
 
                 boolean hasDirtyKmers = false;
