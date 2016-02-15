@@ -1098,8 +1098,8 @@ public class GenotypeGraph extends Module {
                             Interval sr1 = finalPos.get(i);
                             Interval sr2 = finalPos.get(i + 1);
 
-                            int r1 = sr1.getName().equals(".") || Integer.valueOf(sr1.getName()) == 1 ? 8 : 6;
-                            int r2 = sr2.getName().equals(".") || Integer.valueOf(sr2.getName()) == 1 ? 8 : 6;
+                            int r1 = (sr1.getName() == null || sr1.getName().equals(".")) || Integer.valueOf(sr1.getName()) == 1 ? 8 : 6;
+                            int r2 = (sr2.getName() == null || sr2.getName().equals(".")) || Integer.valueOf(sr2.getName()) == 1 ? 8 : 6;
 
                             cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getSequence(), sr1.getStart(), sr1.getEnd(), r1, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
                             cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getSequence(), sr2.getStart(), sr2.getEnd(), r2, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
