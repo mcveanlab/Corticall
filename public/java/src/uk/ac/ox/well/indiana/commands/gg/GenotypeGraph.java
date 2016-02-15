@@ -394,8 +394,8 @@ public class GenotypeGraph extends Module {
         Map<String, SAMRecord> alignments = new LinkedHashMap<String, SAMRecord>();
         Map<String, Integer> parentage = new LinkedHashMap<String, Integer>();
 
-        //ExternalAligner la = new LastzAligner();
-        ExternalAligner la = new BwaAligner();
+        ExternalAligner la = new LastzAligner();
+        //ExternalAligner la = new BwaAligner();
         for (String p : pieces.keySet()) {
             List<SAMRecord> srs;
             if (pieces.get(p) == 1) {
@@ -445,6 +445,34 @@ public class GenotypeGraph extends Module {
         }
 
         log.info("\n{}", dt);
+    }
+
+    private StringBuilder smooth(StringBuilder sb) {
+        for (int i = 0; i < sb.length(); i++) {
+            if (sb.charAt(i) == 'B' || sb.charAt(i) == '?') {
+                char leftChar = '?', rightChar = '?';
+                int leftDist = Integer.MAX_VALUE, rightDist = Integer.MAX_VALUE;
+
+                for (int j = i - 1; j >= 0; j--) {
+                    if (sb.charAt(j) == '1' || sb.charAt(j) == '2') {
+                        leftChar = sb.charAt(j);
+                        leftDist = i - j;
+                    }
+                }
+
+                for (int j = i + 1; j < sb.length(); j++) {
+                    if (sb.charAt(j) == '1' || sb.charAt(j) == '2') {
+                        rightChar = sb.charAt(j);
+                        rightDist = j - i;
+                    }
+                }
+
+                char bestChr = leftDist <= rightDist ? leftChar : rightChar;
+                sb.setCharAt(i, bestChr);
+            }
+        }
+
+        return sb;
     }
 
     private List<Interval> combineIntervals(List<List<Interval>> allIntervals) {
@@ -509,6 +537,8 @@ public class GenotypeGraph extends Module {
 
     @Override
     public void execute() {
+        Random rnd = new Random(0);
+
         log.info("Loading reference indices for fast kmer lookup...");
         KmerLookup kl  = new KmerLookup(REF);
         KmerLookup kl1 = new KmerLookup(REF1);
@@ -642,9 +672,88 @@ public class GenotypeGraph extends Module {
                 List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(astretch) : kl2.alignSmoothly(astretch);
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
-                    //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
-
                     finalPos = combineIntervals(alignment);
+
+                    StringBuilder nv = new StringBuilder();
+                    for (int i = 0; i <= astretch.length() - CLEAN.getKmerSize(); i++) {
+                        CortexKmer ck = new CortexKmer(astretch.substring(i, i + CLEAN.getKmerSize()));
+                        CortexRecord cr = CLEAN.findRecord(ck);
+                        if (cr == null) {
+                            cr = DIRTY.findRecord(ck);
+                        }
+
+                        if (cr != null) {
+                            if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0) {
+                                nv.append(".");
+                            } else if (cr.getCoverage(1) > 0 && cr.getCoverage(2) == 0) {
+                                nv.append("1");
+                            } else if (cr.getCoverage(1) == 0 && cr.getCoverage(2) > 0) {
+                                nv.append("2");
+                            } else if (cr.getCoverage(1) > 0 && cr.getCoverage(2) > 0) {
+                                nv.append("B");
+                            } else {
+                                nv.append("?");
+                            }
+                        } else {
+                            nv.append(" ");
+                        }
+                    }
+
+                    nv = smooth(nv);
+
+                    List<Pair<String, String>> sections = new ArrayList<Pair<String, String>>();
+                    StringBuilder first = new StringBuilder();
+                    StringBuilder second = new StringBuilder();
+                    for (int i = 0; i < nv.length(); i++) {
+                        if (nv.charAt(i) == '.' && (first.length() > 0 || second.length() > 0)) {
+                            sections.add(new Pair<String, String>(first.toString(), second.toString()));
+                            first = new StringBuilder();
+                            second = new StringBuilder();
+                        }
+
+                        if (nv.charAt(i) == '1' || nv.charAt(i) == 'B') {
+                            if (first.length() == 0) {
+                                first.append(astretch.substring(i, i + CLEAN.getKmerSize()));
+                            } else {
+                                first.append(astretch.charAt(i + CLEAN.getKmerSize() - 1));
+                            }
+                        }
+
+                        if (nv.charAt(i) == '2' || nv.charAt(i) == 'B') {
+                            if (second.length() == 0) {
+                                second.append(astretch.substring(i, i + CLEAN.getKmerSize()));
+                            } else {
+                                second.append(astretch.charAt(i + CLEAN.getKmerSize() - 1));
+                            }
+                        }
+                    }
+
+                    if (first.length() > 0 || second.length() > 0) {
+                        sections.add(new Pair<String, String>(first.toString(), second.toString()));
+                    }
+
+                    ExternalAligner la = new LastzAligner();
+                    for (Pair<String, String> p : sections) {
+                        List<SAMRecord> afl = p.getFirst().isEmpty()  ? null : la.align(p.getFirst(),  REF1);
+                        List<SAMRecord> asl = p.getSecond().isEmpty() ? null : la.align(p.getSecond(), REF2);
+
+                        SAMRecord af = afl != null && afl.size() == 1 ? afl.get(0) : null;
+                        SAMRecord as = asl != null && asl.size() == 1 ? asl.get(0) : null;
+                        SAMRecord a = af;
+
+                        if (af != null && as == null) {
+                            a = af;
+                        } else if (af == null && as != null) {
+                            a = as;
+                        } else if (af != null && as != null) {
+                            if (rnd.nextBoolean()) { a = af; }
+                            else { a = as; }
+                        }
+
+                        if (a != null) {
+                            finalPos.add(new Interval(a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd()));
+                        }
+                    }
                 } else {
                     //smooth(alignment, "kl" + gvc.getAttributeAsInt(0, "haplotypeBackground"));
 
@@ -654,16 +763,34 @@ public class GenotypeGraph extends Module {
                     Interval start = alignment.size() > startIndex && alignment.get(startIndex).size() > 0 ? alignment.get(startIndex).get(0) : null;
                     Interval end = alignment.size() > endIndex && alignment.get(endIndex).size() > 0 ? alignment.get(endIndex).get(0) : null;
 
-                    if (start != null) {
+                    if (start != null && end != null) {
                         Interval pos = new Interval(start.getSequence(), start.getStart() + startIndex + 1, start.getStart() + startIndex + 1);
 
-                        if (end != null) {
-                            if (start.getSequence().equals(end.getSequence())) {
-                                if (start.isNegativeStrand() && end.isNegativeStrand()) {
-                                    pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
-                                } else {
-                                    log.info("Hi!");
-                                }
+                        if (start.getSequence().equals(end.getSequence())) {
+                            if (start.isNegativeStrand() && end.isNegativeStrand()) {
+                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
+                            } else {
+                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1, true, "none");
+                            }
+                        }
+
+                        finalPos.add(pos);
+
+                        log.info("    {} {}", start, end);
+                    } else if (start == null || end == null) {
+                        Interval pos = null;
+
+                        if (start != null) {
+                            if (start.isNegativeStrand()) {
+                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1);
+                            } else {
+                                pos = new Interval(start.getSequence(), start.getEnd() + 1, start.getEnd() + 1);
+                            }
+                        } else if (end != null) {
+                            if (end.isNegativeStrand()) {
+                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1);
+                            } else {
+                                pos = new Interval(end.getSequence(), end.getEnd() + 1, end.getEnd() + 1);
                             }
                         }
 
@@ -698,6 +825,7 @@ public class GenotypeGraph extends Module {
                 int novelKmersContained = 0;
                 int novelKmersUsed = 0;
                 boolean hasRejectedKmers = false;
+                boolean noConnections = false;
 
                 for (AnnotatedVertex av : ag.vertexSet()) {
                     CortexKmer ck = new CortexKmer(av.getKmer());
@@ -709,6 +837,17 @@ public class GenotypeGraph extends Module {
                             totalNovelKmersUsed++;
                             novelKmersUsed++;
                             novelKmers.put(ck, false);
+                        }
+
+                        CortexRecord nr = CLEAN.findRecord(ck);
+                        if (nr == null) {
+                            nr = DIRTY.findRecord(ck);
+                        }
+
+                        if (nr != null) {
+                            if (nr.getInEdgesAsStrings(0).size() == 0 || nr.getOutEdgesAsStrings(0).size() == 0) {
+                                noConnections = true;
+                            }
                         }
                     }
 
@@ -745,13 +884,17 @@ public class GenotypeGraph extends Module {
                 //gvc.attribute(0, "filter", (novelKmersContained <= 1 && gvc.getAttributeAsString(0, "event").equals("unknown")) ? "FAIL" : "PASS");
                 gvc.attribute(0, "filter", "PASS");
 
-                if (gvc.getAttribute(0, "event").equals("unknown")) {
+                String eventType = gvc.getAttributeAsString(0, "event");
+
+                if (eventType.equals("unknown") || eventType.equals("GC") || eventType.equals("NAHR")) {
                     if (hasRejectedKmers) {
                         gvc.attribute(0, "filter", "HAS_REJECTED_KMERS");
                     } else if (!isAlignedSomewhere) {
                         gvc.attribute(0, "filter", "NO_ALIGNMENTS");
                     } else if (hasDirtyKmers) {
                         gvc.attribute(0, "filter", "HAS_DIRTY_KMERS");
+                    } else if (noConnections) {
+                        gvc.attribute(0, "filter", "DISCONNECTED");
                     }
                 }
 

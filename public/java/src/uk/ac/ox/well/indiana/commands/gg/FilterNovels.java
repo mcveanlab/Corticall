@@ -4,6 +4,7 @@ import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -65,6 +66,10 @@ public class FilterNovels extends Module {
 
         if (lowerThreshold > 10) { lowerThreshold = 10; }
 
+//        if (REJECTED_KMERS.getNumRecords() > 100000) {
+//            throw new IndianaException("Too many contaminants (" + REJECTED_KMERS.getNumRecords() + ")");
+//        }
+
         log.info("Filtering novel kmers...");
         log.info("  {} kmers to start with", NOVEL_KMERS.getNumRecords());
 
@@ -85,6 +90,7 @@ public class FilterNovels extends Module {
         Set<CortexKmer> contaminatingKmers = new HashSet<CortexKmer>();
 
         log.info("Exploring contaminants...");
+        log.info("  {} to start with", REJECTED_KMERS.getNumRecords());
         for (CortexRecord cr : REJECTED_KMERS) {
             if (!contaminatingKmers.contains(cr.getCortexKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, DIRTY, cr.getKmerAsString(), 0, null, ContaminantStopper.class);
