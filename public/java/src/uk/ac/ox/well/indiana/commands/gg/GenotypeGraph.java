@@ -822,7 +822,7 @@ public class GenotypeGraph extends Module {
 
                 List<List<Interval>> sa = kl.alignSmoothly(astretch);
                 Map<String, Integer> chrCount = new HashMap<String, Integer>();
-                int newh = 0;
+                int newh = -1;
                 for (List<Interval> s : sa) {
                     if (s.size() == 1) {
                         Interval interval = s.get(0);
