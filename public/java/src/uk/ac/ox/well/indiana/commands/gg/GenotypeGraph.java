@@ -670,6 +670,14 @@ public class GenotypeGraph extends Module {
 
                 List<Interval> finalPos = new ArrayList<Interval>();
                 List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(astretch) : kl2.alignSmoothly(astretch);
+                for (int i = 0; i < alignment.size(); i++) {
+                    for (int j = 0; j < alignment.get(i).size(); j++) {
+                        Interval oldInterval = alignment.get(i).get(j);
+                        Interval newInterval = new Interval(oldInterval.getSequence(), oldInterval.getStart(), oldInterval.getEnd(), oldInterval.isNegativeStrand(), String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
+
+                        alignment.get(i).set(j, newInterval);
+                    }
+                }
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
                     finalPos = combineIntervals(alignment);
@@ -740,18 +748,21 @@ public class GenotypeGraph extends Module {
                         SAMRecord af = afl != null && afl.size() == 1 ? afl.get(0) : null;
                         SAMRecord as = asl != null && asl.size() == 1 ? asl.get(0) : null;
                         SAMRecord a = af;
+                        int b = 0;
 
                         if (af != null && as == null) {
                             a = af;
+                            b = 1;
                         } else if (af == null && as != null) {
                             a = as;
+                            b = 2;
                         } else if (af != null && as != null) {
-                            if (rnd.nextBoolean()) { a = af; }
-                            else { a = as; }
+                            if (rnd.nextBoolean()) { a = af; b = 1; }
+                            else { a = as; b = 2; }
                         }
 
                         if (a != null) {
-                            finalPos.add(new Interval(a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd()));
+                            finalPos.add(new Interval(a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd(), false, String.valueOf(b)));
                         }
                     }
                 } else {
@@ -768,9 +779,9 @@ public class GenotypeGraph extends Module {
 
                         if (start.getSequence().equals(end.getSequence())) {
                             if (start.isNegativeStrand() && end.isNegativeStrand()) {
-                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, "none");
+                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             } else {
-                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1, true, "none");
+                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1, true, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             }
                         }
 
@@ -782,15 +793,15 @@ public class GenotypeGraph extends Module {
 
                         if (start != null) {
                             if (start.isNegativeStrand()) {
-                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1);
+                                pos = new Interval(start.getSequence(), start.getStart() + 1, start.getStart() + 1, true, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             } else {
-                                pos = new Interval(start.getSequence(), start.getEnd() + 1, start.getEnd() + 1);
+                                pos = new Interval(start.getSequence(), start.getEnd() + 1, start.getEnd() + 1, false, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             }
                         } else if (end != null) {
                             if (end.isNegativeStrand()) {
-                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1);
+                                pos = new Interval(end.getSequence(), end.getStart() + 1, end.getStart() + 1, true, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             } else {
-                                pos = new Interval(end.getSequence(), end.getEnd() + 1, end.getEnd() + 1);
+                                pos = new Interval(end.getSequence(), end.getEnd() + 1, end.getEnd() + 1, false, String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
                             }
                         }
 
@@ -1070,45 +1081,35 @@ public class GenotypeGraph extends Module {
                     evalTables.getTable("variantCalls").set(key, "stretch", stretch);
                     evalTables.getTable("variantCalls").set(key, "parentalStretch", newGvc.getAttributeAsString(0, "parentalStretch"));
                     evalTables.getTable("variantCalls").set(key, "childStretch", newGvc.getAttributeAsString(0, "childStretch"));
+
+                    if (finalPos.size() == 1) {
+                        Interval pos = finalPos.get(0);
+                        int radius = gvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 8 : 6;
+
+                        if (gvc.getAttribute(0, "event").equals("GC")) {
+                            cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), 8, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                            cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), 6, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        } else {
+                            cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                            cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        }
+                    } else if (finalPos.size() > 1) {
+                        for (int i = 0; i < finalPos.size() - 1; i++) {
+                            Interval sr1 = finalPos.get(i);
+                            Interval sr2 = finalPos.get(i + 1);
+
+                            int r1 = Integer.valueOf(sr1.getName()) == 1 ? 8 : 6;
+                            int r2 = Integer.valueOf(sr2.getName()) == 1 ? 8 : 6;
+
+                            cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getSequence(), sr1.getStart(), sr1.getEnd(), r1, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                            cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getSequence(), sr2.getStart(), sr2.getEnd(), r2, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        }
+                    } else {
+                        cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                        cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                    }
                     id++;
                 }
-
-                /*
-                String alignmentStretch = (!gvc.getAttributeAsString(0, "parentalStretch").isEmpty()) ? gvc.getAttributeAsString(0, "parentalStretch") : gvc.getAttributeAsString(0, "stretch");
-
-                List<SAMRecord> alignments = getAlignment(alignmentStretch, kl, kl1, kl2, itm);
-
-                for (SAMRecord sr : alignments) {
-                    log.info("  {}", sr.getSAMString());
-                }
-
-                if (alignments.size() == 1) {
-                    SAMRecord sr = alignments.get(0);
-                    int radius = sr.getIntegerAttribute("PA") == 1 ? 8 : 6;
-
-                    if (gvc.getAttribute(0, "event").equals("GC")) {
-                        cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), 8, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                        cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), 6, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                    } else {
-                        cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                        cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                    }
-                } else if (alignments.size() > 1) {
-                    for (int i = 0; i < alignments.size() - 1; i++) {
-                        SAMRecord sr1 = alignments.get(i);
-                        SAMRecord sr2 = alignments.get(i + 1);
-
-                        int r1 = sr1.getIntegerAttribute("PA") == 1 ? 8 : 6;
-                        int r2 = sr2.getIntegerAttribute("PA") == 1 ? 8 : 6;
-
-                        cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getReferenceName(), sr1.getAlignmentStart(), sr1.getAlignmentEnd(), r1, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                        cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getReferenceName(), sr2.getAlignmentStart(), sr2.getAlignmentEnd(), r2, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                    }
-                } else {
-                    cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                    cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100*stretchNum, 100*stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                }
-                */
 
                 stretchNum++;
             }
