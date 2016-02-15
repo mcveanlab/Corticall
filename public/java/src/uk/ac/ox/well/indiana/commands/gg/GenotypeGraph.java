@@ -822,7 +822,7 @@ public class GenotypeGraph extends Module {
 
                 List<List<Interval>> sa = kl.alignSmoothly(astretch);
                 Map<String, Integer> chrCount = new HashMap<String, Integer>();
-                int newh = -1;
+                int newh = 0;
                 for (List<Interval> s : sa) {
                     if (s.size() == 1) {
                         Interval interval = s.get(0);
@@ -835,7 +835,21 @@ public class GenotypeGraph extends Module {
                     }
                 }
 
-                log.info("  inferred background: {} ({})", newh, h);
+                int finalh = -1;
+
+                if (h == 0) {
+                    if (newh > 0) {
+                        finalh = newh;
+                    } else {
+                        h = rnd.nextBoolean() ? 1 : 2;
+                    }
+                } else {
+                    finalh = h;
+                }
+
+                log.info("  inferred background: {} ({},{})", finalh, newh, h);
+
+                gvc.attribute(0, "haplotypeBackground", finalh);
 
                 boolean hasDirtyKmers = false;
                 for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
