@@ -777,7 +777,7 @@ public class GenotypeGraph extends Module {
                         finalPos.add(pos);
 
                         log.info("    {} {}", start, end);
-                    } else if (start == null || end == null) {
+                    } else if ((start == null && end != null) || (start != null && end == null)) {
                         Interval pos = null;
 
                         if (start != null) {
