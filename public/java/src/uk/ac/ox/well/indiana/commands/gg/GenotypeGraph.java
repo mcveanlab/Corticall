@@ -1085,14 +1085,14 @@ public class GenotypeGraph extends Module {
                     if (newGvc.getAttributeAsString(0, "filter").equals("PASS")) {
                         if (finalPos.size() == 1) {
                             Interval pos = finalPos.get(0);
-                            int radius = gvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 8 : 6;
+                            int radius = newGvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 8 : 6;
 
-                            if (gvc.getAttribute(0, "event").equals("GC")) {
-                                cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), 8, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                                cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), 6, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                            if (newGvc.getAttribute(0, "event").equals("GC")) {
+                                cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, id, pos.getSequence(), pos.getStart(), pos.getEnd(), 8, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
+                                cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, id, pos.getSequence(), pos.getStart(), pos.getEnd(), 6, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
                             } else {
-                                cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                                cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                                cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, id, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
+                                cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, id, pos.getSequence(), pos.getStart(), pos.getEnd(), radius, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
                             }
                         } else if (finalPos.size() > 1) {
                             for (int i = 0; i < finalPos.size() - 1; i++) {
@@ -1102,12 +1102,12 @@ public class GenotypeGraph extends Module {
                                 int r1 = (sr1.getName() == null || sr1.getName().equals(".")) || Integer.valueOf(sr1.getName()) == 1 ? 8 : 6;
                                 int r2 = (sr2.getName() == null || sr2.getName().equals(".")) || Integer.valueOf(sr2.getName()) == 1 ? 8 : 6;
 
-                                cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getSequence(), sr1.getStart(), sr1.getEnd(), r1, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                                cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getSequence(), sr2.getStart(), sr2.getEnd(), r2, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                                cout.printf("stretch%d.%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, i, sr1.getSequence(), sr1.getStart(), sr1.getEnd(), r1, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
+                                cout.printf("stretch%d.%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, i, sr2.getSequence(), sr2.getStart(), sr2.getEnd(), r2, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
                             }
                         } else {
-                            cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100 * stretchNum, 100 * stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
-                            cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100 * stretchNum, 100 * stretchNum, 7, gvc.getAttribute(0, "event"), gvc.getAttribute(0, "traversalStatus"));
+                            cout.printf("stretch%d %s %d %d radius1=0.%dr # %s_%s\n", stretchNum, "NA", 100 * stretchNum, 100 * stretchNum, 7, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
+                            cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100 * stretchNum, 100 * stretchNum, 7, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
                         }
                     }
 
