@@ -847,7 +847,7 @@ public class GenotypeGraph extends Module {
                     finalh = h;
                 }
 
-                log.info("  inferred background: {} ({},{})", finalh, newh, h);
+                log.info("    inferred background: {} ({},{})", finalh, newh, h);
 
                 gvc.attribute(0, "haplotypeBackground", finalh);
 
