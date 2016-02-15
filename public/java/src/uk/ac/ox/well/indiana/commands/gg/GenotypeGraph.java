@@ -680,7 +680,7 @@ public class GenotypeGraph extends Module {
                 }
 
                 if (pstretch.isEmpty() && cstretch.isEmpty()) {
-                    finalPos = combineIntervals(alignment);
+                    //finalPos = combineIntervals(alignment);
 
                     StringBuilder nv = new StringBuilder();
                     for (int i = 0; i <= astretch.length() - CLEAN.getKmerSize(); i++) {
