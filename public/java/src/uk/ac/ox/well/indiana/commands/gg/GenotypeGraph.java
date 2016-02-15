@@ -798,7 +798,13 @@ public class GenotypeGraph extends Module {
 
                         log.info("    {} {}", start, end);
                     } else {
-                        log.info("    {} {}", start, end);
+                        for (List<Interval> its : alignment) {
+                            if (its.size() > 0) {
+                                finalPos.add(its.get(0));
+                                log.info("    {}", its.get(0));
+                                break;
+                            }
+                        }
                     }
                 }
 
