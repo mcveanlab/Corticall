@@ -18,6 +18,7 @@ import uk.ac.ox.well.indiana.utils.alignment.pairwise.LocalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -656,7 +657,7 @@ public class GenotypeGraph extends Module {
                 // Finalize into a single call
                 GenotypeGraphUtils.chooseVariant(gvc);
 
-                int h = gvc.getAttributeAsInt(0, "haplotypeBackground") <= 1 ? 1 : 2;
+                int h = gvc.getAttributeAsInt(0, "haplotypeBackground"); // <= 1 ? 1 : 2;
 
                 log.info("    variant:");
                 log.info("    - {}: {} {} ({} bp)", h, gvc.getAttributeAsString(h, "event"), SequenceUtils.truncate(gvc.getAttributeAsString(h, "parentalAllele"), 80), gvc.getAttributeAsString(h, "parentalAllele").length());
@@ -818,6 +819,23 @@ public class GenotypeGraph extends Module {
                         }
                     }
                 }
+
+                List<List<Interval>> sa = kl.alignSmoothly(astretch);
+                Map<String, Integer> chrCount = new HashMap<String, Integer>();
+                int newh = 0;
+                for (List<Interval> s : sa) {
+                    if (s.size() == 1) {
+                        Interval interval = s.get(0);
+
+                        if (itm.containsContained(interval)) {
+                            newh = itm.getContained(interval).iterator().next();
+                        } else if (itm.containsOverlapping(interval)) {
+                            newh = itm.getOverlapping(interval).iterator().next();
+                        }
+                    }
+                }
+
+                log.info("  inferred background: {} ({})", newh, h);
 
                 boolean hasDirtyKmers = false;
                 for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
