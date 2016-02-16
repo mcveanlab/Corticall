@@ -233,6 +233,7 @@ public class GenotypeGraph extends Module {
         int currentParent = -1;
         int startPos = -1;
         int endPos = 0;
+        int prevEndPos = 0;
 
         IntervalTreeMap<Integer> itm = new IntervalTreeMap<Integer>();
 
@@ -254,7 +255,7 @@ public class GenotypeGraph extends Module {
 
                         if (currentParent != parent || !currentChr.equals(chr)) {
                             if (!currentChr.equals("none")) {
-                                Interval interval = new Interval(currentChr, startPos, endPos);
+                                Interval interval = new Interval(currentChr, startPos, prevEndPos);
 
                                 itm.put(interval, currentParent);
                             }
@@ -263,6 +264,8 @@ public class GenotypeGraph extends Module {
                             currentParent = parent;
                             startPos = endPos;
                         }
+
+                        prevEndPos = endPos;
                     }
                 }
             }
