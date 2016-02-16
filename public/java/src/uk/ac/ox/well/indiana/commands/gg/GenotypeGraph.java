@@ -840,6 +840,7 @@ public class GenotypeGraph extends Module {
 
                 int finalh = -1;
 
+                /*
                 if (h == 0 || newh > 0) {
                     if (newh > 0) {
                         finalh = newh;
@@ -849,6 +850,11 @@ public class GenotypeGraph extends Module {
                 } else {
                     finalh = h;
                 }
+                */
+
+                if (newh > 0) { finalh = newh; }
+                else if (h > 0) { finalh = h; }
+                else { h = rnd.nextBoolean() ? 1 : 2; }
 
                 log.info("    inferred background: {} ({},{})", finalh, newh, h);
 
