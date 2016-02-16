@@ -771,10 +771,12 @@ public class GenotypeGraphUtils {
     }
 
     private static boolean isPolymorphic(CortexGraph clean, CortexGraph dirty, PathInfo p) {
-        boolean poly = false;
+        //boolean poly = false;
+        int numParentKmers = 0;
+        int numParentKmersSharedWithChild = 0;
 
         if (p.parent != null && p.child != null && p.parent.length() > clean.getKmerSize() && p.child.length() > dirty.getKmerSize()) {
-            poly = true;
+            //poly = true;
 
             for (int i = 0; i <= p.parent.length() - clean.getKmerSize(); i++) {
                 CortexKmer ck = new CortexKmer(p.parent.substring(i, i + clean.getKmerSize()));
@@ -784,11 +786,14 @@ public class GenotypeGraphUtils {
                     cr = dirty.findRecord(ck);
                 }
 
-                poly &= cr != null && cr.getCoverage(0) > 0;
+                //poly &= cr != null && cr.getCoverage(0) > 0;
+
+                numParentKmers++;
+                numParentKmersSharedWithChild += (cr.getCoverage(0) > 0) ? 1 : 0;
             }
         }
 
-        return poly;
+        return (((float) numParentKmersSharedWithChild) / ((float) numParentKmers)) >= 0.9;
     }
 
     public static GraphicalVariantContext callVariant(CortexGraph clean, CortexGraph dirty, PathInfo p, int color, String stretch, DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, KmerLookup kl) {
