@@ -248,7 +248,8 @@ public class GenotypeGraph extends Module {
                         int parent = Integer.valueOf(te.get(columnName));
 
                         if (!currentChr.equals(chr)) {
-                            startPos = 0;
+                            //startPos = 0;
+                            startPos = endPos;
                         }
 
                         if (currentParent != parent || !currentChr.equals(chr)) {
