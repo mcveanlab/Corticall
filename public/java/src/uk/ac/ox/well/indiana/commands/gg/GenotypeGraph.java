@@ -828,8 +828,8 @@ public class GenotypeGraph extends Module {
 
                         if (itm.containsContained(interval)) {
                             newh = itm.getContained(interval).iterator().next();
-                        } else if (itm.containsOverlapping(interval)) {
-                            newh = itm.getOverlapping(interval).iterator().next();
+//                        } else if (itm.containsOverlapping(interval)) {
+//                            newh = itm.getOverlapping(interval).iterator().next();
                         }
                     }
                 }
