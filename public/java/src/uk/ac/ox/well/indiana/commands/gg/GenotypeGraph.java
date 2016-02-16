@@ -947,6 +947,8 @@ public class GenotypeGraph extends Module {
                     CortexRecord cr = CLEAN.findRecord(ck);
                     CortexRecord dr = DIRTY.findRecord(ck);
 
+                    numKmers++;
+
                     if (cr == null && dr != null) {
                         numDirtyKmersNeeded++;
                     }
