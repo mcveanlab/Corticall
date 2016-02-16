@@ -231,7 +231,7 @@ public class GenotypeGraph extends Module {
 
         String currentChr = "none";
         int currentParent = -1;
-        int startPos = 0;
+        int startPos = -1;
         int endPos = 0;
 
         IntervalTreeMap<Integer> itm = new IntervalTreeMap<Integer>();
@@ -247,7 +247,7 @@ public class GenotypeGraph extends Module {
                         endPos = Integer.valueOf(te.get("POS"));
                         int parent = Integer.valueOf(te.get(columnName));
 
-                        if (!currentChr.equals(chr)) {
+                        if (!currentChr.equals(chr) && startPos < 0) {
                             //startPos = 0;
                             startPos = endPos;
                         }
