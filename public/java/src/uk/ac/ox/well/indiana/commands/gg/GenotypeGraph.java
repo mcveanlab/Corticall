@@ -75,8 +75,8 @@ public class GenotypeGraph extends Module {
     @Output
     public PrintStream out;
 
-    @Output(fullName="cout", shortName="co", doc="Circos track output")
-    public PrintStream cout;
+    //@Output(fullName="cout", shortName="co", doc="Circos track output")
+    //public PrintStream cout;
 
     private void evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
         Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
@@ -940,6 +940,21 @@ public class GenotypeGraph extends Module {
                 log.info("    - novel kmers utilized: {}/{}", novelKmersUsed, novelKmers.size());
                 log.info("    - cumulative usage:     {}/{}", totalNovelKmersUsed, novelKmers.size());
 
+                int numDirtyKmersNeeded = 0;
+                int numKmers = 0;
+                for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(bstretch.substring(i, i + CLEAN.getKmerSize()));
+                    CortexRecord cr = CLEAN.findRecord(ck);
+                    CortexRecord dr = DIRTY.findRecord(ck);
+
+                    if (cr == null && dr != null) {
+                        numDirtyKmersNeeded++;
+                    }
+                }
+
+                gvc.attribute(0, "numDirtyKmers", numDirtyKmersNeeded);
+                gvc.attribute(0, "numKmers", numKmers);
+
                 //gvc.attribute(0, "filter", (novelKmersContained <= 1 && gvc.getAttributeAsString(0, "event").equals("unknown")) ? "FAIL" : "PASS");
                 gvc.attribute(0, "filter", "PASS");
 
@@ -956,20 +971,8 @@ public class GenotypeGraph extends Module {
                         gvc.attribute(0, "filter", "DISCONNECTED");
                     }
                 } else {
-                    float numDirtyKmersNeeded = 0.0f;
-                    float numKmers = 0.0f;
-                    for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
-                        CortexKmer ck = new CortexKmer(bstretch.substring(i, i + CLEAN.getKmerSize()));
-                        CortexRecord cr = CLEAN.findRecord(ck);
-                        CortexRecord dr = DIRTY.findRecord(ck);
-
-                        if (cr == null && dr != null) {
-                            numDirtyKmersNeeded++;
-                        }
-                    }
-
-                    if (numDirtyKmersNeeded/numKmers > 0.25) {
-                        gvc.attribute(0, "filter", "DIRT");
+                    if (((float) numDirtyKmersNeeded)/((float) numKmers) > 0.25) {
+                        gvc.attribute(0, "filter", "SUSPICIOUS_RECONSTRUCTION");
                     }
                 }
 
@@ -1117,13 +1120,18 @@ public class GenotypeGraph extends Module {
 
                 int id = 0;
                 for (GraphicalVariantContext newGvc : newGvcs) {
+                    String compactLocus = compactAlignments(finalPos);
+                    if (compactLocus.isEmpty()) {
+                        compactLocus = "unknown";
+                    }
+
                     String key = novelKmer.getKmerAsString() + id;
                     evalTables.getTable("variantCalls").set(key, "novelKmer", novelKmer);
                     evalTables.getTable("variantCalls").set(key, "stretchNum", stretchNum);
                     evalTables.getTable("variantCalls").set(key, "filter", newGvc.getAttributeAsString(0, "filter"));
                     evalTables.getTable("variantCalls").set(key, "event", newGvc.getAttributeAsString(0, "event"));
                     evalTables.getTable("variantCalls").set(key, "isPolymorphic", newGvc.getAttributeAsBoolean(0, "isPolymorphic"));
-                    evalTables.getTable("variantCalls").set(key, "locus", compactAlignments(finalPos));
+                    evalTables.getTable("variantCalls").set(key, "locus", compactLocus);
                     evalTables.getTable("variantCalls").set(key, "parentalAlleleLength", newGvc.getAttributeAsString(0, "parentalAllele").length());
                     evalTables.getTable("variantCalls").set(key, "childAlleleLength", newGvc.getAttributeAsString(0, "childAllele").length());
                     evalTables.getTable("variantCalls").set(key, "parentalAllele", newGvc.getAttributeAsString(0, "parentalAllele"));
@@ -1132,6 +1140,8 @@ public class GenotypeGraph extends Module {
                     evalTables.getTable("variantCalls").set(key, "haplotypeBackground", newGvc.getAttributeAsInt(0, "haplotypeBackground"));
                     evalTables.getTable("variantCalls").set(key, "start", newGvc.getAttributeAsInt(0, "start"));
                     evalTables.getTable("variantCalls").set(key, "stop", newGvc.getAttributeAsInt(0, "stop"));
+                    evalTables.getTable("variantCalls").set(key, "numDirtyKmersInChildStretch", newGvc.getAttributeAsInt(0, "numDirtyKmers"));
+                    evalTables.getTable("variantCalls").set(key, "numKmersInChildStretch", newGvc.getAttributeAsInt(0, "numKmers"));
                     evalTables.getTable("variantCalls").set(key, "novelKmersContained", novelKmersContained);
                     evalTables.getTable("variantCalls").set(key, "novelKmersUsed", novelKmersUsed);
                     evalTables.getTable("variantCalls").set(key, "novelKmersTotal", novelKmers.size());
@@ -1140,6 +1150,7 @@ public class GenotypeGraph extends Module {
                     evalTables.getTable("variantCalls").set(key, "parentalStretch", newGvc.getAttributeAsString(0, "parentalStretch"));
                     evalTables.getTable("variantCalls").set(key, "childStretch", newGvc.getAttributeAsString(0, "childStretch"));
 
+                    /*
                     if (newGvc.getAttributeAsString(0, "filter").equals("PASS")) {
                         if (finalPos.size() == 1) {
                             Interval pos = finalPos.get(0);
@@ -1168,6 +1179,7 @@ public class GenotypeGraph extends Module {
                             cout.printf("stretch%d %s %d %d radius2=0.%dr # %s_%s\n", stretchNum, "NA", 100 * stretchNum, 100 * stretchNum, 7, newGvc.getAttribute(0, "event"), newGvc.getAttribute(0, "traversalStatus"));
                         }
                     }
+                    */
 
                     id++;
                 }
