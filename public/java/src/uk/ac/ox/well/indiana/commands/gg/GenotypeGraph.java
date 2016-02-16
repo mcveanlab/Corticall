@@ -852,7 +852,7 @@ public class GenotypeGraph extends Module {
 
                 log.info("    inferred background: {} ({},{})", finalh, newh, h);
 
-                h = finalh;
+                //h = finalh;
                 gvc.attribute(0, "haplotypeBackground", finalh);
 
                 boolean hasDirtyKmers = false;
