@@ -955,6 +955,22 @@ public class GenotypeGraph extends Module {
                     } else if (noConnections) {
                         gvc.attribute(0, "filter", "DISCONNECTED");
                     }
+                } else {
+                    float numDirtyKmersNeeded = 0.0f;
+                    float numKmers = 0.0f;
+                    for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
+                        CortexKmer ck = new CortexKmer(bstretch.substring(i, i + CLEAN.getKmerSize()));
+                        CortexRecord cr = CLEAN.findRecord(ck);
+                        CortexRecord dr = DIRTY.findRecord(ck);
+
+                        if (cr == null && dr != null) {
+                            numDirtyKmersNeeded++;
+                        }
+                    }
+
+                    if (numDirtyKmersNeeded/numKmers > 0.25) {
+                        gvc.attribute(0, "filter", "DIRT");
+                    }
                 }
 
                 log.info("    filter: {}", gvc.getAttributeAsString(0, "filter"));
