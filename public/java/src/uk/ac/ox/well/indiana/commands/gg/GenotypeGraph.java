@@ -973,7 +973,7 @@ public class GenotypeGraph extends Module {
                         gvc.attribute(0, "filter", "DISCONNECTED");
                     }
                 } else {
-                    if (((float) numDirtyKmersNeeded)/((float) numKmers) > 0.25) {
+                    if (((float) numDirtyKmersNeeded)/((float) numKmers) >= 0.10) {
                         gvc.attribute(0, "filter", "SUSPICIOUS_RECONSTRUCTION");
                     }
                 }
