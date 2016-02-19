@@ -840,32 +840,21 @@ public class GenotypeGraph extends Module {
 
                 int finalh = -1;
 
-                /*
-                if (h == 0 || newh > 0) {
-                    if (newh > 0) {
-                        finalh = newh;
-                    } else {
-                        h = rnd.nextBoolean() ? 1 : 2;
-                    }
-                } else {
-                    finalh = h;
-                }
-                */
-
                 if (h > 0) { finalh = h; }
                 else if (newh > 0) { finalh = newh; }
                 else { finalh = rnd.nextBoolean() ? 1 : 2; }
 
                 log.info("    inferred background: {} ({},{})", finalh, newh, h);
 
-                //h = finalh;
                 gvc.attribute(0, "haplotypeBackground", finalh);
 
                 boolean hasDirtyKmers = false;
                 for (int i = 0; i <= bstretch.length() - CLEAN.getKmerSize(); i++) {
                     CortexKmer ck = new CortexKmer(bstretch.substring(i, i + CLEAN.getKmerSize()));
+                    CortexRecord cr = CLEAN.findRecord(ck);
+                    CortexRecord dr = DIRTY.findRecord(ck);
 
-                    if (CLEAN.findRecord(ck) == null && DIRTY.findRecord(ck) != null) {
+                    if (cr == null && dr != null && CortexUtils.isNovelKmer(dr, 0)) {
                         hasDirtyKmers = true;
                     }
                 }
