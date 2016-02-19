@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -37,7 +38,7 @@ public class FindInIndexedReference extends Module {
     public void execute() {
         KmerLookup kl = new KmerLookup(REFERENCE);
 
-        Set<String> kmersToCheck = new HashSet<String>();
+        Set<String> kmersToCheck = new LinkedHashSet<String>();
         if (KMERS != null) {
             //kmersToCheck.addAll(KMERS);
 
