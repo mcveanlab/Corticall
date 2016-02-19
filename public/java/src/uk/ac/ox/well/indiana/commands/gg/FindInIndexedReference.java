@@ -27,6 +27,9 @@ public class FindInIndexedReference extends Module {
     @Argument(fullName="novelKmers", shortName="n", doc="Novel kmers", required=false)
     public CortexGraph NOVEL_KMERS;
 
+    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
+    public Integer KMER_SIZE = 47;
+
     @Output
     public PrintStream out;
 
@@ -36,7 +39,15 @@ public class FindInIndexedReference extends Module {
 
         Set<String> kmersToCheck = new HashSet<String>();
         if (KMERS != null) {
-            kmersToCheck.addAll(KMERS);
+            //kmersToCheck.addAll(KMERS);
+
+            for (String seq : KMERS) {
+                for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
+                    String kmer = seq.substring(i, i + KMER_SIZE);
+
+                    kmersToCheck.add(kmer);
+                }
+            }
         }
 
         if (NOVEL_KMERS != null) {
