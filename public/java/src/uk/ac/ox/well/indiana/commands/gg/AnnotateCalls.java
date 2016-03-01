@@ -73,11 +73,6 @@ public class AnnotateCalls extends Module {
             te.put("withinCDS", "NA");
             te.put("geneDescription", "NA");
             for (String prop : props) { te.put(prop, "NA"); }
-            te.put("type", "NA");
-            te.put("completeness", "NA");
-            te.put("parentalAllele", "NA");
-            te.put("childAllele", "NA");
-            te.put("novelKmer", "NA");
 
             Collection<GFF3Record> genes = new HashSet<GFF3Record>();
             for (GFF3 gff : GFFS) {
