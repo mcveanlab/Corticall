@@ -65,8 +65,8 @@ public class AnnotateCalls extends Module {
         for (Map<String, String> te : tr) {
             String[] locus = te.get("locus").split("[:-]");
 
-            Interval intervalSmall = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(te.get("chr"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
-            Interval interval = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(intervalSmall.getSequence(), intervalSmall.getStart() - 100000, intervalSmall.getEnd() + 100000);
+            Interval intervalSmall = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(locus[0], Integer.valueOf(locus[1]), Integer.valueOf(locus[2]));
+            Interval interval = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(locus[0], Integer.valueOf(locus[1]) - 100000, Integer.valueOf(locus[2]) + 100000);
 
             te.put("closestGene", "NA");
             te.put("withinGene", "NA");
