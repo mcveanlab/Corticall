@@ -122,17 +122,17 @@ public class AnnotateCalls extends Module {
                         }
                     }
                 }
+
+                te.put("closestGene", Joiner.on(";").join(closestGenes));
+                te.put("withinGene", Joiner.on(";").join(withinGenes));
+                te.put("withinCDS", Joiner.on(";").join(withinCDS));
+                te.put("geneDescription", Joiner.on(";").join(geneDescription));
             } else {
                 te.put("closestGene", "unknown");
                 te.put("withinGene", "NA");
                 te.put("withinCDS", "NA");
                 te.put("geneDescription", "NA");
             }
-
-            te.put("closestGene", Joiner.on(";").join(closestGenes));
-            te.put("withinGene", Joiner.on(";").join(withinGenes));
-            te.put("withinCDS", Joiner.on(";").join(withinCDS));
-            te.put("geneDescription", Joiner.on(";").join(geneDescription));
 
             tw.addEntry(te);
         }
