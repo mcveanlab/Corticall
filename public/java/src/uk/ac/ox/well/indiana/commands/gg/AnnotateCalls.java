@@ -122,6 +122,11 @@ public class AnnotateCalls extends Module {
                         }
                     }
                 }
+            } else {
+                te.put("closestGene", "unknown");
+                te.put("withinGene", "NA");
+                te.put("withinCDS", "NA");
+                te.put("geneDescription", "NA");
             }
 
             te.put("closestGene", Joiner.on(";").join(closestGenes));
