@@ -131,7 +131,9 @@ public class AnnotateCalls extends Module {
                 te.put("withinGene", Joiner.on(";").join(withinGenes));
                 te.put("withinCDS", Joiner.on(";").join(withinCDS));
                 te.put("geneDescription", Joiner.on(";").join(geneDescription));
-            } else {
+            }
+
+            if (te.get("closestGene").isEmpty()) {
                 te.put("closestGene", "unknown");
                 te.put("withinGene", "NA");
                 te.put("withinCDS", "NA");
