@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.gg;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -63,55 +64,70 @@ public class AnnotateCalls extends Module {
 
         TableReader tr = new TableReader(CALLS);
         for (Map<String, String> te : tr) {
-            String[] locus = te.get("locus").split("[:-]");
+            List<String> closestGenes = new ArrayList<String>();
+            List<String> withinGenes = new ArrayList<String>();
+            List<String> withinCDS = new ArrayList<String>();
+            List<String> geneDescription = new ArrayList<String>();
 
-            Interval intervalSmall = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(locus[0], Integer.valueOf(locus[1]), Integer.valueOf(locus[2]));
-            Interval interval = locus[0].equals("unknown") ? new Interval("*", 0, 0) : new Interval(locus[0], Integer.valueOf(locus[1]) - 100000, Integer.valueOf(locus[2]) + 100000);
+            if (!te.get("locus").contains("unknown")) {
+                String[] loci = te.get("locus").split(";");
 
-            te.put("closestGene", "NA");
-            te.put("withinGene", "NA");
-            te.put("withinCDS", "NA");
-            te.put("geneDescription", "NA");
-            for (String prop : props) { te.put(prop, "NA"); }
+                for (String locus : loci) {
+                    String[] pieces = locus.split("[:-]");
 
-            Collection<GFF3Record> genes = new HashSet<GFF3Record>();
-            for (GFF3 gff : GFFS) {
-                genes.addAll(GFF3.getType("gene", gff.getOverlapping(interval)));
-            }
+                    Interval intervalSmall = new Interval(pieces[0], Integer.valueOf(pieces[1]),          Integer.valueOf(pieces[2]));
+                    Interval interval      = new Interval(pieces[0], Integer.valueOf(pieces[1]) - 100000, Integer.valueOf(pieces[2]) + 100000);
 
-            if (genes.size() > 0) {
-                GFF3Record closestGene = genes.iterator().next();
-                for (GFF3Record gene : genes) {
-                    if (Math.abs(gene.getStart() - intervalSmall.getStart()) < Math.abs(closestGene.getStart() - intervalSmall.getStart())) {
-                        closestGene = gene;
+                    Collection<GFF3Record> genes = new HashSet<GFF3Record>();
+                    for (GFF3 gff : GFFS) {
+                        genes.addAll(GFF3.getType("gene", gff.getOverlapping(interval)));
                     }
-                }
 
-                te.put("closestGene", closestGene.getAttribute("ID"));
-                te.put("withinGene", "false");
-                te.put("withinCDS", "false");
-                te.put("geneDescription", closestGene.getAttribute("description"));
+                    if (genes.size() > 0) {
+                        GFF3Record closestGene = genes.iterator().next();
+                        for (GFF3Record gene : genes) {
+                            if (Math.abs(gene.getStart() - intervalSmall.getStart()) < Math.abs(closestGene.getStart() - intervalSmall.getStart())) {
+                                closestGene = gene;
+                            }
+                        }
 
-                if (intervalSmall.intersects(closestGene.getInterval())) {
-                    te.put("withinGene", "true");
-                }
+                        String cg = closestGene.getAttribute("ID");
+                        boolean inGene = false;
+                        boolean inCDS = false;
+                        String desc = closestGene.getAttribute("description");
 
-                for (GFF3 gff : GFFS) {
-                    for (GFF3Record exon : GFF3.getType("exon", gff.getContained(closestGene))) {
-                        if (intervalSmall.intersects(exon.getInterval())) {
-                            te.put("withinCDS", "true");
+                        if (intervalSmall.intersects(closestGene.getInterval())) {
+                            inGene = true;
+                        }
+
+                        for (GFF3 gff : GFFS) {
+                            for (GFF3Record exon : GFF3.getType("exon", gff.getContained(closestGene))) {
+                                if (intervalSmall.intersects(exon.getInterval())) {
+                                    inCDS = true;
+                                }
+                            }
+                        }
+
+                        closestGenes.add(cg);
+                        withinGenes.add(inGene ? "true" : "false");
+                        withinCDS.add(inCDS ? "true" : "false");
+                        geneDescription.add(desc);
+                    }
+
+                    if (p.containsOverlapping(intervalSmall)) {
+                        Map<String, String> pr = p.getOverlapping(intervalSmall).iterator().next();
+
+                        for (String prop : pr.keySet()) {
+                            te.put(prop, pr.get(prop));
                         }
                     }
                 }
             }
 
-            if (p.containsOverlapping(intervalSmall)) {
-                Map<String, String> pr = p.getOverlapping(intervalSmall).iterator().next();
-
-                for (String prop : pr.keySet()) {
-                    te.put(prop, pr.get(prop));
-                }
-            }
+            te.put("closestGene", Joiner.on(";").join(closestGenes));
+            te.put("withinGene", Joiner.on(";").join(withinGenes));
+            te.put("withinCDS", Joiner.on(";").join(withinCDS));
+            te.put("geneDescription", Joiner.on(";").join(geneDescription));
 
             tw.addEntry(te);
         }
