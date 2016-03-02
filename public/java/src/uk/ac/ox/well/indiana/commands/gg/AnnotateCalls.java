@@ -69,6 +69,10 @@ public class AnnotateCalls extends Module {
             List<String> withinCDS = new ArrayList<String>();
             List<String> geneDescription = new ArrayList<String>();
 
+            for (String prop : props) {
+                te.put(prop, "NA");
+            }
+
             if (!te.get("locus").contains("unknown")) {
                 String[] loci = te.get("locus").split(";");
 
