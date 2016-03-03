@@ -1039,7 +1039,7 @@ public class GenotypeGraphUtils {
             }
         }
 
-        String[] segments = sb.toString().split("n.+");
+        String[] segments = sb.toString().split("n*");
 
         if (segments.length > 1) {
             for (int i = 0; i < segments.length - 1; i++) {
