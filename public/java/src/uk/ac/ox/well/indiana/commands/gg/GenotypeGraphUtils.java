@@ -814,7 +814,7 @@ public class GenotypeGraphUtils {
 
         // Decide if the event is actually a GC or NAHR event
         boolean hasRecombs = hasRecombinations(clean, dirty, stretch);
-        boolean isChimeric = isChimeric(stretch, kl);
+        boolean isChimeric = isChimeric(clean, dirty, stretch, kl);
         boolean isPolymorphic = isPolymorphic(clean, dirty, p);
 
         //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
@@ -986,7 +986,7 @@ public class GenotypeGraphUtils {
         return inheritStr.matches(".*D+.C+.M+.*") || inheritStr.matches(".*M+.C+.D+.*");
     }
 
-    private static boolean isChimeric(String stretch, KmerLookup kl) {
+    private static boolean isChimeric(CortexGraph clean, CortexGraph dirty, String stretch, KmerLookup kl) {
         List<Set<Interval>> ils = kl.findKmers(stretch);
 
         StringBuilder sb = new StringBuilder();
@@ -998,22 +998,33 @@ public class GenotypeGraphUtils {
         for (int i = 0; i < ils.size(); i++) {
             Set<Interval> il = ils.get(i);
 
-            if (il.size() == 1) {
-                Interval interval = il.iterator().next();
+            String sk = stretch.substring(i, i + clean.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+            CortexRecord cr = clean.findRecord(ck);
+            if (cr == null) {
+                cr = dirty.findRecord(ck);
+            }
 
-                ContainerUtils.increment(chrCount, interval.getSequence());
-
-                if (!chrCodes.containsKey(interval.getSequence())) {
-                    chrCodes.put(interval.getSequence(), nextAvailableCode);
-                    nextAvailableCode++;
-                }
-
-                int code = chrCodes.get(interval.getSequence());
-                sb.append(code);
-            } else if (il.size() == 0) {
-                sb.append(".");
+            if (CortexUtils.isNovelKmer(cr, 0)) {
+                sb.append("n");
             } else {
-                sb.append("_");
+                if (il.size() == 1) {
+                    Interval interval = il.iterator().next();
+
+                    ContainerUtils.increment(chrCount, interval.getSequence());
+
+                    if (!chrCodes.containsKey(interval.getSequence())) {
+                        chrCodes.put(interval.getSequence(), nextAvailableCode);
+                        nextAvailableCode++;
+                    }
+
+                    int code = chrCodes.get(interval.getSequence());
+                    sb.append(code);
+                } else if (il.size() == 0) {
+                    sb.append(".");
+                } else {
+                    sb.append("_");
+                }
             }
         }
 
