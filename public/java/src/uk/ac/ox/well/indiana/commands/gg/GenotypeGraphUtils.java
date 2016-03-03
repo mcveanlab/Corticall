@@ -1010,8 +1010,10 @@ public class GenotypeGraphUtils {
 
                 int code = chrCodes.get(interval.getSequence());
                 sb.append(code);
-            } else {
+            } else if (il.size() == 0) {
                 sb.append(".");
+            } else {
+                sb.append("_");
             }
         }
 
