@@ -1015,11 +1015,8 @@ public class GenotypeGraphUtils {
             String sk = stretch.substring(i, i + clean.getKmerSize());
             CortexKmer ck = new CortexKmer(sk);
             CortexRecord cr = clean.findRecord(ck);
-            if (cr == null) {
-                cr = dirty.findRecord(ck);
-            }
 
-            if (CortexUtils.isNovelKmer(cr, 0)) {
+            if (cr != null && CortexUtils.isNovelKmer(cr, 0)) {
                 sb.append("n");
             } else {
                 if (il.size() == 1) {
