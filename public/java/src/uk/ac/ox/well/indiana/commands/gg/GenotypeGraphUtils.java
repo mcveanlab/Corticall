@@ -997,7 +997,7 @@ public class GenotypeGraphUtils {
             ContainerUtils.increment(chrCount, chr);
         }
 
-        return ContainerUtils.mostCommonKey(chrCount);
+        return chrCount.isEmpty() ? "?" : ContainerUtils.mostCommonKey(chrCount);
     }
 
     private static boolean isChimeric(CortexGraph clean, CortexGraph dirty, String stretch, KmerLookup kl) {
@@ -1032,9 +1032,9 @@ public class GenotypeGraphUtils {
                     int code = chrCodes.get(interval.getSequence());
                     sb.append(code);
                 } else if (il.size() == 0) {
-                    sb.append(".");
+                    //sb.append(".");
                 } else {
-                    sb.append("_");
+                    //sb.append("_");
                 }
             }
         }
@@ -1046,7 +1046,7 @@ public class GenotypeGraphUtils {
                 String majorityChr0 = majorityChr(segments[i]);
                 String majorityChr1 = majorityChr(segments[i + 1]);
 
-                if (majorityChr0.equals(majorityChr1)) {
+                if (!majorityChr0.equals(majorityChr1)) {
                     return true;
                 }
             }
