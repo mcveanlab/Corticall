@@ -986,6 +986,20 @@ public class GenotypeGraphUtils {
         return inheritStr.matches(".*D+.C+.M+.*") || inheritStr.matches(".*M+.C+.D+.*");
     }
 
+    private static String majorityChr(String stretch) {
+        Map<String, Integer> chrCount = new HashMap<String, Integer>();
+
+        stretch = stretch.replaceAll("[n_\\.]", "");
+
+        for (int i = 0; i < stretch.length(); i++) {
+            String chr = stretch.substring(i, i + 1);
+
+            ContainerUtils.increment(chrCount, chr);
+        }
+
+        return ContainerUtils.mostCommonKey(chrCount);
+    }
+
     private static boolean isChimeric(CortexGraph clean, CortexGraph dirty, String stretch, KmerLookup kl) {
         List<Set<Interval>> ils = kl.findKmers(stretch);
 
@@ -1028,7 +1042,20 @@ public class GenotypeGraphUtils {
             }
         }
 
-        return chrCount.size() > 1;
+        String[] segments = sb.toString().split("n.+");
+
+        if (segments.length > 1) {
+            for (int i = 0; i < segments.length - 1; i++) {
+                String majorityChr0 = majorityChr(segments[i]);
+                String majorityChr1 = majorityChr(segments[i + 1]);
+
+                if (majorityChr0.equals(majorityChr1)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static void chooseVariant(GraphicalVariantContext gvc) {
