@@ -247,4 +247,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
         return rightEdgesAsStrings;
     }
+
+    public int getInDegree(int color) { return getInEdgesAsBytes(color).size(); }
+
+    public int getOutDegree(int color) { return getOutEdgesAsBytes(color).size(); }
 }
