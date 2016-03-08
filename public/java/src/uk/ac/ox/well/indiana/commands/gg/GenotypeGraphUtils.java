@@ -989,7 +989,7 @@ public class GenotypeGraphUtils {
     private static String majorityChr(String stretch) {
         Map<String, Integer> chrCount = new HashMap<String, Integer>();
 
-        stretch = stretch.replaceAll("[n_\\.]", "");
+        stretch = stretch.replaceAll("[nrce_\\.]", "");
 
         for (int i = 0; i < stretch.length(); i++) {
             String chr = stretch.substring(i, i + 1);
