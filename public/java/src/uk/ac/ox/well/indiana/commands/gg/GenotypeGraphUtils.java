@@ -1052,7 +1052,7 @@ public class GenotypeGraphUtils {
                 String majorityChr0 = majorityChr(segments[i]);
                 String majorityChr1 = majorityChr(segments[i + 1]);
 
-                if (!majorityChr0.equals(majorityChr1)) {
+                if (!majorityChr0.equals("?") && !majorityChr1.equals("?") && !majorityChr0.equals(majorityChr1)) {
                     return true;
                 }
             }
