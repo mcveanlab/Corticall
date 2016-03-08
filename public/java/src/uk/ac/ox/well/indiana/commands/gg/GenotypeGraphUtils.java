@@ -1019,11 +1019,11 @@ public class GenotypeGraphUtils {
             if (cr != null && CortexUtils.isNovelKmer(cr, 0)) {
                 sb.append("n");
             } else if (cr != null && (cr.getCoverage(3) > 0 || cr.getCoverage(4) > 0)) {
-                //sb.append("r");
+                sb.append("r");
             } else if (cr != null && cr.getCoverage(1) < 200 && cr.getCoverage(2) < 200) {
-                //sb.append("c");
+                sb.append("c");
             } else if (cr != null && (cr.getInDegree(1) >= 3 || cr.getOutDegree(1) >= 3 || cr.getInDegree(2) >= 3 || cr.getOutDegree(2) >= 3)) {
-                //sb.append("e");
+                sb.append("e");
             } else {
                 if (il.size() == 1) {
                     Interval interval = il.iterator().next();
@@ -1038,9 +1038,9 @@ public class GenotypeGraphUtils {
                     int code = chrCodes.get(interval.getSequence());
                     sb.append(code);
                 } else if (il.size() == 0) {
-                    //sb.append(".");
+                    sb.append(".");
                 } else {
-                    //sb.append("_");
+                    sb.append("_");
                 }
             }
         }
