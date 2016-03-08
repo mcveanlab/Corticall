@@ -1020,7 +1020,7 @@ public class GenotypeGraphUtils {
                 sb.append("n");
             } else if (cr != null && (cr.getCoverage(3) > 0 || cr.getCoverage(4) > 0)) {
                 sb.append("r");
-            } else if (cr != null && cr.getCoverage(1) < 200 && cr.getCoverage(2) < 200) {
+            } else if (cr != null && (cr.getCoverage(1) > 300 || cr.getCoverage(2) > 300)) {
                 sb.append("c");
             } else if (cr != null && (cr.getInDegree(1) >= 3 || cr.getOutDegree(1) >= 3 || cr.getInDegree(2) >= 3 || cr.getOutDegree(2) >= 3)) {
                 sb.append("e");
