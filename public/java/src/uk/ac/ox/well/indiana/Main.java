@@ -8,6 +8,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import org.slf4j.LoggerFactory;
 import processing.core.PApplet;
+import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.commands.Sketch;
 import uk.ac.ox.well.indiana.utils.arguments.Description;
@@ -54,8 +55,8 @@ public class Main {
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
-            //Map<String, Class<? extends Command>> modules = new PackageInspector<Command>(Command.class, rootPackage).getExtendingClassesMap();
-            Map<String, Class<? extends Module>> modules = new PackageInspector<Module>(Module.class, rootPackage).getExtendingClassesMap();
+            Map<String, Class<? extends Command>> modules = new PackageInspector<Command>(Command.class, rootPackage).getExtendingClassesMap();
+            //Map<String, Class<? extends Module>> modules = new PackageInspector<Module>(Module.class, rootPackage).getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
