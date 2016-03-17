@@ -31,10 +31,10 @@ public class ViewVarRecombs extends Sketch {
     public CortexGraph VAR_PANEL;
 
     @Argument(fullName="proteinDomains", shortName="pd", doc="Protein domains")
-    public File PROTEIN_DOMAINS;
+    public ArrayList<File> PROTEIN_DOMAINS;
 
     @Argument(fullName="genes", shortName="gn", doc="Genes to process")
-    public FastaSequenceFile GENES;
+    public ArrayList<FastaSequenceFile> GENES;
 
     @Argument(fullName="geneOrder", shortName="go", doc="Gene order", required=false)
     public ArrayList<String> GENE_ORDER;
@@ -78,8 +78,6 @@ public class ViewVarRecombs extends Sketch {
     private class GeneView {
         public String geneName;
         public String geneCds;
-//        public GFF3Record geneRecord;
-//        public Collection<GFF3Record> records;
         public Collection<ProteinDomain> proteinDomains;
         public IntervalTreeMap<ProteinDomain> proteinDomainIntervals;
         public int width;
@@ -295,35 +293,37 @@ public class ViewVarRecombs extends Sketch {
     private Map<String, Collection<ProteinDomain>> loadProteinDomains() {
         Map<String, Collection<ProteinDomain>> proteinDomains = new HashMap<String, Collection<ProteinDomain>>();
 
-        TableReader tr = new TableReader(PROTEIN_DOMAINS);
+        for (File f : PROTEIN_DOMAINS) {
+            TableReader tr = new TableReader(f);
 
-        for (Map<String, String> te : tr) {
-            String newid = te.get("oldid");
+            for (Map<String, String> te : tr) {
+                String newid = te.get("oldid");
 
-            if (!proteinDomains.containsKey(newid)) {
-                proteinDomains.put(newid, new ArrayList<ProteinDomain>());
+                if (!proteinDomains.containsKey(newid)) {
+                    proteinDomains.put(newid, new ArrayList<ProteinDomain>());
+                }
+
+                ProteinDomain pd = new ProteinDomain();
+                //pd.domainClass = te.get("class");
+
+                if (te.get("domain").startsWith("NTS")) {
+                    pd.domainClass = "NTS";
+                } else if (te.get("domain").startsWith("ATS")) {
+                    pd.domainClass = "ATS";
+                } else if (te.get("domain").startsWith("CIDR")) {
+                    pd.domainClass = "CIDR";
+                } else if (te.get("domain").startsWith("DBL")) {
+                    pd.domainClass = "DBL";
+                } else {
+                    pd.domainClass = "UKN";
+                }
+
+                pd.domainName = te.get("domain");
+                pd.aaStart = Integer.valueOf(te.get("aa_start"));
+                pd.aaEnd = Integer.valueOf(te.get("aa_end"));
+
+                proteinDomains.get(newid).add(pd);
             }
-
-            ProteinDomain pd = new ProteinDomain();
-            //pd.domainClass = te.get("class");
-
-            if (te.get("domain").startsWith("NTS")) {
-                pd.domainClass = "NTS";
-            } else if (te.get("domain").startsWith("ATS")) {
-                pd.domainClass = "ATS";
-            } else if (te.get("domain").startsWith("CIDR")) {
-                pd.domainClass = "CIDR";
-            } else if (te.get("domain").startsWith("DBL")) {
-                pd.domainClass = "DBL";
-            } else {
-                pd.domainClass = "UKN";
-            }
-
-            pd.domainName = te.get("domain");
-            pd.aaStart = Integer.valueOf(te.get("aa_start"));
-            pd.aaEnd = Integer.valueOf(te.get("aa_end"));
-
-            proteinDomains.get(newid).add(pd);
         }
 
         return proteinDomains;
@@ -333,9 +333,11 @@ public class ViewVarRecombs extends Sketch {
         if (GENE_ORDER == null) {
             Set<String> gos = new TreeSet<String>();
 
-            TableReader tr = new TableReader(PROTEIN_DOMAINS);
-            for (Map<String, String> te : tr) {
-                gos.add(te.get("oldid"));
+            for (File proteinDomains : PROTEIN_DOMAINS) {
+                TableReader tr = new TableReader(proteinDomains);
+                for (Map<String, String> te : tr) {
+                    gos.add(te.get("oldid"));
+                }
             }
 
             return new ArrayList<String>(gos);
@@ -355,20 +357,22 @@ public class ViewVarRecombs extends Sketch {
 
         // Load gene records
         Map<String, Collection<ProteinDomain>> proteinDomains = loadProteinDomains();
-        ReferenceSequence rseq;
-        while ((rseq = GENES.nextSequence()) != null) {
-            String id = rseq.getName();
+        for (FastaSequenceFile genes : GENES) {
+            ReferenceSequence rseq;
+            while ((rseq = genes.nextSequence()) != null) {
+                String id = rseq.getName();
 
-            if (geneColor.containsKey(id)) {
-                String seq = new String(rseq.getBases());
+                if (geneColor.containsKey(id)) {
+                    String seq = new String(rseq.getBases());
 
-                geneRecords.put(id, seq);
+                    geneRecords.put(id, seq);
 
-                for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer kmer = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
+                    for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                        CortexKmer kmer = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
-                    if (!kmers.containsKey(kmer) && isUnique(kmer)) {
-                        kmers.put(kmer, geneColor.get(id));
+                        if (!kmers.containsKey(kmer) && isUnique(kmer)) {
+                            kmers.put(kmer, geneColor.get(id));
+                        }
                     }
                 }
             }
