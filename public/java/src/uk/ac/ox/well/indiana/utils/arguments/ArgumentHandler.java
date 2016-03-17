@@ -177,7 +177,8 @@ public class ArgumentHandler {
 
                 for (String avalue : value.split(",")) {
                     File valueAsFile = new File(avalue);
-                    if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list") || valueAsFile.getAbsolutePath().endsWith(".txt"))) {
+                    //if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list") || valueAsFile.getAbsolutePath().endsWith(".txt"))) {
+                    if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list"))) {
                         BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
 
                         String line;
