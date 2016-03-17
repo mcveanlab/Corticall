@@ -27,8 +27,8 @@ public class ViewVarRecombs extends Sketch {
     @Argument(fullName="graph", shortName="g", doc="Trio graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="ref", shortName="r", doc="Reference genome")
-    public File REF;
+    @Argument(fullName="varPanel", shortName="p", doc="Var panel")
+    public CortexGraph VAR_PANEL;
 
     @Argument(fullName="proteinDomains", shortName="pd", doc="Protein domains")
     public File PROTEIN_DOMAINS;
@@ -39,6 +39,8 @@ public class ViewVarRecombs extends Sketch {
     @Argument(fullName="geneOrder", shortName="go", doc="Gene order", required=false)
     public ArrayList<String> GENE_ORDER;
 
+    @Argument(fullName="color", shortName="c", doc="Color")
+    public Integer COLOR = 0;
 
     @Output
     public File out;
@@ -59,13 +61,18 @@ public class ViewVarRecombs extends Sketch {
     private Map<String, GeneView> genes = new TreeMap<String, GeneView>();
     private Map<CortexKmer, Color> kmers = new HashMap<CortexKmer, Color>();
 
-    private KmerLookup kl;
-
     private boolean isUnique(CortexKmer kmer) {
-        String fw = kmer.getKmerAsString();
-        String rc = SequenceUtils.reverseComplement(fw);
+        CortexRecord cr = VAR_PANEL.findRecord(kmer);
 
-        return (kl.findKmer(fw).size() == 1 && kl.findKmer(rc).size() == 0) || (kl.findKmer(fw).size() == 0 && kl.findKmer(rc).size() == 1);
+        if (cr != null) {
+            if (cr.getCoverage(0) == 1 && cr.getCoverage(1) == 1 && cr.getCoverage(2) == 0 && cr.getCoverage(3) == 0) {
+                return true;
+            } else if (cr.getCoverage(0) == 0 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 1 && cr.getCoverage(3) == 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private class GeneView {
@@ -144,7 +151,7 @@ public class ViewVarRecombs extends Sketch {
                 CortexRecord cr = GRAPH.findRecord(kmer);
 
                 if (isUnique(kmer)) {
-                    if (cr != null && cr.getCoverage(0) > 0 && kmers.containsKey(kmer)) {
+                    if (cr != null && cr.getCoverage(COLOR) > 0 && kmers.containsKey(kmer)) {
                         stroke(kmers.get(kmer).getRGB(), 150.0f);
                         strokeWeight(1);
                         strokeCap(SQUARE);
@@ -338,8 +345,6 @@ public class ViewVarRecombs extends Sketch {
     }
 
     public void initialize() {
-        kl = new KmerLookup(REF, GRAPH.getKmerSize());
-
         // Load gene order
         ArrayList<String> geneNames = getGeneNames();
 
@@ -359,21 +364,13 @@ public class ViewVarRecombs extends Sketch {
 
                 geneRecords.put(id, seq);
 
-                int recovery = 0;
                 for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                     CortexKmer kmer = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
-                    CortexRecord cr = GRAPH.findRecord(kmer);
-
-                    if (cr != null && cr.getCoverage(0) > 0) {
-                        recovery++;
-                    }
 
                     if (!kmers.containsKey(kmer) && isUnique(kmer)) {
                         kmers.put(kmer, geneColor.get(id));
                     }
                 }
-
-                log.info("{}: {}/{}", id, recovery, seq.length() - GRAPH.getKmerSize());
             }
         }
 
