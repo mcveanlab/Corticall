@@ -238,7 +238,7 @@ public class ViewVarRecombs extends Sketch {
             //String caption = geneName;
             String caption = geneName;
 
-            if (gi.get("locus") != null && gi.get("placement") != null && gi.get("ups") != null) {
+            if (gi != null && gi.get("locus") != null && gi.get("placement") != null && gi.get("ups") != null) {
                 caption = gi.get("locus") + ", " + gi.get("placement") + ", " + gi.get("ups") + ", " + String.format("%.2f%%", pctRecovered);
             }
 
