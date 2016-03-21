@@ -245,6 +245,10 @@ public class ViewVarRecombs extends Sketch {
             textSize(18);
             textAlign(LEFT, CENTER);
             text(caption, x, y + 70);
+
+            if (gi != null && gi.get("newid") != null) {
+                text(gi.get("newid"), x, y + 90);
+            }
         }
     }
 
