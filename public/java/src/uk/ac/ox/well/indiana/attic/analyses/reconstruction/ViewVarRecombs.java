@@ -42,6 +42,9 @@ public class ViewVarRecombs extends Sketch {
     @Argument(fullName="color", shortName="c", doc="Color")
     public Integer COLOR = 0;
 
+    @Argument(fullName="metadata", shortName="m", doc="Var gene metadata")
+    public ArrayList<File> METAS;
+
     @Output
     public File out;
 
@@ -60,6 +63,7 @@ public class ViewVarRecombs extends Sketch {
     private Map<String, String> geneRecords = new HashMap<String, String>();
     private Map<String, GeneView> genes = new TreeMap<String, GeneView>();
     private Map<CortexKmer, Color> kmers = new HashMap<CortexKmer, Color>();
+    private Map<String, Map<String, String>> mh;
 
     private boolean isUnique(CortexKmer kmer) {
         CortexRecord cr = VAR_PANEL.findRecord(kmer);
@@ -227,9 +231,12 @@ public class ViewVarRecombs extends Sketch {
             }
 
             // Print gene info
+            Map<String, String> gi = mh.get(geneName);
+
             float pctRecovered = 100.0f * ((float) kmersRecovered) / ((float) (kmersRecovered + kmersUnrecovered));
             //String caption = geneRecord.getSeqid() + ", " + geneRecord.getAttribute("position") + ", " + geneRecord.getAttribute("class") + ", " + String.format("%.2f%%", pctRecovered);
-            String caption = geneName;
+            //String caption = geneName;
+            String caption = gi.get("locus") + ", " + gi.get("position") + ", " + gi.get("ups") + ", " + String.format("%.2f%%", pctRecovered);
             textSize(18);
             textAlign(LEFT, CENTER);
             text(caption, x, y + 70);
@@ -346,6 +353,24 @@ public class ViewVarRecombs extends Sketch {
         return GENE_ORDER;
     }
 
+    private Map<String, Map<String, String>> loadMetadata() {
+        Map<String, Map<String, String>> mh = new HashMap<String, Map<String, String>>();
+
+        for (File meta : METAS) {
+            TableReader tr = new TableReader(meta);
+
+            for (Map<String, String> te : tr) {
+                String oldid = te.get("oldid");
+                String newid = te.get("newid");
+
+                mh.put(oldid, te);
+                mh.put(newid, te);
+            }
+        }
+
+        return mh;
+    }
+
     public void initialize() {
         // Load gene order
         ArrayList<String> geneNames = getGeneNames();
@@ -379,6 +404,8 @@ public class ViewVarRecombs extends Sketch {
         }
 
         // Display genes
+        mh = loadMetadata();
+
         int longestWidth = 0;
         for (String geneName : geneNames) {
             if (geneRecords.containsKey(geneName)) {
