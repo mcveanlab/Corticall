@@ -236,7 +236,12 @@ public class ViewVarRecombs extends Sketch {
             float pctRecovered = 100.0f * ((float) kmersRecovered) / ((float) (kmersRecovered + kmersUnrecovered));
             //String caption = geneRecord.getSeqid() + ", " + geneRecord.getAttribute("position") + ", " + geneRecord.getAttribute("class") + ", " + String.format("%.2f%%", pctRecovered);
             //String caption = geneName;
-            String caption = gi.get("locus") + ", " + gi.get("placement") + ", " + gi.get("ups") + ", " + String.format("%.2f%%", pctRecovered);
+            String caption = geneName;
+
+            if (gi.get("locus") != null && gi.get("placement") != null && gi.get("ups") != null) {
+                caption = gi.get("locus") + ", " + gi.get("placement") + ", " + gi.get("ups") + ", " + String.format("%.2f%%", pctRecovered);
+            }
+
             textSize(18);
             textAlign(LEFT, CENTER);
             text(caption, x, y + 70);
