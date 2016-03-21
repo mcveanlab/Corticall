@@ -51,7 +51,8 @@ public class AlignVars extends Module {
             name = name.replaceAll("_v3", "")
                     .replaceAll("Pf3D7_", "")
                     .replaceAll("PfHB3_", "")
-                    .replaceAll("PfDD2_", "");
+                    .replaceAll("PfDD2_", "")
+                    .replaceAll("_T[TLR]", "");
 
             lengths.put(name, rs.length());
         }
