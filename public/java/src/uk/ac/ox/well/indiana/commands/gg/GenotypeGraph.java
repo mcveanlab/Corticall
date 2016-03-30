@@ -72,8 +72,8 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "novelKmerLimit", shortName="l", doc="Novel kmer count limit")
     public Integer NOVEL_KMER_LIMIT = 10000;
 
-    @Argument(fullName = "useBwa", shortName="ub", doc="Use BWA for alignment")
-    public Boolean USE_BWA = false;
+    @Argument(fullName = "skipAlignments", shortName="sa", doc="Skip alignment")
+    public Boolean SKIP_ALIGNMENTS = false;
 
     @Output
     public PrintStream out;
@@ -748,29 +748,37 @@ public class GenotypeGraph extends Module {
                         sections.add(new Pair<String, String>(first.toString(), second.toString()));
                     }
 
-                    ExternalAligner la = (USE_BWA) ? new BwaAligner() : new LastzAligner();
-                    for (Pair<String, String> p : sections) {
-                        List<SAMRecord> afl = p.getFirst().isEmpty()  ? null : la.align(p.getFirst(),  REF1);
-                        List<SAMRecord> asl = p.getSecond().isEmpty() ? null : la.align(p.getSecond(), REF2);
+                    if (!SKIP_ALIGNMENTS) {
+                        ExternalAligner la = new LastzAligner();
 
-                        SAMRecord af = afl != null && afl.size() == 1 ? afl.get(0) : null;
-                        SAMRecord as = asl != null && asl.size() == 1 ? asl.get(0) : null;
-                        SAMRecord a = af;
-                        int b = 0;
+                        for (Pair<String, String> p : sections) {
+                            List<SAMRecord> afl = p.getFirst().isEmpty() ? null : la.align(p.getFirst(), REF1);
+                            List<SAMRecord> asl = p.getSecond().isEmpty() ? null : la.align(p.getSecond(), REF2);
 
-                        if (af != null && as == null) {
-                            a = af;
-                            b = 1;
-                        } else if (af == null && as != null) {
-                            a = as;
-                            b = 2;
-                        } else if (af != null && as != null) {
-                            if (rnd.nextBoolean()) { a = af; b = 1; }
-                            else { a = as; b = 2; }
-                        }
+                            SAMRecord af = afl != null && afl.size() == 1 ? afl.get(0) : null;
+                            SAMRecord as = asl != null && asl.size() == 1 ? asl.get(0) : null;
+                            SAMRecord a = af;
+                            int b = 0;
 
-                        if (a != null) {
-                            finalPos.add(new Interval(a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd(), false, String.valueOf(b)));
+                            if (af != null && as == null) {
+                                a = af;
+                                b = 1;
+                            } else if (af == null && as != null) {
+                                a = as;
+                                b = 2;
+                            } else if (af != null && as != null) {
+                                if (rnd.nextBoolean()) {
+                                    a = af;
+                                    b = 1;
+                                } else {
+                                    a = as;
+                                    b = 2;
+                                }
+                            }
+
+                            if (a != null) {
+                                finalPos.add(new Interval(a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd(), false, String.valueOf(b)));
+                            }
                         }
                     }
                 } else {
