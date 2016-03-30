@@ -1018,7 +1018,7 @@ public class GenotypeGraphUtils {
 
             if (cr != null && CortexUtils.isNovelKmer(cr, 0)) {
                 sb.append("n");
-            } else if (cr != null && (cr.getCoverage(3) > 0 || cr.getCoverage(4) > 0)) {
+            } else if (cr != null && cr.getNumColors() >= 5 && (cr.getCoverage(3) > 0 || cr.getCoverage(4) > 0)) {
                 sb.append("r");
             } else if (cr != null && (cr.getCoverage(1) > 300 || cr.getCoverage(2) > 300)) {
                 sb.append("c");
