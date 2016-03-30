@@ -72,6 +72,9 @@ public class GenotypeGraph extends Module {
     @Argument(fullName = "novelKmerLimit", shortName="l", doc="Novel kmer count limit")
     public Integer NOVEL_KMER_LIMIT = 10000;
 
+    @Argument(fullName = "useBwa", shortName="ub", doc="Use BWA for alignment")
+    public Boolean USE_BWA = false;
+
     @Output
     public PrintStream out;
 
@@ -745,7 +748,7 @@ public class GenotypeGraph extends Module {
                         sections.add(new Pair<String, String>(first.toString(), second.toString()));
                     }
 
-                    ExternalAligner la = new LastzAligner();
+                    ExternalAligner la = (USE_BWA) ? new BwaAligner() : new LastzAligner();
                     for (Pair<String, String> p : sections) {
                         List<SAMRecord> afl = p.getFirst().isEmpty()  ? null : la.align(p.getFirst(),  REF1);
                         List<SAMRecord> asl = p.getSecond().isEmpty() ? null : la.align(p.getSecond(), REF2);
