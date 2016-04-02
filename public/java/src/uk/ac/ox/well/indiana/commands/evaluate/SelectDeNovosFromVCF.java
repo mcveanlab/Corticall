@@ -34,23 +34,31 @@ public class SelectDeNovosFromVCF extends Module {
     @Argument(fullName="regionLabels", shortName="l", doc="Region labels")
     public File REGIONS;
 
+    @Argument(fullName="dpThreshold", shortName="dpt", doc="DP threshold")
+    public Integer DP_THRESHOLD = 30;
+
+    @Argument(fullName="gqThreshold", shortName="gqt", doc="GQ threshold")
+    public Integer GQ_THRESHOLD = 90;
+
     @Output
     public File out;
 
     private IntervalTreeMap<String> loadRegions() {
-        TableReader tr = new TableReader(REGIONS, "chr", "start", "stop", "region");
-
         IntervalTreeMap<String> itm = new IntervalTreeMap<String>();
 
-        for (Map<String, String> te : tr) {
-            String chr = te.get("chr");
-            int start = Integer.valueOf(te.get("start"));
-            int stop = Integer.valueOf(te.get("stop"));
-            String region = te.get("region");
+        if (REGIONS != null) {
+            TableReader tr = new TableReader(REGIONS, "chr", "start", "stop", "region");
 
-            Interval it = new Interval(chr, start, stop);
+            for (Map<String, String> te : tr) {
+                String chr = te.get("chr");
+                int start = Integer.valueOf(te.get("start"));
+                int stop = Integer.valueOf(te.get("stop"));
+                String region = te.get("region");
 
-            itm.put(it, region);
+                Interval it = new Interval(chr, start, stop);
+
+                itm.put(it, region);
+            }
         }
 
         return itm;
@@ -75,8 +83,8 @@ public class SelectDeNovosFromVCF extends Module {
             if ( vc.getGenotype(CHILD).isCalled() && vc.getGenotype(MOTHER).isCalled() && vc.getGenotype(FATHER).isCalled() &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(MOTHER).getType()) &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(FATHER).getType()) &&
-                 vc.getGenotype(CHILD).getGQ() > 90 && vc.getGenotype(MOTHER).getGQ() > 90 && vc.getGenotype(FATHER).getGQ() > 90 &&
-                 vc.getGenotype(CHILD).getDP() > 30 && vc.getGenotype(MOTHER).getDP() > 30 && vc.getGenotype(FATHER).getDP() > 30
+                 vc.getGenotype(CHILD).getGQ() > GQ_THRESHOLD && vc.getGenotype(MOTHER).getGQ() > GQ_THRESHOLD && vc.getGenotype(FATHER).getGQ() > GQ_THRESHOLD &&
+                 vc.getGenotype(CHILD).getDP() > DP_THRESHOLD && vc.getGenotype(MOTHER).getDP() > DP_THRESHOLD && vc.getGenotype(FATHER).getDP() > DP_THRESHOLD
                 ) {
                 Interval it = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
 
