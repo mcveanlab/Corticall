@@ -31,7 +31,7 @@ public class SelectDeNovosFromVCF extends Module {
     @Argument(fullName="father", shortName="f", doc="Father")
     public String FATHER;
 
-    @Argument(fullName="regionLabels", shortName="l", doc="Region labels")
+    @Argument(fullName="regionLabels", shortName="l", doc="Region labels", required=false)
     public File REGIONS;
 
     @Argument(fullName="dpThreshold", shortName="dpt", doc="DP threshold")
