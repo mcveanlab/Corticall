@@ -84,8 +84,17 @@ public class MergeAndRefilter extends Module {
 
                 if (!pass) {
                     de.put("filter", "PARENTS_OVERCLEANED");
-                    dt.set(pk, de);
                 }
+
+                if (srs.get(ck) != null) {
+                    SAMRecord sr = srs.get(ck);
+
+                    String locus = String.format("%s:%d", sr.getReferenceName(), sr.getAlignmentStart());
+
+                    de.put("locus", locus);
+                }
+
+                dt.set(pk, de);
 
                 log.info("{} {} {} {}", ck, pass, de, srs.get(ck));
             }
