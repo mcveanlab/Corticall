@@ -61,7 +61,9 @@ public class MergeAndRefilter extends Module {
 
         DataTable dt = dts.getTable("variantCalls");
 
-        for (Map<String, Object> de : dt) {
+        for (String pk : dt.getPrimaryKeys()) {
+            Map<String, Object> de = dt.get(pk);
+
             String sk = (String) de.get("novelKmer");
             CortexKmer ck = new CortexKmer(sk);
 
@@ -81,10 +83,14 @@ public class MergeAndRefilter extends Module {
                 }
 
                 if (!pass) {
+                    de.put("filter", "PARENTS_OVERCLEANED");
+                    dt.set(pk, de);
                 }
 
                 log.info("{} {} {} {}", ck, pass, de, srs.get(ck));
             }
         }
+
+        dts.write(out);
     }
 }
