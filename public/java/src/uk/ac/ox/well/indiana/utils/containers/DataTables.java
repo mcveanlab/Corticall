@@ -72,14 +72,25 @@ public class DataTables {
                     String pk = Joiner.on(".").join(fields);
 
                     for (int i = 1; i < header.length; i++) {
-                        String field = fields[i];
+                        if (fields.length > i) {
+                            String field = fields[i];
 
-                        if      (isInteger(field)) { t.set(pk, header[i], Integer.valueOf(field)); }
-                        else if (isLong(field))    { t.set(pk, header[i], Long.valueOf(field));    }
-                        else if (isFloat(field))   { t.set(pk, header[i], Float.valueOf(field));   }
-                        else if (isDouble(field))  { t.set(pk, header[i], Double.valueOf(field));  }
-                        else if (isBoolean(field)) { t.set(pk, header[i], Boolean.valueOf(field)); }
-                        else                       { t.set(pk, header[i], field);                  }
+                            if (isInteger(field)) {
+                                t.set(pk, header[i], Integer.valueOf(field));
+                            } else if (isLong(field)) {
+                                t.set(pk, header[i], Long.valueOf(field));
+                            } else if (isFloat(field)) {
+                                t.set(pk, header[i], Float.valueOf(field));
+                            } else if (isDouble(field)) {
+                                t.set(pk, header[i], Double.valueOf(field));
+                            } else if (isBoolean(field)) {
+                                t.set(pk, header[i], Boolean.valueOf(field));
+                            } else {
+                                t.set(pk, header[i], field);
+                            }
+                        } else {
+                            t.set(pk, header[i], null);
+                        }
                     }
                 }
             }
