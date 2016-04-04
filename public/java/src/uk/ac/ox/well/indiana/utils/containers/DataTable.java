@@ -59,6 +59,10 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
         data.get(primaryKey).put(columnName, value);
     }
 
+    public void set(String primaryKey, Map<String, Object> o) { data.put(primaryKey, o); }
+
+    public Map<String, Object> get(String primaryKey) { return data.get(primaryKey); }
+
     public Object get(String primaryKey, String columnName) {
         return data.get(primaryKey).get(columnName);
     }
