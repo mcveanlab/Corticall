@@ -80,7 +80,10 @@ public class MergeAndRefilter extends Module {
                     }
                 }
 
-                log.info("{} {} {}", ck, pass, srs.get(ck));
+                if (!pass) {
+                }
+
+                log.info("{} {} {} {}", ck, pass, de, srs.get(ck));
             }
         }
     }
