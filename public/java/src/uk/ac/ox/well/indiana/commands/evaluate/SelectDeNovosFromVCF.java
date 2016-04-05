@@ -83,8 +83,8 @@ public class SelectDeNovosFromVCF extends Module {
             if ( vc.getGenotype(CHILD).isCalled() && vc.getGenotype(MOTHER).isCalled() && vc.getGenotype(FATHER).isCalled() &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(MOTHER).getType()) &&
                 !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(FATHER).getType()) &&
-                 vc.getGenotype(CHILD).getGQ() > GQ_THRESHOLD && vc.getGenotype(MOTHER).getGQ() > GQ_THRESHOLD && vc.getGenotype(FATHER).getGQ() > GQ_THRESHOLD &&
-                 vc.getGenotype(CHILD).getDP() > DP_THRESHOLD && vc.getGenotype(MOTHER).getDP() > DP_THRESHOLD && vc.getGenotype(FATHER).getDP() > DP_THRESHOLD
+                (!vc.getGenotype(CHILD).hasAnyAttribute("GQ") || (vc.getGenotype(CHILD).getGQ() > GQ_THRESHOLD && vc.getGenotype(MOTHER).getGQ() > GQ_THRESHOLD && vc.getGenotype(FATHER).getGQ() > GQ_THRESHOLD)) &&
+                (!vc.getGenotype(CHILD).hasAnyAttribute("DP") || (vc.getGenotype(CHILD).getDP() > DP_THRESHOLD && vc.getGenotype(MOTHER).getDP() > DP_THRESHOLD && vc.getGenotype(FATHER).getDP() > DP_THRESHOLD))
                 ) {
                 Interval it = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
 
