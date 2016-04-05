@@ -3,11 +3,15 @@ package uk.ac.ox.well.indiana.commands.evaluate;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
+import htsjdk.variant.variantcontext.GenotypeType;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.*;
+import htsjdk.variant.vcf.VCFFileReader;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLineType;
+import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -77,51 +81,24 @@ public class SelectDeNovosInChimp extends Module {
 
         IntervalTreeMap<String> itm = loadRegions();
 
+        int num = 0;
+
         for (VariantContext vc : VCF) {
-            if ( vc.getGenotype(CHILD).isCalled() && vc.getGenotype(MOTHER).isCalled() && vc.getGenotype(FATHER).isCalled() &&
-                !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(MOTHER).getType()) &&
-                !vc.getGenotype(CHILD).getType().equals(vc.getGenotype(FATHER).getType()) &&
+            if ( !vc.isFiltered() &&
+                  vc.getGenotype(CHILD).isCalled() && vc.getGenotype(MOTHER).isCalled() && vc.getGenotype(FATHER).isCalled() &&
+                  vc.getGenotype(CHILD).getType().equals(GenotypeType.HET) && vc.getGenotype(MOTHER).getType().equals(GenotypeType.HOM_REF) && vc.getGenotype(FATHER).getType().equals(GenotypeType.HOM_REF) &&
                 (!vc.getGenotype(CHILD).hasAnyAttribute("GQ") || (vc.getGenotype(CHILD).getGQ() > GQ_THRESHOLD && vc.getGenotype(MOTHER).getGQ() > GQ_THRESHOLD && vc.getGenotype(FATHER).getGQ() > GQ_THRESHOLD)) &&
                 (!vc.getGenotype(CHILD).hasAnyAttribute("DP") || (vc.getGenotype(CHILD).getDP() > DP_THRESHOLD && vc.getGenotype(MOTHER).getDP() > DP_THRESHOLD && vc.getGenotype(FATHER).getDP() > DP_THRESHOLD))
-                ) {
-                Interval it = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
+                )
+            {
+                vcw.add(vc);
 
-                int[] adc = vc.getGenotype(CHILD).getAD();
-                int[] adm = vc.getGenotype(MOTHER).getAD();
-                int[] adf = vc.getGenotype(FATHER).getAD();
-
-                boolean bigdiff = true;
-
-                /*
-                boolean bigdiff = false;
-
-                if (adc.length == 1) {
-                    bigdiff = true;
-                } else if (adc.length > 1 && (adc[0] < adc[1]/10 || adc[1] < adc[0]/10)) {
-                    if (adm.length > 1 && (adm[0] < adm[1]/10 || adm[1] < adm[0]/10)) {
-                        if (adf.length > 1 && (adf[0] < adf[1]/10 || adf[1] < adf[0]/10)) {
-                            bigdiff = true;
-                        }
-                    }
-                }
-                */
-
-                if (bigdiff) {
-                    String region = "unknown";
-
-                    if (itm.containsOverlapping(it)) {
-                        region = Joiner.on(",").join(itm.getOverlapping(it));
-                    } else if (itm.containsContained(it)) {
-                        region = Joiner.on(",").join(itm.getContained(it));
-                    }
-
-                    VariantContext newvc = new VariantContextBuilder(vc).attribute("region", region).make();
-
-                    vcw.add(newvc);
-                }
+                num++;
             }
         }
 
         vcw.close();
+
+        log.info("num: {}", num);
     }
 }
