@@ -20,13 +20,16 @@ import java.util.Map;
 import java.util.Set;
 
 public class MergeAndRefilter extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
-    public CortexGraph GRAPH;
+    @Argument(fullName="clean", shortName="c", doc="Graph (clean)")
+    public CortexGraph CLEAN;
+
+    @Argument(fullName="dirty", shortName="d", doc="Graph (dirty)")
+    public CortexGraph DIRTY;
 
     @Argument(fullName="novelKmers", shortName="n", doc="Novel kmer graph")
     public CortexGraph NOVEL_KMERS;
 
-    @Argument(fullName="calls", shortName="c", doc="Calls")
+    @Argument(fullName="calls", shortName="calls", doc="Calls")
     public File CALLS;
 
     @Argument(fullName="alignments", shortName="a", doc="Alignments")
@@ -72,12 +75,21 @@ public class MergeAndRefilter extends Module {
             if (childStretch != null) {
                 boolean pass = true;
 
-                for (int i = 0; i <= childStretch.length() - KMER_SIZE; i++) {
-                    CortexKmer csk = new CortexKmer(childStretch.substring(i, i + KMER_SIZE));
+                for (int i = 0; i <= childStretch.length() - KMER_SIZE - 1; i++) {
+                    String csk = childStretch.substring(i,     i + KMER_SIZE);
+                    String nsk = childStretch.substring(i + 1, i + KMER_SIZE + 1);
 
-                    CortexRecord cr = GRAPH.findRecord(csk);
+                    String nextEdge = nsk.substring(nsk.length() - 1, nsk.length());
 
-                    if (cr.getCoverage(0) > COV_THRESHOLD && CortexUtils.isNovelKmer(cr, 0) && !novelKmers.contains(csk)) {
+                    CortexKmer cck = new CortexKmer(csk);
+
+                    CortexRecord ccr = CLEAN.findRecord(cck);
+                    CortexRecord cdr = DIRTY.findRecord(cck);
+
+                    boolean cleanParentHasEdge = ccr.getOutEdgesAsStrings(1).contains(nextEdge) || ccr.getOutEdgesAsStrings(2).contains(nextEdge);
+                    boolean dirtyParentHasEdge = cdr.getOutEdgesAsStrings(1).contains(nextEdge) || cdr.getOutEdgesAsStrings(2).contains(nextEdge);
+
+                    if (ccr.getCoverage(0) > COV_THRESHOLD && CortexUtils.isNovelKmer(ccr, 0) && !novelKmers.contains(cck) && !cleanParentHasEdge && dirtyParentHasEdge) {
                         pass = false;
                     }
                 }
