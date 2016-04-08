@@ -599,6 +599,7 @@ public class GenotypeGraph extends Module {
         Set<CortexKmer> novelKmersToVisit = new HashSet<CortexKmer>();
 
         if (KMER != null) {
+            novelKmers.put(new CortexKmer(KMER), true);
             novelKmersToVisit.add(new CortexKmer(KMER));
         } else {
             novelKmersToVisit.addAll(novelKmers.keySet());
