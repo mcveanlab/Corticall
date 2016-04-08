@@ -609,7 +609,7 @@ public class GenotypeGraph extends Module {
         log.info("Genotyping novel kmer stretches in graph...");
         Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
         for (CortexKmer novelKmer : novelKmersToVisit) {
-            if (novelKmers.get(novelKmer)) {
+            if (novelKmers.containsKey(novelKmer) && novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
                 String stretch;
                 if (DIRTY == null) {
