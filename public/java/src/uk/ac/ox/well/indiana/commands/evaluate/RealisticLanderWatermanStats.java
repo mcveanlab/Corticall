@@ -28,7 +28,9 @@ public class RealisticLanderWatermanStats extends Module {
         List<SAMRecord> reads = new ArrayList<SAMRecord>();
 
         for (SAMRecord sr : BAM) {
-            reads.add(sr);
+            if (!sr.getReadUnmappedFlag()) {
+                reads.add(sr);
+            }
         }
 
         log.info("  {} reads loaded", reads.size());
