@@ -1,3 +1,0 @@
-<ivy-module version="1.0">
-    <info organisation="org.processing" module="jogl-all-natives-macosx-universal" revision="latest" />
-</ivy-module>

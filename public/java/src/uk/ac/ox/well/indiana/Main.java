@@ -7,11 +7,8 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import org.slf4j.LoggerFactory;
-import processing.core.PApplet;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.commands.Module;
-import uk.ac.ox.well.indiana.commands.Sketch;
-import uk.ac.ox.well.indiana.utils.arguments.Description;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.packageutils.Dispatch;
 import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
@@ -19,7 +16,6 @@ import uk.ac.ox.well.indiana.utils.packageutils.PackageInspector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -65,12 +61,6 @@ public class Main {
 
                 if (Module.class.isAssignableFrom(module)) {
                     Dispatch.main(module.getName(), moduleArgs);
-                } else if (Sketch.class.isAssignableFrom(module)) {
-                    ArrayList<String> newArgs = new ArrayList<String>();
-                    newArgs.add(module.getName());
-                    newArgs.addAll(Arrays.asList(moduleArgs));
-
-                    PApplet.main(newArgs.toArray(new String[newArgs.size()]));
                 }
             }
 
