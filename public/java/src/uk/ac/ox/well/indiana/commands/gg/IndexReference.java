@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.commands.gg;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import org.mapdb.BTreeKeySerializer;
+//import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -30,6 +30,7 @@ public class IndexReference extends Module {
     public void execute() {
         File dbFile = new File(REF_FILE.getAbsoluteFile() + ".kmerdb");
 
+        /*
         DB db = DBMaker.fileDB(dbFile)
                 .closeOnJvmShutdown()
                 .transactionDisable()
@@ -59,5 +60,6 @@ public class IndexReference extends Module {
         }
 
         db.close();
+        */
     }
 }
