@@ -21,41 +21,18 @@
         <dependency org="org.yaml" name="snakeyaml" rev="1.14" />
         <dependency org="uk.com.robust-it" name="cloning" rev="1.9.2" />
         <dependency org="org.mapdb" name="mapdb" rev="2.0-beta6" />
-        <!--<dependency org="net.sf.proguard" name="proguard-anttask" rev="5.0" />-->
 
         <!-- Dependencies that can be satisifed with local repository -->
-        <dependency org="org.processing" name="core" rev="latest" />
-        <dependency org="org.processing" name="pdf" rev="latest" />
-        <dependency org="org.processing" name="itext" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-amd64" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-armv6hf" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-linux-i586" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-macosx-universal" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-windows-amd64" rev="latest" />
-        <dependency org="org.processing" name="gluegen-rt-natives-windows-i586" rev="latest" />
-        <dependency org="org.processing" name="jogl-all" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-linux-amd64" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-linux-armv6hf" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-linux-i586" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-macosx-universal" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-windows-amd64" rev="latest" />
-        <dependency org="org.processing" name="jogl-all-natives-windows-i586" rev="latest" />
 
         <!-- Picard / Htsjdk dependencies -->
-        <dependency org="com.google.java.contract" name="cofoja" rev="1.1-r150" />
         <dependency org="org.xerial.snappy" name="snappy-java" rev="1.0.3-rc3" />
         <dependency org="org.apache.ant.bzip2" name="bzip2" rev="1.8.2" />
-        <!--<dependency org="htsjdk" name="htsjdk" rev="1.127" />-->
-        <dependency org="htsjdk" name="htsjdk" rev="2.5.1-2-ge7c7bf6-SNAPSHOT-all.jar" />
+        <dependency org="htsjdk" name="htsjdk" rev="2.5.1-2-ge7c7bf6-SNAPSHOT-all" />
         <dependency org="org.broadinstitute.picard" name="picard" rev="1.117" />
 
         <!-- Other dependencies -->
         <dependency org="org.json" name="json" rev="20140107" />
-        <dependency org="org.gicentre" name="gicentreUtils" rev="3.2.0" />
-
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
-        <dependency org="com.javacodegeeks.stringsearch" name="stringsearch" rev="1.0.0" />
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm -->
         <exclude org="javax.servlet" />

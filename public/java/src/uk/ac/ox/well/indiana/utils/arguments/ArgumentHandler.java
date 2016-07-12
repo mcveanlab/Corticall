@@ -19,7 +19,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
-import uk.ac.ox.well.indiana.utils.io.fasta.MultiIndexedFastaSequenceFile;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
 
@@ -291,8 +290,6 @@ public class ArgumentHandler {
                 return new XMFASequenceFile(value);
             } else if (type.equals(IndexedFastaSequenceFile.class)) {
                 return new IndexedFastaSequenceFile(new File(value));
-            } else if (type.equals(MultiIndexedFastaSequenceFile.class)) {
-                return new MultiIndexedFastaSequenceFile(new File(value));
             } else if (type.equals(PrintStream.class)) {
                 FileOutputStream fdout = new FileOutputStream(value);
                 BufferedOutputStream bos = new BufferedOutputStream(fdout, 1048576);
