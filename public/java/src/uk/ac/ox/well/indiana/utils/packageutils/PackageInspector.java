@@ -7,10 +7,7 @@ import org.reflections.util.ConfigurationBuilder;
 
 import java.lang.reflect.Modifier;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Inspects the package by reflection and finds classes that extend a specific class.
@@ -28,7 +25,7 @@ public class PackageInspector<ClassType> {
      * @param classType  the type of class to look for in the package
      */
     public PackageInspector(Class<ClassType> classType, String packageName) {
-        Set<URL> classPath = ClasspathHelper.forPackage(packageName);
+        Collection<URL> classPath = ClasspathHelper.forPackage(packageName);
 
         ConfigurationBuilder config = new ConfigurationBuilder();
         config.setUrls(classPath);

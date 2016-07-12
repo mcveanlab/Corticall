@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.utils.alignment.kmer;
 import htsjdk.samtools.util.Interval;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.Fun;
+//import org.mapdb.Fun;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -32,14 +32,14 @@ public class KmerLookup {
 
         if (dbFile.exists()) {
             DB db = DBMaker.fileDB(dbFile)
-                    .transactionDisable()
+                    //.transactionDisable()
                     .fileMmapEnable()
-                    .cacheSize(1000000)
+                    //.cacheSize(1000000)
                     .closeOnJvmShutdown()
                     .readOnly()
                     .make();
 
-            kmerIndex = db.treeSet("index" + kmerSize);
+            //kmerIndex = db.treeSet("index" + kmerSize);
         } else {
             System.err.println("No index for '" + dbFile + "'");
         }
@@ -49,11 +49,13 @@ public class KmerLookup {
         Set<Interval> intervals = new HashSet<Interval>();
 
         if (kmerIndex != null) {
+            /*
             for (Object l[] : Fun.filter(kmerIndex, sk)) {
                 String chr = (String) l[1];
                 int pos = (Integer) l[2];
                 intervals.add(new Interval(chr, pos, pos + kmerSize));
             }
+            */
         }
 
         return intervals;

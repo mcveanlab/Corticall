@@ -43,7 +43,7 @@ public class Main {
         rootPackage = newRootPackage;
         commandPackage = newCommandPackage;
 
-        org.apache.log4j.PropertyConfigurator.configure("/dev/null");
+        //org.apache.log4j.PropertyConfigurator.configure("/dev/null");
 
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
