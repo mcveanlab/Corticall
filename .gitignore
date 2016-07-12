@@ -428,3 +428,5 @@ test.db.p
 test.hist
 teststuff.txt
 vc.txt
+serverdata/
+.vc_cache
