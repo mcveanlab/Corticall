@@ -8,8 +8,8 @@ import java.util.*;
 public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<String, Object>> {
     private String tableName;
     private String description;
-    private Set<String> columnNames = new LinkedHashSet<String>();
-    private Map<String, Map<String, Object>> data = new TreeMap<String, Map<String, Object>>();
+    private Set<String> columnNames = new LinkedHashSet<>();
+    private Map<String, Map<String, Object>> data = new TreeMap<>();
 
     private Iterator<String> pkIterator;
 
@@ -49,7 +49,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
     public void set(String primaryKey, String columnName, Object value) {
         if (!data.containsKey(primaryKey)) {
-            data.put(primaryKey, new HashMap<String, Object>());
+            data.put(primaryKey, new HashMap<>());
         }
 
         if (!columnNames.contains(columnName)) {
@@ -91,7 +91,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
 
     @Override
     public String toString() {
-        Map<String, Integer> columnWidths = new HashMap<String, Integer>();
+        Map<String, Integer> columnWidths = new HashMap<>();
         for (String primaryKey : data.keySet()) {
             for (String columnName : columnNames) {
                 String field = String.valueOf(get(primaryKey, columnName));
@@ -120,7 +120,7 @@ public class DataTable implements Iterable<Map<String, Object>>, Iterator<Map<St
         sb.append("\n");
 
         for (String primaryKey : data.keySet()) {
-            List<String> fields = new ArrayList<String>();
+            List<String> fields = new ArrayList<>();
             fields.add(tableName);
 
             for (String columnName : columnNames) {

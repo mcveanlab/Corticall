@@ -1,18 +1,7 @@
 package uk.ac.ox.well.indiana.utils.sequence;
 
-import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.GraphPath;
-import org.jgrapht.alg.DijkstraShortestPath;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.testng.annotations.Test;
-import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
-import uk.ac.ox.well.indiana.commands.gg.AnnotatedVertex;
-import uk.ac.ox.well.indiana.commands.gg.GenotypeGraphUtils;
-
-import java.util.*;
 
 public class GenotypeGraphUtilsTest {
     //DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
@@ -31,7 +20,7 @@ public class GenotypeGraphUtilsTest {
 
         String alt = altb.toString();
 
-        return new Pair<String, String>(ref, alt);
+        return new Pair<>(ref, alt);
     }
 
     @Test(enabled = false)

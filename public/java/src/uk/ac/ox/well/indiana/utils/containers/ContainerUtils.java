@@ -17,7 +17,7 @@ public class ContainerUtils {
 
     public static <K, V> void add(Map<K, Set<V>> map, K key, V value) {
         if (!map.containsKey(key)) {
-            map.put(key, new HashSet<V>());
+            map.put(key, new HashSet<>());
         }
         map.get(key).add(value);
     }

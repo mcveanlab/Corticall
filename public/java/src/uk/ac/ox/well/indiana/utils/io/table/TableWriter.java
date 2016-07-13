@@ -36,12 +36,12 @@ public class TableWriter {
 
     public void addEntry(Map<String, String> entryMap) {
         if (header == null) {
-            header = new ArrayList<String>(entryMap.keySet());
+            header = new ArrayList<>(entryMap.keySet());
 
             out.println(Joiner.on("\t").join(header));
         }
 
-        List<String> entryList = new ArrayList<String>();
+        List<String> entryList = new ArrayList<>();
 
         for (String field : header) {
             String entry = entryMap.get(field);

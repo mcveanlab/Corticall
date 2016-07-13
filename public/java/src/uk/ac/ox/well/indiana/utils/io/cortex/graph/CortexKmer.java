@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.Arrays;
-import java.util.Comparator;
 
 public class CortexKmer implements CharSequence, Comparable<CortexKmer> {
     private byte[] kmer;

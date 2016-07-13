@@ -9,7 +9,7 @@ public class CortexHeader {
     private int kmerBits;
     private int numColors;
 
-    private List<CortexColor> colors = new ArrayList<CortexColor>();
+    private List<CortexColor> colors = new ArrayList<>();
 
     public int getVersion() { return version; }
     public int getKmerSize() { return kmerSize; }

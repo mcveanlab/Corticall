@@ -2,7 +2,10 @@ package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;

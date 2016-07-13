@@ -16,7 +16,7 @@ public class GFF3Record implements Comparable<GFF3Record> {
     private String score;
     private Strand strand;
     private String phase;
-    private TreeMap<String, String> attributes = new TreeMap<String, String>();
+    private TreeMap<String, String> attributes = new TreeMap<>();
 
     public GFF3Record() {}
 

@@ -65,7 +65,7 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
             FileInputStream fis = new FileInputStream(fileToRead);
             mappedRecordBuffer = ByteBufferInputStream.map(fis.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            lineBreakPositions = new ArrayList<Long>();
+            lineBreakPositions = new ArrayList<>();
 
             byte[] character = new byte[1];
             for (long position = 0; position < mappedRecordBuffer.length(); position++) {
@@ -145,7 +145,7 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
 
             String[] fields = (new String(record)).split(sep);
             //Map<String, String> entry = new HashMap<String, String>();
-            Map<String, String> entry = new LinkedHashMap<String, String>();
+            Map<String, String> entry = new LinkedHashMap<>();
 
             for (int i = 0; i < header.length; i++) {
                 entry.put(header[i], fields[i]);

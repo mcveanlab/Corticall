@@ -16,9 +16,9 @@ public class ConstrainedSmithWatermanTest {
         ConstrainedSmithWaterman csw = new ConstrainedSmithWaterman(ref, query, 2, -1, -1);
         int[][] scoreTable = csw.getScoreTable();
 
-        for (int i = 0; i < scoreTable.length; i++) {
-            for (int j = 0; j < scoreTable[i].length; j++) {
-                System.out.print(scoreTable[i][j] + " ");
+        for (int[] aScoreTable : scoreTable) {
+            for (int j = 0; j < aScoreTable.length; j++) {
+                System.out.print(aScoreTable[j] + " ");
             }
             System.out.println();
         }
@@ -29,9 +29,9 @@ public class ConstrainedSmithWatermanTest {
         SmithWaterman sw = new SmithWaterman(ref, query, 2, -1, -1);
         int[][] scoreTable2 = sw.getScoreTable();
 
-        for (int i = 0; i < scoreTable2.length; i++) {
-            for (int j = 0; j < scoreTable2[i].length; j++) {
-                System.out.print(scoreTable2[i][j] + " ");
+        for (int[] aScoreTable2 : scoreTable2) {
+            for (int j = 0; j < aScoreTable2.length; j++) {
+                System.out.print(aScoreTable2[j] + " ");
             }
             System.out.println();
         }

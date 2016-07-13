@@ -2,11 +2,8 @@ package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -95,8 +92,8 @@ public class CortexGraphTest {
         for (int color = 0; color < cg.getNumColors(); color++) {
             byte[] edges = new String(cr.getEdgesAsBytes(color)).toUpperCase().getBytes();
 
-            Set<Byte> leftEdges = new HashSet<Byte>();
-            Set<Byte> rightEdges = new HashSet<Byte>();
+            Set<Byte> leftEdges = new HashSet<>();
+            Set<Byte> rightEdges = new HashSet<>();
 
             for (int i = 0; i < 4; i++) {
                 if (edges[i] != '.') {
@@ -108,8 +105,8 @@ public class CortexGraphTest {
                 }
             }
 
-            Set<Byte> betterLeftEdges = new HashSet<Byte>(cr.getInEdgesAsBytes(color));
-            Set<Byte> betterRightEdges = new HashSet<Byte>(cr.getOutEdgesAsBytes(color));
+            Set<Byte> betterLeftEdges = new HashSet<>(cr.getInEdgesAsBytes(color));
+            Set<Byte> betterRightEdges = new HashSet<>(cr.getOutEdgesAsBytes(color));
 
             Assert.assertEquals(leftEdges, betterLeftEdges);
             Assert.assertEquals(rightEdges, betterRightEdges);
@@ -120,7 +117,7 @@ public class CortexGraphTest {
 
     @BeforeClass
     public void initialize() {
-        recs = new ArrayList<SimpleCortexRecord>();
+        recs = new ArrayList<>();
 
         recs.add(new SimpleCortexRecord("GTATTTGCAGTATTTGGAATAAATTTCCAAC", new int[] {1,0}, new String[] {"..g.A...", "........"}));
         recs.add(new SimpleCortexRecord("GGAAATTTATTCCAAATACTGCAAATACCCC", new int[] {1,0}, new String[] {"...tA...", "........"}));

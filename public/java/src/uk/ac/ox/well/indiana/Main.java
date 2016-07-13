@@ -51,7 +51,7 @@ public class Main {
             String moduleName = args[0];
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
-            Map<String, Class<? extends Command>> modules = new PackageInspector<Command>(Command.class, rootPackage).getExtendingClassesMap();
+            Map<String, Class<? extends Command>> modules = new PackageInspector<>(Command.class, rootPackage).getExtendingClassesMap();
             //Map<String, Class<? extends Module>> modules = new PackageInspector<Module>(Module.class, rootPackage).getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
@@ -118,7 +118,7 @@ public class Main {
 
         encoder.start();
 
-        ConsoleAppender<ILoggingEvent> appender = new ConsoleAppender<ILoggingEvent>();
+        ConsoleAppender<ILoggingEvent> appender = new ConsoleAppender<>();
         appender.setContext(loggerContext);
         appender.setEncoder(encoder);
         appender.start();

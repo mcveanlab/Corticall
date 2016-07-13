@@ -11,7 +11,7 @@ import java.util.List;
 public class XMFARecord extends HashMap<String, ReferenceSequence> {
     @Override
     public String toString() {
-        List<String> pieces = new ArrayList<String>();
+        List<String> pieces = new ArrayList<>();
 
         for (String key : keySet()) {
             ReferenceSequence seq = get(key);

@@ -5,9 +5,6 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import uk.ac.ox.well.indiana.commands.gg.AnnotatedEdge;
-import uk.ac.ox.well.indiana.commands.gg.AnnotatedVertex;
-import uk.ac.ox.well.indiana.commands.gg.TraversalStopper;
 import uk.ac.ox.well.indiana.utils.containers.DataFrame;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -15,6 +12,9 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalStopper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -49,8 +49,8 @@ public class CortexUtils {
 
                 return kmer.substring(1, kmer.length()) + outEdge;
             } else if (beAggressive) {
-                Set<String> inferredKmers = new HashSet<String>();
-                Set<String> novelKmers = new HashSet<String>();
+                Set<String> inferredKmers = new HashSet<>();
+                Set<String> novelKmers = new HashSet<>();
 
                 for (String outEdge : Arrays.asList("A", "C", "G", "T")) {
                     String outKmer = kmer.substring(1, kmer.length()) + outEdge;
@@ -92,7 +92,7 @@ public class CortexUtils {
     public static Set<String> getNextKmers(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
-        Set<String> nextKmers = new HashSet<String>();
+        Set<String> nextKmers = new HashSet<>();
 
         if (cr != null) {
             Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
@@ -128,7 +128,7 @@ public class CortexUtils {
         CortexRecord cr = crclean == null && crdirty != null ? crdirty : crclean;
         CortexGraph cg = clean == null && dirty != null ? dirty : clean;
 
-        return new Pair<CortexGraph, CortexRecord>(cg, cr);
+        return new Pair<>(cg, cr);
     }
 
     public static Map<Integer, Set<String>> getNextKmers(CortexGraph clean, CortexGraph dirty, String kmer) {
@@ -143,11 +143,11 @@ public class CortexUtils {
         CortexGraph cg = cgcr.getFirst();
         CortexRecord cr = cgcr.getSecond();
 
-        Map<Integer, Set<String>> nextKmersAllColors = new HashMap<Integer, Set<String>>();
+        Map<Integer, Set<String>> nextKmersAllColors = new HashMap<>();
 
         if (cg != null) {
             for (int c = 0; c < cg.getNumColors(); c++) {
-                Set<String> nextKmers = new HashSet<String>();
+                Set<String> nextKmers = new HashSet<>();
 
                 if (cr != null) {
                     Collection<String> outEdges = (ck.isFlipped()) ? cr.getInEdgesComplementAsStrings(c) : cr.getOutEdgesAsStrings(c);
@@ -180,8 +180,8 @@ public class CortexUtils {
 
                 return inEdge + kmer.substring(0, kmer.length() - 1);
             } else if (beAggressive) {
-                Set<String> inferredKmers = new HashSet<String>();
-                Set<String> novelKmers = new HashSet<String>();
+                Set<String> inferredKmers = new HashSet<>();
+                Set<String> novelKmers = new HashSet<>();
 
                 for (String inEdge : Arrays.asList("A", "C", "G", "T")) {
                     String inKmer = inEdge + kmer.substring(0, kmer.length() - 1);
@@ -223,7 +223,7 @@ public class CortexUtils {
     public static Set<String> getPrevKmers(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
-        Set<String> prevKmers = new HashSet<String>();
+        Set<String> prevKmers = new HashSet<>();
 
         if (cr != null) {
             Collection<String> inEdges = cr.getInEdgesAsStrings(color);
@@ -262,11 +262,11 @@ public class CortexUtils {
         CortexGraph cg = cgcr.getFirst();
         CortexRecord cr = cgcr.getSecond();
 
-        Map<Integer, Set<String>> prevKmersAllColors = new HashMap<Integer, Set<String>>();
+        Map<Integer, Set<String>> prevKmersAllColors = new HashMap<>();
 
         if (cg != null) {
             for (int c = 0; c < cg.getNumColors(); c++) {
-                Set<String> prevKmers = new HashSet<String>();
+                Set<String> prevKmers = new HashSet<>();
 
                 if (cr != null) {
                     Collection<String> inEdges = (ck.isFlipped()) ? cr.getOutEdgesComplementAsStrings(c) : cr.getInEdgesAsStrings(c);
@@ -287,7 +287,7 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
-        Set<String> usedKmers = new HashSet<String>();
+        Set<String> usedKmers = new HashSet<>();
 
         String pk;
         while ((pk = CortexUtils.getPrevKmer(cg, tk, color, beAggressive)) != null && !usedKmers.contains(pk)) {
@@ -304,7 +304,7 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
-        Set<String> usedKmers = new HashSet<String>();
+        Set<String> usedKmers = new HashSet<>();
 
         String nk;
         while ((nk = CortexUtils.getNextKmer(cg, tk, color, beAggressive)) != null && !usedKmers.contains(nk)) {
@@ -321,7 +321,7 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
-        Set<String> usedKmers = new HashSet<String>();
+        Set<String> usedKmers = new HashSet<>();
 
         String pk;
         while ((pk = CortexUtils.getPrevKmer(clean, dirty, tk, color, beAggressive)) != null && !usedKmers.contains(pk)) {
@@ -338,7 +338,7 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder stretchBuilder = new StringBuilder();
 
-        Set<String> usedKmers = new HashSet<String>();
+        Set<String> usedKmers = new HashSet<>();
 
         String nk;
         while ((nk = CortexUtils.getNextKmer(clean, dirty, tk, color, beAggressive)) != null && !usedKmers.contains(nk)) {
@@ -419,7 +419,7 @@ public class CortexUtils {
         String tk = kmer;
         StringBuilder novelStretchBuilder = new StringBuilder(tk);
 
-        Set<String> usedKmers = new HashSet<String>();
+        Set<String> usedKmers = new HashSet<>();
 
         String pk;
         while ((pk = CortexUtils.getPrevKmer(cg, tk, color, beAggressive)) != null && isNovelKmer(cg, pk, color) && !usedKmers.contains(pk)) {
@@ -455,7 +455,7 @@ public class CortexUtils {
     }
 
     private static String formatAttributes(Map<String, Object> attrs) {
-        List<String> attrArray = new ArrayList<String>();
+        List<String> attrArray = new ArrayList<>();
 
         for (String attr : attrs.keySet()) {
             String value = attrs.get(attr).toString();
@@ -479,7 +479,7 @@ public class CortexUtils {
             o.println("digraph G {");
 
             for (AnnotatedVertex v : g.vertexSet()) {
-                Map<String, Object> attrs = new TreeMap<String, Object>();
+                Map<String, Object> attrs = new TreeMap<>();
                 attrs.put("label", "");
                 attrs.put("fillcolor", v.isNovel() ? "red" : "white");
                 attrs.put("style", "filled");
@@ -495,7 +495,7 @@ public class CortexUtils {
 
                 for (int c = 0; c < 3; c++) {
                     if (e.isPresent(c)) {
-                        Map<String, Object> attrs = new TreeMap<String, Object>();
+                        Map<String, Object> attrs = new TreeMap<>();
                         attrs.put("color", colors[c]);
 
                         o.println(indent + "\"" + s + "\" -> \"" + t + "\" [ " + formatAttributes(attrs) + " ];");
@@ -584,7 +584,7 @@ public class CortexUtils {
         Map<Integer, Set<String>> sourceKmersAllColors = goForward ? CortexUtils.getPrevKmers(clean, dirty, kmer) : CortexUtils.getNextKmers(clean, dirty, kmer);
         Set<String> sourceKmers = sourceKmersAllColors.get(color);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<>(AnnotatedEdge.class);
         TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = instantiateStopper(stopperClass);
 
         Map<Integer, Set<String>> adjKmers;
@@ -649,10 +649,10 @@ public class CortexUtils {
     }
 
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, true, new HashSet<String>());
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false, new HashSet<String>());
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, true, new HashSet<>());
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false, new HashSet<>());
 
         if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
         if (dfsb != null) { Graphs.addGraph(dfs, dfsb); }
@@ -671,7 +671,7 @@ public class CortexUtils {
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> getSeededSubgraph(CortexGraph cg, String kmer, int color) {
         String stretch = CortexUtils.getSeededStretch(cg, kmer, color);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgc = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sgc = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
         for (int i = 0; i <= stretch.length() - cg.getKmerSize() - 1; i++) {
             String sk0 = stretch.substring(i, i + cg.getKmerSize());
@@ -693,7 +693,7 @@ public class CortexUtils {
 
         printGraph(sgc);
 
-        Set<AnnotatedVertex> childVertices = new HashSet<AnnotatedVertex>(sgc.vertexSet());
+        Set<AnnotatedVertex> childVertices = new HashSet<>(sgc.vertexSet());
 
         for (int c = 1; c <= 2; c++) {
             for (AnnotatedVertex ak : childVertices) {
@@ -703,9 +703,9 @@ public class CortexUtils {
                 if (cr != null && cr.getCoverage(c) > 0) {
                     Set<String> nextKmers = CortexUtils.getNextKmers(cg, ak.getKmer(), c);
 
-                    Stack<Pair<String, String>> kmerStack = new Stack<Pair<String, String>>();
+                    Stack<Pair<String, String>> kmerStack = new Stack<>();
                     for (String nextKmer : nextKmers) {
-                        kmerStack.push(new Pair<String, String>(ak.getKmer(), nextKmer));
+                        kmerStack.push(new Pair<>(ak.getKmer(), nextKmer));
                     }
 
                     while (!kmerStack.isEmpty()) {
@@ -747,7 +747,7 @@ public class CortexUtils {
                                 AnnotatedVertex akn = new AnnotatedVertex(nextKmer);
 
                                 if (!sgc.containsVertex(akn)) {
-                                    kmerStack.push(new Pair<String, String>(p.getSecond(), nextKmer));
+                                    kmerStack.push(new Pair<>(p.getSecond(), nextKmer));
                                 }
                             }
                         }
@@ -761,9 +761,9 @@ public class CortexUtils {
                 if (cr != null && cr.getCoverage(c) > 0) {
                     Set<String> prevKmers = CortexUtils.getPrevKmers(cg, ak.getKmer(), c);
 
-                    Stack<Pair<String, String>> kmerStack = new Stack<Pair<String, String>>();
+                    Stack<Pair<String, String>> kmerStack = new Stack<>();
                     for (String prevKmer : prevKmers) {
-                        kmerStack.push(new Pair<String, String>(prevKmer, ak.getKmer()));
+                        kmerStack.push(new Pair<>(prevKmer, ak.getKmer()));
                     }
 
                     while (!kmerStack.isEmpty()) {
@@ -801,7 +801,7 @@ public class CortexUtils {
                                 AnnotatedVertex akp = new AnnotatedVertex(prevKmer);
 
                                 if (!sgc.containsVertex(akp)) {
-                                    kmerStack.push(new Pair<String, String>(prevKmer, p.getFirst()));
+                                    kmerStack.push(new Pair<>(prevKmer, p.getFirst()));
                                 }
                             }
                         }
@@ -825,7 +825,7 @@ public class CortexUtils {
      */
     public static CortexLinksRecord flipLinksRecord(CortexLinksRecord clr) {
         String rsk = SequenceUtils.reverseComplement(clr.getKmerAsString());
-        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
         for (CortexJunctionsRecord cjr : clr.getJunctions()) {
             cjrs.add(flipJunctionsRecord(cjr));
         }
@@ -858,7 +858,7 @@ public class CortexUtils {
      * @return     the reoriented Cortex links record
      */
     public static CortexLinksRecord orientLinksRecord(String sk, CortexLinksRecord clr) {
-        List<CortexJunctionsRecord> cjrs = new ArrayList<CortexJunctionsRecord>();
+        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
         for (CortexJunctionsRecord cjr : clr.getJunctions()) {
             cjrs.add(orientJunctionsRecord(sk, cjr));
         }
@@ -907,7 +907,7 @@ public class CortexUtils {
         boolean isForward = cjr.isForward();
         String junctions = cjr.getJunctions();
 
-        List<String> kmersInLink = new ArrayList<String>();
+        List<String> kmersInLink = new ArrayList<>();
         kmersInLink.add(sk);
 
         if (isForward) {
@@ -968,7 +968,7 @@ public class CortexUtils {
     }
 
     public static List<String> getKmersInLinkFromSeq(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
-        List<String> expectedKmers = new ArrayList<String>();
+        List<String> expectedKmers = new ArrayList<>();
         String seq = cjr.getSeq();
         CortexKmer ck = new CortexKmer(sk);
         if ((!ck.isFlipped() && !cjr.isForward()) || (ck.isFlipped() && cjr.isForward())) {
@@ -987,7 +987,7 @@ public class CortexUtils {
     }
 
     public static Map<String, Integer> getKmersAndCoverageInLink(CortexGraph cg, String sk, CortexLinksRecord clr) {
-        Map<String, Integer> kmersAndCoverage = new LinkedHashMap<String, Integer>();
+        Map<String, Integer> kmersAndCoverage = new LinkedHashMap<>();
 
         for (CortexJunctionsRecord cjr : clr.getJunctions()) {
             List<String> kil = getKmersInLink(cg, sk, cjr);
@@ -1011,7 +1011,7 @@ public class CortexUtils {
     }
 
     public static DataFrame<String, String, Integer> getKmersAndCoverageHVStyle(CortexGraph cg, String sk, CortexLinksRecord clr) {
-        DataFrame<String, String, Integer> hv = new DataFrame<String, String, Integer>(0);
+        DataFrame<String, String, Integer> hv = new DataFrame<>(0);
 
         for (CortexJunctionsRecord cjr : clr.getJunctions()) {
             List<String> kil = getKmersInLink(cg, sk, cjr);

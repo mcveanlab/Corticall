@@ -11,8 +11,8 @@ public class GFFTest {
     public void loadGFFTest() {
         GFF3 gff = new GFF3("testdata/Pf3D7_14_v3.gff");
 
-        List<GFF3Record> l1 = new ArrayList<GFF3Record>();
-        List<GFF3Record> l2 = new ArrayList<GFF3Record>();
+        List<GFF3Record> l1 = new ArrayList<>();
+        List<GFF3Record> l2 = new ArrayList<>();
 
         for (GFF3Record gr : gff) {
             l1.add(gr);

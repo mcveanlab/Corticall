@@ -1,11 +1,8 @@
 package uk.ac.ox.well.indiana.utils.alignment.pairwise;
 
-import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.ProcessExecutor;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
@@ -34,7 +31,7 @@ public class LastzAligner implements ExternalAligner {
 
             tempQueries.delete();
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             FastaSequenceFile fa = new FastaSequenceFile(targets, true);
             SAMFileHeader sfh = new SAMFileHeader();
@@ -69,7 +66,7 @@ public class LastzAligner implements ExternalAligner {
 
             tempQuery.delete();
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             FastaSequenceFile fa = new FastaSequenceFile(targets, true);
             SAMFileHeader sfh = new SAMFileHeader();
@@ -109,7 +106,7 @@ public class LastzAligner implements ExternalAligner {
             //String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath(), "sam-"));
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s %s --notransition --step=20 --nogapped --format=%s --queryhspbest=1", lastzPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath(), "sam-"));
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             SAMFileHeader sfh = new SAMFileHeader();
             sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
@@ -166,23 +163,23 @@ public class LastzAligner implements ExternalAligner {
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQueries.getAbsolutePath(), "sam-"));
 
-            Map<String, Set<String[]>> alignments = new HashMap<String, Set<String[]>>();
+            Map<String, Set<String[]>> alignments = new HashMap<>();
             for (String line : result.split("\n")) {
                 String[] fields = line.split("\\s+");
 
                 String contigName = fields[0];
 
                 if (!alignments.containsKey(contigName)) {
-                    alignments.put(contigName, new HashSet<String[]>());
+                    alignments.put(contigName, new HashSet<>());
                 }
 
                 alignments.get(contigName).add(fields);
             }
 
-            Map<String, String[]> results = new HashMap<String, String[]>();
+            Map<String, String[]> results = new HashMap<>();
 
             for (String contigName : alignments.keySet()) {
-                Set<String> cigars = new HashSet<String>();
+                Set<String> cigars = new HashSet<>();
 
                 for (String[] fields : alignments.get(contigName)) {
                     cigars.add(fields[5]);

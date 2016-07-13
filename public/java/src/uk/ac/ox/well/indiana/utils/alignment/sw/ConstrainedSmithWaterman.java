@@ -191,7 +191,7 @@ public class ConstrainedSmithWaterman {
     }
 
     public Cigar getCigar() {
-        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+        List<CigarElement> cigarElements = new ArrayList<>();
 
         String[] aligned = getAlignment();
 

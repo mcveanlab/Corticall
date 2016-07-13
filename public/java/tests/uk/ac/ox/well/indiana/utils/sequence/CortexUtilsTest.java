@@ -43,13 +43,13 @@ public class CortexUtilsTest {
     public void testNextKmers() {
         CortexGraph clean = new CortexGraph("testdata/smallgraph.sorted.ctx");
 
-        Set<String> kmers = new HashSet<String>();
+        Set<String> kmers = new HashSet<>();
         for (CortexRecord cr : clean) {
             kmers.add(cr.getKmerAsString());
         }
 
         for (String kmer : kmers) {
-            Map<Integer, Set<String>> nkm = new HashMap<Integer, Set<String>>();
+            Map<Integer, Set<String>> nkm = new HashMap<>();
             nkm.put(0, CortexUtils.getNextKmers(clean, null, kmer, 0));
             nkm.put(1, CortexUtils.getNextKmers(clean, null, kmer, 1));
 
@@ -63,13 +63,13 @@ public class CortexUtilsTest {
     public void textPrevKmers() {
         CortexGraph clean = new CortexGraph("testdata/smallgraph.sorted.ctx");
 
-        Set<String> kmers = new HashSet<String>();
+        Set<String> kmers = new HashSet<>();
         for (CortexRecord cr : clean) {
             kmers.add(cr.getKmerAsString());
         }
 
         for (String kmer : kmers) {
-            Map<Integer, Set<String>> pkm = new HashMap<Integer, Set<String>>();
+            Map<Integer, Set<String>> pkm = new HashMap<>();
             pkm.put(0, CortexUtils.getPrevKmers(clean, null, kmer, 0));
             pkm.put(1, CortexUtils.getPrevKmers(clean, null, kmer, 1));
 

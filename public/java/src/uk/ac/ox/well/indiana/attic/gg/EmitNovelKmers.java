@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.attic.gg;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -7,12 +7,9 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
-import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 
 import java.io.File;
-import java.util.Map;
 
 public class EmitNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")

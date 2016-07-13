@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 
 import htsjdk.samtools.util.Interval;
@@ -9,9 +9,9 @@ import java.util.TreeSet;
 public class AnnotatedVertex {
     private String kmer;
     private boolean isNovel = false;
-    private Set<String> flags = new TreeSet<String>();
-    private Set<Interval> ml = new TreeSet<Interval>();
-    private Set<Interval> pl = new TreeSet<Interval>();
+    private Set<String> flags = new TreeSet<>();
+    private Set<Interval> ml = new TreeSet<>();
+    private Set<Interval> pl = new TreeSet<>();
 
     public AnnotatedVertex(String kmer) {
         this.kmer = kmer;

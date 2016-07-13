@@ -18,7 +18,7 @@ public class CortexLinksMap implements Map<CortexKmer, CortexLinksRecord> {
     private void initialize(CortexLinks cortexLinks) {
         this.cortexLinks = cortexLinks;
 
-        recordHash = new HashMap<CortexKmer, CortexLinksRecord>((int) cortexLinks.getNumLinks());
+        recordHash = new HashMap<>((int) cortexLinks.getNumLinks());
 
         for (CortexLinksRecord clr : cortexLinks) {
             recordHash.put(clr.getKmer(), clr);

@@ -11,7 +11,7 @@ import java.util.HashMap;
 public class IndianaParser extends Parser {
     @Override
     protected String[] flatten(Options options, String[] strings, boolean stopAtNonOption) {
-        HashMap<Option, ArrayList<String>> arguments = new HashMap<Option, ArrayList<String>>();
+        HashMap<Option, ArrayList<String>> arguments = new HashMap<>();
 
         Option currentOption = null;
 
@@ -21,7 +21,7 @@ public class IndianaParser extends Parser {
                     currentOption = options.getOption(token);
 
                     if (!arguments.containsKey(currentOption)) {
-                        arguments.put(currentOption, new ArrayList<String>());
+                        arguments.put(currentOption, new ArrayList<>());
                     }
                 } else {
                     throw new RuntimeException("The option '" + token + "' is not a recognized option");
@@ -33,7 +33,7 @@ public class IndianaParser extends Parser {
             }
         }
 
-        ArrayList<String> args = new ArrayList<String>();
+        ArrayList<String> args = new ArrayList<>();
         for (Option option : arguments.keySet()) {
             args.add("--" + option.getLongOpt());
             args.add(Joiner.on(",").join(arguments.get(option)));

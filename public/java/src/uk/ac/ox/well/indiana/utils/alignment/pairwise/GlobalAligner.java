@@ -204,14 +204,14 @@ public class GlobalAligner {
             }
         }
 
-        return new Pair<String, String>(qa.toString(), ta.toString());
+        return new Pair<>(qa.toString(), ta.toString());
     }
 
     private void printMatrix(String query, String target, double[][] m) {
         System.out.println("   " + Joiner.on(" ").join(Arrays.copyOfRange(target.split(""), 1, target.length() + 1)));
 
         for (int i = 0; i < m.length; i++) {
-            List<Double> values = new ArrayList<Double>();
+            List<Double> values = new ArrayList<>();
             for (int j = 0; j < m[0].length; j++) {
                 values.add(m[i][j]);
             }

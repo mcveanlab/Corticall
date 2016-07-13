@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.utils.sequence;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ public class AlignmentUtils {
     public static Set<Integer> getInsertionPositions(SAMRecord read) {
         int currentPosition = computeInitialPosition(read);
 
-        Set<Integer> insertionPositions = new TreeSet<Integer>();
+        Set<Integer> insertionPositions = new TreeSet<>();
 
         for (CigarElement ce : read.getCigar().getCigarElements()) {
             if (!ce.getOperator().equals(CigarOperator.H) && !ce.getOperator().equals(CigarOperator.S)) {
@@ -48,7 +47,7 @@ public class AlignmentUtils {
     public static Set<Integer> getDeletionPositions(SAMRecord read) {
         int currentPosition = computeInitialPosition(read);
 
-        Set<Integer> deletionPositions = new TreeSet<Integer>();
+        Set<Integer> deletionPositions = new TreeSet<>();
 
         for (CigarElement ce : read.getCigar().getCigarElements()) {
             if (!ce.getOperator().equals(CigarOperator.H) && !ce.getOperator().equals(CigarOperator.S)) {
@@ -64,7 +63,7 @@ public class AlignmentUtils {
     }
 
     public static Set<Integer> getMismatchPositions(SAMRecord read) {
-        Set<Integer> mismatchPositions = new TreeSet<Integer>();
+        Set<Integer> mismatchPositions = new TreeSet<>();
 
         String md = read.getStringAttribute("MD");
         if (md != null) {
@@ -94,7 +93,7 @@ public class AlignmentUtils {
     }
 
     public static Set<Integer> getDifferencesPositions(SAMRecord read) {
-        Set<Integer> diffPositions = new TreeSet<Integer>();
+        Set<Integer> diffPositions = new TreeSet<>();
 
         diffPositions.addAll(getMismatchPositions(read));
         diffPositions.addAll(getInsertionPositions(read));
@@ -104,7 +103,7 @@ public class AlignmentUtils {
     }
 
     public static List<Integer> getInsertionSizes(SAMRecord read) {
-        List<Integer> insertionSizes = new ArrayList<Integer>();
+        List<Integer> insertionSizes = new ArrayList<>();
 
         for (CigarElement ce : read.getCigar().getCigarElements()) {
             if (ce.getOperator().equals(CigarOperator.I)) {
@@ -116,7 +115,7 @@ public class AlignmentUtils {
     }
 
     public static List<Integer> getDeletionSizes(SAMRecord read) {
-        List<Integer> deletionSizes = new ArrayList<Integer>();
+        List<Integer> deletionSizes = new ArrayList<>();
 
         for (CigarElement ce : read.getCigar().getCigarElements()) {
             if (ce.getOperator().equals(CigarOperator.D)) {
@@ -128,7 +127,7 @@ public class AlignmentUtils {
     }
 
     public static List<CigarElement> getForwardCigar(SAMRecord alignment) {
-        List<CigarElement> ces = new ArrayList<CigarElement>();
+        List<CigarElement> ces = new ArrayList<>();
 
         if (alignment.getReadNegativeStrandFlag()) {
             for (int i = alignment.getCigar().numCigarElements() - 1; i >= 0; i--) {

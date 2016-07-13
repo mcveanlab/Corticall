@@ -226,7 +226,7 @@ public class SequenceUtils {
      * @return  a map of kmer hashcodes to sequence names
      */
     public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(List<FastaSequenceFile> fastas, int kmerSize) {
-        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+        Map<Integer, String> kmerHash = new HashMap<>();
 
         for (FastaSequenceFile fasta : fastas) {
             kmerHash.putAll(loadSequenceCodesAsAlphanumericallyLowestKmers(fasta, kmerSize));
@@ -243,7 +243,7 @@ public class SequenceUtils {
      * @return  a map of kmer hashcodes to sequence names
      */
     public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(FastaSequenceFile fasta, int kmerSize) {
-        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+        Map<Integer, String> kmerHash = new HashMap<>();
 
         ReferenceSequence seq;
         while ((seq = fasta.nextSequence()) != null) {
@@ -261,7 +261,7 @@ public class SequenceUtils {
      * @return  a map of kmer hashcodes to sequence names
      */
     public static Map<Integer, String> loadSequenceCodesAsAlphanumericallyLowestKmers(ReferenceSequence seq, int kmerSize) {
-        Map<Integer, String> kmerHash = new HashMap<Integer, String>();
+        Map<Integer, String> kmerHash = new HashMap<>();
 
         byte[] contig = seq.getBases();
         String[] name = seq.getName().split("\\s+");
@@ -304,19 +304,14 @@ public class SequenceUtils {
     private static int computeN50Metric(Collection<? extends CharSequence> sequences, boolean lengthOrValue) {
         float totalLength = 0;
 
-        List<Integer> lengths = new ArrayList<Integer>();
+        List<Integer> lengths = new ArrayList<>();
         for (CharSequence seq : sequences) {
             totalLength += seq.length();
 
             lengths.add(seq.length());
         }
 
-        Collections.sort(lengths, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return o2.compareTo(o1);
-            }
-        });
+        Collections.sort(lengths, (o1, o2) -> o2.compareTo(o1));
 
         float n50Length = 0;
         float n50Value = 0;
@@ -361,17 +356,12 @@ public class SequenceUtils {
     private static int computeNG50Metric(Collection<? extends CharSequence> sequences, boolean lengthOrValue, long referenceGenomeSize) {
         float totalLength = (float) referenceGenomeSize;
 
-        List<Integer> lengths = new ArrayList<Integer>();
+        List<Integer> lengths = new ArrayList<>();
         for (CharSequence seq : sequences) {
             lengths.add(seq.length());
         }
 
-        Collections.sort(lengths, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return o2.compareTo(o1);
-            }
-        });
+        Collections.sort(lengths, (o1, o2) -> o2.compareTo(o1));
 
         float ng50Length = 0;
         float ng50Value = 0;
@@ -482,7 +472,7 @@ public class SequenceUtils {
     }
 
     public static Collection<byte[]> generateSequencesWithEditDistance1(byte[] source) {
-        Collection<byte[]> dest = new HashSet<byte[]>();
+        Collection<byte[]> dest = new HashSet<>();
 
         for (int pos = 0; pos < source.length; pos++) {
             for (byte nucleotide : nucleotides) {
@@ -500,7 +490,7 @@ public class SequenceUtils {
     }
 
     public static Collection<byte[]> generateSequencesWithEditDistance2(byte[] source) {
-        Collection<byte[]> dest = new LinkedHashSet<byte[]>();
+        Collection<byte[]> dest = new LinkedHashSet<>();
 
         for (int pos1 = 0; pos1 < source.length; pos1++) {
             for (byte nucleotide1 : nucleotides) {
@@ -541,7 +531,7 @@ public class SequenceUtils {
 
     private static final Map<String, String> codonToAminoAcidMap;
     static {
-        Map<String, String> c2a = new HashMap<String, String>();
+        Map<String, String> c2a = new HashMap<>();
         c2a.put("GCT", "A");
         c2a.put("GCC", "A");
         c2a.put("GCA", "A");
@@ -669,12 +659,8 @@ public class SequenceUtils {
     }
 
     public static String extractCodingSequence(Collection<GFF3Record> exons, IndexedFastaSequenceFile ref) {
-        List<GFF3Record> exonList = new ArrayList<GFF3Record>(exons);
-        Collections.sort(exonList, new Comparator<GFF3Record>() {
-            public int compare(GFF3Record c1, GFF3Record c2) {
-                return c1.getStart() - c2.getStart();
-            }
-        });
+        List<GFF3Record> exonList = new ArrayList<>(exons);
+        Collections.sort(exonList, (c1, c2) -> c1.getStart() - c2.getStart());
 
         StringBuilder cdsb = new StringBuilder();
 
@@ -723,7 +709,7 @@ public class SequenceUtils {
     }
 
     public static Set<String> kmerizeSequence(String seq, int kmerSize) {
-        Set<String> kmers = new HashSet<String>();
+        Set<String> kmers = new HashSet<>();
         for (int i = 0; i <= seq.length() - kmerSize; i++) {
             String kmer = seq.substring(i, i + kmerSize);
 

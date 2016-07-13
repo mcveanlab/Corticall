@@ -1,8 +1,6 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
-
-import java.util.Arrays;
 
 /**
  * Created by kiran on 18/06/2015.
