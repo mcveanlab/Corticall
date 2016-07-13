@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.gg;
+package uk.ac.ox.well.indiana.commands.attic;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;

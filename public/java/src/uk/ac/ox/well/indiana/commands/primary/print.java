@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.cortex;
+package uk.ac.ox.well.indiana.commands.primary;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
