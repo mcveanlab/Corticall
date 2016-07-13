@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.attic.gg;
+package uk.ac.ox.well.indiana.commands.attic;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
