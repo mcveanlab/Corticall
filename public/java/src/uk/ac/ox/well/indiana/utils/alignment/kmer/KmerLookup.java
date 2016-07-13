@@ -3,11 +3,12 @@ package uk.ac.ox.well.indiana.utils.alignment.kmer;
 import htsjdk.samtools.util.Interval;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-//import org.mapdb.Fun;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.util.*;
+
+//import org.mapdb.Fun;
 
 public class KmerLookup {
     private int kmerSize;
@@ -46,7 +47,7 @@ public class KmerLookup {
     }
 
     public Set<Interval> findKmer(String sk) {
-        Set<Interval> intervals = new HashSet<Interval>();
+        Set<Interval> intervals = new HashSet<>();
 
         if (kmerIndex != null) {
             /*
@@ -62,7 +63,7 @@ public class KmerLookup {
     }
 
     public List<Set<Interval>> findKmers(String s) {
-        List<Set<Interval>> allIntervals = new ArrayList<Set<Interval>>();
+        List<Set<Interval>> allIntervals = new ArrayList<>();
 
         for (int i = 0; i <= s.length() - kmerSize; i++) {
             String sk = s.substring(i, i + kmerSize);
@@ -74,7 +75,7 @@ public class KmerLookup {
     }
 
     private List<Set<Interval>> combineIntervals(List<Set<Interval>> allIntervals, boolean isNegative) {
-        List<Set<Interval>> combinedIntervals = new ArrayList<Set<Interval>>();
+        List<Set<Interval>> combinedIntervals = new ArrayList<>();
 
         Interval currentInterval = null;
         for (Set<Interval> intervals : allIntervals) {
@@ -93,7 +94,7 @@ public class KmerLookup {
                                 "."
                         );
                     } else {
-                        Set<Interval> combined = new HashSet<Interval>();
+                        Set<Interval> combined = new HashSet<>();
                         combined.add(currentInterval);
 
                         combinedIntervals.add(combined);
@@ -103,7 +104,7 @@ public class KmerLookup {
                 }
             } else {
                 if (currentInterval != null) {
-                    Set<Interval> combined = new HashSet<Interval>();
+                    Set<Interval> combined = new HashSet<>();
                     combined.add(currentInterval);
 
                     combinedIntervals.add(combined);
@@ -114,7 +115,7 @@ public class KmerLookup {
         }
 
         if (currentInterval != null) {
-            Set<Interval> combined = new HashSet<Interval>();
+            Set<Interval> combined = new HashSet<>();
             combined.add(currentInterval);
 
             combinedIntervals.add(combined);
@@ -149,7 +150,7 @@ public class KmerLookup {
     }
 
     private List<Interval> flipStrands(List<Interval> lis) {
-        List<Interval> newLis = new ArrayList<Interval>();
+        List<Interval> newLis = new ArrayList<>();
 
         for (Interval li : lis) {
             newLis.add(new Interval(li.getSequence(), li.getStart(), li.getEnd(), true, li.getName()));
@@ -184,7 +185,7 @@ public class KmerLookup {
 
     private Interval closestMatchingAlignment(Interval it, List<Interval> ka) {
         if (it != null) {
-            Map<Integer, Interval> cands = new TreeMap<Integer, Interval>();
+            Map<Integer, Interval> cands = new TreeMap<>();
 
             for (Interval ita : ka) {
                 if (it.getSequence().equals(ita.getSequence())) {
@@ -202,8 +203,8 @@ public class KmerLookup {
     }
 
     public List<List<Interval>> alignSmoothly(String sFw) {
-        List<List<Interval>> kfw = new ArrayList<List<Interval>>();
-        List<List<Interval>> krc = new ArrayList<List<Interval>>();
+        List<List<Interval>> kfw = new ArrayList<>();
+        List<List<Interval>> krc = new ArrayList<>();
 
         int ufw = 0, urc = 0;
 
@@ -211,8 +212,8 @@ public class KmerLookup {
             String fw = sFw.substring(i, i + kmerSize);
             String rc = SequenceUtils.reverseComplement(fw);
 
-            kfw.add(new ArrayList<Interval>(findKmer(fw)));
-            krc.add(flipStrands(new ArrayList<Interval>(findKmer(rc))));
+            kfw.add(new ArrayList<>(findKmer(fw)));
+            krc.add(flipStrands(new ArrayList<>(findKmer(rc))));
 
             if (kfw.get(i).size() == 1) { ufw++; }
             if (krc.get(i).size() == 1) { urc++; }
@@ -221,7 +222,7 @@ public class KmerLookup {
         for (int i = 0; i < kfw.size(); i++) {
             if (kfw.get(i).size() > 1) {
                 Interval ita = closestMatchingAlignment(closestUniqueAlignment(kfw, i), kfw.get(i));
-                List<Interval> its = new ArrayList<Interval>();
+                List<Interval> its = new ArrayList<>();
 
                 if (ita != null) { its.add(ita); }
 
@@ -230,7 +231,7 @@ public class KmerLookup {
 
             if (krc.get(i).size() > 1) {
                 Interval ita = closestMatchingAlignment(closestUniqueAlignment(krc, i), krc.get(i));
-                List<Interval> its = new ArrayList<Interval>();
+                List<Interval> its = new ArrayList<>();
 
                 if (ita != null) { its.add(ita); }
 

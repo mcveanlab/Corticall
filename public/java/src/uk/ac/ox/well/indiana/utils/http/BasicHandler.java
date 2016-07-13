@@ -4,7 +4,9 @@ import ch.qos.logback.classic.Logger;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +46,7 @@ public abstract class BasicHandler implements HttpHandler {
     private Map<String, String> getQuery(HttpExchange httpExchange) {
         String query = httpExchange.getRequestURI().getQuery();
 
-        Map<String, String> result = new HashMap<String, String>();
+        Map<String, String> result = new HashMap<>();
 
         if (query != null) {
             for (String param : query.split("&")) {

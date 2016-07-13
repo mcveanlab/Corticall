@@ -1,7 +1,5 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
-import com.google.common.base.Joiner;
-
 import java.util.Arrays;
 
 public class CortexJunctionsRecord {
@@ -30,8 +28,8 @@ public class CortexJunctionsRecord {
         buffer.append(numKmers).append(" ");
         buffer.append(numJunctions).append(" ");
 
-        for (int c = 0; c < coverages.length; c++) {
-            buffer.append(coverages[c]).append(" ");
+        for (int coverage : coverages) {
+            buffer.append(coverage).append(" ");
         }
 
         buffer.append(junctions);

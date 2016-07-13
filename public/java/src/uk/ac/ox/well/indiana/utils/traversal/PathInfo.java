@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 public class PathInfo {
     public String start, stop, child, parent;

@@ -10,13 +10,11 @@ import htsjdk.variant.vcf.VCFFileReader;
 import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
-import uk.ac.ox.well.indiana.Main;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
@@ -43,7 +41,7 @@ public class ArgumentHandler {
             Field[] instanceFields = instance.getClass().getDeclaredFields();
             Field[] superFields = instance.getClass().getSuperclass().getDeclaredFields();
 
-            List<Field> fields = new ArrayList<Field>();
+            List<Field> fields = new ArrayList<>();
             fields.addAll(Arrays.asList(instanceFields));
             fields.addAll(Arrays.asList(superFields));
 
@@ -56,7 +54,7 @@ public class ArgumentHandler {
 
                         Argument arg = (Argument) annotation;
 
-                        ArrayList<String> descElements = new ArrayList<String>();
+                        ArrayList<String> descElements = new ArrayList<>();
 
                         if (field.get(instance) != null) {
                             descElements.add("default: " + field.get(instance));
@@ -172,7 +170,7 @@ public class ArgumentHandler {
             Class<?> type = field.getType();
 
             if (Collection.class.isAssignableFrom(type)) {
-                ArrayList<String> values = new ArrayList<String>();
+                ArrayList<String> values = new ArrayList<>();
 
                 for (String avalue : value.split(",")) {
                     File valueAsFile = new File(avalue);
@@ -200,8 +198,8 @@ public class ArgumentHandler {
                 }
 
                 field.set(instance, o);
-            } else if (Map.class.isAssignableFrom(type) && !CortexMap.class.isAssignableFrom(type) && !CortexLinksMap.class.isAssignableFrom(type)) {
-                Map<String, String> pairs = new HashMap<String, String>();
+            } else if (Map.class.isAssignableFrom(type) && !CortexLinksMap.class.isAssignableFrom(type)) {
+                Map<String, String> pairs = new HashMap<>();
 
                 for (String avalue : value.split(",")) {
                     File valueAsFile = new File(avalue);
@@ -241,19 +239,7 @@ public class ArgumentHandler {
             } else {
                 field.set(instance, handleArgumentTypes(type, value));
             }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
+        } catch (InvocationTargetException | ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -280,8 +266,6 @@ public class ArgumentHandler {
                 return new CortexLinks(value);
             } else if (type.equals(CortexLinksMap.class)) {
                 return new CortexLinksMap(value);
-            } else if (type.equals(CortexMap.class)) {
-                return new CortexMap(value, Main.getLogger());
             } else if (type.equals(GFF3.class)) {
                 return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {

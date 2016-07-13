@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.alignment.pairwise;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.ProcessExecutor;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -31,7 +30,7 @@ public class BwaAligner implements ExternalAligner {
 
             tempQuery.delete();
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             FastaSequenceFile fa = new FastaSequenceFile(targets, true);
             SAMFileHeader sfh = new SAMFileHeader();
@@ -73,7 +72,7 @@ public class BwaAligner implements ExternalAligner {
             ProcessExecutor.executeAndReturnResult(String.format("%s index %s", bwaPath, tempTarget.getAbsolutePath()));
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath()));
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             SAMFileHeader sfh = new SAMFileHeader();
             sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
@@ -110,7 +109,7 @@ public class BwaAligner implements ExternalAligner {
 
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, targets.getAbsolutePath(), tempQuery.getAbsolutePath()));
 
-            List<SAMRecord> recs = new ArrayList<SAMRecord>();
+            List<SAMRecord> recs = new ArrayList<>();
 
             FastaSequenceFile fa = new FastaSequenceFile(targets, true);
             SAMFileHeader sfh = new SAMFileHeader();

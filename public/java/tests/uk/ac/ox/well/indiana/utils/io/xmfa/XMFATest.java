@@ -14,7 +14,7 @@ public class XMFATest {
     public void loadXMFAFileTest() {
         FastaSequenceFile testRecordFile = new FastaSequenceFile(new File("testdata/pf.subset.alignment.fasta"), true);
 
-        Map<String, String> testRecords = new HashMap<String, String>();
+        Map<String, String> testRecords = new HashMap<>();
         ReferenceSequence rseq;
         while ((rseq = testRecordFile.nextSequence()) != null) {
             String name = rseq.getName();

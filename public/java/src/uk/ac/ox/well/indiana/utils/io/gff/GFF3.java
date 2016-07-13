@@ -24,12 +24,12 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     }
 
     private File gffFile;
-    private TreeMap<String, String> headers = new TreeMap<String, String>();
-    private TreeMap<String, SequenceRegion> sequenceRegions = new TreeMap<String, SequenceRegion>();
+    private TreeMap<String, String> headers = new TreeMap<>();
+    private TreeMap<String, SequenceRegion> sequenceRegions = new TreeMap<>();
 
-    private IntervalTreeMap<Set<GFF3Record>> intervals = new IntervalTreeMap<Set<GFF3Record>>();
-    private TreeMap<String, GFF3Record> idrecords = new TreeMap<String, GFF3Record>();
-    private ArrayList<GFF3Record> records = new ArrayList<GFF3Record>();
+    private IntervalTreeMap<Set<GFF3Record>> intervals = new IntervalTreeMap<>();
+    private TreeMap<String, GFF3Record> idrecords = new TreeMap<>();
+    private ArrayList<GFF3Record> records = new ArrayList<>();
 
     private int index = 0;
 
@@ -70,7 +70,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
                     Interval interval = new Interval(record.getSeqid(), record.getStart(), record.getEnd());
 
                     if (!intervals.containsKey(interval)) {
-                        intervals.put(interval, new HashSet<GFF3Record>());
+                        intervals.put(interval, new HashSet<>());
                     }
 
                     intervals.get(interval).add(record);
@@ -114,7 +114,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     }
 
     public String toString() {
-        ArrayList<String> headerLines = new ArrayList<String>();
+        ArrayList<String> headerLines = new ArrayList<>();
 
         headerLines.add("##gff-version\t3");
 
@@ -132,7 +132,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     public Collection<GFF3Record> getOverlapping(Interval key) {
         Collection<Set<GFF3Record>> recordCollections = intervals.getOverlapping(key);
 
-        HashSet<GFF3Record> records = new HashSet<GFF3Record>();
+        HashSet<GFF3Record> records = new HashSet<>();
 
         for (Set<GFF3Record> recordSet : recordCollections) {
             records.addAll(recordSet);
@@ -150,7 +150,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     public Collection<GFF3Record> getContained(Interval key) {
         Collection<Set<GFF3Record>> recordCollections = intervals.getContained(key);
 
-        HashSet<GFF3Record> records = new HashSet<GFF3Record>();
+        HashSet<GFF3Record> records = new HashSet<>();
 
         for (Set<GFF3Record> recordSet : recordCollections) {
             records.addAll(recordSet);
@@ -161,7 +161,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
 
     public Collection<GFF3Record> getChildren(GFF3Record record) {
         String id = record.getAttribute("ID");
-        Collection<GFF3Record> exons = new ArrayList<GFF3Record>();
+        Collection<GFF3Record> exons = new ArrayList<>();
 
         for (GFF3Record exon : GFF3.getType("exon", this.getOverlapping(record))) {
             String exonId = exon.getAttribute("ID");
@@ -185,7 +185,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
     }
 
     public static Collection<GFF3Record> getType(String type, Collection<GFF3Record> records) {
-        ArrayList<GFF3Record> subsetOfRecords = new ArrayList<GFF3Record>();
+        ArrayList<GFF3Record> subsetOfRecords = new ArrayList<>();
 
         for (GFF3Record r : records) {
             if (type.equalsIgnoreCase(r.getType())) {

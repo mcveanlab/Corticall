@@ -10,9 +10,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
 public class DataFrame<R, C, D> {
-    private LinkedHashMap<R, LinkedHashMap<C, D>> data = new LinkedHashMap<R, LinkedHashMap<C, D>>();
+    private LinkedHashMap<R, LinkedHashMap<C, D>> data = new LinkedHashMap<>();
 
-    private LinkedHashSet<C> colNames = new LinkedHashSet<C>();
+    private LinkedHashSet<C> colNames = new LinkedHashSet<>();
 
     private D zeroValue;
 
@@ -52,7 +52,7 @@ public class DataFrame<R, C, D> {
         colNames.add(colName);
 
         if (!data.containsKey(rowName)) {
-            data.put(rowName, new LinkedHashMap<C, D>());
+            data.put(rowName, new LinkedHashMap<>());
         }
 
         data.get(rowName).put(colName, datum);
@@ -93,7 +93,7 @@ public class DataFrame<R, C, D> {
                 System.out.println(r + " " + c);
 
                 if (v0 instanceof Float && v1 instanceof Float) {
-                    Float v2 = ((Float) v0).floatValue() + ((Float) v1).floatValue();
+                    Float v2 = (Float) v0 + (Float) v1;
                     this.set(r, c, (D) v2);
                 }
             }
@@ -104,7 +104,7 @@ public class DataFrame<R, C, D> {
         String result = "\t" + Joiner.on("\t").join(colNames) + "\n";
 
         for (R rowName : data.keySet()) {
-            ArrayList<String> rowFields = new ArrayList<String>();
+            ArrayList<String> rowFields = new ArrayList<>();
             rowFields.add(rowName.toString());
 
             for (C colName : colNames) {

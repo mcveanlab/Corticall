@@ -1,9 +1,6 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.WeightedGraph;
-import org.jgrapht.graph.DefaultDirectedWeightedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 public interface TraversalStopper<V, E> {

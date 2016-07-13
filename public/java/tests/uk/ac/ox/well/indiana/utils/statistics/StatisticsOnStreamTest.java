@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.util.statistics;
+package uk.ac.ox.well.indiana.utils.statistics;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;

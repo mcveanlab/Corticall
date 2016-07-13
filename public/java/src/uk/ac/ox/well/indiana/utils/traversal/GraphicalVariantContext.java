@@ -1,7 +1,6 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 import htsjdk.variant.variantcontext.VariantContext;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.ArrayList;
@@ -10,17 +9,17 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class GraphicalVariantContext {
-    private List<Map<String, Object>> attrs = new ArrayList<Map<String, Object>>();
+    private List<Map<String, Object>> attrs = new ArrayList<>();
 
     public GraphicalVariantContext() {
         for (int i = 0; i <= 2; i++) {
-            attrs.add(new TreeMap<String, Object>());
+            attrs.add(new TreeMap<>());
         }
     }
 
     public GraphicalVariantContext(GraphicalVariantContext g) {
         for (int i = 0; i <= 2; i++) {
-            attrs.add(new TreeMap<String, Object>());
+            attrs.add(new TreeMap<>());
 
             addAttributes(i, g.getAttributes(i));
         }

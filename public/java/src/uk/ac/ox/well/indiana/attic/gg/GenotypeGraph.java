@@ -1,24 +1,17 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.attic.gg;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.Cigar;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import uk.ac.ox.well.indiana.Indiana;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
-import uk.ac.ox.well.indiana.utils.alignment.pairwise.BwaAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.ExternalAligner;
 import uk.ac.ox.well.indiana.utils.alignment.pairwise.LastzAligner;
-import uk.ac.ox.well.indiana.utils.alignment.pairwise.LocalAligner;
-import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.containers.DataTable;
 import uk.ac.ox.well.indiana.utils.containers.DataTables;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -28,10 +21,9 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.traversal.*;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -82,7 +74,7 @@ public class GenotypeGraph extends Module {
     //public PrintStream cout;
 
     private void evalVariant(GraphicalVariantContext gvc, int color, Map<CortexKmer, VariantInfo> vis, String stretch) {
-        Set<VariantInfo> relevantVis = new HashSet<VariantInfo>();
+        Set<VariantInfo> relevantVis = new HashSet<>();
         int kmerSize = vis.keySet().iterator().next().length();
 
         for (int i = 0; i <= stretch.length() - kmerSize; i++) {
@@ -238,7 +230,7 @@ public class GenotypeGraph extends Module {
         int endPos = 0;
         int prevEndPos = 0;
 
-        IntervalTreeMap<Integer> itm = new IntervalTreeMap<Integer>();
+        IntervalTreeMap<Integer> itm = new IntervalTreeMap<>();
 
         for (Map<String, String> te : tr) {
             for (String columnName : te.keySet()) {
@@ -383,7 +375,7 @@ public class GenotypeGraph extends Module {
     private List<SAMRecord> getAlignment(String alignmentStretch, KmerLookup kl, KmerLookup kl1, KmerLookup kl2, IntervalTreeMap<Integer> itm) {
         int[] hb = getHaplotypeBackgroundVector(alignmentStretch, kl, kl1, kl2, itm);
 
-        Map<String, Integer> pieces = new LinkedHashMap<String, Integer>();
+        Map<String, Integer> pieces = new LinkedHashMap<>();
         int currentHb = hb[0];
         int currentStart = 0;
         for (int i = 1; i < hb.length; i++) {
@@ -399,8 +391,8 @@ public class GenotypeGraph extends Module {
         String piece = alignmentStretch.substring(currentStart, alignmentStretch.length());
         pieces.put(piece, hb[currentStart]);
 
-        Map<String, SAMRecord> alignments = new LinkedHashMap<String, SAMRecord>();
-        Map<String, Integer> parentage = new LinkedHashMap<String, Integer>();
+        Map<String, SAMRecord> alignments = new LinkedHashMap<>();
+        Map<String, Integer> parentage = new LinkedHashMap<>();
 
         ExternalAligner la = new LastzAligner();
         //ExternalAligner la = new BwaAligner();
@@ -411,7 +403,7 @@ public class GenotypeGraph extends Module {
             } else if (pieces.get(p) == 2) {
                 srs = la.align(p, REF2);
             } else {
-                srs = new ArrayList<SAMRecord>();
+                srs = new ArrayList<>();
             }
 
             if (srs.size() == 1) {
@@ -423,7 +415,7 @@ public class GenotypeGraph extends Module {
             parentage.put(p, pieces.get(p));
         }
 
-        List<SAMRecord> alignmentsSimplified = new ArrayList<SAMRecord>();
+        List<SAMRecord> alignmentsSimplified = new ArrayList<>();
 
         for (String p : alignments.keySet()) {
             SAMRecord sr = alignments.get(p);
@@ -484,7 +476,7 @@ public class GenotypeGraph extends Module {
     }
 
     private List<Interval> combineIntervals(List<List<Interval>> allIntervals) {
-        List<Interval> combinedIntervals = new ArrayList<Interval>();
+        List<Interval> combinedIntervals = new ArrayList<>();
 
         Interval currentInterval = null;
         for (int i = 0; i < allIntervals.size(); i++) {
@@ -524,7 +516,7 @@ public class GenotypeGraph extends Module {
     }
 
     private Set<CortexKmer> loadRejectedKmers() {
-        Set<CortexKmer> rejects = new HashSet<CortexKmer>();
+        Set<CortexKmer> rejects = new HashSet<>();
 
         for (CortexRecord cr : REJECT) {
             rejects.add(cr.getCortexKmer());
@@ -534,7 +526,7 @@ public class GenotypeGraph extends Module {
     }
 
     private String compactAlignments(List<Interval> intervals) {
-        List<String> compactIntervals = new ArrayList<String>();
+        List<String> compactIntervals = new ArrayList<>();
 
         for (Interval interval : intervals) {
             compactIntervals.add(String.format("%s:%d-%d:%s", interval.getSequence(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-"));
@@ -552,17 +544,17 @@ public class GenotypeGraph extends Module {
         KmerLookup kl1 = new KmerLookup(REF1);
         KmerLookup kl2 = new KmerLookup(REF2);
 
-        IntervalTreeMap<Integer> itm = (HAPLOTYPES != null && HAPLOTYPES.exists()) ? loadHaplotypes() : new IntervalTreeMap<Integer>();
+        IntervalTreeMap<Integer> itm = (HAPLOTYPES != null && HAPLOTYPES.exists()) ? loadHaplotypes() : new IntervalTreeMap<>();
 
         Map<CortexKmer, VariantInfo> vis = GenotypeGraphUtils.loadNovelKmerMap(NOVEL_KMER_MAP, BED);
-        Map<String, VariantInfo> vids = new HashMap<String, VariantInfo>();
-        Map<String, Boolean> viSeen = new HashMap<String, Boolean>();
+        Map<String, VariantInfo> vids = new HashMap<>();
+        Map<String, Boolean> viSeen = new HashMap<>();
         for (VariantInfo vi : vis.values()) {
             vids.put(vi.variantId, vi);
             viSeen.put(vi.variantId, false);
         }
 
-        Map<CortexKmer, Boolean> novelKmers = new HashMap<CortexKmer, Boolean>();
+        Map<CortexKmer, Boolean> novelKmers = new HashMap<>();
         for (CortexRecord cr : NOVEL) {
             novelKmers.put(new CortexKmer(cr.getKmerAsString()), true);
         }
@@ -596,7 +588,7 @@ public class GenotypeGraph extends Module {
         evalTables.getTable("eventMatchStats").set("dummy", "match", 0l);
         evalTables.getTable("eventMatchStats").set("dummy", "mismatch", 0l);
 
-        Set<CortexKmer> novelKmersToVisit = new HashSet<CortexKmer>();
+        Set<CortexKmer> novelKmersToVisit = new HashSet<>();
 
         if (KMER != null) {
             novelKmers.put(new CortexKmer(KMER), true);
@@ -608,7 +600,7 @@ public class GenotypeGraph extends Module {
         int variantsMissingKmers = 0;
 
         log.info("Genotyping novel kmer stretches in graph...");
-        Set<GraphicalVariantContext> gvcs = new LinkedHashSet<GraphicalVariantContext>();
+        Set<GraphicalVariantContext> gvcs = new LinkedHashSet<>();
         for (CortexKmer novelKmer : novelKmersToVisit) {
             if (novelKmers.containsKey(novelKmer) && novelKmers.get(novelKmer)) {
                 // Walk the graph left and right of novelKmer and extract a novel stretch
@@ -677,14 +669,14 @@ public class GenotypeGraph extends Module {
                 String astretch = (pstretch.isEmpty() && cstretch.isEmpty()) ? stretch : pstretch;
                 String bstretch = (pstretch.isEmpty() && cstretch.isEmpty()) ? stretch : cstretch;
 
-                List<Interval> finalPos = new ArrayList<Interval>();
+                List<Interval> finalPos = new ArrayList<>();
                 List<List<Interval>> alignment = gvc.getAttributeAsInt(0, "haplotypeBackground") == 1 ? kl1.alignSmoothly(astretch) : kl2.alignSmoothly(astretch);
-                for (int i = 0; i < alignment.size(); i++) {
-                    for (int j = 0; j < alignment.get(i).size(); j++) {
-                        Interval oldInterval = alignment.get(i).get(j);
+                for (List<Interval> anAlignment : alignment) {
+                    for (int j = 0; j < anAlignment.size(); j++) {
+                        Interval oldInterval = anAlignment.get(j);
                         Interval newInterval = new Interval(oldInterval.getSequence(), oldInterval.getStart(), oldInterval.getEnd(), oldInterval.isNegativeStrand(), String.valueOf(gvc.getAttributeAsInt(0, "haplotypeBackground")));
 
-                        alignment.get(i).set(j, newInterval);
+                        anAlignment.set(j, newInterval);
                     }
                 }
 
@@ -718,12 +710,12 @@ public class GenotypeGraph extends Module {
 
                     nv = smooth(nv);
 
-                    List<Pair<String, String>> sections = new ArrayList<Pair<String, String>>();
+                    List<Pair<String, String>> sections = new ArrayList<>();
                     StringBuilder first = new StringBuilder();
                     StringBuilder second = new StringBuilder();
                     for (int i = 0; i < nv.length(); i++) {
                         if (nv.charAt(i) == '.' && (first.length() > 0 || second.length() > 0)) {
-                            sections.add(new Pair<String, String>(first.toString(), second.toString()));
+                            sections.add(new Pair<>(first.toString(), second.toString()));
                             first = new StringBuilder();
                             second = new StringBuilder();
                         }
@@ -746,7 +738,7 @@ public class GenotypeGraph extends Module {
                     }
 
                     if (first.length() > 0 || second.length() > 0) {
-                        sections.add(new Pair<String, String>(first.toString(), second.toString()));
+                        sections.add(new Pair<>(first.toString(), second.toString()));
                     }
 
                     if (!SKIP_ALIGNMENTS) {
@@ -1072,7 +1064,7 @@ public class GenotypeGraph extends Module {
 
                 log.info("");
 
-                Set<GraphicalVariantContext> newGvcs = new LinkedHashSet<GraphicalVariantContext>();
+                Set<GraphicalVariantContext> newGvcs = new LinkedHashSet<>();
 
                 // Separate MNPs into separate events if necessary
                 if (gvc.getAttribute(0, "event").equals("MNP") && gvc.getAttributeAsString(0, "childAllele").length() == gvc.getAttributeAsString(0, "parentalAllele").length()) {

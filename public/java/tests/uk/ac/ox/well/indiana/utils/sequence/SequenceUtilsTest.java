@@ -56,7 +56,7 @@ public class SequenceUtilsTest {
 
     @Test
     public void computeN50() {
-        List<String> sequences = new ArrayList<String>();
+        List<String> sequences = new ArrayList<>();
         sequences.add("AAGCTTA");
         sequences.add("TTGA");
         sequences.add("AAC");
@@ -69,7 +69,7 @@ public class SequenceUtilsTest {
 
         Assert.assertEquals(4, n50);
 
-        List<CortexKmer> csequences = new ArrayList<CortexKmer>();
+        List<CortexKmer> csequences = new ArrayList<>();
         csequences.add(new CortexKmer("AAGCTTA"));
         csequences.add(new CortexKmer("TTGA"));
         csequences.add(new CortexKmer("AAC"));
@@ -103,8 +103,8 @@ public class SequenceUtilsTest {
             IndexedFastaSequenceFile cdsRef = new IndexedFastaSequenceFile(cdsFile);
             IndexedFastaSequenceFile trRef = new IndexedFastaSequenceFile(trFile);
 
-            Set<String> cdsIds = new HashSet<String>();
-            Set<String> trIds = new HashSet<String>();
+            Set<String> cdsIds = new HashSet<>();
+            Set<String> trIds = new HashSet<>();
 
             ReferenceSequence r;
             while ((r = cdsRef.nextSequence()) != null) {

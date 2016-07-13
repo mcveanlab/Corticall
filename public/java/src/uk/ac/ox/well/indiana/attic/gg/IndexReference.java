@@ -1,17 +1,13 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.attic.gg;
 
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
-//import org.mapdb.BTreeKeySerializer;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.NavigableSet;
+
+//import org.mapdb.BTreeKeySerializer;
 
 public class IndexReference extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference sequence")

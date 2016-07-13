@@ -38,7 +38,7 @@ public class Dispatch {
             Module instance = module.newInstance();
             instance.args = moduleArgs;
 
-            Set<String> specifiedArgs = new HashSet<String>();
+            Set<String> specifiedArgs = new HashSet<>();
             for (int i = 0; i < moduleArgs.length - 1; i+=2) {
                 specifiedArgs.add(moduleArgs[i]);
             }
@@ -46,11 +46,11 @@ public class Dispatch {
             Field[] instanceFields = instance.getClass().getDeclaredFields();
             Field[] superFields = instance.getClass().getSuperclass().getDeclaredFields();
 
-            List<Field> fields = new ArrayList<Field>();
+            List<Field> fields = new ArrayList<>();
             fields.addAll(Arrays.asList(instanceFields));
             fields.addAll(Arrays.asList(superFields));
 
-            List<String> defaultArgs = new ArrayList<String>();
+            List<String> defaultArgs = new ArrayList<>();
             for (Field field : fields) {
                 for (Annotation annotation : field.getDeclaredAnnotations()) {
                     if (annotation.annotationType().equals(Argument.class)) {
@@ -102,11 +102,7 @@ public class Dispatch {
             Main.getLogger().info("Complete. (time) {}; (mem) {}",
                                   DurationFormatUtils.formatDurationHMS(elapsedTime.getTime()),
                                   PerformanceUtils.getCompactMemoryUsageStats() );
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
         }
     }

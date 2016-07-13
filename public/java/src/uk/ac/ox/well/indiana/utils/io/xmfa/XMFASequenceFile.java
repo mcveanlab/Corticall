@@ -28,11 +28,11 @@ public class XMFASequenceFile implements Iterable<XMFARecord>, Iterator<XMFAReco
     private void loadXMFAFile(File xmfaFile) {
         LineReader lr = new LineReader(xmfaFile);
 
-        records = new ArrayList<XMFARecord>();
+        records = new ArrayList<>();
 
         XMFARecord record = new XMFARecord();
         String fastaLine = null;
-        List<String> contigPieces = new ArrayList<String>();
+        List<String> contigPieces = new ArrayList<>();
 
         String line;
         while ((line = lr.getNextRecord()) != null) {

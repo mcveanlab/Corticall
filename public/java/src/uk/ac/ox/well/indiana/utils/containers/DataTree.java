@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.utils.containers;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class DataTree {
     private Map<Object, DataTree> children;
@@ -15,7 +14,7 @@ public class DataTree {
     public void add(Object[] objects, int start, int stop) {
         if (start < stop) {
             if (children == null) {
-                children = new TreeMap<Object, DataTree>();
+                children = new TreeMap<>();
             }
 
             if (!children.containsKey(objects[start])) {
@@ -33,8 +32,8 @@ public class DataTree {
     public Set<Object> get(Object... objects) {
         DataTree tree = this;
 
-        for (int i = 0; i < objects.length; i++) {
-            tree = tree.get(objects[i]);
+        for (Object object : objects) {
+            tree = tree.get(object);
         }
 
         return tree.children.keySet();
@@ -47,12 +46,12 @@ public class DataTree {
     public boolean has(Object... objects) {
         DataTree tree = this;
 
-        for (int i = 0; i < objects.length; i++) {
-            if (!tree.has(objects[i])) {
+        for (Object object : objects) {
+            if (!tree.has(object)) {
                 return false;
             }
 
-            tree = tree.get(objects[i]);
+            tree = tree.get(object);
         }
 
         return true;

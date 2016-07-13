@@ -23,7 +23,7 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
     private long numLinks;
     private long linkBytes;
 
-    private List<CortexColor> colors = new ArrayList<CortexColor>();
+    private List<CortexColor> colors = new ArrayList<>();
 
     private BufferedReader buffered;
 
@@ -160,7 +160,7 @@ public class CortexLinks implements Iterable<CortexLinksRecord>, Iterator<Cortex
                 String kmer = kmerLine[0];
                 int numLinks = Integer.valueOf(kmerLine[1]);
 
-                List<CortexJunctionsRecord> cjs = new ArrayList<CortexJunctionsRecord>();
+                List<CortexJunctionsRecord> cjs = new ArrayList<>();
 
                 for (int i = 0; i < numLinks; i++) {
                     String[] linkLine = buffered.readLine().split("\\s+");

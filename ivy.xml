@@ -20,8 +20,8 @@
         <dependency org="org.yaml" name="snakeyaml" rev="1.17" />
         <dependency org="uk.com.robust-it" name="cloning" rev="1.9.2" />
         <dependency org="org.mapdb" name="mapdb" rev="3.0.0" />
-
-        <!-- Dependencies that can be satisifed with local repository -->
+        <dependency org="org.json" name="json" rev="20160212" />
+        <!--<dependency org="net.sf.proguard" name="proguard-anttask" rev="5.2.1" />-->
 
         <!-- Picard / Htsjdk dependencies -->
         <dependency org="org.xerial.snappy" name="snappy-java" rev="1.1.2.6" />
@@ -29,8 +29,7 @@
         <dependency org="htsjdk" name="htsjdk" rev="2.5.1-2-ge7c7bf6-SNAPSHOT-all" />
         <dependency org="com.github.broadinstitute" name="picard" rev="2.5.0" />
 
-        <!-- Other dependencies -->
-        <dependency org="org.json" name="json" rev="20160212" />
+        <!-- Dependencies that can be satisifed with local repository -->
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
 
         <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm -->

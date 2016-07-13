@@ -143,7 +143,7 @@
     <target name="test" depends="compile">
         <mkdir dir="${testng.dir}" />
 
-        <taskdef name="testng" classname="org.testng.TestNGAntTask" classpath="${jars.dir}/testng-6.8.jar" />
+        <taskdef name="testng" classname="org.testng.TestNGAntTask" classpath="${jars.dir}/testng-6.9.10.jar" />
  
         <testng outputDir="${testng.dir}" haltOnFailure="false" verbose="2">
             <classpath>
@@ -236,4 +236,18 @@
         </delete>
         <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="false" quiet="true" />
     </target>
+
+<!--
+    <taskdef resource="proguard/ant/task.properties" classpath="lib/proguard-anttask-5.2.1.jar" />
+    <proguard>
+-injars       dist/indiana.jar
+-outjars      dist/indiana_small.jar
+-libraryjars  lib/
+-printmapping myapplication.map
+
+-keep public class uk.ac.ox.well.indiana.Main {
+    public static void main(java.lang.String[]);
+}
+    </proguard>
+-->
 </project>

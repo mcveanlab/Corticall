@@ -7,10 +7,9 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 public class DataTables {
-    private Map<String, DataTable> tables = new LinkedHashMap<String, DataTable>();
+    private Map<String, DataTable> tables = new LinkedHashMap<>();
 
     public DataTables() {}
 

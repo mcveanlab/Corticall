@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
@@ -42,11 +42,11 @@ public class GenotypeGraphUtils {
     }
 
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> loadLocalSubgraph(String stretch, CortexGraph clean, CortexGraph dirty, Map<CortexKmer, Boolean> novelKmers, boolean addStretchToGraph) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0 = new DefaultDirectedGraph<>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg1 = new DefaultDirectedGraph<>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg2 = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
-        Map<String, Boolean> localNovelKmers = new HashMap<String, Boolean>();
+        Map<String, Boolean> localNovelKmers = new HashMap<>();
         for (int i = 0; i <= stretch.length() - clean.getKmerSize(); i++) {
             String sk = stretch.substring(i, i + clean.getKmerSize());
             CortexKmer ck = new CortexKmer(sk);
@@ -86,14 +86,14 @@ public class GenotypeGraphUtils {
                 }
             }
 
-            Set<AnnotatedVertex> predecessorList = new HashSet<AnnotatedVertex>();
-            Set<AnnotatedVertex> successorList = new HashSet<AnnotatedVertex>();
+            Set<AnnotatedVertex> predecessorList = new HashSet<>();
+            Set<AnnotatedVertex> successorList = new HashSet<>();
 
             for (AnnotatedVertex av : sg0.vertexSet()) {
                 if (!novelKmers.containsKey(new CortexKmer(av.getKmer()))) {
                     if (sg0.outDegreeOf(av) > 1) {
-                        Set<AnnotatedEdge> novelEdges = new HashSet<AnnotatedEdge>();
-                        Set<AnnotatedEdge> parentalEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> novelEdges = new HashSet<>();
+                        Set<AnnotatedEdge> parentalEdges = new HashSet<>();
 
                         for (AnnotatedEdge ae : sg0.outgoingEdgesOf(av)) {
                             if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
@@ -107,7 +107,7 @@ public class GenotypeGraphUtils {
                             for (AnnotatedEdge pe : parentalEdges) {
                                 AnnotatedVertex tv = sg0.getEdgeTarget(pe);
 
-                                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfi = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(sg0, tv);
+                                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfi = new DepthFirstIterator<>(sg0, tv);
 
                                 while (dfi.hasNext()) {
                                     AnnotatedVertex nv = dfi.next();
@@ -121,8 +121,8 @@ public class GenotypeGraphUtils {
                     }
 
                     if (sg0.inDegreeOf(av) > 1) {
-                        Set<AnnotatedEdge> novelEdges = new HashSet<AnnotatedEdge>();
-                        Set<AnnotatedEdge> parentalEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> novelEdges = new HashSet<>();
+                        Set<AnnotatedEdge> parentalEdges = new HashSet<>();
 
                         for (AnnotatedEdge ae : sg0.incomingEdgesOf(av)) {
                             if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
@@ -136,7 +136,7 @@ public class GenotypeGraphUtils {
                             for (AnnotatedEdge pe : parentalEdges) {
                                 AnnotatedVertex sv = sg0.getEdgeSource(pe);
 
-                                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfi = new DepthFirstIterator<AnnotatedVertex, AnnotatedEdge>(new EdgeReversedGraph<AnnotatedVertex, AnnotatedEdge>(sg0), sv);
+                                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfi = new DepthFirstIterator<>(new EdgeReversedGraph<>(sg0), sv);
 
                                 while (dfi.hasNext()) {
                                     AnnotatedVertex pv = dfi.next();
@@ -167,7 +167,7 @@ public class GenotypeGraphUtils {
                         Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
                         for (AnnotatedVertex ak : psList) {
-                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward, new HashSet<String>());
+                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward, new HashSet<>());
 
                             if (dfs != null) {
                                 Graphs.addGraph(sg, dfs);
@@ -187,7 +187,7 @@ public class GenotypeGraphUtils {
         } while (numRemainingLocalNovelKmers(localNovelKmers) > 0);
 
         // Now, combine them all into an annotated graph
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = new DefaultDirectedGraph<>(AnnotatedEdge.class);
         addGraph(ag, sg0, novelKmers);
         addGraph(ag, sg1, novelKmers);
         addGraph(ag, sg2, novelKmers);
@@ -234,7 +234,7 @@ public class GenotypeGraphUtils {
     }
 
     private static String formatAttributes(Map<String, Object> attrs) {
-        List<String> attrArray = new ArrayList<String>();
+        List<String> attrArray = new ArrayList<>();
 
         for (String attr : attrs.keySet()) {
             String value = attrs.get(attr).toString();
@@ -263,7 +263,7 @@ public class GenotypeGraphUtils {
             }
 
             for (AnnotatedVertex v : g.vertexSet()) {
-                Map<String, Object> attrs = new TreeMap<String, Object>();
+                Map<String, Object> attrs = new TreeMap<>();
 
                 if (!withText || g.inDegreeOf(v) == 0 || g.outDegreeOf(v) == 0) {
                     attrs.put("label", "");
@@ -292,7 +292,7 @@ public class GenotypeGraphUtils {
 
                 for (int c = 0; c < 3; c++) {
                     if (e.isPresent(c)) {
-                        Map<String, Object> attrs = new TreeMap<String, Object>();
+                        Map<String, Object> attrs = new TreeMap<>();
                         attrs.put("color", colors[c]);
                         attrs.put("weight", g.getEdgeWeight(e));
                         attrs.put("label", g.getEdgeWeight(e));
@@ -320,7 +320,7 @@ public class GenotypeGraphUtils {
         for (AnnotatedVertex v : g.vertexSet()) {
             AnnotatedVertex av = new AnnotatedVertex(v.getKmer(), novelKmers.containsKey(new CortexKmer(v.getKmer())));
 
-            av.setFlags(new HashSet<String>(v.getFlags()));
+            av.setFlags(new HashSet<>(v.getFlags()));
 
             a.addVertex(av);
         }
@@ -342,7 +342,7 @@ public class GenotypeGraphUtils {
     }
 
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> copyGraph(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a) {
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedGraph<AnnotatedVertex, AnnotatedEdge>(AnnotatedEdge.class);
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
         for (AnnotatedVertex av : a.vertexSet()) {
             AnnotatedVertex newAv = new AnnotatedVertex(av.getKmer(), av.isNovel());
@@ -366,10 +366,10 @@ public class GenotypeGraphUtils {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
         AnnotatedVertex thisVertex;
-        Set<AnnotatedVertex> usedStarts = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> usedStarts = new HashSet<>();
 
-        Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
-        Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> candidateStarts = new HashSet<>();
+        Set<AnnotatedVertex> candidateEnds = new HashSet<>();
         for (AnnotatedVertex av : b.vertexSet()) {
             if (av.flagIsSet("start")) {
                 candidateStarts.add(av);
@@ -411,7 +411,7 @@ public class GenotypeGraphUtils {
 
                     b.addVertex(sv);
 
-                    Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
+                    Set<AnnotatedEdge> edgesToRemove = new HashSet<>();
 
                     for (AnnotatedEdge e : b.incomingEdgesOf(thisVertex)) {
                         AnnotatedVertex pv = b.getEdgeSource(e);
@@ -457,7 +457,7 @@ public class GenotypeGraphUtils {
     }
 
     public static Map<String, VariantInfo> loadVariantInfoMap(File bedFile) {
-        Map<String, VariantInfo> allVariants = new HashMap<String, VariantInfo>();
+        Map<String, VariantInfo> allVariants = new HashMap<>();
 
         if (bedFile != null) {
             TableReader bed = new TableReader(bedFile, "vchr", "vstart", "vstop", "info");
@@ -511,7 +511,7 @@ public class GenotypeGraphUtils {
     public static Map<CortexKmer, VariantInfo> loadNovelKmerMap(File novelKmerMap, File bedFile) {
         Map<String, VariantInfo> allVariants = loadVariantInfoMap(bedFile);
 
-        Map<CortexKmer, VariantInfo> vis = new HashMap<CortexKmer, VariantInfo>();
+        Map<CortexKmer, VariantInfo> vis = new HashMap<>();
 
         if (novelKmerMap != null) {
             TableReader tr = new TableReader(novelKmerMap);
@@ -530,7 +530,7 @@ public class GenotypeGraphUtils {
     private static DirectedGraph<AnnotatedVertex, AnnotatedEdge> removeOtherColors(DirectedGraph<AnnotatedVertex, AnnotatedEdge> a, int colorToRetain) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> b = copyGraph(a);
 
-        Set<AnnotatedEdge> edgesToRemove = new HashSet<AnnotatedEdge>();
+        Set<AnnotatedEdge> edgesToRemove = new HashSet<>();
 
         for (AnnotatedEdge ae : b.edgeSet()) {
             for (int c = 0; c < 10; c++) {
@@ -546,7 +546,7 @@ public class GenotypeGraphUtils {
 
         b.removeAllEdges(edgesToRemove);
 
-        Set<AnnotatedVertex> verticesToRemove = new HashSet<AnnotatedVertex>();
+        Set<AnnotatedVertex> verticesToRemove = new HashSet<>();
         for (AnnotatedVertex av : b.vertexSet()) {
             if (b.inDegreeOf(av) == 0 && b.outDegreeOf(av) == 0) {
                 verticesToRemove.add(av);
@@ -569,7 +569,7 @@ public class GenotypeGraphUtils {
             novel[i] = novelKmers.containsKey(ck);
         }
 
-        List<String> novelStretches = new ArrayList<String>();
+        List<String> novelStretches = new ArrayList<>();
 
         StringBuilder novelStretchBuilder = new StringBuilder();
 
@@ -616,8 +616,8 @@ public class GenotypeGraphUtils {
             private String stretch;
             private Map<CortexKmer, Boolean> novelKmers;
             private DirectedGraph<AnnotatedVertex, AnnotatedEdge> b;
-            private Set<AnnotatedVertex> candidateEnds = new HashSet<AnnotatedVertex>();
-            private Set<AnnotatedVertex> candidateStarts = new HashSet<AnnotatedVertex>();
+            private Set<AnnotatedVertex> candidateEnds = new HashSet<>();
+            private Set<AnnotatedVertex> candidateStarts = new HashSet<>();
             private boolean beAggressive = false;
 
             public AnnotateStartsAndEnds(int color, String stretch, Map<CortexKmer, Boolean> novelKmers, DirectedGraph<AnnotatedVertex, AnnotatedEdge> b, boolean beAggressive) {
@@ -639,8 +639,8 @@ public class GenotypeGraphUtils {
                     if (b.outDegreeOf(av) > 1) {
                         Set<AnnotatedEdge> aes = b.outgoingEdgesOf(av);
 
-                        Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
-                        Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> childEdges = new HashSet<>();
+                        Set<AnnotatedEdge> parentEdges = new HashSet<>();
 
                         for (AnnotatedEdge ae : aes) {
                             if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
@@ -662,8 +662,8 @@ public class GenotypeGraphUtils {
                     if (b.inDegreeOf(av) > 1) {
                         Set<AnnotatedEdge> aes = b.incomingEdgesOf(av);
 
-                        Set<AnnotatedEdge> childEdges = new HashSet<AnnotatedEdge>();
-                        Set<AnnotatedEdge> parentEdges = new HashSet<AnnotatedEdge>();
+                        Set<AnnotatedEdge> childEdges = new HashSet<>();
+                        Set<AnnotatedEdge> parentEdges = new HashSet<>();
 
                         for (AnnotatedEdge ae : aes) {
                             if (ae.isPresent(0) && ae.isAbsent(1) && ae.isAbsent(2)) {
@@ -708,8 +708,8 @@ public class GenotypeGraphUtils {
 
                 if (b0.containsVertex(sv) && b0.containsVertex(ev) && bc.containsVertex(sv) && bc.containsVertex(ev)) {
                     do {
-                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(b0, sv, ev);
-                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge>(bc, sv, ev);
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dsp0 = new DijkstraShortestPath<>(b0, sv, ev);
+                        DijkstraShortestPath<AnnotatedVertex, AnnotatedEdge> dspc = new DijkstraShortestPath<>(bc, sv, ev);
 
                         GraphPath<AnnotatedVertex, AnnotatedEdge> p0 = dsp0.getPath();
                         GraphPath<AnnotatedVertex, AnnotatedEdge> pc = dspc.getPath();
@@ -987,7 +987,7 @@ public class GenotypeGraphUtils {
     }
 
     private static String majorityChr(String stretch) {
-        Map<String, Integer> chrCount = new HashMap<String, Integer>();
+        Map<String, Integer> chrCount = new HashMap<>();
 
         stretch = stretch.replaceAll("[nrce_\\.]", "");
 
@@ -1006,8 +1006,8 @@ public class GenotypeGraphUtils {
         StringBuilder sb = new StringBuilder();
 
         int nextAvailableCode = 0;
-        Map<String, Integer> chrCodes = new HashMap<String, Integer>();
-        Map<String, Integer> chrCount = new HashMap<String, Integer>();
+        Map<String, Integer> chrCodes = new HashMap<>();
+        Map<String, Integer> chrCount = new HashMap<>();
 
         for (int i = 0; i < ils.size(); i++) {
             Set<Interval> il = ils.get(i);

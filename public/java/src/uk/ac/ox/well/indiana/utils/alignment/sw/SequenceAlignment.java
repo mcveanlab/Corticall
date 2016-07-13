@@ -30,8 +30,8 @@ public abstract class SequenceAlignment extends DynamicProgramming {
     }
 
     protected Object getTraceback() {
-        StringBuffer align1Buf = new StringBuffer();
-        StringBuffer align2Buf = new StringBuffer();
+        StringBuilder align1Buf = new StringBuilder();
+        StringBuilder align2Buf = new StringBuilder();
         Cell currentCell = getTracebackStartingCell();
 
         while (traceBackIsNotDone(currentCell)) {
@@ -93,7 +93,7 @@ public abstract class SequenceAlignment extends DynamicProgramming {
     }
 
     public Cigar getCigar() {
-        List<CigarElement> cigarElements = new ArrayList<CigarElement>();
+        List<CigarElement> cigarElements = new ArrayList<>();
 
         String[] aligned = getAlignment();
 

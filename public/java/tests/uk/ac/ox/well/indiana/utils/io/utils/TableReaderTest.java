@@ -26,7 +26,7 @@ public class TableReaderTest {
     @BeforeClass
     public void loadSmallReferencePanelComparison() {
         smallTable = new File("testdata/smallReferencePanel.table");
-        comparisonData = new ArrayList<Map<String, String>>();
+        comparisonData = new ArrayList<>();
 
         LineReader lr = new LineReader(smallTable);
 
@@ -40,7 +40,7 @@ public class TableReaderTest {
             if (header == null) {
                 header = fields;
             } else {
-                Map<String, String> te = new HashMap<String, String>();
+                Map<String, String> te = new HashMap<>();
 
                 for (int i = 0; i < fields.length; i++) {
                     te.put(header[i], fields[i]);
@@ -66,7 +66,7 @@ public class TableReaderTest {
     }
 
     private Map<String, String> generateRandomRecord() {
-        Map<String, String> record = new HashMap<String, String>();
+        Map<String, String> record = new HashMap<>();
 
         record.put("kmer", generateRandomStringOfLengthN(30));
         record.put("gene", generateRandomStringOfLengthN(50));
@@ -142,7 +142,7 @@ public class TableReaderTest {
         for (Map<String, String> te : tr) {
             String[] fields = lr.getNextRecord().split("\t");
 
-            Map<String, String> comp = new HashMap<String, String>();
+            Map<String, String> comp = new HashMap<>();
             for (int i = 0; i < header.length; i++) {
                 comp.put(header[i], fields[i]);
             }

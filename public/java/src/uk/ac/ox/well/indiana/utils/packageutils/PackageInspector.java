@@ -43,7 +43,7 @@ public class PackageInspector<ClassType> {
      */
     public Set<Class<? extends ClassType>> getExtendingClasses() {
         Set<Class<? extends ClassType>> extendingClasses = reflections.getSubTypesOf(classType);
-        Set<Class<? extends ClassType>> nonAbstractClasses = new HashSet<Class<? extends ClassType>>();
+        Set<Class<? extends ClassType>> nonAbstractClasses = new HashSet<>();
 
         for (Class<? extends ClassType> c : extendingClasses) {
             if (!Modifier.isAbstract(c.getModifiers())) {
@@ -62,7 +62,7 @@ public class PackageInspector<ClassType> {
      * @return  the set of classes that extend the type
      */
     public Map<String, Class<? extends ClassType>> getExtendingClassesMap() {
-        Map<String, Class<? extends ClassType>> classHashMap = new TreeMap<String, Class<? extends ClassType>>();
+        Map<String, Class<? extends ClassType>> classHashMap = new TreeMap<>();
 
         for (Class<? extends ClassType> c : getExtendingClasses()) {
             classHashMap.put(c.getSimpleName(), c);
@@ -77,14 +77,14 @@ public class PackageInspector<ClassType> {
      * @return  the tree of classes that extend the type
      */
     public Map<String, Map<String, Class<? extends ClassType>>> getExtendingClassTree() {
-        Map<String, Map<String, Class<? extends ClassType>>> classTree = new TreeMap<String, Map<String, Class<? extends ClassType>>>();
+        Map<String, Map<String, Class<? extends ClassType>>> classTree = new TreeMap<>();
 
         for (Class<? extends ClassType> c : getExtendingClasses()) {
             String baseName = c.getPackage().getName().replaceAll(packageName + ".", "");
             String className = c.getSimpleName();
 
             if (!classTree.containsKey(baseName)) {
-                classTree.put(baseName, new TreeMap<String, Class<? extends ClassType>>());
+                classTree.put(baseName, new TreeMap<>());
             }
 
             classTree.get(baseName).put(className, c);

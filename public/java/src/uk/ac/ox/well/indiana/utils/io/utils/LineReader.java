@@ -12,8 +12,6 @@ public class LineReader extends Reader {
             br = new BufferedReader(new FileReader(fileToRead));
 
             nextRecord = br.readLine();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

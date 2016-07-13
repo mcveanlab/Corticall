@@ -1,15 +1,17 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.attic.gg;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.indiana.utils.traversal.ContaminantStopper;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -74,7 +76,7 @@ public class FilterNovels extends Module {
         log.info("  {} kmers to start with", NOVEL_KMERS.getNumRecords());
 
         log.info("Examining coverage...");
-        Map<CortexKmer, CortexRecord> remainingRecords = new HashMap<CortexKmer, CortexRecord>();
+        Map<CortexKmer, CortexRecord> remainingRecords = new HashMap<>();
         int coverageOutliers = 0;
         for (CortexRecord cr : NOVEL_KMERS) {
             if (cr.getCoverage(0) < lowerThreshold || cr.getCoverage(0) > upperThreshold) {
@@ -87,7 +89,7 @@ public class FilterNovels extends Module {
         log.info("  {} kmers outside coverage limits {} and {}", coverageOutliers, lowerThreshold, upperThreshold);
         log.info("  {} kmers remaining", remainingRecords.size());
 
-        Set<CortexKmer> contaminatingKmers = new HashSet<CortexKmer>();
+        Set<CortexKmer> contaminatingKmers = new HashSet<>();
 
         log.info("Exploring contaminants...");
         log.info("  {} to start with", REJECTED_KMERS.getNumRecords());
@@ -115,14 +117,14 @@ public class FilterNovels extends Module {
         }
         log.info("  {} contaminants found", contaminatingKmers.size());
 
-        Set<CortexKmer> orphanedKmers = new HashSet<CortexKmer>();
+        Set<CortexKmer> orphanedKmers = new HashSet<>();
 
         log.info("Finding orphans...");
         for (CortexRecord cr : remainingRecords.values()) {
             if (remainingRecords.containsKey(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
                 String stretch = CortexUtils.getSeededStretch(CLEAN, DIRTY, cr.getKmerAsString(), 0, true);
 
-                Set<CortexKmer> novelKmers = new HashSet<CortexKmer>();
+                Set<CortexKmer> novelKmers = new HashSet<>();
                 boolean isOrphaned = true;
 
                 for (int i = 0; i <= stretch.length() - CLEAN.getKmerSize(); i++) {
@@ -152,10 +154,10 @@ public class FilterNovels extends Module {
         log.info("  {} orphaned kmers", orphanedKmers.size());
 
         log.info("Looking for overcleaning...");
-        Set<CortexKmer> overcleanedKmers = new HashSet<CortexKmer>();
+        Set<CortexKmer> overcleanedKmers = new HashSet<>();
         for (CortexRecord cr : remainingRecords.values()) {
             if (remainingRecords.containsKey(cr.getCortexKmer()) && !contaminatingKmers.contains(cr.getCortexKmer()) && !orphanedKmers.contains(cr.getCortexKmer())) {
-                Set<CortexKmer> kmers = new HashSet<CortexKmer>();
+                Set<CortexKmer> kmers = new HashSet<>();
                 boolean hasTaintedNovelKmers = false;
 
                 String stretch = CortexUtils.getNovelStretch(CLEAN, cr.getKmerAsString(), 0, true);
@@ -182,7 +184,7 @@ public class FilterNovels extends Module {
         log.info("  {} overcleaned kmers", overcleanedKmers.size());
 
         log.info("Looking for adjacent kmers to discard...");
-        Set<CortexKmer> adjacentToRejection = new HashSet<CortexKmer>();
+        Set<CortexKmer> adjacentToRejection = new HashSet<>();
         if (PERFORM_ADJACENCY_PASS) {
             boolean addedStuff;
             int passes = 0;
@@ -194,7 +196,7 @@ public class FilterNovels extends Module {
                     if (!contaminatingKmers.contains(ck) && !orphanedKmers.contains(ck) && !adjacentToRejection.contains(ck) && !overcleanedKmers.contains(ck)) {
                         String sk = cr.getKmerAsString();
 
-                        Set<String> adjKmers = new HashSet<String>();
+                        Set<String> adjKmers = new HashSet<>();
                         adjKmers.addAll(CortexUtils.getPrevKmers(CLEAN, sk, 0));
                         adjKmers.addAll(CortexUtils.getNextKmers(CLEAN, sk, 0));
 

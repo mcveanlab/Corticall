@@ -17,8 +17,8 @@ import java.util.HashMap;
 public class PCA<R, C> {
     private SingularValueDecomposition svd;
 
-    private HashMap<R, Integer> rowMapping = new HashMap<R, Integer>();
-    private HashMap<C, Integer> colMapping = new HashMap<C, Integer>();
+    private HashMap<R, Integer> rowMapping = new HashMap<>();
+    private HashMap<C, Integer> colMapping = new HashMap<>();
 
     /**
      * Compute a PCA on the provided data frame.
@@ -132,7 +132,7 @@ public class PCA<R, C> {
      * @return  the rotation matrix
      */
     public DataFrame<C, String, Float> getRotationMatrix() {
-        DataFrame<C, String, Float> d = new DataFrame<C, String, Float>(0.0f);
+        DataFrame<C, String, Float> d = new DataFrame<>(0.0f);
 
         for (C colName : colMapping.keySet()) {
             DoubleMatrix1D dm = svd.getV().viewRow(colMapping.get(colName));

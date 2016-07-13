@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.gg;
+package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;

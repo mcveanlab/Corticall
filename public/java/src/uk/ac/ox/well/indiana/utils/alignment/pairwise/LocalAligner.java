@@ -88,6 +88,6 @@ public class LocalAligner {
             }
         }
 
-        return new Pair<String, String>(qa.toString(), ta.toString());
+        return new Pair<>(qa.toString(), ta.toString());
     }
 }
