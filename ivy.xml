@@ -23,7 +23,7 @@
         <dependency org="org.json" name="json" rev="20160212" />
         <dependency org="org.xerial.snappy" name="snappy-java" rev="1.1.2.6" />
         <dependency org="org.apache.ant.bzip2" name="bzip2" rev="1.8.2" />
-        <dependency org="htsjdk" name="htsjdk" rev="2.5.1" />
+        <dependency org="com.github.samtools" name="htsjdk" rev="2.5.1" />
         <dependency org="com.github.broadinstitute" name="picard" rev="2.5.0" />
 
         <!-- Dependencies that can be satisifed with local repository -->
