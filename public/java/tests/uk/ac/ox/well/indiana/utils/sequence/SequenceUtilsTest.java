@@ -15,6 +15,16 @@ import java.util.*;
 
 public class SequenceUtilsTest {
     @Test
+    public void complementTest() {
+        byte[] trials = new byte[] { 'A', 'C', 'G', 'T', 'N', '.', 'a', 'c', 'g', 't' };
+        byte[] exp    = new byte[] { 'T', 'G', 'C', 'A', 'N', '.', 't', 'g', 'c', 'a' };
+
+        for (int i = 0; i < trials.length; i++) {
+            Assert.assertEquals(SequenceUtils.complement(trials[i]), exp[i]);
+        }
+    }
+
+    @Test
     public void reverseComplementTest() {
         byte[] sequence   = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
         byte[] expectedRC = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
@@ -46,12 +56,17 @@ public class SequenceUtilsTest {
 
     @Test
     public void alphanumericallyLowestOrientation() {
-        byte[] sequence            = "TACTGACTTTTCTCGCTATTCGTATGCATG".getBytes();
-        byte[] expectedOrientation = "CATGCATACGAATAGCGAGAAAAGTCAGTA".getBytes();
+        for (int i = 0; i < 10000; i++) {
+            for (Integer k : Arrays.asList(21, 31, 41, 51)) {
+                String fw = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(k));
+                String rc = SequenceUtils.reverseComplement(fw);
 
-        byte[] computedOrientation = SequenceUtils.alphanumericallyLowestOrientation(sequence);
+                byte[] expected = fw.compareTo(rc) < 0 ? fw.getBytes() : rc.getBytes();
+                byte[] computed = SequenceUtils.alphanumericallyLowestOrientation(fw.getBytes());
 
-        Assert.assertEquals(expectedOrientation, computedOrientation);
+                Assert.assertEquals(expected, computed);
+            }
+        }
     }
 
     @Test

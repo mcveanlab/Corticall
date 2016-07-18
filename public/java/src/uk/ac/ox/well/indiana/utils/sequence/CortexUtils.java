@@ -1044,6 +1044,17 @@ public class CortexUtils {
         }
     }
 
+    public static long charToBinaryNucleotide(byte b) {
+        switch (b) {
+            case 'A' : return 0;
+            case 'C' : return 1;
+            case 'G' : return 2;
+            case 'T' : return 3;
+            default:
+                throw new RuntimeException("Nucleotide '" + b + "' is not a valid character nucleotide");
+        }
+    }
+
     public static byte[] decodeBinaryKmer(long[] kmer, int kmerSize, int kmerBits) {
         byte[] rawKmer = new byte[kmerSize];
 
@@ -1060,6 +1071,23 @@ public class CortexUtils {
         }
 
         return rawKmer;
+    }
+
+    public static long[] encodeBinaryKmer(byte[] kmer) {
+        long[] binaryKmer = new long[1];
+
+        for (int i = 0; i < kmer.length - 1; i++) {
+            long nuc = charToBinaryNucleotide(kmer[i]);
+
+            binaryKmer[0] |= nuc;
+            binaryKmer[0] <<= 2;
+        }
+
+        binaryKmer[0] |= charToBinaryNucleotide(kmer[kmer.length - 1]);
+
+        binaryKmer[0] = reverse(binaryKmer[0]);
+
+        return binaryKmer;
     }
 
     public static void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {

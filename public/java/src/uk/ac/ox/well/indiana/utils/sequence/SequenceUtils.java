@@ -200,12 +200,24 @@ public class SequenceUtils {
      * @return  the alphanumerically lowest orientation of the given sequence
      */
     public static byte[] alphanumericallyLowestOrientation(byte[] sequence) {
-        byte[] rc = reverseComplement(sequence);
+        //byte[] rc = reverseComplement(sequence);
+        //String kmerStr = new String(sequence);
+        //String rcStr = new String(rc);
 
-        String kmerStr = new String(sequence);
-        String rcStr = new String(rc);
+        for (int i = 0; i < sequence.length; i++) {
+            byte rc = SequenceUtils.complement(sequence[sequence.length - 1 - i]);
 
-        return (kmerStr.compareTo(rcStr) < 0) ? sequence : rc;
+            if (sequence[i] < rc) {
+                return sequence;
+            } else if (sequence[i] > rc) {
+                return SequenceUtils.reverseComplement(sequence);
+            }
+        }
+
+        //return (kmerStr.compareTo(rcStr) < 0) ? sequence : rc;
+        //return rc;
+
+        return sequence;
     }
 
     /**
