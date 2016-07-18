@@ -4,6 +4,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -229,6 +230,21 @@ public class CortexGraphTest {
             SimpleCortexRecord scr = recs.get(i);
 
             Assert.assertEquals(scr.equals(cr), true, "Cortex record says '" + cr + "' but test record says '" + scr + "'");
+        }
+    }
+
+    @Test
+    public void testEncodeBinaryKmer() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        for (int i = 10; i >= 0; i--) {
+            CortexRecord cr = cg.getRecord(i);
+
+            long[] originalBinaryKmer = cr.getBinaryKmer();
+            long[] encodedBinaryKmer = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes());
+
+            Assert.assertEquals(encodedBinaryKmer, originalBinaryKmer);
+            Assert.assertEquals(CortexUtils.decodeBinaryKmer(encodedBinaryKmer, cr.getKmerSize(), cr.getKmerBits()), cr.getKmerAsBytes());
         }
     }
 
