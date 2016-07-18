@@ -5,6 +5,7 @@
 *.yaml
 *.svg
 *.swp
+*.swl
 *.iml
 *.idea
 *.idx
