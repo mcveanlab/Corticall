@@ -17,6 +17,7 @@
     <property name="dist.dir" value="dist" />
     <property name="testng.dir" value="test" />
     <property name="out.dir" value="out" />
+    <property name="report.dir" value="report" />
     <property name="release.dir" value="release" />
     <property name="testdata.dir" value="testdata" />
 
@@ -155,6 +156,41 @@
         </testng>
     </target>
 
+    <!-- Test coverage report -->
+    <!--<taskdef classpath="${jars.dir}/cobertura-2.1.1.jar" resource="tasks.properties" />-->
+    <taskdef resource="tasks.properties"> 
+        <classpath>  
+            <fileset dir="${lib.dir}">  
+                <include name="**/*.jar" />  
+            </fileset>
+        </classpath>
+    </taskdef>
+
+    <target name="cobertura" depends="compile">
+        <cobertura-instrument todir="${report.dir}">
+            <fileset dir="${build.dir}/uk/ac/ox/well/indiana/">
+                <include name="**/*.class" />
+            </fileset>
+            <!--
+            <classfileset dir="${build.dir}/uk/ac/ox/well/indiana/" includes="**/*.class" />
+            -->
+        </cobertura-instrument>
+    </target>
+ 
+    <!--
+    <target name="cov" depends="cobertura">
+        <testng classpathref="${jars.dir}/cobertura-2.1.1.jar">
+            <classfileset dir="${report.dir}" includes="**/*.class" />
+        </testng>
+    </target>
+    -->
+ 
+    <target name="cov" depends="cobertura,test">
+        <cobertura-report format="html" destdir="${report.dir}">
+            <fileset dir="${src.dir}" includes="**/*.java"/>
+        </cobertura-report>
+    </target>
+
     <!-- Update the build properties file with the git commit ID, commit date, and build date -->
     <target name="properties" depends="git.version,git.version.long,git.date,build.date">
         <propertyfile file="${build.dir}/build.properties">
@@ -232,6 +268,7 @@
             <fileset dir="${dist.dir}" />
             <fileset dir="${testng.dir}" />
             <fileset dir="${out.dir}" />
+            <fileset dir="${report.dir}" />
             <fileset dir="${release.dir}" />
         </delete>
         <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="false" quiet="true" />
