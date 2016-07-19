@@ -110,7 +110,7 @@ public class index extends Module {
                 achunks = Chunk.optimizeChunkList(achunks, 0);
 
                 //map.put(kmer, toLongArray(achunks));
-                m.put(CortexUtils.encodeBinaryKmer(kmer), toLongArray(achunks));
+                m.put(CortexUtils.encodeBinaryKmer(kmer, null), toLongArray(achunks));
             }
 
             pm.update("reads processed, map size " + map.size() + ", " + PerformanceUtils.getCompactMemoryUsageStats());

@@ -241,12 +241,29 @@ public class CortexGraphTest {
             CortexRecord cr = cg.getRecord(i);
 
             long[] originalBinaryKmer = cr.getBinaryKmer();
-            long[] encodedBinaryKmer = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes());
+            long[] encodedBinaryKmer = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes(), null);
 
             Assert.assertEquals(encodedBinaryKmer, originalBinaryKmer);
             Assert.assertEquals(CortexUtils.decodeBinaryKmer(encodedBinaryKmer, cr.getKmerSize(), cr.getKmerBits()), cr.getKmerAsBytes());
         }
     }
+
+    @Test
+    public void getBigKmerTest() {
+        CortexGraph cg = new CortexGraph("testdata/Pf3D7_14_v3.k95.ctx");
+
+        for (int i = 0; i < 100; i++) {
+            CortexRecord cr = cg.getRecord(i);
+
+            byte[] kmer = cr.getKmerAsBytes();
+            long[] oldbk = cr.getBinaryKmer();
+            long[] newbk = CortexUtils.encodeBinaryKmer(kmer, oldbk);
+
+            Assert.assertEquals(oldbk, newbk);
+            Assert.assertEquals(kmer, CortexUtils.decodeBinaryKmer(newbk, cr.getKmerSize(), cr.getKmerBits()));
+        }
+    }
+
 
     @Test(expectedExceptions = IndianaException.class)
     public void testUnsortedFindRecordThrowsException() {
