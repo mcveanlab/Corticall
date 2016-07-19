@@ -1073,19 +1073,29 @@ public class CortexUtils {
         return rawKmer;
     }
 
-    public static long[] encodeBinaryKmer(byte[] kmer) {
-        long[] binaryKmer = new long[1];
+    private static int getKmerBits(byte[] kmer) {
+        return (int) Math.ceil(((float) kmer.length)/32.0);
+    }
 
-        for (int i = 0; i < kmer.length - 1; i++) {
-            long nuc = charToBinaryNucleotide(kmer[i]);
+    public static long[] encodeBinaryKmer(byte[] kmer, long[] oldbk) {
+        int numBits = getKmerBits(kmer);
+        long[] binaryKmer = new long[numBits];
 
-            binaryKmer[0] |= nuc;
-            binaryKmer[0] <<= 2;
+        for (int b = 0; b < numBits; b++) {
+            for (int i = kmer.length - 32*(b+1); i < kmer.length - 32*b; i++) {
+                if (i >= 0) {
+                    long nuc = charToBinaryNucleotide(kmer[i]);
+
+                    binaryKmer[numBits - b - 1] |= nuc;
+                }
+
+                if (i < kmer.length - 32*b - 1) {
+                    binaryKmer[numBits - b - 1] <<= 2;
+                }
+            }
+
+            binaryKmer[numBits - b - 1] = reverse(binaryKmer[numBits - b - 1]);
         }
-
-        binaryKmer[0] |= charToBinaryNucleotide(kmer[kmer.length - 1]);
-
-        binaryKmer[0] = reverse(binaryKmer[0]);
 
         return binaryKmer;
     }
