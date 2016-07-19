@@ -250,7 +250,7 @@ public class CortexGraphTest {
 
     @Test
     public void getBigKmerTest() {
-        CortexGraph cg = new CortexGraph("testdata/Pf3D7_14_v3.k95.ctx");
+        CortexGraph cg = new CortexGraph("testdata/Pf3D7_01_v3.k95.ctx");
 
         for (int i = 0; i < 100; i++) {
             CortexRecord cr = cg.getRecord(i);
