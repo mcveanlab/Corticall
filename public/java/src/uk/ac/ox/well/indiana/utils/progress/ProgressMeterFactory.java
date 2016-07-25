@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 
 public class ProgressMeterFactory {
     private long currentRecord = 0;
-    private long updateRecord = 1000000;
+    private long updateRecord = 0;
     private long maxRecord = 0;
     private String header = "";
     private String message = "";
@@ -18,6 +18,10 @@ public class ProgressMeterFactory {
     public ProgressMeterFactory indent(String indent) { this.indent = indent; return this; }
 
     public ProgressMeter make(Logger log) {
+        if (updateRecord == 0 && maxRecord > 0) {
+            updateRecord = maxRecord / 10;
+        }
+
         return new ProgressMeter(log, currentRecord, updateRecord, maxRecord, header, message, indent);
     }
 }

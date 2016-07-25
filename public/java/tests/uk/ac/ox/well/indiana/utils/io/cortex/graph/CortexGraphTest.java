@@ -241,7 +241,7 @@ public class CortexGraphTest {
             CortexRecord cr = cg.getRecord(i);
 
             long[] originalBinaryKmer = cr.getBinaryKmer();
-            long[] encodedBinaryKmer = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes(), null);
+            long[] encodedBinaryKmer = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes());
 
             Assert.assertEquals(encodedBinaryKmer, originalBinaryKmer);
             Assert.assertEquals(CortexUtils.decodeBinaryKmer(encodedBinaryKmer, cr.getKmerSize(), cr.getKmerBits()), cr.getKmerAsBytes());
@@ -257,7 +257,7 @@ public class CortexGraphTest {
 
             byte[] kmer = cr.getKmerAsBytes();
             long[] oldbk = cr.getBinaryKmer();
-            long[] newbk = CortexUtils.encodeBinaryKmer(kmer, oldbk);
+            long[] newbk = CortexUtils.encodeBinaryKmer(kmer);
 
             Assert.assertEquals(oldbk, newbk);
             Assert.assertEquals(kmer, CortexUtils.decodeBinaryKmer(newbk, cr.getKmerSize(), cr.getKmerBits()));

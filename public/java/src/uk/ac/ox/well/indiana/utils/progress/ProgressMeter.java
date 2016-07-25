@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 public class ProgressMeter {
     private Logger log;
     private long currentRecord = 0;
-    private long updateRecord = 1000000;
+    private long updateRecord = 0;
     private long maxRecord = 0;
     private String header = "";
     private String message = "";
