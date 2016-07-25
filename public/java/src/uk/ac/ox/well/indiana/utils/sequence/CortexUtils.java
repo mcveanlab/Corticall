@@ -1073,12 +1073,12 @@ public class CortexUtils {
         return rawKmer;
     }
 
-    private static int getKmerBits(byte[] kmer) {
-        return (int) Math.ceil(((float) kmer.length)/32.0);
+    public static int getKmerBits(int kmerSize) {
+        return (int) Math.ceil(((float) kmerSize)/32.0);
     }
 
-    public static long[] encodeBinaryKmer(byte[] kmer, long[] oldbk) {
-        int numBits = getKmerBits(kmer);
+    public static long[] encodeBinaryKmer(byte[] kmer) {
+        int numBits = getKmerBits(kmer.length);
         long[] binaryKmer = new long[numBits];
 
         for (int b = 0; b < numBits; b++) {
