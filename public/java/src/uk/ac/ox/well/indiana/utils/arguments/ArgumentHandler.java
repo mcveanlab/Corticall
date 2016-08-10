@@ -2,6 +2,8 @@ package uk.ac.ox.well.indiana.utils.arguments;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
@@ -283,6 +285,11 @@ public class ArgumentHandler {
                 sfr.setValidationStringency(ValidationStringency.SILENT);
 
                 return sfr;
+            } else if (type.equals(SamReader.class)) {
+                return SamReaderFactory.make()
+                        .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
+                        .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+                        .open(new File(value));
             } else if (type.equals(FastqReader.class)) {
                 return new FastqReader(new File(value));
             } else if (type.equals(VCFFileReader.class)) {

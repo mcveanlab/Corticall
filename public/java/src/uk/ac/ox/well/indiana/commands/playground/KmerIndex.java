@@ -9,11 +9,14 @@ import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class KmerIndex {
     private Path path;
@@ -25,25 +28,31 @@ public class KmerIndex {
     private int recordSize;
     private long numRecords;
 
-    public KmerIndex(String indexPath, int kmerSize) {
+    public KmerIndex(File bamFile, int kmerSize, boolean write) {
+        String indexPath = bamFile.getAbsolutePath().replaceAll(".bam", ".k" + kmerSize + "index");
+
         try {
             path = FileSystems.getDefault().getPath(indexPath);
 
-            fc = FileChannel.open(path, EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+            if (write) {
+                if (new File(indexPath).exists()) {
+                    throw new IndianaException("KmerIndex file '" + path + "' already exists.");
+                }
 
-            writeHeader(kmerSize);
+                fc = FileChannel.open(path, EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+
+                writeHeader(kmerSize);
+            } else {
+                if (! new File(indexPath).exists()) {
+                    throw new IndianaException("KmerIndex file '" + path + "' does not exist.");
+                }
+
+                fc = FileChannel.open(FileSystems.getDefault().getPath(indexPath), EnumSet.of(StandardOpenOption.READ));
+
+                readHeader();
+            }
         } catch (IOException e) {
-            throw new IndianaException("crapspasm", e);
-        }
-    }
-
-    public KmerIndex(String indexPath) {
-        try {
-            fc = FileChannel.open(FileSystems.getDefault().getPath(indexPath), EnumSet.of(StandardOpenOption.READ));
-
-            readHeader();
-        } catch (IOException e) {
-            e.printStackTrace();
+            throw new IndianaException("Could not build path to KmerIndex file", e);
         }
     }
 
@@ -51,6 +60,7 @@ public class KmerIndex {
         try {
             this.kmerSize = kmerSize;
             this.kmerBits = CortexUtils.getKmerBits(kmerSize);
+            this.recordSize = (8*kmerBits) + 8 + 8;
 
             ByteBuffer buffer = ByteBuffer.allocate(9 + 4 + 4);
             buffer.put("KMERINDEX".getBytes());
@@ -60,6 +70,8 @@ public class KmerIndex {
             buffer.flip();
 
             fc.write(buffer);
+
+            //gos.write(buffer.array());
         } catch (IOException e) {
             throw new IndianaException("crapspasm", e);
         }
@@ -96,6 +108,10 @@ public class KmerIndex {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public long getNumRecords() {
+        return numRecords;
     }
 
     public void putAll(Map<CortexBinaryKmer, long[]> m) {
@@ -240,7 +256,5 @@ public class KmerIndex {
         return find(ck.getKmerAsBytes());
     }
 
-    public List<long[]> find(String sk) {
-        return find(sk.getBytes());
-    }
+    public List<long[]> find(String sk) { return find(sk.getBytes()); }
 }
