@@ -20,7 +20,7 @@ public class QueryIndex extends Module {
 
     @Override
     public void execute() {
-        KmerIndex ki = new KmerIndex(SAM_FILE.getAbsolutePath().replaceAll(".bam", ".k" + KMER_SIZE + "index"));
+        KmerIndex ki = new KmerIndex(SAM_FILE, KMER_SIZE, false);
 
         SamReader sr = SamReaderFactory.makeDefault().open(SAM_FILE);
 

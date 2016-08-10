@@ -51,18 +51,19 @@ public class BuildIndex extends Module {
     @Override
     public void execute() {
         SamReader sreader = SamReaderFactory.make()
-                .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
-                .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
-                .open(SAM_FILE);
+            .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
+            .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+            .open(SAM_FILE);
+
+        KmerIndex ki = new KmerIndex(SAM_FILE, KMER_SIZE, true);
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Processing reads...")
-                .updateRecord(100000)
-                .message("reads processed")
-                .make(log);
+            .header("Processing reads...")
+            .updateRecord(100000)
+            .message("reads processed")
+            .make(log);
 
         Map<CortexBinaryKmer, long[]> m = new TreeMap<>();
-
         long numKmersSeen = 0;
 
         for (SAMRecord sr : sreader) {
@@ -108,7 +109,7 @@ public class BuildIndex extends Module {
             pm.update("reads processed, kmers seen " + numKmersSeen + ", map size " + m.size() + ", " + PerformanceUtils.getCompactMemoryUsageStats());
         }
 
-        KmerIndex ki = new KmerIndex(SAM_FILE.getAbsolutePath().replaceAll(".bam", ".k" + KMER_SIZE + "index"), KMER_SIZE);
+        log.info("Writing index...");
 
         ki.putAll(m);
     }
