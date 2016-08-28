@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground;
+package uk.ac.ox.well.indiana.commands.playground.index;
 
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;

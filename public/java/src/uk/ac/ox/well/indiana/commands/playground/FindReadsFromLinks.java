@@ -1,9 +1,8 @@
 package uk.ac.ox.well.indiana.commands.playground;
 
-import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
-import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.commands.playground.index.KmerIndex;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
