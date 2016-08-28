@@ -30,7 +30,7 @@ public class ProgressMeter {
     public void update(String newMessage) {
         if (currentRecord % updateRecord == 0) {
             if (maxRecord > 0) {
-                log.info("{}{}/{} {}", indent, currentRecord, maxRecord, newMessage);
+                log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, (int) Math.ceil(100.0*currentRecord/maxRecord), newMessage);
             } else {
                 log.info("{}{} {} ", indent, currentRecord, newMessage);
             }

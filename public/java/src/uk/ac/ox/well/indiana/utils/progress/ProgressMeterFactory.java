@@ -10,9 +10,9 @@ public class ProgressMeterFactory {
     private String message = "";
     private String indent = "  ";
 
-    public ProgressMeterFactory currentRecord(int currentRecord) { this.currentRecord = currentRecord; return this; }
-    public ProgressMeterFactory updateRecord(int updateRecord) { this.updateRecord = updateRecord; return this; }
-    public ProgressMeterFactory maxRecord(int maxRecord) { this.maxRecord = maxRecord; return this; }
+    public ProgressMeterFactory currentRecord(long currentRecord) { this.currentRecord = currentRecord; return this; }
+    public ProgressMeterFactory updateRecord(long updateRecord) { this.updateRecord = updateRecord; return this; }
+    public ProgressMeterFactory maxRecord(long maxRecord) { this.maxRecord = maxRecord; return this; }
     public ProgressMeterFactory header(String header) { this.header = header; return this; }
     public ProgressMeterFactory message(String message) { this.message = message; return this; }
     public ProgressMeterFactory indent(String indent) { this.indent = indent; return this; }
