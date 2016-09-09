@@ -4,6 +4,7 @@ import org.mapdb.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 public class BuildDB extends Module {
     @Argument(fullName="dirtyGraph", shortName="d", doc="Dirty graph")
-    public CortexGraph DIRTY;
+    public CortexCollection DIRTY;
 
     @Argument(fullName="childColor", shortName="cc", doc="Child color")
     public Integer CHILD_COLOR = 0;
@@ -34,9 +35,10 @@ public class BuildDB extends Module {
         List<long[]> binaryKmers = new ArrayList<>();
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .maxRecord(DIRTY.getNumRecords())
+                //.maxRecord(DIRTY.getNumRecords())
                 .header("Processing graph...")
                 .message("records processed")
+                .updateRecord(DIRTY.getGraph(0).getNumRecords() / 10)
                 .make(log);
 
         long numNovelRecords = 0;
