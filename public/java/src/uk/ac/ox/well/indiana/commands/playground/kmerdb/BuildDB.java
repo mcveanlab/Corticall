@@ -1,8 +1,6 @@
 package uk.ac.ox.well.indiana.commands.playground.kmerdb;
 
-import kotlin.Pair;
 import org.mapdb.*;
-import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -25,6 +23,9 @@ public class BuildDB extends Module {
     @Argument(fullName="childColor", shortName="cc", doc="Child color")
     public Integer CHILD_COLOR = 0;
 
+    @Argument(fullName="coverageLowerLimit", shortName="l", doc="Coverage lower limit")
+    public Integer COVERAGE_LOWER_LIMIT = 1;
+
     @Output
     public File out;
 
@@ -40,7 +41,7 @@ public class BuildDB extends Module {
 
         long numNovelRecords = 0;
         for (CortexRecord cr : DIRTY) {
-            if (CortexUtils.isNovelKmer(cr, CHILD_COLOR)) {
+            if (CortexUtils.isNovelKmer(cr, CHILD_COLOR) && cr.getCoverage(CHILD_COLOR) > COVERAGE_LOWER_LIMIT) {
                 binaryKmers.add(cr.getBinaryKmer());
 
                 numNovelRecords++;
