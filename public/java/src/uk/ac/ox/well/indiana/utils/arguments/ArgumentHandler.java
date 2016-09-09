@@ -300,7 +300,7 @@ public class ArgumentHandler {
             } else if (type.equals(CortexGraphWriter.class)) {
                 return new CortexGraphWriter(value);
             } else if (type.equals(CortexCollection.class)) {
-                return new CortexCollection(new File(value));
+                return new CortexCollection(value);
             } else if (type.equals(Expression.class)) {
                 initializeJexlEngine();
 
