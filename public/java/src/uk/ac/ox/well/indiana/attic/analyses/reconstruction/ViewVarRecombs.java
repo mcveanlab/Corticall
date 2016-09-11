@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.attic.analyses.reconstruction;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -154,14 +155,16 @@ public class ViewVarRecombs extends Sketch {
 
                 if (isUnique(kmer)) {
                     if (cr != null && cr.getCoverage(COLOR) > 0 && kmers.containsKey(kmer)) {
-                        stroke(kmers.get(kmer).getRGB(), 150.0f);
+                        //stroke(kmers.get(kmer).getRGB(), 150.0f);
+                        stroke(kmers.get(kmer).getRGB());
                         strokeWeight(1);
                         strokeCap(SQUARE);
                         line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
 
                         kmersRecovered++;
                     } else {
-                        stroke(Color.LIGHT_GRAY.getRGB(), 60.0f);
+                        //stroke(Color.LIGHT_GRAY.getRGB(), 60.0f);
+                        stroke(Color.DARK_GRAY.getRGB(), 60.0f);
                         strokeWeight(1);
                         strokeCap(SQUARE);
                         line(x + labelMargin + aaPos, y, x + labelMargin + aaPos, y + height);
@@ -247,7 +250,7 @@ public class ViewVarRecombs extends Sketch {
             text(caption, x, y + 70);
 
             if (gi != null && gi.get("newid") != null) {
-                text(gi.get("newid"), x, y + 90);
+                //text(gi.get("newid"), x, y + 90);
             }
         }
     }
@@ -299,9 +302,15 @@ public class ViewVarRecombs extends Sketch {
     private Color[] generateColors(int n) {
         Color[] cols = new Color[n];
 
-        for(int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             cols[i] = Color.getHSBColor((float) i / (float) n, 0.85f, 1.0f);
         }
+
+        cols[0] = new Color(190, 40, 5);
+        cols[1] = new Color(236, 85, 25);
+        cols[2] = new Color(136, 166, 27);
+
+        log.info("{}", Joiner.on(", ").join(cols));
 
         return cols;
     }
