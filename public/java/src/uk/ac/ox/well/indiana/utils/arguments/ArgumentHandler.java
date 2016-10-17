@@ -177,7 +177,6 @@ public class ArgumentHandler {
 
                 for (String avalue : value.split(",")) {
                     File valueAsFile = new File(avalue);
-                    //if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list") || valueAsFile.getAbsolutePath().endsWith(".txt"))) {
                     if (valueAsFile.exists() && (valueAsFile.getAbsolutePath().endsWith(".list"))) {
                         BufferedReader reader = new BufferedReader(new FileReader(valueAsFile));
 
@@ -249,9 +248,7 @@ public class ArgumentHandler {
 
     private static Object handleArgumentTypes(Class<?> type, String value) {
         try {
-            if (type.equals(File.class)) {
-                return new File(value);
-            } else if (type.equals(Integer.class)) {
+            if (type.equals(Integer.class)) {
                 return Integer.valueOf(value);
             } else if (type.equals(Long.class)) {
                 return Long.valueOf(value);
@@ -305,6 +302,8 @@ public class ArgumentHandler {
                 initializeJexlEngine();
 
                 return je.createExpression(value);
+            } else if (type.equals(File.class)) {
+                return new File(value);
             } else {
                 throw new RuntimeException("Unable to automatically handle argument of type '" + type.getSimpleName() + "'");
             }

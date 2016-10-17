@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.collection;
 
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
@@ -151,7 +152,13 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
                     coverages[color] = cr.getCoverage(colorToColorMap.get(color));
                     edges[color] = cr.getEdges()[colorToColorMap.get(color)];
 
-                    nextRecs[color] = colorToGraphMap.get(color) == null ? null : colorToGraphMap.get(color).next();
+                    CortexRecord ncr = colorToGraphMap.get(color) == null ? null : colorToGraphMap.get(color).next();
+
+                    if (ncr != null && cr.getKmerAsString().compareTo(ncr.getKmerAsString()) >= 0) {
+                        throw new IndianaException("Records are not sorted ('" + cr.getKmerAsString() + "' is found before '" + ncr.getKmerAsString() + "' but is lexicographically greater)");
+                    }
+
+                    nextRecs[color] = ncr;
                 } else {
                     coverages[color] = 0;
                     edges[color] = 0;

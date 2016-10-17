@@ -158,6 +158,7 @@
 
     <!-- Test coverage report -->
     <!--<taskdef classpath="${jars.dir}/cobertura-2.1.1.jar" resource="tasks.properties" />-->
+    <!--
     <taskdef resource="tasks.properties"> 
         <classpath>  
             <fileset dir="${lib.dir}">  
@@ -171,25 +172,22 @@
             <fileset dir="${build.dir}/uk/ac/ox/well/indiana/">
                 <include name="**/*.class" />
             </fileset>
-            <!--
             <classfileset dir="${build.dir}/uk/ac/ox/well/indiana/" includes="**/*.class" />
-            -->
         </cobertura-instrument>
     </target>
  
-    <!--
     <target name="cov" depends="cobertura">
         <testng classpathref="${jars.dir}/cobertura-2.1.1.jar">
             <classfileset dir="${report.dir}" includes="**/*.class" />
         </testng>
     </target>
-    -->
  
     <target name="cov" depends="cobertura,test">
         <cobertura-report format="html" destdir="${report.dir}">
             <fileset dir="${src.dir}" includes="**/*.java"/>
         </cobertura-report>
     </target>
+    -->
 
     <!-- Update the build properties file with the git commit ID, commit date, and build date -->
     <target name="properties" depends="git.version,git.version.long,git.date,build.date">
