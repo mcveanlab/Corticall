@@ -377,17 +377,17 @@ public class CortexUtils {
         return (cr != null && cr.getCoverage(color) > 0);
     }
 
-    public static boolean isNovelKmer(CortexRecord cr, int color) {
+    public static boolean isNovelKmer(CortexRecord cr, int childColor, Set<Integer> parentColors) {
         if (cr == null) {
             throw new IndianaException("Unable to test for novelty on a null Cortex record");
         }
 
-        if (cr.getCoverage(color) == 0) {
+        if (cr.getCoverage(childColor) == 0) {
             return false;
         }
 
         for (int c = 0; c < cr.getNumColors(); c++) {
-            if (c != color && cr.getCoverage(c) != 0) {
+            if (c != childColor && parentColors.contains(c) && cr.getCoverage(c) != 0) {
                 return false;
             }
         }
@@ -395,19 +395,49 @@ public class CortexUtils {
         return true;
     }
 
-    public static boolean isNovelKmer(CortexGraph cg, String kmer, int color) {
+    public static boolean isNovelKmer(CortexRecord cr, int childColor) {
+        Set<Integer> parentColors = new HashSet<>();
+
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (c != childColor) {
+                parentColors.add(c);
+            }
+        }
+
+        return isNovelKmer(cr, childColor, parentColors);
+
+        /*
+        if (cr == null) {
+            throw new IndianaException("Unable to test for novelty on a null Cortex record");
+        }
+
+        if (cr.getCoverage(childColor) == 0) {
+            return false;
+        }
+
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (c != childColor && cr.getCoverage(c) != 0) {
+                return false;
+            }
+        }
+
+        return true;
+        */
+    }
+
+    public static boolean isNovelKmer(CortexGraph cg, String kmer, int childColor) {
         CortexRecord cr = cg.findRecord(new CortexKmer(kmer));
 
         if (cr == null) {
             throw new IndianaException("Unable to test for novelty on a kmer that's not in the graph: '" + kmer + "'");
         }
 
-        if (cr.getCoverage(color) == 0) {
+        if (cr.getCoverage(childColor) == 0) {
             return false;
         }
 
         for (int c = 0; c < cr.getNumColors(); c++) {
-            if (c != color && cr.getCoverage(c) != 0) {
+            if (c != childColor && cr.getCoverage(c) != 0) {
                 return false;
             }
         }
