@@ -89,6 +89,24 @@ public class CortexUtils {
         return null;
     }
 
+    public static Set<String> getNextKmers(CortexRecord cr, String kmer, int color) {
+        Set<String> nextKmers = new HashSet<>();
+
+        if (cr != null) {
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
+
+            if (!cr.getKmerAsString().equals(kmer)) {
+                outEdges = cr.getInEdgesComplementAsStrings(color);
+            }
+
+            for (String outEdge : outEdges) {
+                nextKmers.add(kmer.substring(1, kmer.length()) + outEdge);
+            }
+        }
+
+        return nextKmers;
+    }
+
     public static Set<String> getNextKmers(CortexGraph cg, String kmer, int color) {
         CortexKmer ck = new CortexKmer(kmer);
         CortexRecord cr = cg.findRecord(ck);
@@ -218,6 +236,24 @@ public class CortexUtils {
         else if (prevDirty != null) { return prevDirty; }
 
         return null;
+    }
+
+    public static Set<String> getPrevKmers(CortexRecord cr, String kmer, int color) {
+        Set<String> prevKmers = new HashSet<>();
+
+        if (cr != null) {
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
+
+            if (!cr.getKmerAsString().equals(kmer)) {
+                inEdges = cr.getOutEdgesComplementAsStrings(color);
+            }
+
+            for (String inEdge : inEdges) {
+                prevKmers.add(inEdge + kmer.substring(0, kmer.length() - 1));
+            }
+        }
+
+        return prevKmers;
     }
 
     public static Set<String> getPrevKmers(CortexGraph cg, String kmer, int color) {
@@ -405,24 +441,6 @@ public class CortexUtils {
         }
 
         return isNovelKmer(cr, childColor, parentColors);
-
-        /*
-        if (cr == null) {
-            throw new IndianaException("Unable to test for novelty on a null Cortex record");
-        }
-
-        if (cr.getCoverage(childColor) == 0) {
-            return false;
-        }
-
-        for (int c = 0; c < cr.getNumColors(); c++) {
-            if (c != childColor && cr.getCoverage(c) != 0) {
-                return false;
-            }
-        }
-
-        return true;
-        */
     }
 
     public static boolean isNovelKmer(CortexGraph cg, String kmer, int childColor) {

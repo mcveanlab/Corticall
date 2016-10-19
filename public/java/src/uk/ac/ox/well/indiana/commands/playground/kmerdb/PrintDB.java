@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class PrintDB extends Module {
+public class PrintDb extends Module {
     @Argument(fullName="db", shortName="db", doc="Novel kmer db")
     public File DB_FILE;
 

@@ -4,7 +4,7 @@ import org.apache.commons.math3.util.Pair;
 import org.testng.annotations.Test;
 
 public class GenotypeGraphUtilsTest {
-    //DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, DIRTY, novelKmers);
+    //DirectedGraph<AnnotatedVertex, AnnotatedEdge> ag = GenotypeGraphUtils.loadLocalSubgraph(stretch, CLEAN, GRAPHS, novelKmers);
 
     private Pair<String, String> generateSNPHaplotypes(int length) {
         int mid = length / 2;
