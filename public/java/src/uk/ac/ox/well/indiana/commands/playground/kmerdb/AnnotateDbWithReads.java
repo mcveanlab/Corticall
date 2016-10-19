@@ -22,7 +22,7 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import java.io.File;
 import java.util.*;
 
-public class AnnotateDB extends Module {
+public class AnnotateDbWithReads extends Module {
     @Argument(fullName="db", shortName="db", doc="Novel kmer db")
     public File DB_FILE;
 
@@ -93,7 +93,7 @@ public class AnnotateDB extends Module {
             if (CLEAN != null) {
                 cr = CLEAN.findRecord(sk);
                 if (cr != null) {
-                    m.put("coverage_dirty", cr.getCoverage(0));
+                    m.put("coverage_clean", cr.getCoverage(0));
                     m.put("edges_clean", cr.getEdgesAsBytes(0));
                 }
             }
@@ -117,6 +117,7 @@ public class AnnotateDB extends Module {
                     recs.close();
                 }
 
+                /*
                 for (SAMRecord s : srs) {
                     String rs = s.getReadString().contains(sk) ? s.getReadString() : SequenceUtils.reverseComplement(s.getReadString());
 
@@ -128,8 +129,8 @@ public class AnnotateDB extends Module {
                             StringUtil.repeatCharNTimes(' ', rs.indexOf(sk)),
                             sk
                     );
-
                 }
+                */
 
                 m.put("reads", srs);
             }
@@ -142,6 +143,8 @@ public class AnnotateDB extends Module {
         nkdb.close();
         dbi.close();
 
+        if (out.exists()) { out.delete(); }
+
         DB dbo = DBMaker
                  .fileDB(out)
                  .fileMmapEnable()
@@ -151,6 +154,9 @@ public class AnnotateDB extends Module {
                 .keySerializer(Serializer.LONG_ARRAY)
                 .valueSerializer(Serializer.JAVA)
                 .create();
+
+        dbo.atomicInteger("kmerSize", kmerSize);
+        dbo.atomicInteger("kmerBits", kmerBits);
 
         for (long[] bk : mo.keySet()) {
             nkdb.put(bk, mo.get(bk));
