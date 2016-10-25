@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
+import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection2;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
@@ -16,7 +16,7 @@ import java.util.*;
 
 public class EmitDbNovelKeys extends Module {
     @Argument(fullName="graphs", shortName="g", doc="Graphs")
-    public CortexCollection GRAPHS;
+    public CortexCollection2 GRAPHS;
 
     @Argument(fullName="childColor", shortName="cc", doc="Child color")
     public Integer CHILD_COLOR = 0;
