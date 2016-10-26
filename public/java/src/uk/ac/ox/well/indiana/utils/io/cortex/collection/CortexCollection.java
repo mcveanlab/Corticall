@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.io.cortex.collection;
 import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexColor;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
@@ -19,6 +20,8 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
     private int numColors = 0;
     private int kmerSize = 0;
     private int kmerBits = 0;
+
+    private Map<Integer, String> colorList = new HashMap<>();
 
     public CortexCollection(String collectionFileString) {
         if (!collectionFileString.endsWith(".ctx") && new File(collectionFileString).exists()) {
@@ -108,6 +111,7 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
             }
 
             graphs.put(graph, new Pair<>(accessColors, loadingColors));
+            graphList.add(graph);
 
             numColors = graph.getNumColors();
         }
@@ -143,15 +147,30 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
         throw new IndianaException("Color doesn't exist in graph.");
     }
 
-    public int getNumColors() {
-        return numColors;
+    public String getSampleName(int color) {
+        CortexGraph g = getGraph(color);
+
+        Pair<List<Integer>, List<Integer>> p = graphs.get(g);
+
+        List<Integer> accessColors = p.getFirst();
+        List<Integer> loadingColors = p.getSecond();
+
+        for (int i = 0; i < accessColors.size(); i++) {
+            if (i == color) {
+                CortexColor cc = g.getColor(loadingColors.get(i));
+
+                return cc.getSampleName();
+            }
+        }
+
+        throw new IndianaException("Color " + color + " not found in composite graph");
     }
-    public int getKmerSize() {
-        return kmerSize;
-    }
-    public int getKmerBits() {
-        return kmerBits;
-    }
+
+    public int getNumColors() { return numColors; }
+
+    public int getKmerSize() { return kmerSize; }
+
+    public int getKmerBits() { return kmerBits; }
 
     public CortexRecord findRecord(String kmer) {
         long[] binaryKmer = null;
