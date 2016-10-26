@@ -18,11 +18,11 @@ public class EmitDbNovelKeys extends Module {
     @Argument(fullName="graphs", shortName="g", doc="Graphs")
     public CortexCollection GRAPHS;
 
-    @Argument(fullName="childColor", shortName="cc", doc="Child color")
-    public Integer CHILD_COLOR = 0;
+    @Argument(fullName="childColor", shortName="c", doc="Child")
+    public String CHILD;
 
-    @Argument(fullName="parentColor", shortName="pc", doc="Parent color")
-    public HashSet<Integer> PARENT_COLORS = new HashSet<>();
+    @Argument(fullName="parentColor", shortName="p", doc="Parent")
+    public HashSet<String> PARENTS = new HashSet<>();
 
     @Argument(fullName="coverageLowerLimit", shortName="l", doc="Coverage lower limit")
     public Integer COVERAGE_LOWER_LIMIT = 0;
@@ -32,18 +32,33 @@ public class EmitDbNovelKeys extends Module {
 
     @Override
     public void execute() {
-        if (PARENT_COLORS.isEmpty()) {
-            for (int c = 0; c < GRAPHS.getNumColors(); c++) {
-                if (c != CHILD_COLOR) {
-                    PARENT_COLORS.add(c);
-                }
+        log.info("Colors:");
+
+        int child_color = 0;
+        Set<Integer> parent_colors = new TreeSet<>();
+
+        for (int c = 0; c < GRAPHS.getNumColors(); c++) {
+            if (CHILD.contains(GRAPHS.getSampleName(c))) {
+                child_color = c;
+
+                log.info("  child: {} {}", CHILD, child_color);
+
+                break;
+            }
+        }
+
+        for (int c = 0; c < GRAPHS.getNumColors(); c++) {
+            if (PARENTS.contains(GRAPHS.getSampleName(c))) {
+                parent_colors.add(c);
+
+                log.info("  parent: {} {}", GRAPHS.getSampleName(c), c);
             }
         }
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(makeCortexHeader());
 
-        log.info("Colors: (child) {} (parents) {}", CHILD_COLOR, Joiner.on(",").join(PARENT_COLORS));
+        //log.info("Colors: (child) {} (parents) {}", child_color, Joiner.on(",").join(parent_colors));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
@@ -53,11 +68,11 @@ public class EmitDbNovelKeys extends Module {
 
         long numNovelRecords = 0;
         for (CortexRecord cr : GRAPHS) {
-            if (CortexUtils.isNovelKmer(cr, CHILD_COLOR, PARENT_COLORS) && cr.getCoverage(CHILD_COLOR) > COVERAGE_LOWER_LIMIT) {
+            if (CortexUtils.isNovelKmer(cr, child_color, parent_colors) && cr.getCoverage(child_color) > COVERAGE_LOWER_LIMIT) {
                 CortexRecord novelCr = new CortexRecord(
                         cr.getBinaryKmer(),
-                        new int[] { cr.getCoverages()[CHILD_COLOR] },
-                        new byte[] { cr.getEdges()[CHILD_COLOR] },
+                        new int[] { cr.getCoverages()[child_color] },
+                        new byte[] { cr.getEdges()[child_color] },
                         cr.getKmerSize(),
                         cr.getKmerBits()
                 );
