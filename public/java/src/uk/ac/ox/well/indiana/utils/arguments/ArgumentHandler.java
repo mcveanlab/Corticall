@@ -14,7 +14,7 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.commands.Command;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection2;
+import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -296,8 +296,8 @@ public class ArgumentHandler {
                 return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
             } else if (type.equals(CortexGraphWriter.class)) {
                 return new CortexGraphWriter(value);
-            } else if (type.equals(CortexCollection2.class)) {
-                return new CortexCollection2(value);
+            } else if (type.equals(CortexCollection.class)) {
+                return new CortexCollection(value);
             } else if (type.equals(Expression.class)) {
                 initializeJexlEngine();
 

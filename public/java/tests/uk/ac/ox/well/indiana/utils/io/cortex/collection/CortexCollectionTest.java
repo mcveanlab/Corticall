@@ -12,7 +12,7 @@ import java.util.TreeSet;
 public class CortexCollectionTest {
     @Test
     public void testDynamicGraphMerging() {
-        CortexCollection2 cc = new CortexCollection2("testdata/graph.list.txt");
+        CortexCollection cc = new CortexCollection("testdata/graph.list.txt");
 
         CortexGraph g0 = new CortexGraph(cc.getGraph(0).getCortexFile());
         CortexGraph g1 = new CortexGraph(cc.getGraph(1).getCortexFile());
@@ -38,7 +38,7 @@ public class CortexCollectionTest {
 
     @Test
     public void testSingleFileCollection() {
-        CortexCollection2 cc = new CortexCollection2("testdata/two_samples.sorted.ctx");
+        CortexCollection cc = new CortexCollection("testdata/two_samples.sorted.ctx");
 
         Assert.assertEquals(2, cc.getNumColors());
 
@@ -59,7 +59,7 @@ public class CortexCollectionTest {
 
     @Test
     public void testIteration() {
-        CortexCollection2 cc = new CortexCollection2("testdata/graph.list.txt");
+        CortexCollection cc = new CortexCollection("testdata/graph.list.txt");
 
         CortexGraph g0 = new CortexGraph(cc.getGraph(0).getCortexFile());
         CortexGraph g1 = new CortexGraph(cc.getGraph(1).getCortexFile());
