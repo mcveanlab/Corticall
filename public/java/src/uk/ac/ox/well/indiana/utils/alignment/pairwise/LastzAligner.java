@@ -12,10 +12,9 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class LastzAligner implements ExternalAligner {
-    //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz_D";
-    //private final String lastzPath = "lastz";
-    //private final String lastzPath = "/Users/kiran/opt/lastz-distrib-1.03.66/bin/lastz";
-    private final String lastzPath = System.getProperty("user.home") + "/opt/lastz-distrib-1.03.66/bin/lastz";
+    private final String lastzDir = System.getProperty("user.home") + "/opt/lastz-distrib-1.03.66";
+    private final String lastzPath = lastzDir + "/bin/lastz";
+    private final String hsxPath = lastzDir + "/tools/build_fasta_hsx.py";
 
     public List<SAMRecord> align(String query, File targets) {
         try {
@@ -62,7 +61,11 @@ public class LastzAligner implements ExternalAligner {
             qw.close();
 
             String hsx = targets.getAbsolutePath().replaceAll(".fasta$", ".hsx");
-            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQuery.getAbsolutePath(), "sam-"));
+            if (!new File(hsx).exists()) {
+                ProcessExecutor.execute(String.format("%s %s > %s", hsxPath, targets.getAbsolutePath(), hsx));
+            }
+
+            String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1 --ambiguous=iupac", lastzPath, hsx, tempQuery.getAbsolutePath(), "sam-"));
 
             tempQuery.delete();
 

@@ -21,7 +21,7 @@ public class GFF3Record implements Comparable<GFF3Record> {
     public GFF3Record() {}
 
     public GFF3Record(String line) {
-        String[] fields = line.split("\\s+");
+        String[] fields = line.split("\t+");
 
         seqid = fields[0];
         source = fields[1];
