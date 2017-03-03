@@ -587,11 +587,17 @@ public class CortexUtils {
 
         dfs.addVertex(cv);
 
+        int maxc = 1;
+
         Map<Integer, Set<String>> adjKmers;
-        for (int c = 0; c < 3; c++) {
+        for (int c = 0; c < maxc; c++) {
             for (int i = 0; i < 2; i++) {
                 boolean edgesAreForward = i == 1;
                 adjKmers = edgesAreForward ? nextKmers : prevKmers;
+
+                if (maxc == 1 && adjKmers.size() > maxc) {
+                    maxc = adjKmers.size();
+                }
 
                 for (String adjKmer : adjKmers.get(c)) {
                     AnnotatedVertex av = new AnnotatedVertex(adjKmer);

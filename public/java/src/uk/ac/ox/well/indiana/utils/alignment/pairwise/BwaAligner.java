@@ -37,7 +37,7 @@ public class BwaAligner implements ExternalAligner {
             sfh.setSequenceDictionary(fa.getSequenceDictionary());
             sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
 
-            for (String samLine : result.split("\n")) {
+            for (String samLine : result.split("\\n")) {
                 if (!samLine.isEmpty() && !samLine.startsWith("@")) {
                     //System.out.println("samLine: '" + samLine + "'");
 
