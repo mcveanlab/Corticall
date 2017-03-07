@@ -53,6 +53,7 @@ public class PaintInheritance extends Module {
 
             out.println(rs.getName());
             out.println(new String(painting));
+            out.flush();
         }
     }
 }
