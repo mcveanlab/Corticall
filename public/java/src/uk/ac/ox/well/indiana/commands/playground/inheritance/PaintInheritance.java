@@ -34,7 +34,7 @@ public class PaintInheritance extends Module {
             String seq = rs.getBaseString();
             char[] painting = new char[seq.length() - kmerSize + 1];
 
-            ProgressMeter pm = new ProgressMeter(log, 0, 10000, seq.length() - kmerSize, "Examining inheritance", "bases", " - ");
+            ProgressMeter pm = new ProgressMeter(log, 0, 100000, seq.length() - kmerSize, "Examining inheritance", "bases", " - ");
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 pm.update();
 
