@@ -32,7 +32,7 @@ public class PaintInheritance extends Module {
         ReferenceSequence rs;
         while ((rs = REF.nextSequence()) != null) {
             String seq = rs.getBaseString();
-            byte[] painting = new byte[seq.length() - kmerSize];
+            byte[] painting = new byte[seq.length() - kmerSize + 1];
 
             ProgressMeter pm = new ProgressMeter(log, 0, 10000, seq.length() - kmerSize, "Examining inheritance", "bases", " - ");
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
