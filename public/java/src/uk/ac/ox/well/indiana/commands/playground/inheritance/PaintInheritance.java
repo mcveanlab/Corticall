@@ -51,8 +51,8 @@ public class PaintInheritance extends Module {
                 else if ( inMother &&  inFather) { painting[i] = 'B'; }
             }
 
-            log.info(rs.getName());
-            log.info(new String(painting));
+            out.println(rs.getName());
+            out.println(new String(painting));
         }
     }
 }
