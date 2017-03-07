@@ -43,14 +43,16 @@ public class PaintInheritance extends Module {
                 boolean inMother = MOTHER.findRecord(ck) == null;
                 boolean inFather = FATHER.findRecord(ck) == null;
 
+                painting[i] = 'N';
+
                 if      ( inMother && !inFather) { painting[i] = 'M'; }
                 else if (!inMother &&  inFather) { painting[i] = 'F'; }
                 else if (!inMother && !inFather) { painting[i] = 'N'; }
                 else if ( inMother &&  inFather) { painting[i] = 'B'; }
             }
 
-            out.println(rs.getName());
-            out.println(new String(painting));
+            log.info(rs.getName());
+            log.info(new String(painting));
         }
     }
 }
