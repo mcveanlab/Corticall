@@ -63,7 +63,7 @@ public class EmitDbNovelKeys extends Module {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
-                .updateRecord(GRAPHS.getGraph(0).getNumRecords() / 10)
+                .updateRecord(GRAPHS.getGraph(0).getNumRecords() / 100)
                 .make(log);
 
         long numNovelRecords = 0;
