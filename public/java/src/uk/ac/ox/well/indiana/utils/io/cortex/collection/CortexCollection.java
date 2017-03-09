@@ -156,7 +156,7 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
         List<Integer> loadingColors = p.getSecond();
 
         for (int i = 0; i < accessColors.size(); i++) {
-            if (i == color) {
+            if (accessColors.get(i) == color) {
                 CortexColor cc = g.getColor(loadingColors.get(i));
 
                 return cc.getSampleName();
