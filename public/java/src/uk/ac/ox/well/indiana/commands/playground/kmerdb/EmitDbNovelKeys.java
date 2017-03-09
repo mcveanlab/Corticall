@@ -41,7 +41,7 @@ public class EmitDbNovelKeys extends Module {
             if (CHILD.contains(GRAPHS.getSampleName(c))) {
                 child_color = c;
 
-                log.info("  child: {} {}", CHILD, child_color);
+                log.info("  child: {} {} {}", CHILD, child_color, GRAPHS.getGraph(c).getNumRecords());
 
                 break;
             }
@@ -51,7 +51,7 @@ public class EmitDbNovelKeys extends Module {
             if (PARENTS.contains(GRAPHS.getSampleName(c))) {
                 parent_colors.add(c);
 
-                log.info("  parent: {} {}", GRAPHS.getSampleName(c), c);
+                log.info("  parent: {} {} {}", GRAPHS.getSampleName(c), c, GRAPHS.getGraph(c).getNumRecords());
             }
         }
 
