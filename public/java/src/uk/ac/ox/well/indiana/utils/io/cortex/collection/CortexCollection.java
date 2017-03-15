@@ -5,6 +5,7 @@ import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexColor;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexHeader;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
@@ -171,6 +172,20 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
     public int getKmerSize() { return kmerSize; }
 
     public int getKmerBits() { return kmerBits; }
+
+    public CortexHeader getHeader() {
+        CortexHeader ch = new CortexHeader();
+        ch.setVersion(6);
+        ch.setNumColors(getNumColors());
+        ch.setKmerSize(getKmerSize());
+        ch.setKmerBits(getKmerBits());
+
+        for (int c = 0; c < getNumColors(); c++) {
+            ch.addColor(getGraph(c).getColor(0));
+        }
+
+        return ch;
+    }
 
     public CortexRecord findRecord(String kmer) {
         long[] binaryKmer = null;
