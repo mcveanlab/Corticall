@@ -80,7 +80,6 @@ public class ArgumentHandler {
 
                         Option option = new Option(arg.shortName(), arg.fullName(), hasArgument, description);
                         option.setType(field.getType());
-                        //option.setArgs(2);
                         options.addOption(option);
                     } else if (annotation.annotationType().equals(Output.class)) {
                         numArgFields++;
@@ -89,7 +88,7 @@ public class ArgumentHandler {
 
                         Output out = (Output) annotation;
 
-                        String description = out.doc() + " [default: /dev/stdout]";
+                        String description = out.doc() + " [default: " + (field.getType().equals(PrintStream.class) ? "/dev/stdout" : "/dev/null") + "]";
                         Boolean hasArgument = !field.getType().equals(Boolean.class);
 
                         Option option = new Option(out.shortName(), out.fullName(), hasArgument, description);
@@ -145,11 +144,15 @@ public class ArgumentHandler {
                     } else if (annotation.annotationType().equals(Output.class)) {
                         Output out = (Output) annotation;
 
-                        if (field.getType().equals(PrintStream.class)) {
+                        if (field.getType().equals(PrintStream.class) || field.getType().equals(File.class)) {
                             String value = cmd.getOptionValue(out.fullName());
 
                             if (value == null) {
-                                value = "/dev/stdout";
+                                if (field.getType().equals(PrintStream.class)) {
+                                    value = "/dev/stdout";
+                                } else {
+                                    value = "/dev/null";
+                                }
                             }
 
                             processArgument(instance, field, value);
