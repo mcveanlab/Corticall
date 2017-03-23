@@ -85,7 +85,7 @@ public class partition extends Module {
                         */
                     }
 
-                    log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
+                    //log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
 
                     numFragments++;
                 } else {
