@@ -26,7 +26,7 @@ public class partition extends Module {
     public CortexGraph NOVELS;
 
     @Argument(fullName="parent", shortName="p", doc="Parent")
-    public Set<String> PARENTS;
+    public HashSet<String> PARENTS;
 
     @Output
     public File out;
