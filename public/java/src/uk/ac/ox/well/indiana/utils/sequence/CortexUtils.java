@@ -582,7 +582,7 @@ public class CortexUtils {
         }
     }
 
-    public static int addVertexAndConnect(DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs, AnnotatedVertex cv, Map<Integer, Set<String>> prevKmers, Map<Integer, Set<String>> nextKmers) {
+    public static int addVertexAndConnect(DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs, AnnotatedVertex cv, Map<Integer, Set<String>> prevKmers, Map<Integer, Set<String>> nextKmers, Set<Integer> colors) {
         int numVerticesBefore = dfs.vertexSet().size();
 
         dfs.addVertex(cv);
@@ -590,7 +590,8 @@ public class CortexUtils {
         int maxc = 1;
 
         Map<Integer, Set<String>> adjKmers;
-        for (int c = 0; c < maxc; c++) {
+        //for (int c = 0; c < maxc; c++) {
+        for (int c : colors) {
             for (int i = 0; i < 2; i++) {
                 boolean edgesAreForward = i == 1;
                 adjKmers = edgesAreForward ? nextKmers : prevKmers;
@@ -646,6 +647,10 @@ public class CortexUtils {
         Set<Integer> childColors = new HashSet<>();
         childColors.add(color);
 
+        Set<Integer> allColors = new HashSet<>();
+        allColors.addAll(childColors);
+        allColors.addAll(parentColors);
+
         do {
             AnnotatedVertex cv = new AnnotatedVertex(kmer);
 
@@ -658,7 +663,7 @@ public class CortexUtils {
             Map<Integer, Set<String>> nextKmers = CortexUtils.getNextKmers(clean, dirty, cv.getKmer());
             adjKmers = goForward ? nextKmers : prevKmers;
 
-            int numVerticesAdded = addVertexAndConnect(dfs, cv, prevKmers, nextKmers);
+            int numVerticesAdded = addVertexAndConnect(dfs, cv, prevKmers, nextKmers, allColors);
 
             if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size(), childColors, parentColors) && !sourceKmers.contains(kmer) && !history.contains(kmer)) {
                 history.add(kmer);

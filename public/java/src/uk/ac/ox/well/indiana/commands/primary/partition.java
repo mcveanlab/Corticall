@@ -48,41 +48,52 @@ public class partition extends Module {
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
+        Set<CortexBinaryKmer> unused = new HashSet<>();
 
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
             if (!seen.contains(cr.getCortexBinaryKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
+                if (cr.getInDegree(0) <= 1 && cr.getOutDegree(0) <= 1) {
+                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
 
-                log.info("  fragment");
+                    int numNovel = 0;
+                    int totCov = 0;
+                    for (AnnotatedVertex av : dfs.vertexSet()) {
+                        CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
+                        seen.add(cbk);
 
-                int numNovel = 0;
-                for (AnnotatedVertex av : dfs.vertexSet()) {
-                    seen.add(new CortexBinaryKmer(av.getKmer().getBytes()));
+                        if (unused.contains(cbk)) { unused.remove(cbk); }
 
-                    CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
-                    numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
+                        CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
+                        numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
 
-                    List<Integer> covs = new ArrayList<>();
-                    List<String> edges = new ArrayList<>();
+                        totCov += crn.getCoverage(childColor);
 
-                    covs.add(crn.getCoverage(childColor));
-                    edges.add(crn.getEdgesAsString(childColor));
+                        /*
+                        List<Integer> covs = new ArrayList<>();
+                        List<String> edges = new ArrayList<>();
 
-                    for (int parentColor : parentColors) {
-                        covs.add(crn.getCoverage(parentColor));
-                        edges.add(crn.getEdgesAsString(parentColor));
+                        covs.add(crn.getCoverage(childColor));
+                        edges.add(crn.getEdgesAsString(childColor));
+
+                        for (int parentColor : parentColors) {
+                            covs.add(crn.getCoverage(parentColor));
+                            edges.add(crn.getEdgesAsString(parentColor));
+                        }
+
+                        log.info("    {} {} {}", crn.getCortexKmer(), Joiner.on(' ').join(covs), Joiner.on(' ').join(edges));
+                        */
                     }
 
-                    log.info("    {} {} {}", crn.getCortexKmer(), Joiner.on(' ').join(covs), Joiner.on(' ').join(edges));
+                    log.info("    fragment {}: {} {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel, totCov / dfs.vertexSet().size());
+
+                    numFragments++;
+                } else {
+                    unused.add(cr.getCortexBinaryKmer());
                 }
-
-                log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
-
-                numFragments++;
             }
 
-            pm.update("records processed (" + numFragments + " constructed so far)");
+            pm.update("records processed (" + numFragments + " fragments constructed so far, " + unused.size() + " unused)");
         }
     }
 

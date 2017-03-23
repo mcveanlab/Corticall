@@ -66,6 +66,9 @@ public class roi extends Module {
 
     private boolean isNovel(CortexRecord cr, int childColor) {
         boolean childHasCoverage = cr.getCoverage(childColor) > COVERAGE_MINIMUM;
+        int inEdges = cr.getInDegree(childColor);
+        int outEdges = cr.getOutDegree(childColor);
+
         boolean othersHaveCoverage = false;
 
         for (int c = 0; c < cr.getNumColors(); c++) {
@@ -75,7 +78,9 @@ public class roi extends Module {
             }
         }
 
-        return childHasCoverage && !othersHaveCoverage;
+        return childHasCoverage && inEdges == 1 && outEdges == 1 && !othersHaveCoverage;
+
+        //return childHasCoverage && !othersHaveCoverage;
     }
 
     @NotNull
