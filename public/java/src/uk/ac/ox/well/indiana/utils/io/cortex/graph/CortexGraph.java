@@ -290,6 +290,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     public int getVersion() { return header.getVersion(); }
     public int getKmerSize() { return header.getKmerSize(); }
     public int getKmerBits() { return header.getKmerBits(); }
+    public String getSampleName(int color) { return getColor(color).getSampleName(); }
     public int getNumColors() { return header.getNumColors(); }
     public long getNumRecords() { return numRecords; }
     public List<CortexColor> getColors() { return header.getColors(); }

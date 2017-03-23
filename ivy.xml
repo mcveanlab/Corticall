@@ -20,7 +20,7 @@
         <dependency org="colt" name="colt" rev="1.2.0" />
         <dependency org="org.yaml" name="snakeyaml" rev="1.17" />
         <dependency org="uk.com.robust-it" name="cloning" rev="1.9.2" />
-        <dependency org="org.mapdb" name="mapdb" rev="3.0.0" />
+        <dependency org="org.mapdb" name="mapdb" rev="3.0.3" />
         <dependency org="org.json" name="json" rev="20160212" />
         <dependency org="org.xerial.snappy" name="snappy-java" rev="1.1.2.6" />
         <dependency org="org.apache.ant.bzip2" name="bzip2" rev="1.8.2" />

@@ -3,15 +3,17 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
+import java.util.Set;
+
 public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper<V, E> {
     private boolean anyTraversalSucceeded = false;
     private boolean traversalSucceeded = false;
     private boolean traversalFailed = false;
 
-    public boolean keepGoing(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size, int edges) {
+    public boolean keepGoing(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
         //return !hasTraversalSucceeded(cr, g, junctions, size) && !hasTraversalFailed(cr, g, junctions, size);
-        traversalSucceeded = hasTraversalSucceeded(cr, g, junctions, size, edges);
-        traversalFailed = hasTraversalFailed(cr, g, junctions, size, edges);
+        traversalSucceeded = hasTraversalSucceeded(cr, g, junctions, size, edges, childColors, parentColors);
+        traversalFailed = hasTraversalFailed(cr, g, junctions, size, edges, childColors, parentColors);
 
         if (traversalSucceeded) {
             anyTraversalSucceeded = true;
