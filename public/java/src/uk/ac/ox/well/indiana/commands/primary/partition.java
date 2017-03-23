@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.primary;
 
+import com.google.api.client.util.Joiner;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -16,7 +17,9 @@ import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 import uk.ac.ox.well.indiana.utils.traversal.ChildTraversalStopper;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class partition extends Module {
@@ -60,7 +63,18 @@ public class partition extends Module {
                     CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
                     numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
 
-                    log.info("    {}", crn);
+                    List<Integer> covs = new ArrayList<>();
+                    List<String> edges = new ArrayList<>();
+
+                    covs.add(crn.getCoverage(childColor));
+                    edges.add(crn.getEdgesAsString(childColor));
+
+                    for (int parentColor : parentColors) {
+                        covs.add(crn.getCoverage(parentColor));
+                        edges.add(crn.getEdgesAsString(parentColor));
+                    }
+
+                    log.info("    {} {} {}", crn.getCortexKmer(), Joiner.on(' ').join(covs), Joiner.on(' ').join(edges));
                 }
 
                 log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
