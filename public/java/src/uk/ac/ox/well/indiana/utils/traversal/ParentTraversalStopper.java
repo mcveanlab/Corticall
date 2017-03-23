@@ -4,6 +4,8 @@ import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
+import java.util.Set;
+
 public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
     private boolean sawPredecessorFirst = false;
     private boolean sawSuccessorFirst = false;
@@ -24,7 +26,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges) {
+    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
         String fw = cr.getKmerAsString();
         String rc = SequenceUtils.reverseComplement(fw);
 
@@ -63,7 +65,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges) {
+    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
         return size > 1000 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
     }
 

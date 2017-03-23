@@ -632,7 +632,7 @@ public class CortexUtils {
         return dfs.vertexSet().size() - numVerticesBefore;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, int depth, boolean goForward, HashSet<String> history) {
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, Set<Integer> parentColors, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, int depth, boolean goForward, HashSet<String> history) {
         String firstKmer = new String(kmer);
 
         Map<Integer, Set<String>> sourceKmersAllColors = goForward ? CortexUtils.getPrevKmers(clean, dirty, kmer) : CortexUtils.getNextKmers(clean, dirty, kmer);
@@ -642,6 +642,9 @@ public class CortexUtils {
         TraversalStopper<AnnotatedVertex, AnnotatedEdge> stopper = instantiateStopper(stopperClass);
 
         Map<Integer, Set<String>> adjKmers;
+
+        Set<Integer> childColors = new HashSet<>();
+        childColors.add(color);
 
         do {
             AnnotatedVertex cv = new AnnotatedVertex(kmer);
@@ -657,7 +660,7 @@ public class CortexUtils {
 
             int numVerticesAdded = addVertexAndConnect(dfs, cv, prevKmers, nextKmers);
 
-            if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size()) && !sourceKmers.contains(kmer) && !history.contains(kmer)) {
+            if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size(), childColors, parentColors) && !sourceKmers.contains(kmer) && !history.contains(kmer)) {
                 history.add(kmer);
 
                 if (adjKmers.get(color).size() == 1) {
@@ -667,7 +670,7 @@ public class CortexUtils {
 
                     for (String ak : adjKmers.get(color)) {
                         if (!ak.equals(firstKmer)) {
-                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward, history);
+                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> branch = dfs(clean, dirty, ak, color, parentColors, g, stopperClass, depth + (CortexUtils.isNovelKmer(cr) ? 0 : 1), goForward, history);
 
                             if (branch != null) {
                                 Graphs.addGraph(dfs, branch);
@@ -682,7 +685,7 @@ public class CortexUtils {
                         }
                     }
 
-                    if (childrenWereSuccessful || stopper.hasTraversalSucceeded(cr, g, depth, dfs.vertexSet().size(), 0)) {
+                    if (childrenWereSuccessful || stopper.hasTraversalSucceeded(cr, g, depth, dfs.vertexSet().size(), 0, childColors, parentColors)) {
                         return dfs;
                     } else {
                         for (AnnotatedVertex av : dfs.vertexSet()) {
@@ -702,16 +705,20 @@ public class CortexUtils {
         return null;
     }
 
-    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, Set<Integer> parentColors, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, true, new HashSet<>());
-        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, sg0, stopperClass, 0, false, new HashSet<>());
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, parentColors, sg0, stopperClass, 0, true, new HashSet<>());
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, parentColors, sg0, stopperClass, 0, false, new HashSet<>());
 
         if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
         if (dfsb != null) { Graphs.addGraph(dfs, dfsb); }
 
         return dfs;
+    }
+
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph graph, String kmer, int color, Set<Integer> parentColors, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+        return dfs(graph, null, kmer, color, parentColors, null, stopperClass);
     }
 
     /**

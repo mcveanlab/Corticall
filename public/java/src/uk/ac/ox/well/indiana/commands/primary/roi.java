@@ -19,6 +19,9 @@ public class roi extends Module {
     @Argument(fullName="childColor", shortName="c", doc="Child")
     public String CHILD;
 
+    @Argument(fullName="coverageMinimum", shortName="m", doc="Coverage minimum")
+    public Integer COVERAGE_MINIMUM = 0;
+
     @Output
     public File out;
 
@@ -62,7 +65,7 @@ public class roi extends Module {
     }
 
     private boolean isNovel(CortexRecord cr, int childColor) {
-        boolean childHasCoverage = cr.getCoverage(childColor) > 0;
+        boolean childHasCoverage = cr.getCoverage(childColor) > COVERAGE_MINIMUM;
         boolean othersHaveCoverage = false;
 
         for (int c = 0; c < cr.getNumColors(); c++) {

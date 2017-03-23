@@ -6,7 +6,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
  * Created by kiran on 18/06/2015.
  */
 public class AnnotatedEdge extends DefaultWeightedEdge {
-    private boolean[] isInColor = new boolean[10];
+    private boolean[] isInColor = new boolean[100];
 
     public AnnotatedEdge() {}
 

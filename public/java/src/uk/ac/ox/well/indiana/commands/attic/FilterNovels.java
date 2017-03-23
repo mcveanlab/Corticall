@@ -95,7 +95,7 @@ public class FilterNovels extends Module {
         log.info("  {} to start with", REJECTED_KMERS.getNumRecords());
         for (CortexRecord cr : REJECTED_KMERS) {
             if (!contaminatingKmers.contains(cr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, DIRTY, cr.getKmerAsString(), 0, null, ContaminantStopper.class);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(CLEAN, DIRTY, cr.getKmerAsString(), 0, null, null, ContaminantStopper.class);
 
                 for (AnnotatedVertex rv : dfs.vertexSet()) {
                     CortexRecord rr = CLEAN.findRecord(new CortexKmer(rv.getKmer()));

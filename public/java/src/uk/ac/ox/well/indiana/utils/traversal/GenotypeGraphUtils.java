@@ -72,7 +72,7 @@ public class GenotypeGraphUtils {
                 }
 
                 if (localNovelKmers.get(sk)) {
-                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, sk, 0, null, ChildTraversalStopper.class);
+                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, sk, 0, null, null, ChildTraversalStopper.class);
 
                     if (dfs != null) {
                         Graphs.addGraph(sg0, dfs);
@@ -167,7 +167,7 @@ public class GenotypeGraphUtils {
                         Set<AnnotatedVertex> psList = goForward ? predecessorList : successorList;
 
                         for (AnnotatedVertex ak : psList) {
-                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, sg0, ParentTraversalStopper.class, 0, goForward, new HashSet<>());
+                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, null, sg0, ParentTraversalStopper.class, 0, goForward, new HashSet<>());
 
                             if (dfs != null) {
                                 Graphs.addGraph(sg, dfs);
