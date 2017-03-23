@@ -57,7 +57,7 @@ public class partition extends Module {
                     DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
 
                     int numNovel = 0;
-                    int totCov = 0;
+                    //int totCov = 0;
                     for (AnnotatedVertex av : dfs.vertexSet()) {
                         CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
                         seen.add(cbk);
@@ -67,7 +67,7 @@ public class partition extends Module {
                         CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
                         numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
 
-                        totCov += crn.getCoverage(childColor);
+                        //totCov += crn.getCoverage(childColor);
 
                         /*
                         List<Integer> covs = new ArrayList<>();
@@ -85,7 +85,7 @@ public class partition extends Module {
                         */
                     }
 
-                    log.info("    fragment {}: {} {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel, totCov / dfs.vertexSet().size());
+                    log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
 
                     numFragments++;
                 } else {
