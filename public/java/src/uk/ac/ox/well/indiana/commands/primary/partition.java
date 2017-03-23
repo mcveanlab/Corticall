@@ -6,6 +6,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
@@ -54,7 +55,7 @@ public class partition extends Module {
                 for (AnnotatedVertex av : dfs.vertexSet()) {
                     seen.add(new CortexBinaryKmer(av.getKmer().getBytes()));
 
-                    CortexRecord crn = GRAPHS.findRecord(av.getKmer());
+                    CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
                     numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
                 }
 
