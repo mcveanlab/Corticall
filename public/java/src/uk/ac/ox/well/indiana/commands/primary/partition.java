@@ -12,10 +12,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.traversal.AbstractTraversalStopper;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
-import uk.ac.ox.well.indiana.utils.traversal.ChildTraversalStopper;
+import uk.ac.ox.well.indiana.utils.traversal.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -47,7 +44,7 @@ public class partition extends Module {
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
             if (!seen.contains(cr.getCortexBinaryKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(cg, cr.getKmerAsString(), 0, null, NovelKmerAggregator.class);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(cg, cr.getKmerAsString(), 0, null, NovelKmerAggregationStopper.class);
 
                 for (AnnotatedVertex av : dfs.vertexSet()) {
                     CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
@@ -59,23 +56,6 @@ public class partition extends Module {
             }
 
             pm.update("records processed (" + numFragments + " fragments constructed so far, " + unused.size() + " unused)");
-        }
-    }
-
-    public class NovelKmerAggregator extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
-        @Override
-        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
-            return cr.getInDegree(0) == 0 || cr.getOutDegree(0) == 0;
-        }
-
-        @Override
-        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
-            return false;
-        }
-
-        @Override
-        public int maxJunctionsAllowed() {
-            return 0;
         }
     }
 }
