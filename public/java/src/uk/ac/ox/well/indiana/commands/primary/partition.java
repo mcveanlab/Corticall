@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 
 public class partition extends Module {
+    @Argument(fullName="graphs", shortName="g", doc="Graphs")
+    public CortexGraph GRAPHS;
+
     @Argument(fullName="novels", shortName="n", doc="Novels")
     public CortexGraph NOVELS;
 
@@ -29,12 +32,13 @@ public class partition extends Module {
 
     @Override
     public void execute() {
-        CortexGraph cg = new CortexGraph(NOVELS.getCortexFile());
+        //CortexGraph cg = new CortexGraph(NOVELS.getCortexFile());
+        int childColor = GRAPHS.getColorForSampleName(NOVELS.getSampleName(0));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
-                .updateRecord(NOVELS.getNumRecords() / 10)
+                .updateRecord(NOVELS.getNumRecords() / 100)
                 .maxRecord(NOVELS.getNumRecords())
                 .make(log);
 
@@ -44,7 +48,7 @@ public class partition extends Module {
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
             if (!seen.contains(cr.getCortexBinaryKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(cg, cr.getKmerAsString(), 0, null, NovelKmerAggregationStopper.class);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, null, NovelKmerAggregationStopper.class);
 
                 for (AnnotatedVertex av : dfs.vertexSet()) {
                     CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
