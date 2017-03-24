@@ -46,25 +46,25 @@ public class sharingstats extends Module {
             pm.update("records processed (" + sharedRecords + " shared records so far)");
 
             boolean isInChild = cr.getCoverage(childColor) > 0;
-            boolean isInParent = false;
-            boolean isInOtherChildren = false;
+            int numberOfParents = 0;
+            int numberOfChildren = 0;
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 if (cr.getCoverage(c) > 0) {
                     if (childColor == c) { isInChild = true; }
-                    else if (parentColors.contains(c)) { isInParent = true; }
-                    else { isInOtherChildren = true; }
+                    else if (parentColors.contains(c)) { numberOfParents++; }
+                    else { numberOfChildren++; }
                 }
             }
 
             int childCov = cr.getCoverage(childColor);
 
-            if (isInChild && isInParent && isInOtherChildren) {
+            if (isInChild && numberOfParents > 0 && numberOfChildren > 0) {
                 if (!hist.containsKey(childCov)) {
                     hist.put(childCov, 0);
                 }
 
-                hist.put(childCov, hist.get(childCov) + 1);
+                hist.put(childCov, hist.get(childCov) + numberOfParents + numberOfChildren);
 
                 sharedRecords++;
             }
