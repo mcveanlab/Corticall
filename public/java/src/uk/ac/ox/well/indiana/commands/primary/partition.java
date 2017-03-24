@@ -2,6 +2,10 @@ package uk.ac.ox.well.indiana.commands.primary;
 
 import com.google.api.client.util.Joiner;
 import org.jgrapht.DirectedGraph;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -15,10 +19,7 @@ import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.traversal.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class partition extends Module {
     @Argument(fullName="graphs", shortName="g", doc="Graphs")
@@ -32,7 +33,10 @@ public class partition extends Module {
 
     @Override
     public void execute() {
-        //CortexGraph cg = new CortexGraph(NOVELS.getCortexFile());
+        DB db = DBMaker
+                .fileDB(out)
+                .make();
+
         int childColor = GRAPHS.getColorForSampleName(NOVELS.getSampleName(0));
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -43,11 +47,13 @@ public class partition extends Module {
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
-        List<DirectedGraph<AnnotatedVertex, AnnotatedEdge>> fragments = new ArrayList<>();
 
-        int numFragments = 0;
+        NavigableSet partition = db.treeSet("partition")
+                .counterEnable()
+                .createOrOpen();
+
         for (CortexRecord cr : NOVELS) {
-            pm.update("records processed (" + numFragments + " fragments constructed so far)");
+            pm.update("records processed (" + fragments.size() + " fragments constructed so far)");
 
             if (!seen.contains(cr.getCortexBinaryKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, null, NovelKmerAggregationStopper.class);
@@ -58,10 +64,12 @@ public class partition extends Module {
                     seen.add(cbk);
                 }
 
-                fragments.add(dfs);
-
-                numFragments++;
+                partition.add(dfs);
             }
         }
+
+        db.commit();
+
+        db.close();
     }
 }
