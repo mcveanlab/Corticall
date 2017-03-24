@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.traversal.AbstractTraversalStopper;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 import uk.ac.ox.well.indiana.utils.traversal.ChildTraversalStopper;
@@ -23,22 +24,15 @@ import java.util.List;
 import java.util.Set;
 
 public class partition extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
-    public CortexGraph GRAPHS;
-
     @Argument(fullName="novels", shortName="n", doc="Novels")
     public CortexGraph NOVELS;
-
-    @Argument(fullName="parent", shortName="p", doc="Parent")
-    public HashSet<String> PARENTS;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
-        int childColor = GRAPHS.getColorForSampleName(NOVELS.getSampleName(0));
-        Set<Integer> parentColors = getParentColors();
+        CortexGraph cg = new CortexGraph(NOVELS.getCortexFile());
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
@@ -53,57 +47,35 @@ public class partition extends Module {
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
             if (!seen.contains(cr.getCortexBinaryKmer())) {
-                if (cr.getInDegree(0) <= 1 && cr.getOutDegree(0) <= 1) {
-                    DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(cg, cr.getKmerAsString(), 0, null, NovelKmerAggregator.class);
 
-                    int numNovel = 0;
-                    //int totCov = 0;
-                    for (AnnotatedVertex av : dfs.vertexSet()) {
-                        CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
-                        seen.add(cbk);
+                for (AnnotatedVertex av : dfs.vertexSet()) {
+                    CortexBinaryKmer cbk = new CortexBinaryKmer(av.getKmer().getBytes());
 
-                        if (unused.contains(cbk)) { unused.remove(cbk); }
-
-                        CortexRecord crn = GRAPHS.findRecord(new CortexKmer(av.getKmer()));
-                        numNovel += CortexUtils.isNovelKmer(crn, childColor, parentColors) ? 1 : 0;
-
-                        //totCov += crn.getCoverage(childColor);
-
-                        /*
-                        List<Integer> covs = new ArrayList<>();
-                        List<String> edges = new ArrayList<>();
-
-                        covs.add(crn.getCoverage(childColor));
-                        edges.add(crn.getEdgesAsString(childColor));
-
-                        for (int parentColor : parentColors) {
-                            covs.add(crn.getCoverage(parentColor));
-                            edges.add(crn.getEdgesAsString(parentColor));
-                        }
-
-                        log.info("    {} {} {}", crn.getCortexKmer(), Joiner.on(' ').join(covs), Joiner.on(' ').join(edges));
-                        */
-                    }
-
-                    //log.info("    fragment {}: {} {} {}", numFragments, dfs.vertexSet().size(), dfs.edgeSet().size(), numNovel);
-
-                    numFragments++;
-                } else {
-                    unused.add(cr.getCortexBinaryKmer());
+                    seen.add(cbk);
                 }
+
+                numFragments++;
             }
 
             pm.update("records processed (" + numFragments + " fragments constructed so far, " + unused.size() + " unused)");
         }
     }
 
-    private Set<Integer> getParentColors() {
-        Set<Integer> parentColors = new HashSet<>();
-
-        for (String parent : PARENTS) {
-            parentColors.add(GRAPHS.getColorForSampleName(parent));
+    class NovelKmerAggregator extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
+        @Override
+        public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+            return cr.getInDegree(0) == 0 || cr.getOutDegree(0) == 0;
         }
 
-        return parentColors;
+        @Override
+        public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+            return false;
+        }
+
+        @Override
+        public int maxJunctionsAllowed() {
+            return 0;
+        }
     }
 }
