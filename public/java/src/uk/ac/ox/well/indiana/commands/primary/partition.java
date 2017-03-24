@@ -43,10 +43,11 @@ public class partition extends Module {
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
-        Set<CortexBinaryKmer> unused = new HashSet<>();
 
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
+            pm.update("records processed (" + numFragments + " fragments constructed so far)");
+
             if (!seen.contains(cr.getCortexBinaryKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, null, NovelKmerAggregationStopper.class);
 
@@ -58,8 +59,6 @@ public class partition extends Module {
 
                 numFragments++;
             }
-
-            pm.update("records processed (" + numFragments + " fragments constructed so far, " + unused.size() + " unused)");
         }
     }
 }
