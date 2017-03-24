@@ -38,7 +38,7 @@ public class partition extends Module {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
-                .updateRecord(NOVELS.getNumRecords() / 100)
+                .updateRecord(NOVELS.getNumRecords() / 10)
                 .maxRecord(NOVELS.getNumRecords())
                 .make(log);
 
