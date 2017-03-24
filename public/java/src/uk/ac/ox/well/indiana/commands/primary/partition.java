@@ -43,6 +43,7 @@ public class partition extends Module {
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
+        List<DirectedGraph<AnnotatedVertex, AnnotatedEdge>> fragments = new ArrayList<>();
 
         int numFragments = 0;
         for (CortexRecord cr : NOVELS) {
@@ -56,6 +57,8 @@ public class partition extends Module {
 
                     seen.add(cbk);
                 }
+
+                fragments.add(dfs);
 
                 numFragments++;
             }
