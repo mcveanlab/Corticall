@@ -648,8 +648,8 @@ public class CortexUtils {
         childColors.add(color);
 
         Set<Integer> allColors = new HashSet<>();
-        allColors.addAll(childColors);
-        allColors.addAll(parentColors);
+        if (childColors != null) { allColors.addAll(childColors); }
+        if (parentColors != null) { allColors.addAll(parentColors); }
 
         do {
             AnnotatedVertex cv = new AnnotatedVertex(kmer);
