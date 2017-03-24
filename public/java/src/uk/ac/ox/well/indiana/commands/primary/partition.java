@@ -62,7 +62,7 @@ public class partition extends Module {
         }
     }
 
-    class NovelKmerAggregator extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
+    public class NovelKmerAggregator extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
         @Override
         public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
             return cr.getInDegree(0) == 0 || cr.getOutDegree(0) == 0;
