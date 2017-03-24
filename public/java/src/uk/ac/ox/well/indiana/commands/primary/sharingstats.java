@@ -69,6 +69,10 @@ public class sharingstats extends Module {
                 sharedRecords++;
             }
         }
+
+        for (int cov : hist.keySet()) {
+            out.println(cov + "\t" + hist.get(cov));
+        }
     }
 
     private Set<Integer> getColorsForSampleNames(Set<String> samples) {
