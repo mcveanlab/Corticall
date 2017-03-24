@@ -53,7 +53,7 @@ public class partition extends Module {
                 .createOrOpen();
 
         for (CortexRecord cr : NOVELS) {
-            pm.update("records processed (" + fragments.size() + " fragments constructed so far)");
+            pm.update("records processed (" + partition.size() + " fragments constructed so far)");
 
             if (!seen.contains(cr.getCortexBinaryKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPHS, cr.getKmerAsString(), childColor, null, NovelKmerAggregationStopper.class);
