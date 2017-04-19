@@ -25,10 +25,15 @@ public class IdentifyNonContainedContigs extends Module {
 
     @Override
     public void execute() {
-        Map<String, SAMRecord> contigs = new HashMap<>();
+        List<String> containedReads = new ArrayList<>();
+        Set<String> allContigs = new HashSet<>();
 
         for (SamReader sam : BAMS) {
+            Map<String, SAMRecord> contigs = new HashMap<>();
+
             for (SAMRecord sr : sam) {
+                allContigs.add(sr.getReadName());
+
                 if (!contigs.containsKey(sr.getReadName())) {
                     contigs.put(sr.getReadName(), sr);
                 } else {
@@ -39,27 +44,25 @@ public class IdentifyNonContainedContigs extends Module {
                     }
                 }
             }
+
+            IntervalTreeMap<String> t = new IntervalTreeMap<>();
+
+            for (SAMRecord sr : contigs.values()) {
+                Interval loc = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd());
+                t.put(loc, sr.getReadName());
+            }
+
+            for (SAMRecord sr : contigs.values()) {
+                Interval loc = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd());
+
+                Collection<String> contained = t.getContained(loc);
+                contained.remove(sr.getReadName());
+
+                containedReads.addAll(contained);
+            }
         }
 
-        IntervalTreeMap<String> t = new IntervalTreeMap<>();
-
-        for (SAMRecord sr : contigs.values()) {
-            Interval loc = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd());
-            t.put(loc, sr.getReadName());
-        }
-
-        List<String> containedReads = new ArrayList<>();
-
-        for (SAMRecord sr : contigs.values()) {
-            Interval loc = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd());
-
-            Collection<String> contained = t.getContained(loc);
-            contained.remove(sr.getReadName());
-
-            containedReads.addAll(contained);
-        }
-
-        for (String contigName : contigs.keySet()) {
+        for (String contigName : allContigs) {
             if (!containedReads.contains(contigName)) {
                 out.println(contigName);
             }
