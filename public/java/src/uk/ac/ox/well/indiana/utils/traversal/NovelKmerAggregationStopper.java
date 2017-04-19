@@ -10,12 +10,12 @@ import java.util.Set;
  */
 public class NovelKmerAggregationStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
     @Override
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
-        return cr == null || cr.getInDegree(0) == 0 || cr.getOutDegree(0) == 0;
+    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
+        return cr == null || cr.getInDegree(childColor) == 0 || cr.getOutDegree(childColor) == 0;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
         return false;
     }
 

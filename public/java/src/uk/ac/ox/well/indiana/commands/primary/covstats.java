@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class sharingstats extends Module {
+public class covstats extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 

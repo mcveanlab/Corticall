@@ -9,18 +9,10 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
     private int goalSize = 0;
     private int goalDepth = 0;
 
-    private boolean isNovel(CortexRecord cr, Set<Integer> childColors, Set<Integer> parentColors) {
+    private boolean isNovel(CortexRecord cr, int childColor, Set<Integer> parentColors) {
         boolean isInParents = isSharedWithAParent(cr, parentColors);
 
-        if (!isInParents) {
-            for (int c : childColors) {
-                if (cr.getCoverage(c) > 0) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return !isInParents && cr.getCoverage(childColor) > 0;
     }
 
     private boolean isSharedWithAParent(CortexRecord cr, Set<Integer> parentColors) {
@@ -33,13 +25,13 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
         return false;
     }
 
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
         if (goalSize == 0 && isSharedWithAParent(cr, parentColors)) {
             goalSize = size;
             goalDepth = depth;
         }
 
-        if (goalSize > 0 && isNovel(cr, childColors, parentColors)) {
+        if (goalSize > 0 && isNovel(cr, childColor, parentColors)) {
             goalSize = size;
             goalDepth = depth;
         }
@@ -48,8 +40,8 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
-        return !isNovel(cr, childColors, parentColors) && (edges == 0 || depth >= maxJunctionsAllowed() || size > 5000);
+    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
+        return !isNovel(cr, childColor, parentColors) && (edges == 0 || depth >= maxJunctionsAllowed() || size > 5000);
     }
 
     @Override
