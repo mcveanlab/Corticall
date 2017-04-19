@@ -33,9 +33,11 @@ public class partition extends Module {
 
     @Override
     public void execute() {
+        /*
         DB db = DBMaker
                 .fileDB(out)
                 .make();
+                */
 
         int childColor = GRAPHS.getColorForSampleName(NOVELS.getSampleName(0));
 
@@ -48,9 +50,13 @@ public class partition extends Module {
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
 
+        /*
         NavigableSet partition = db.treeSet("partition")
                 .counterEnable()
                 .createOrOpen();
+                */
+
+        Set<DirectedGraph<AnnotatedVertex, AnnotatedEdge>> partition = new HashSet<>();
 
         for (CortexRecord cr : NOVELS) {
             pm.update("records processed (" + partition.size() + " fragments constructed so far)");
@@ -65,11 +71,18 @@ public class partition extends Module {
                 }
 
                 partition.add(dfs);
+
+                log.info("  {} {}", dfs.vertexSet().size(), dfs.edgeSet().size());
+                log.info("");
             }
         }
 
+        log.info("  Fragments: {}", partition.size());
+
+        /*
         db.commit();
 
         db.close();
+        */
     }
 }

@@ -26,7 +26,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
         String fw = cr.getKmerAsString();
         String rc = SequenceUtils.reverseComplement(fw);
 
@@ -65,7 +65,7 @@ public class ParentTraversalStopper extends AbstractTraversalStopper<AnnotatedVe
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, Set<Integer> childColors, Set<Integer> parentColors) {
+    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
         return size > 1000 || junctions >= maxJunctionsAllowed() || isLowComplexity(cr);
     }
 

@@ -644,11 +644,8 @@ public class CortexUtils {
 
         Map<Integer, Set<String>> adjKmers;
 
-        Set<Integer> childColors = new HashSet<>();
-        childColors.add(color);
-
         Set<Integer> allColors = new HashSet<>();
-        if (childColors != null) { allColors.addAll(childColors); }
+        allColors.add(color);
         if (parentColors != null) { allColors.addAll(parentColors); }
 
         do {
@@ -665,7 +662,7 @@ public class CortexUtils {
 
             int numVerticesAdded = addVertexAndConnect(dfs, cv, prevKmers, nextKmers, allColors);
 
-            if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size(), childColors, parentColors) && !sourceKmers.contains(kmer) && !history.contains(kmer)) {
+            if (stopper.keepGoing(cr, g, depth, dfs.vertexSet().size(), adjKmers.get(color).size(), color, parentColors) && !sourceKmers.contains(kmer) && !history.contains(kmer)) {
                 history.add(kmer);
 
                 if (adjKmers.get(color).size() == 1) {
@@ -690,7 +687,7 @@ public class CortexUtils {
                         }
                     }
 
-                    if (childrenWereSuccessful || stopper.hasTraversalSucceeded(cr, g, depth, dfs.vertexSet().size(), 0, childColors, parentColors)) {
+                    if (childrenWereSuccessful || stopper.hasTraversalSucceeded(cr, g, depth, dfs.vertexSet().size(), 0, color, parentColors)) {
                         return dfs;
                     } else {
                         for (AnnotatedVertex av : dfs.vertexSet()) {
