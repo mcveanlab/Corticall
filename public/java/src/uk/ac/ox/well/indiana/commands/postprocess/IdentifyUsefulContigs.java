@@ -1,24 +1,22 @@
 package uk.ac.ox.well.indiana.commands.postprocess;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
-import java.util.function.Predicate;
 
-public class IdentifyNonContainedContigs extends Module {
+public class IdentifyUsefulContigs extends Module {
     @Argument(fullName="bam", shortName="b", doc="BAMs")
     public ArrayList<SamReader> BAMS;
+
+    @Argument(fullName="minlength", shortName="l", doc="Minimum length to retain")
+    public Integer MIN_LENGTH = 1000;
 
     @Output
     public PrintStream out;
@@ -26,13 +24,13 @@ public class IdentifyNonContainedContigs extends Module {
     @Override
     public void execute() {
         List<String> containedReads = new ArrayList<>();
-        Set<String> allContigs = new HashSet<>();
+        Map<String, Integer> allContigs = new HashMap<>();
 
         for (SamReader sam : BAMS) {
             Map<String, SAMRecord> contigs = new HashMap<>();
 
             for (SAMRecord sr : sam) {
-                allContigs.add(sr.getReadName());
+                allContigs.put(sr.getReadName(), sr.getReadLength());
 
                 if (!contigs.containsKey(sr.getReadName())) {
                     contigs.put(sr.getReadName(), sr);
@@ -62,8 +60,8 @@ public class IdentifyNonContainedContigs extends Module {
             }
         }
 
-        for (String contigName : allContigs) {
-            if (!containedReads.contains(contigName)) {
+        for (String contigName : allContigs.keySet()) {
+            if (!containedReads.contains(contigName) && allContigs.get(contigName) >= MIN_LENGTH) {
                 out.println(contigName);
             }
         }
