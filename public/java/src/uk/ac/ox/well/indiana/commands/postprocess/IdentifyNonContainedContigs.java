@@ -15,15 +15,9 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class RemoveContainedContigs extends Module {
-    @Argument(fullName="ref1", shortName="r1", doc="Reference 1")
-    public IndexedFastaSequenceFile REF1;
-
+public class IdentifyNonContainedContigs extends Module {
     @Argument(fullName="bam1", shortName="b1", doc="BAM 1")
     public SamReader BAM1;
-
-    @Argument(fullName="ref2", shortName="r2", doc="Reference 2")
-    public IndexedFastaSequenceFile REF2;
 
     @Argument(fullName="bam2", shortName="b2", doc="BAM 2")
     public SamReader BAM2;
