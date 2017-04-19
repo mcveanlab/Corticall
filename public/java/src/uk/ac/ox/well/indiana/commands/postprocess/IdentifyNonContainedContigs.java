@@ -17,11 +17,8 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class IdentifyNonContainedContigs extends Module {
-    @Argument(fullName="bam1", shortName="b1", doc="BAM 1")
-    public SamReader BAM1;
-
-    @Argument(fullName="bam2", shortName="b2", doc="BAM 2")
-    public SamReader BAM2;
+    @Argument(fullName="bam", shortName="b", doc="BAMs")
+    public ArrayList<SamReader> BAMS;
 
     @Output
     public PrintStream out;
@@ -30,7 +27,7 @@ public class IdentifyNonContainedContigs extends Module {
     public void execute() {
         Map<String, SAMRecord> contigs = new HashMap<>();
 
-        for (SamReader sam : Arrays.asList(BAM1, BAM2)) {
+        for (SamReader sam : BAMS) {
             for (SAMRecord sr : sam) {
                 if (!contigs.containsKey(sr.getReadName())) {
                     contigs.put(sr.getReadName(), sr);
