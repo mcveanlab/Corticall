@@ -14,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.io.utils.LineReader;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class IdentifyNonContainedContigs extends Module {
     @Argument(fullName="bam1", shortName="b1", doc="BAM 1")
@@ -55,11 +56,14 @@ public class IdentifyNonContainedContigs extends Module {
         for (SAMRecord sr : contigs.values()) {
             Interval loc = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd());
 
-            containedReads.addAll(t.getContained(loc));
+            Collection<String> contained = t.getContained(loc);
+            contained.remove(sr.getReadName());
+
+            containedReads.addAll(contained);
         }
 
         for (String contigName : contigs.keySet()) {
-            if (!contigs.containsKey(contigName)) {
+            if (!containedReads.contains(contigName)) {
                 out.println(contigName);
             }
         }
