@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.primary;
+package uk.ac.ox.well.indiana.commands.playground.caller;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 @Description(text="Identify regions of interest (putative de novo mutations) in graphs")
-public class roi extends Module {
+public class FindROIs extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPHS;
 

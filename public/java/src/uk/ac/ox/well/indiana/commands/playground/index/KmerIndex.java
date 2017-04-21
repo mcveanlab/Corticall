@@ -29,7 +29,7 @@ public class KmerIndex {
     private long numRecords;
 
     public KmerIndex(File bamFile, int kmerSize, boolean write) {
-        String indexPath = bamFile.getAbsolutePath().replaceAll(".bam", ".k" + kmerSize + "index");
+        String indexPath = bamFile.getAbsolutePath().replaceAll(".bam$", ".k" + kmerSize + "index");
 
         try {
             path = FileSystems.getDefault().getPath(indexPath);
