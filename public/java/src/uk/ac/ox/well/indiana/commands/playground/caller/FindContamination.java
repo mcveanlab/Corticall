@@ -32,6 +32,9 @@ public class FindContamination extends Module {
     @Argument(fullName="contamination", shortName="contam", doc="Contam")
     public CortexGraph CONTAM;
 
+    @Argument(fullName="roi", shortName="r", doc="ROI")
+    public CortexGraph ROI;
+
     @Output
     public File out;
 
@@ -49,9 +52,6 @@ public class FindContamination extends Module {
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);
 
-        CortexGraphWriter cgw = new CortexGraphWriter(out);
-        cgw.setHeader(makeCortexHeader());
-
         Set<CortexKmer> seen = new HashSet<>();
         for (CortexRecord contam : CONTAM) {
             pm.update();
@@ -62,22 +62,17 @@ public class FindContamination extends Module {
                 for (AnnotatedVertex av : dfs.vertexSet()) {
                     CortexKmer ck = new CortexKmer(av.getKmer());
 
-                    CortexRecord cr = GRAPH.findRecord(ck);
-
-                    if (cr.getCoverage(childColor) > 0) {
-                        CortexRecord subCr = new CortexRecord(
-                                cr.getBinaryKmer(),
-                                new int[]{cr.getCoverage(childColor)},
-                                new byte[]{cr.getEdges()[childColor]},
-                                cr.getKmerSize(),
-                                cr.getKmerBits()
-                        );
-
-                        cgw.addRecord(subCr);
-                    }
-
                     seen.add(ck);
                 }
+            }
+        }
+
+        CortexGraphWriter cgw = new CortexGraphWriter(out);
+        cgw.setHeader(makeCortexHeader());
+
+        for (CortexRecord cr : ROI) {
+            if (!seen.contains(cr.getCortexKmer())) {
+                cgw.addRecord(cr);
             }
         }
 
