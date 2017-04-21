@@ -64,15 +64,17 @@ public class FindContamination extends Module {
 
                     CortexRecord cr = GRAPH.findRecord(ck);
 
-                    CortexRecord subCr = new CortexRecord(
-                            cr.getBinaryKmer(),
-                            new int[]{cr.getCoverages()[childColor]},
-                            new byte[]{cr.getEdges()[childColor]},
-                            cr.getKmerSize(),
-                            cr.getKmerBits()
-                    );
+                    if (cr.getCoverage(childColor) > 0) {
+                        CortexRecord subCr = new CortexRecord(
+                                cr.getBinaryKmer(),
+                                new int[]{cr.getCoverage(childColor)},
+                                new byte[]{cr.getEdges()[childColor]},
+                                cr.getKmerSize(),
+                                cr.getKmerBits()
+                        );
 
-                    cgw.addRecord(subCr);
+                        cgw.addRecord(subCr);
+                    }
 
                     seen.add(ck);
                 }
