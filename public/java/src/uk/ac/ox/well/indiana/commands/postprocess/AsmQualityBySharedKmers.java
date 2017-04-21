@@ -35,6 +35,7 @@ public class AsmQualityBySharedKmers extends Module {
 
         int numKmers = 0;
         int numWrongKmers = 0;
+        int numMissedKmers = 0;
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Examining records")
@@ -53,14 +54,19 @@ public class AsmQualityBySharedKmers extends Module {
                 }
             }
 
-            if (isInEval && !isInVal) {
-                numWrongKmers++;
+            if (isInEval || isInVal) {
+                numKmers++;
+
+                if (isInEval && !isInVal) {
+                    numWrongKmers++;
+                } else if (!isInEval && isInVal) {
+                    numMissedKmers++;
+                }
             }
-            numKmers++;
 
             pm.update();
         }
 
-        log.info("numKmers={} numWrongKmers={} Q={}", numKmers, numWrongKmers, -10.0*Math.log10((double) numWrongKmers / (double) numKmers));
+        log.info("numKmers={} numWrongKmers={} numMissedKmers={} Q={}", numKmers, numWrongKmers, numMissedKmers, -10.0*Math.log10((double) numWrongKmers / (double) numKmers));
     }
 }
