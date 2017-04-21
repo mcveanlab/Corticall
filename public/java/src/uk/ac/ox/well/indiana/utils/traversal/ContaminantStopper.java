@@ -10,12 +10,28 @@ import java.util.Set;
  */
 public class ContaminantStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
-        return cr != null && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0 || edges == 0);
+        //return cr != null && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0 || edges == 0);
+        //boolean childHasCoverage = cr.getCoverage(childColor) > 0;
+        boolean parentsHaveCoverage = false;
+
+        for (int c : parentColors) {
+            parentsHaveCoverage |= cr.getCoverage(c) > 0;
+        }
+
+        return cr != null && (parentsHaveCoverage || edges == 0);
     }
 
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
-        return cr != null && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0);
+        //return cr != null && (cr.getCoverage(1) > 0 || cr.getCoverage(2) > 0);
+        //boolean childHasCoverage = cr.getCoverage(childColor) > 0;
+        boolean parentsHaveCoverage = false;
+
+        for (int c : parentColors) {
+            parentsHaveCoverage |= cr.getCoverage(c) > 0;
+        }
+
+        return cr != null && parentsHaveCoverage;
     }
 
     @Override
