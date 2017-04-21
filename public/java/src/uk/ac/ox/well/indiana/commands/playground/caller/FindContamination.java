@@ -1,17 +1,19 @@
 package uk.ac.ox.well.indiana.commands.playground.caller;
 
+import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 import uk.ac.ox.well.indiana.utils.traversal.ContaminantStopper;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,7 +33,7 @@ public class FindContamination extends Module {
     public CortexGraph CONTAM;
 
     @Output
-    public PrintStream out;
+    public File out;
 
     @Override
     public void execute() {
@@ -41,10 +43,65 @@ public class FindContamination extends Module {
             parentColors.add(GRAPH.getColorForSampleName(parent));
         }
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing records")
+                .message("records processed")
+                .maxRecord(CONTAM.getNumRecords())
+                .make(log);
+
+        CortexGraphWriter cgw = new CortexGraphWriter(out);
+        cgw.setHeader(makeCortexHeader());
+
         Set<CortexKmer> seen = new HashSet<>();
         for (CortexRecord contam : CONTAM) {
-            DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, contam.getKmerAsString(), childColor, parentColors, ContaminantStopper.class);
+            pm.update();
+
+            if (!seen.contains(contam.getCortexKmer())) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, contam.getKmerAsString(), childColor, parentColors, ContaminantStopper.class);
+
+                for (AnnotatedVertex av : dfs.vertexSet()) {
+                    CortexKmer ck = new CortexKmer(av.getKmer());
+
+                    CortexRecord cr = GRAPH.findRecord(ck);
+
+                    CortexRecord subCr = new CortexRecord(
+                            cr.getBinaryKmer(),
+                            new int[]{cr.getCoverages()[childColor]},
+                            new byte[]{cr.getEdges()[childColor]},
+                            cr.getKmerSize(),
+                            cr.getKmerBits()
+                    );
+
+                    cgw.addRecord(subCr);
+
+                    seen.add(ck);
+                }
+            }
         }
 
+        cgw.close();
+    }
+
+    @NotNull
+    private CortexHeader makeCortexHeader() {
+        CortexHeader ch = new CortexHeader();
+        ch.setVersion(6);
+        ch.setNumColors(1);
+        ch.setKmerSize(GRAPH.getKmerSize());
+        ch.setKmerBits(GRAPH.getKmerBits());
+
+        CortexColor cc = new CortexColor();
+        cc.setCleanedAgainstGraph(false);
+        cc.setCleanedAgainstGraphName("");
+        cc.setErrorRate(0);
+        cc.setLowCovgKmersRemoved(false);
+        cc.setLowCovgSupernodesRemoved(false);
+        cc.setTipClippingApplied(false);
+        cc.setTotalSequence(0);
+        cc.setSampleName(CHILD);
+
+        ch.addColor(cc);
+
+        return ch;
     }
 }
