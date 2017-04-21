@@ -10,17 +10,15 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
+import java.util.ArrayList;
 
 @Description(text="Identify regions of interest (putative de novo mutations) in graphs")
 public class roi extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPHS;
 
-    @Argument(fullName="childColor", shortName="c", doc="Child")
+    @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
-
-    @Argument(fullName="coverageMinimum", shortName="m", doc="Coverage minimum")
-    public Integer COVERAGE_MINIMUM = 0;
 
     @Output
     public File out;
@@ -65,7 +63,7 @@ public class roi extends Module {
     }
 
     private boolean isNovel(CortexRecord cr, int childColor) {
-        boolean childHasCoverage = cr.getCoverage(childColor) > COVERAGE_MINIMUM;
+        boolean childHasCoverage = cr.getCoverage(childColor) > 0;
         int inEdges = cr.getInDegree(childColor);
         int outEdges = cr.getOutDegree(childColor);
 
@@ -79,8 +77,6 @@ public class roi extends Module {
         }
 
         return childHasCoverage && inEdges == 1 && outEdges == 1 && !othersHaveCoverage;
-
-        //return childHasCoverage && !othersHaveCoverage;
     }
 
     @NotNull
