@@ -79,7 +79,9 @@ public class AsmQualityBySharedKmers extends Module {
         Set<CortexKmer> usedKmers = new HashSet<>();
         for (CortexKmer ck : wrongKmers) {
             if (!usedKmers.contains(ck)) {
-                String stretch = CortexUtils.getNovelStretch(GRAPH, ck.getKmerAsString(), evalColor, false);
+                usedKmers.add(ck);
+
+                String stretch = CortexUtils.getSeededStretch(GRAPH, ck.getKmerAsString(), evalColor, false);
                 for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
                     CortexKmer nk = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
 
