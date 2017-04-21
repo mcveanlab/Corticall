@@ -4,13 +4,17 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class AsmQualityBySharedKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
@@ -43,6 +47,8 @@ public class AsmQualityBySharedKmers extends Module {
                 .maxRecord(GRAPH.getNumRecords())
                 .make(log);
 
+        Set<CortexKmer> wrongKmers = new HashSet<>();
+
         for (CortexRecord cr : GRAPH) {
             boolean isInEval = cr.getCoverage(evalColor) > 0;
             boolean isInVal = false;
@@ -59,6 +65,8 @@ public class AsmQualityBySharedKmers extends Module {
 
                 if (isInEval && !isInVal) {
                     numWrongKmers++;
+
+                    wrongKmers.add(cr.getCortexKmer());
                 } else if (!isInEval && isInVal) {
                     numMissedKmers++;
                 }
@@ -67,6 +75,21 @@ public class AsmQualityBySharedKmers extends Module {
             pm.update();
         }
 
-        log.info("numKmers={} numWrongKmers={} numMissedKmers={} Q={}", numKmers, numWrongKmers, numMissedKmers, -10.0*Math.log10((double) numWrongKmers / (double) numKmers));
+        int numEvents = 0;
+        Set<CortexKmer> usedKmers = new HashSet<>();
+        for (CortexKmer ck : wrongKmers) {
+            if (!usedKmers.contains(ck)) {
+                String stretch = CortexUtils.getNovelStretch(GRAPH, ck.getKmerAsString(), evalColor, false);
+                for (int i = 0; i <= stretch.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer nk = new CortexKmer(stretch.substring(i, i + GRAPH.getKmerSize()));
+
+                    usedKmers.add(nk);
+                }
+
+                numEvents++;
+            }
+        }
+
+        log.info("numKmers={} numWrongKmers={} numMissedKmers={} numEvents={} Q={}", numKmers, numWrongKmers, numMissedKmers, numEvents, -10.0*Math.log10((double) numWrongKmers / (double) numKmers));
     }
 }
