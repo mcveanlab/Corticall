@@ -75,6 +75,7 @@ public class AsmQualityBySharedKmers extends Module {
             pm.update();
         }
 
+        /*
         int numEvents = 0;
         Set<CortexKmer> usedKmers = new HashSet<>();
         for (CortexKmer ck : wrongKmers) {
@@ -91,7 +92,15 @@ public class AsmQualityBySharedKmers extends Module {
                 numEvents++;
             }
         }
+        */
 
-        log.info("numKmers={} numWrongKmers={} numMissedKmers={} numEvents={} Q={}", numKmers, numWrongKmers, numMissedKmers, numEvents, -10.0*Math.log10((double) numWrongKmers / (double) numKmers));
+        log.info("numKmers={} numWrongKmers={} numMissedKmers={} Q={} Q(/10)={} Q(/k)={}",
+                numKmers,
+                numWrongKmers,
+                numMissedKmers,
+                -10.0*Math.log10((double) numWrongKmers / (double) numKmers),
+                -10.0*Math.log10((((double) numWrongKmers)/10.0) / (double) numKmers),
+                -10.0*Math.log10((((double) numWrongKmers)/ (double) GRAPH.getKmerSize()) / (double) numKmers)
+        );
     }
 }
