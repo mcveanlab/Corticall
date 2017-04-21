@@ -53,6 +53,7 @@ public class BuildIndex extends Module {
         SamReader sreader = SamReaderFactory.make()
             .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
             .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
+            .validationStringency(ValidationStringency.SILENT)
             .open(SAM_FILE);
 
         KmerIndex ki = new KmerIndex(SAM_FILE, KMER_SIZE, true);
