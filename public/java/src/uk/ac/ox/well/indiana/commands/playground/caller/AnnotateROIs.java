@@ -47,6 +47,7 @@ public class AnnotateROIs extends Module {
             List<long[]> chunks = ki.find(cr.getKmerAsBytes());
 
             List<Byte> quals = new ArrayList<>();
+            int qualMin = 0;
 
             for (long[] c : chunks) {
                 SAMFileSpan sfs = new BAMFileSpan(new Chunk(c[0], c[1]));
@@ -73,6 +74,7 @@ public class AnnotateROIs extends Module {
                             }
 
                             quals.add(minQual);
+                            qualMin += minQual;
                         }
                     }
                 }
@@ -80,7 +82,7 @@ public class AnnotateROIs extends Module {
                 recs.close();
             }
 
-            log.info("{} {}", cr, Joiner.on(", ").join(quals));
+            log.info("{} {} {}", cr, qualMin / quals.size(), Joiner.on(", ").join(quals));
         }
     }
 }
