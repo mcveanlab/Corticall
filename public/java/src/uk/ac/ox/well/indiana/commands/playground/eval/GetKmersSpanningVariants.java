@@ -153,10 +153,10 @@ public class GetKmersSpanningVariants extends Module {
 
                     List<VariantContext> affectingVariants = new ArrayList<>(affectingVariantsSet);
 
-                    log.info("{} {} {} {}", name, i, alleles.get(i), affectingVariantsSet.size());
-                    for (VariantContext vc : affectingVariantsSet) {
+                    //log.info("{} {} {} {}", name, i, alleles.get(i), affectingVariantsSet.size());
+                    //for (VariantContext vc : affectingVariantsSet) {
                         //log.info("  {}", vc);
-                    }
+                    //}
 
                     Set<String> haplotypes = affectingVariants.size() < 11 ? recursivelyGenerateCombinations(affectingVariants, alleles, i) : new HashSet<>();
 
