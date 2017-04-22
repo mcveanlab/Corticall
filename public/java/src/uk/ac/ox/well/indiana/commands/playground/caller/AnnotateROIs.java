@@ -76,6 +76,10 @@ public class AnnotateROIs extends Module {
         log.info("Processing dirty records...");
         recset.put("dirty", new HashSet<>());
         for (CortexRecord cr : COMBINED) {
+            if (recset.get("dirty").size() > 10000) {
+                break;
+            }
+
             if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
                 recset.get("dirty").add(cr);
             }
