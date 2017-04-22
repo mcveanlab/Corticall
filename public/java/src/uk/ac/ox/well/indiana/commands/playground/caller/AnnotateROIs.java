@@ -56,7 +56,7 @@ public class AnnotateROIs extends Module {
                 while (recs.hasNext()) {
                     SAMRecord rec = recs.next();
 
-                    log.info("    {}: {} {}", cr, new Chunk(c[0], c[1]), rec.getSAMString());
+                    //log.info("    {}: {} {}", cr, new Chunk(c[0], c[1]), rec.getSAMString());
 
                     for (int i = 0; i <= rec.getReadLength() - GRAPH.getKmerSize(); i++) {
                         CortexKmer ck = new CortexKmer(rec.getReadString().substring(i, i + GRAPH.getKmerSize()));
