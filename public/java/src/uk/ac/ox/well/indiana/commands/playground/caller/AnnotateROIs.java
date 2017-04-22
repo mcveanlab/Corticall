@@ -41,7 +41,7 @@ public class AnnotateROIs extends Module {
         SamReader sr = SamReaderFactory.make()
                 .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
                 .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
-                .validationStringency(ValidationStringency.STRICT)
+                .validationStringency(ValidationStringency.SILENT)
                 .open(BAM_FILE);
 
         Map<String, CortexGraph> graphs = new HashMap<>();
