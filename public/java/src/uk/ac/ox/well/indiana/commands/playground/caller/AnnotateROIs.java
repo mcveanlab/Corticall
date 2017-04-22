@@ -38,8 +38,7 @@ public class AnnotateROIs extends Module {
         Map<CortexKmer, Map<String, Object>> anns = new HashMap<>();
 
         KmerIndex ki = new KmerIndex(BAM_FILE, GRAPH.getKmerSize(), false);
-        SamReader sr = SamReaderFactory
-                .makeDefault()
+        SamReader sr = SamReaderFactory.make()
                 .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
                 .setOption(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES, true)
                 .validationStringency(ValidationStringency.STRICT)
