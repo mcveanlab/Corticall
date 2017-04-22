@@ -9,6 +9,8 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -62,6 +64,8 @@ public class AnnotateROIs extends Module {
 
         Map<String, Set<CortexRecord>> recset = new HashMap<>();
         for (String label : graphs.keySet()) {
+            log.info("Processing {} records...", label);
+
             recset.put(label, new HashSet<>());
 
             for (CortexRecord cr : graphs.get(label)) {
@@ -69,17 +73,18 @@ public class AnnotateROIs extends Module {
             }
         }
 
+        log.info("Processing dirty records...");
         recset.put("dirty", new HashSet<>());
-
         for (CortexRecord cr : COMBINED) {
             if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
                 recset.get("dirty").add(cr);
             }
         }
 
+        log.info("Processing clean records...");
         recset.put("clean", new HashSet<>());
         for (CortexRecord cr : GRAPH) {
-            if (recset.get("clean").size() > 100000) {
+            if (recset.get("clean").size() > 10000) {
                 break;
             }
 
@@ -100,7 +105,13 @@ public class AnnotateROIs extends Module {
         }
 
         for (String label : recset.keySet()) {
+            ProgressMeter pm = new ProgressMeterFactory()
+                    .header("Processing " + label + " records")
+                    .maxRecord(recset.get(label).size())
+                    .make(log);
+
             for (CortexRecord cr : recset.get(label)) {
+                pm.update();
                 //Map<String, Object> ann = new HashMap<>();
                 //ann.put("")
 
