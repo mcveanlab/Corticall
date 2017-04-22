@@ -81,6 +81,8 @@ public class AnnotateROIs extends Module {
             }
 
             if (cr.getCoverage(0) > 0 && cr.getCoverage(1) == 0) {
+                log.info("{} {}", cr, recset.get("dirty").size());
+
                 recset.get("dirty").add(cr);
             }
         }
