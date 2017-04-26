@@ -5,6 +5,8 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -36,6 +38,12 @@ public class EmitValidatedNovelKmers extends Module {
         Colour 11: sample name: 'PG0476-C' (raw)
         */
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .maxRecord(GRAPH.getNumRecords())
+                .header("Processing records")
+                .message("records processed")
+                .make(log);
+
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(GRAPH.getHeader());
         //cgw.setHeader(makeCortexHeader());
@@ -47,6 +55,8 @@ public class EmitValidatedNovelKmers extends Module {
 
                 cgw.addRecord(cr);
             }
+
+            pm.update();
         }
     }
 
