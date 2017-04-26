@@ -47,8 +47,7 @@ public class FindROIs extends Module {
                     cr.getBinaryKmer(),
                     new int[] { cr.getCoverages()[childColor] },
                     new byte[] { cr.getEdges()[childColor] },
-                    cr.getKmerSize(),
-                    cr.getKmerBits()
+                    cr.getKmerSize(), cr.getKmerBits()
                 );
 
                 cgw.addRecord(novelCr);
