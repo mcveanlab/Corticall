@@ -40,10 +40,7 @@ public class RemoveContamination extends Module {
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
-        Set<Integer> parentColors = new HashSet<>();
-        for (String parent : PARENTS) {
-            parentColors.add(GRAPH.getColorForSampleName(parent));
-        }
+        Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing records")
