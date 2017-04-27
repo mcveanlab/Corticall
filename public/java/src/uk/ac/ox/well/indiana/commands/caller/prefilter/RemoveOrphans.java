@@ -48,13 +48,17 @@ public class RemoveOrphans extends Module {
                 .make(log);
 
         Set<CortexKmer> orphans = new HashSet<>();
+        int numOrphanChains = 0;
 
         for (CortexRecord rr : ROI) {
             if (!orphans.contains(rr.getCortexKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, rr.getKmerAsString(), childColor, parentColors, OrphanStopper.class);
 
-                if (dfs != null) {
-                    log.info("  orphan ({} vertices):", dfs.vertexSet().size());
+                if (dfs != null && dfs.vertexSet().size() > 0) {
+                    numOrphanChains++;
+
+                    log.info("  orphan chain {} ({} vertices):", numOrphanChains, dfs.vertexSet().size());
+
                     for (AnnotatedVertex av : dfs.vertexSet()) {
                         log.info("    {} {}", av.getKmer(), GRAPH.findRecord(av.getKmer()));
 
