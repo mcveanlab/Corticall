@@ -36,6 +36,9 @@ public class RemoveOrphans extends Module {
     @Output
     public File out;
 
+    @Output(fullName="orphans_out", shortName="oout", doc="Orphans output file")
+    public File orphans_out;
+
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -57,12 +60,14 @@ public class RemoveOrphans extends Module {
                 if (dfs != null && dfs.vertexSet().size() > 0) {
                     numOrphanChains++;
 
-                    log.info("  orphan chain {} ({} vertices):", numOrphanChains, dfs.vertexSet().size());
+                    log.info("    orphan chain {}, seed {}, {} vertices", numOrphanChains, rr.getKmerAsString(), dfs.vertexSet().size());
 
-                    for (AnnotatedVertex av : dfs.vertexSet()) {
-                        log.info("    {} {}", av.getKmer(), GRAPH.findRecord(new CortexKmer(av.getKmer())));
+                    if (log.isDebugEnabled()) {
+                        for (AnnotatedVertex av : dfs.vertexSet()) {
+                            log.debug("    - {} {}", av.getKmer(), GRAPH.findRecord(new CortexKmer(av.getKmer())));
 
-                        orphans.add(new CortexKmer(av.getKmer()));
+                            orphans.add(new CortexKmer(av.getKmer()));
+                        }
                     }
                 }
             }
@@ -77,17 +82,22 @@ public class RemoveOrphans extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
+        CortexGraphWriter cgo = new CortexGraphWriter(orphans_out);
+        cgo.setHeader(ROI.getHeader());
+
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!orphans.contains(rr.getCortexKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {
+                cgo.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
+        cgo.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), numKept / ROI.getNumRecords(),
