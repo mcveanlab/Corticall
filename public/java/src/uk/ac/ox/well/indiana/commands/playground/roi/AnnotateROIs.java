@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.caller;
+package uk.ac.ox.well.indiana.commands.playground.roi;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.*;

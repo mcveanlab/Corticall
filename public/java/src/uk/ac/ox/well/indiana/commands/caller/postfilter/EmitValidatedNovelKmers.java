@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.filter;
+package uk.ac.ox.well.indiana.commands.caller.postfilter;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -9,7 +9,6 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
-import java.io.PrintStream;
 
 /**
  * Created by kiran on 26/04/2017.

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.caller;
+package uk.ac.ox.well.indiana.commands.caller.roi;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -11,11 +11,15 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 @Description(text="Identify regions of interest (putative de novo mutations) in graphs")
 public class FindROIs extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
-    public CortexGraph GRAPHS;
+    public CortexGraph GRAPH;
+
+    @Argument(fullName="parents", shortName="p", doc="Parents")
+    public ArrayList<String> PARENTS;
 
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
@@ -25,15 +29,15 @@ public class FindROIs extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPHS.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        int childColor = GRAPH.getColorForSampleName(CHILD);
 
         log.info("Color: {} {}", CHILD, childColor);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
-                .updateRecord(GRAPHS.getNumRecords() / 10)
-                .maxRecord(GRAPHS.getNumRecords())
+                .maxRecord(GRAPH.getNumRecords())
                 .make(log);
 
         long numNovelRecords = 0L;
@@ -41,8 +45,8 @@ public class FindROIs extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(makeCortexHeader());
 
-        for (CortexRecord cr : GRAPHS) {
-            if (isNovel(cr, childColor)) {
+        for (CortexRecord cr : GRAPH) {
+            if (isNovel(cr, parentColors, childColor)) {
                 CortexRecord novelCr = new CortexRecord(
                     cr.getBinaryKmer(),
                     new int[] { cr.getCoverages()[childColor] },
@@ -61,21 +65,16 @@ public class FindROIs extends Module {
         cgw.close();
     }
 
-    private boolean isNovel(CortexRecord cr, int childColor) {
-        boolean childHasCoverage = cr.getCoverage(childColor) > 0;
-        int inEdges = cr.getInDegree(childColor);
-        int outEdges = cr.getOutDegree(childColor);
+    private boolean isNovel(CortexRecord cr, List<Integer> parentColors, int childColor) {
+        boolean parentsLackCoverage = true;
 
-        boolean othersHaveCoverage = false;
-
-        for (int c = 0; c < cr.getNumColors(); c++) {
-            if (c != childColor && cr.getCoverage(c) > 0) {
-                othersHaveCoverage = true;
-                break;
-            }
+        for (int c : parentColors) {
+            parentsLackCoverage &= cr.getCoverage(c) == 0;
         }
 
-        return childHasCoverage && inEdges == 1 && outEdges == 1 && !othersHaveCoverage;
+        boolean childHasCoverage = cr.getCoverage(childColor) > 0;
+
+        return childHasCoverage && parentsLackCoverage;
     }
 
     @NotNull
@@ -83,8 +82,8 @@ public class FindROIs extends Module {
         CortexHeader ch = new CortexHeader();
         ch.setVersion(6);
         ch.setNumColors(1);
-        ch.setKmerSize(GRAPHS.getKmerSize());
-        ch.setKmerBits(GRAPHS.getKmerBits());
+        ch.setKmerSize(GRAPH.getKmerSize());
+        ch.setKmerBits(GRAPH.getKmerBits());
 
         CortexColor cc = new CortexColor();
         cc.setCleanedAgainstGraph(false);
