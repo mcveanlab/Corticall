@@ -60,7 +60,7 @@ public class RemoveOrphans extends Module {
                     log.info("  orphan chain {} ({} vertices):", numOrphanChains, dfs.vertexSet().size());
 
                     for (AnnotatedVertex av : dfs.vertexSet()) {
-                        log.info("    {} {}", av.getKmer(), GRAPH.findRecord(av.getKmer()));
+                        log.info("    {} {}", av.getKmer(), GRAPH.findRecord(new CortexKmer(av.getKmer())));
 
                         orphans.add(new CortexKmer(av.getKmer()));
                     }
