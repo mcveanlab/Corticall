@@ -18,7 +18,6 @@ import uk.ac.ox.well.indiana.utils.traversal.OrphanStopper;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class RemoveOrphans extends Module {
@@ -55,9 +54,9 @@ public class RemoveOrphans extends Module {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, rr.getKmerAsString(), childColor, parentColors, OrphanStopper.class);
 
                 if (dfs != null) {
-                    log.info("  orphan:");
+                    log.info("  orphan ({} vertices):", dfs.vertexSet().size());
                     for (AnnotatedVertex av : dfs.vertexSet()) {
-                        log.info("    {}", GRAPH.findRecord(av.getKmer()));
+                        log.info("    {} {}", av.getKmer(), GRAPH.findRecord(av.getKmer()));
 
                         orphans.add(new CortexKmer(av.getKmer()));
                     }
@@ -66,6 +65,10 @@ public class RemoveOrphans extends Module {
 
             pm.update();
         }
+
+        log.info("Found {} orphaned kmers", orphans.size());
+
+        log.info("Writing...");
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
