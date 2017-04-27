@@ -70,19 +70,28 @@ public class RemoveOrphans extends Module {
             pm.update();
         }
 
-        log.info("Found {} orphaned kmers", orphans.size());
+        log.info("Found {} orphaned kmer chains ({} kmers total)", numOrphanChains, orphans.size());
 
         log.info("Writing...");
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
+        int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!orphans.contains(rr.getCortexKmer())) {
                 cgw.addRecord(rr);
+                numKept++;
+            } else {
+                numExcluded++;
             }
         }
 
         cgw.close();
+
+        log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
+                numKept,     ROI.getNumRecords(), numKept / ROI.getNumRecords(),
+                numExcluded, ROI.getNumRecords(), numExcluded / ROI.getNumRecords()
+        );
     }
 }
