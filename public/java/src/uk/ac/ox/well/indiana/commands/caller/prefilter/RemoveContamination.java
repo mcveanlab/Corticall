@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.caller;
+package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
@@ -14,7 +14,6 @@ import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 import uk.ac.ox.well.indiana.utils.traversal.ContaminantStopper;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,17 +22,17 @@ public class RemoveContamination extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="child", shortName="c", doc="Child")
-    public String CHILD;
-
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="contamination", shortName="contam", doc="Contam")
-    public CortexGraph CONTAM;
+    @Argument(fullName="child", shortName="c", doc="Child")
+    public String CHILD;
 
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
+
+    @Argument(fullName="contamination", shortName="contam", doc="Contam")
+    public CortexGraph CONTAM;
 
     @Output
     public File out;

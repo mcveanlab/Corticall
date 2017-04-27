@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -309,6 +310,16 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         }
 
         return (sampleCopies == 1) ? sampleColor : -1;
+    }
+
+    public List<Integer> getColorsForSampleNames(List<String> sampleNames) {
+        List<Integer> colors = new ArrayList<>();
+
+        for (String sampleName : sampleNames) {
+            colors.add(getColorForSampleName(sampleName));
+        }
+
+        return colors;
     }
 
     public String toString() {

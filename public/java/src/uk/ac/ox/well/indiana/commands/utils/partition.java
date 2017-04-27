@@ -1,17 +1,11 @@
-package uk.ac.ox.well.indiana.commands.primary;
+package uk.ac.ox.well.indiana.commands.utils;
 
-import com.google.api.client.util.Joiner;
 import org.jgrapht.DirectedGraph;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
