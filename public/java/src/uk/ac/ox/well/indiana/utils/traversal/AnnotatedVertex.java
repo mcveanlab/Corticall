@@ -2,12 +2,15 @@ package uk.ac.ox.well.indiana.utils.traversal;
 
 
 import htsjdk.samtools.util.Interval;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.Set;
 import java.util.TreeSet;
 
 public class AnnotatedVertex {
     private String kmer;
+    private CortexRecord cr;
+
     private boolean isNovel = false;
     private Set<String> flags = new TreeSet<>();
     private Set<Interval> ml = new TreeSet<>();
@@ -22,6 +25,9 @@ public class AnnotatedVertex {
         this.kmer = kmer;
         this.isNovel = novelty;
     }
+
+    public void setRecord(CortexRecord cr) { this.cr = cr; }
+    public CortexRecord getRecord() { return cr; }
 
     public void setFlag(String flag) { flags.add(flag); }
     public void unsetFlag(String flag) { flags.remove(flag); }
@@ -70,9 +76,6 @@ public class AnnotatedVertex {
 
     @Override
     public String toString() {
-        return "AnnotatedVertex{" +
-                "kmer='" + kmer + '\'' +
-                ", isNovel=" + isNovel +
-                '}';
+        return "AnnotatedVertex{kmer='" + kmer + "'}";
     }
 }
