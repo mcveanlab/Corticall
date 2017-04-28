@@ -45,7 +45,6 @@ public class EmitValidatedNovelKmers extends Module {
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(GRAPH.getHeader());
-        //cgw.setHeader(makeCortexHeader());
 
         for (CortexRecord cr : GRAPH) {
             if (cr.getCoverage(0) == 0 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0 && cr.getCoverage(3) == 0 &&
@@ -57,28 +56,7 @@ public class EmitValidatedNovelKmers extends Module {
 
             pm.update();
         }
-    }
 
-    @NotNull
-    private CortexHeader makeCortexHeader() {
-        CortexHeader ch = new CortexHeader();
-        ch.setVersion(6);
-        ch.setNumColors(1);
-        ch.setKmerSize(GRAPH.getKmerSize());
-        ch.setKmerBits(GRAPH.getKmerBits());
-
-        CortexColor cc = new CortexColor();
-        cc.setCleanedAgainstGraph(false);
-        cc.setCleanedAgainstGraphName("");
-        cc.setErrorRate(0);
-        cc.setLowCovgKmersRemoved(false);
-        cc.setLowCovgSupernodesRemoved(false);
-        cc.setTipClippingApplied(false);
-        cc.setTotalSequence(0);
-        cc.setSampleName(GRAPH.getSampleName(8));
-
-        ch.addColor(cc);
-
-        return ch;
+        cgw.close();
     }
 }
