@@ -60,15 +60,16 @@ public class RemoveOrphans extends Module {
                 if (dfs != null && dfs.vertexSet().size() > 0) {
                     numOrphanChains++;
 
-                    log.info("    orphan chain {}, seed {}, {} vertices", numOrphanChains, rr.getKmerAsString(), dfs.vertexSet().size());
+                    log.debug("    orphan chain {}, seed {}, {} vertices", numOrphanChains, rr.getKmerAsString(), dfs.vertexSet().size());
 
-                    if (log.isDebugEnabled()) {
-                        for (AnnotatedVertex av : dfs.vertexSet()) {
+                    for (AnnotatedVertex av : dfs.vertexSet()) {
+                        if (log.isDebugEnabled()) {
                             log.debug("    - {} {}", av.getKmer(), GRAPH.findRecord(new CortexKmer(av.getKmer())));
-
-                            orphans.add(new CortexKmer(av.getKmer()));
                         }
+
+                        orphans.add(new CortexKmer(av.getKmer()));
                     }
+
                 }
             }
 
