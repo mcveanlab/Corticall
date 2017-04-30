@@ -1,7 +1,10 @@
-package uk.ac.ox.well.indiana.utils.traversal;
+package uk.ac.ox.well.indiana.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.AbstractTraversalStopper;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
+import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 
 import java.util.Set;
 
@@ -41,11 +44,6 @@ public class ChildTraversalStopper extends AbstractTraversalStopper<AnnotatedVer
 
     @Override
     public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
-        return !isNovel(cr, childColor, parentColors) && (edges == 0 || depth >= maxJunctionsAllowed() || size > 5000);
-    }
-
-    @Override
-    public int maxJunctionsAllowed() {
-        return 5;
+        return !isNovel(cr, childColor, parentColors) && (edges == 0 || depth >= 5 || size > 5000);
     }
 }

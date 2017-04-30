@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.utils.traversal;
+package uk.ac.ox.well.indiana.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
