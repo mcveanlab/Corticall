@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 @Description(text="Remove obvious sequencing errors")
-public class RemoveSharedROIs extends Module {
+public class RemoveShared extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
