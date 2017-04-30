@@ -11,7 +11,7 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
-import uk.ac.ox.well.indiana.utils.traversal.ContaminantStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ContaminantStopper;
 
 import java.io.File;
 import java.util.ArrayList;

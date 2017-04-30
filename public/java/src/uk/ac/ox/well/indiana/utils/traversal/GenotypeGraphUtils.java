@@ -19,6 +19,8 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ChildTraversalStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ParentTraversalStopper;
 
 import java.io.File;
 import java.io.FileNotFoundException;

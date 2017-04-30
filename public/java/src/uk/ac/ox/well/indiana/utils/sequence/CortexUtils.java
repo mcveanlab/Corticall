@@ -14,7 +14,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -707,6 +707,20 @@ public class CortexUtils {
         return null;
     }
 
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs_and(CortexGraph clean, CortexGraph dirty, String kmer, int color, Set<Integer> parentColors, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<>(AnnotatedEdge.class);
+
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsf = dfs(clean, dirty, kmer, color, parentColors, sg0, stopperClass, 0, true, new HashSet<>());
+        DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsb = dfs(clean, dirty, kmer, color, parentColors, sg0, stopperClass, 0, false, new HashSet<>());
+
+        if (dfsf != null && dfsb != null) {
+            Graphs.addGraph(dfs, dfsf);
+            Graphs.addGraph(dfs, dfsb);
+        }
+
+        return dfs;
+    }
+
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph clean, CortexGraph dirty, String kmer, int color, Set<Integer> parentColors, DirectedGraph<AnnotatedVertex, AnnotatedEdge> sg0, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
         DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = new DefaultDirectedGraph<>(AnnotatedEdge.class);
 
@@ -719,8 +733,16 @@ public class CortexUtils {
         return dfs;
     }
 
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs_and(CortexGraph graph, String kmer, int color, Set<Integer> parentColors, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
+        return dfs_and(graph, null, kmer, color, parentColors, null, stopperClass);
+    }
+
     public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph graph, String kmer, int color, Set<Integer> parentColors, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass) {
         return dfs(graph, null, kmer, color, parentColors, null, stopperClass);
+    }
+
+    public static DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs(CortexGraph graph, String kmer, int color, Set<Integer> parentColors, Class<? extends TraversalStopper<AnnotatedVertex, AnnotatedEdge>> stopperClass, boolean goForward) {
+        return dfs(graph, null, kmer, color, parentColors, null, stopperClass, 0, goForward, new HashSet<>());
     }
 
     /**
@@ -1178,5 +1200,18 @@ public class CortexUtils {
         bbuf.order(ByteOrder.LITTLE_ENDIAN);
 
         return bbuf.getLong(0);
+    }
+
+    public static boolean isLowComplexity(CortexRecord cr, int color) {
+        byte edges[][] = cr.getEdgesAsBytes();
+
+        int numEdges = 0;
+        for (int e = 0; e < 8; e++) {
+            if (edges[color][e] != '.') {
+                numEdges++;
+            }
+        }
+
+        return numEdges >= 6;
     }
 }

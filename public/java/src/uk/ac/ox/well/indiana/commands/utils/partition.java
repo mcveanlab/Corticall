@@ -10,6 +10,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.NovelKmerAggregationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.*;
 
 import java.io.File;
