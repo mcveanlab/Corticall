@@ -58,19 +58,16 @@ public class RemoveShared extends Module {
 
         for (CortexRecord rr : ROI) {
             if (!sharedKmers.contains(rr.getCortexKmer())) {
-                boolean presentInOtherSamples = false;
-
                 CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
                 for (int c = 0; c < GRAPH.getNumColors(); c++) {
                     if (c != childColor && !parentColors.contains(c) && cr.getCoverage(c) > 0) {
-                        presentInOtherSamples = true;
+                        sharedKmers.add(rr.getCortexKmer());
+
+                        log.debug("{}", cr);
+
                         break;
                     }
-                }
-
-                if (presentInOtherSamples) {
-                    sharedKmers.add(rr.getCortexKmer());
                 }
             }
 
