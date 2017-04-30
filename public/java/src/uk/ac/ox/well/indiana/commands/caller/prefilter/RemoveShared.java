@@ -55,32 +55,29 @@ public class RemoveShared extends Module {
                 .make(log);
 
         Set<CortexKmer> sharedKmers = new HashSet<>();
-        int numSharedChains = 0;
 
         for (CortexRecord rr : ROI) {
             if (!sharedKmers.contains(rr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs_and(GRAPH, rr.getKmerAsString(), childColor, parentColors, DustStopper.class);
+                boolean presentInOtherSamples = false;
 
-                if (dfs != null && dfs.vertexSet().size() > 0) {
-                    numSharedChains++;
+                CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
-                    log.debug("    shared kmers chain {}, seed {}, {} vertices", numSharedChains, rr.getKmerAsString(), dfs.vertexSet().size());
-
-                    for (AnnotatedVertex av : dfs.vertexSet()) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("    - {} {}", av.getKmer(), GRAPH.findRecord(new CortexKmer(av.getKmer())));
-                        }
-
-                        sharedKmers.add(new CortexKmer(av.getKmer()));
+                for (int c = 0; c < GRAPH.getNumColors(); c++) {
+                    if (c != childColor && !parentColors.contains(c) && cr.getCoverage(c) > 0) {
+                        presentInOtherSamples = true;
+                        break;
                     }
+                }
 
+                if (presentInOtherSamples) {
+                    sharedKmers.add(rr.getCortexKmer());
                 }
             }
 
             pm.update();
         }
 
-        log.info("Found {} shared kmers ({} kmers total)", numSharedChains, sharedKmers.size());
+        log.info("Found {} shared kmers", sharedKmers.size());
 
         log.info("Writing...");
 
