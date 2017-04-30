@@ -2,10 +2,12 @@ package uk.ac.ox.well.indiana.commands.caller.verify;
 
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +17,9 @@ public class CompareROIs extends Module {
 
     @Argument(fullName="actual", shortName="a", doc="Actual")
     public CortexGraph ACTUAL;
+
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -33,6 +38,7 @@ public class CompareROIs extends Module {
             CortexRecord ar = ars.get(er.getCortexKmer());
 
             log.info("exp={} act={} er={} ar={}", true, presentInActual, er, ar);
+            out.println("exp=" + true + " act=" + presentInActual + " er=" + er + " ar=" + ar);
 
             arsUsed.put(er.getCortexKmer(), true);
 
@@ -48,9 +54,11 @@ public class CompareROIs extends Module {
                 CortexRecord ar = ars.get(ak);
 
                 log.info("exp={} act={} er={} ar={}", false, true, null, ar);
+                out.println("exp=" + false + " act=" + true + " er=null ar=" + ar);
             }
         }
 
         log.info("pe={} pa={} o={}", privateToExpected, privateToActual, overlap);
+        out.println("pe=" + privateToExpected + " pa=" + privateToActual + " o=" + overlap);
     }
 }
