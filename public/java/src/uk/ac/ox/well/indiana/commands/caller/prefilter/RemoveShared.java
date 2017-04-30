@@ -99,8 +99,8 @@ public class RemoveShared extends Module {
         cgo.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
-                numKept,     ROI.getNumRecords(), numKept / ROI.getNumRecords(),
-                numExcluded, ROI.getNumRecords(), numExcluded / ROI.getNumRecords()
+                numKept,     ROI.getNumRecords(), (float) numKept / (float) ROI.getNumRecords(),
+                numExcluded, ROI.getNumRecords(), (float) numExcluded / (float) ROI.getNumRecords()
         );
     }
 }
