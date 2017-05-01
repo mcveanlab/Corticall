@@ -37,6 +37,9 @@ public class RemoveContamination extends Module {
     @Output
     public File out;
 
+    @Output(fullName="contam_out", shortName="co", doc="Contam output file")
+    public File contam_out;
+
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -48,31 +51,54 @@ public class RemoveContamination extends Module {
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);
 
-        Set<CortexKmer> seen = new HashSet<>();
+        Set<CortexKmer> contamKmers = new HashSet<>();
+        int numContamChains = 0;
         for (CortexRecord contam : CONTAM) {
             pm.update();
 
-            if (!seen.contains(contam.getCortexKmer())) {
+            if (!contamKmers.contains(contam.getCortexKmer())) {
                 DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, contam.getKmerAsString(), childColor, parentColors, ContaminantStopper.class);
 
-                for (AnnotatedVertex av : dfs.vertexSet()) {
-                    CortexKmer ck = new CortexKmer(av.getKmer());
+                if (dfs.vertexSet().size() > 0) {
+                    for (AnnotatedVertex av : dfs.vertexSet()) {
+                        CortexKmer ck = new CortexKmer(av.getKmer());
 
-                    seen.add(ck);
+                        contamKmers.add(ck);
+                    }
+
+                    numContamChains++;
                 }
             }
         }
 
+        log.info("Found {} contamination kmer chains ({} kmers total)", numContamChains, contamKmers.size());
+
+        log.info("Writing...");
+
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(makeCortexHeader());
 
-        for (CortexRecord cr : ROI) {
-            if (!seen.contains(cr.getCortexKmer())) {
-                cgw.addRecord(cr);
+        CortexGraphWriter cgc = new CortexGraphWriter(contam_out);
+        cgc.setHeader(ROI.getHeader());
+
+        int numKept = 0, numExcluded = 0;
+        for (CortexRecord rr : ROI) {
+            if (!contamKmers.contains(rr.getCortexKmer())) {
+                cgw.addRecord(rr);
+                numKept++;
+            } else {
+                cgc.addRecord(rr);
+                numExcluded++;
             }
         }
 
         cgw.close();
+        cgc.close();
+
+        log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
+                numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
+                numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
+        );
     }
 
     @NotNull
