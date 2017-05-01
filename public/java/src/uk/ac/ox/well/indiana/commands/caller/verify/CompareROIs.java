@@ -53,7 +53,7 @@ public class CompareROIs extends Module {
             }
         }
 
-        log.info("pt={} pe={} o={}", privateToTruth, privateToEval, overlap);
-        out.println("pt=" + privateToTruth + " pe=" + privateToEval + " o=" + overlap);
+        log.info("t={} e={} pt={} pe={} o={}", trs.size(), ers.size(), privateToTruth, privateToEval, overlap);
+        out.println("t=" + trs.size() + " e=" + ers.size() + " pt=" + privateToTruth + " pe=" + privateToEval + " o=" + overlap);
     }
 }
