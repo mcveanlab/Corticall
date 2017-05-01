@@ -9,56 +9,51 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class CompareROIs extends Module {
-    @Argument(fullName="expected", shortName="e", doc="Expected")
-    public CortexGraph EXPECTED;
+    @Argument(fullName="truth", shortName="t", doc="Truth")
+    public CortexGraph TRUTH;
 
-    @Argument(fullName="actual", shortName="a", doc="Actual")
-    public CortexGraph ACTUAL;
+    @Argument(fullName="eval", shortName="e", doc="Eval")
+    public CortexGraph EVAL;
 
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
-        Map<CortexKmer, CortexRecord> ars = new HashMap<>();
-        Map<CortexKmer, Boolean> arsUsed = new HashMap<>();
+        Map<CortexKmer, CortexRecord> trs = new HashMap<>();
+        Map<CortexKmer, CortexRecord> ers = new HashMap<>();
+        Set<CortexKmer> all = new HashSet<>();
 
-        for (CortexRecord ar : ACTUAL) {
-            ars.put(ar.getCortexKmer(), ar);
-            arsUsed.put(ar.getCortexKmer(), false);
+        for (CortexRecord tr : TRUTH) {
+            trs.put(tr.getCortexKmer(), tr);
+            all.add(tr.getCortexKmer());
         }
 
-        int privateToExpected = 0, privateToActual = 0, overlap = 0;
+        for (CortexRecord er : EVAL) {
+            ers.put(er.getCortexKmer(), er);
+            all.add(er.getCortexKmer());
+        }
 
-        for (CortexRecord er : EXPECTED) {
-            boolean presentInActual = ars.containsKey(er.getCortexKmer());
-            CortexRecord ar = ars.get(er.getCortexKmer());
+        int privateToTruth = 0, privateToEval = 0, overlap = 0;
 
-            log.info("exp={} act={} er={} ar={}", true, presentInActual, er, ar);
-            out.println("exp=" + true + " act=" + presentInActual + " er=" + er + " ar=" + ar);
-
-            arsUsed.put(er.getCortexKmer(), true);
-
-            if (presentInActual) {
-                overlap++;
+        for (CortexKmer ck : all) {
+            if (trs.containsKey(ck)) {
+                if (ers.containsKey(ck)) {
+                    overlap++;
+                } else {
+                    privateToTruth++;
+                }
             } else {
-                privateToExpected++;
+                privateToEval++;
             }
         }
 
-        for (CortexKmer ak : ars.keySet()) {
-            if (!arsUsed.containsKey(ak)) {
-                CortexRecord ar = ars.get(ak);
-
-                log.info("exp={} act={} er={} ar={}", false, true, null, ar);
-                out.println("exp=" + false + " act=" + true + " er=null ar=" + ar);
-            }
-        }
-
-        log.info("pe={} pa={} o={}", privateToExpected, privateToActual, overlap);
-        out.println("pe=" + privateToExpected + " pa=" + privateToActual + " o=" + overlap);
+        log.info("pt={} pe={} o={}", privateToTruth, privateToEval, overlap);
+        out.println("pt=" + privateToTruth + " pe=" + privateToEval + " o=" + overlap);
     }
 }
