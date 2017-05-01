@@ -101,8 +101,8 @@ public class RemoveOrphans extends Module {
         cgo.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
-                numKept,     ROI.getNumRecords(), numKept / ROI.getNumRecords(),
-                numExcluded, ROI.getNumRecords(), numExcluded / ROI.getNumRecords()
+                numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
+                numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
         );
     }
 }
