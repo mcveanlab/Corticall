@@ -51,13 +51,19 @@ public class RemoveContamination extends Module {
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);
 
+        Set<CortexKmer> roiKmers = new HashSet<>();
+        for (CortexRecord rc : ROI) {
+            roiKmers.add(rc.getCortexKmer());
+        }
+
         Set<CortexKmer> contamKmers = new HashSet<>();
         int numContamChains = 0;
-        for (CortexRecord contam : CONTAM) {
+
+        for (CortexRecord cr : CONTAM) {
             pm.update();
 
-            if (!contamKmers.contains(contam.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, contam.getKmerAsString(), childColor, parentColors, ContaminantStopper.class);
+            if (roiKmers.contains(cr.getCortexKmer()) && !contamKmers.contains(cr.getCortexKmer())) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(GRAPH, cr.getKmerAsString(), childColor, parentColors, ContaminantStopper.class);
 
                 if (dfs.vertexSet().size() > 0) {
                     for (AnnotatedVertex av : dfs.vertexSet()) {
