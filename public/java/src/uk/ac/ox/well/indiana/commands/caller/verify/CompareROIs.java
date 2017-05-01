@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class CompareROIs extends Module {
+    @Argument(fullName="graph", shortName="g", doc="Graph")
+    public CortexGraph GRAPH;
+
     @Argument(fullName="truth", shortName="t", doc="Truth")
     public CortexGraph TRUTH;
 
@@ -47,6 +50,8 @@ public class CompareROIs extends Module {
                     overlap++;
                 } else {
                     privateToTruth++;
+
+                    log.debug("{} {}", TRUTH.getSampleName(0), GRAPH.findRecord(ck));
                 }
             } else {
                 privateToEval++;
