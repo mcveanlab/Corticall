@@ -34,6 +34,9 @@ public class RemoveShared extends Module {
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
 
+    @Argument(fullName="ignore", shortName="i", doc="Ignore specified samples", required=false)
+    public ArrayList<String> IGNORE;
+
     @Argument(fullName="roi", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
@@ -47,6 +50,7 @@ public class RemoveShared extends Module {
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
+        Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding shared kmers")
@@ -61,7 +65,7 @@ public class RemoveShared extends Module {
                 CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
                 for (int c = 0; c < GRAPH.getNumColors(); c++) {
-                    if (c != childColor && !parentColors.contains(c) && cr.getCoverage(c) > 0) {
+                    if (c != childColor && !parentColors.contains(c) && !ignoreColors.contains(c) && cr.getCoverage(c) > 0) {
                         sharedKmers.add(rr.getCortexKmer());
 
                         log.debug("{}", cr);
