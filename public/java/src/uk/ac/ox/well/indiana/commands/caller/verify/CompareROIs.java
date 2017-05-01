@@ -51,7 +51,7 @@ public class CompareROIs extends Module {
                 } else {
                     privateToTruth++;
 
-                    log.debug("{} {}", TRUTH.getSampleName(0), GRAPH.findRecord(ck));
+                    log.debug("{} {} {}", EVAL.getSampleName(0), GRAPH.getColorForSampleName(EVAL.getSampleName(0)), GRAPH.findRecord(ck));
                 }
             } else {
                 privateToEval++;
