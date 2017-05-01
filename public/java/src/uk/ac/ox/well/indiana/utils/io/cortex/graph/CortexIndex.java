@@ -43,9 +43,16 @@ public class CortexIndex {
 
             validateIndex(graph);
         } else {
-            String kmer = graph.getRecord(0).getKmerAsString();
+            Pair<String, Pair<Long, Long>> p;
 
-            Pair<String, Pair<Long, Long>> p = new Pair<>(kmer, new Pair<>(0L, graph.getNumRecords() - 1));
+            if (graph.getNumRecords() > 0) {
+                String kmer = graph.getRecord(0).getKmerAsString();
+
+                p = new Pair<>(kmer, new Pair<>(0L, graph.getNumRecords() - 1));
+            } else {
+                // For an empty graph
+                p = new Pair<>(StringUtil.repeatCharNTimes('A', graph.getKmerSize()), new Pair<>(0L, graph.getNumRecords() - 1));
+            }
 
             idx.add(p);
         }
