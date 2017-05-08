@@ -1,29 +1,24 @@
 package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
+import com.google.common.collect.Lists;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.arguments.Description;
-import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.DustStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ChildTraversalStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.UniquePathStopper;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-@Description(text="Remove kmers shared among children (as these are unlikely to tag de novo mutations)")
-public class RemoveShared extends Module {
+public class RemoveSequencingErrors extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -33,23 +28,24 @@ public class RemoveShared extends Module {
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
 
-    @Argument(fullName="ignore", shortName="i", doc="Ignore specified samples", required=false)
-    public ArrayList<String> IGNORE;
-
     @Argument(fullName="roi", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
-    @Output
-    public File out;
-
-    @Output(fullName="shared_out", shortName="so", doc="Shared kmers output file")
-    public File shared_out;
-
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
-        Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
+        TraversalEngine ce = new TraversalEngineFactory()
+                .graph(GRAPH)
+                .traversalSamples(CHILD)
+                .joiningSamples(PARENTS)
+                .stopper(new UniquePathStopper())
+                .make();
+
+        TraversalEngine pe = new TraversalEngineFactory()
+                .graph(GRAPH)
+                .traversalSamples(CHILD)
+                .joiningSamples(PARENTS)
+                //.stopper(new SharedPathStopper())
+                .make();
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding shared kmers")
@@ -57,9 +53,20 @@ public class RemoveShared extends Module {
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
-        Set<CortexKmer> sharedKmers = new HashSet<>();
+        Set<CortexKmer> errorKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
+            if (!errorKmers.contains(rr.getCortexKmer())) {
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsUnique = ce.dfs(rr.getKmerAsString());
+                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsShared = pe.dfs(dfsUnique);
+
+
+
+                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> gchild = CortexUtils.dfs(GRAPH, rr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
+                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> gparent1 = CortexUtils.dfs(GRAPH, null, rr.getKmerAsString(), )
+            }
+
+            /*
             if (!sharedKmers.contains(rr.getCortexKmer())) {
                 CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
@@ -73,14 +80,16 @@ public class RemoveShared extends Module {
                     }
                 }
             }
+            */
 
             pm.update();
         }
 
-        log.info("Found {} shared kmers", sharedKmers.size());
+        log.info("Found {} shared kmers", errorKmers.size());
 
         log.info("Writing...");
 
+        /*
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
@@ -105,5 +114,6 @@ public class RemoveShared extends Module {
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
                 numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
         );
+        */
     }
 }

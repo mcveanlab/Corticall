@@ -28,7 +28,7 @@ import java.io.PrintStream;
 import java.util.*;
 
 public class GenotypeGraph extends Module {
-    @Argument(fullName = "graphClean", shortName = "c", doc = "Graph (clean)")
+    @Argument(fullName = "graphClean", shortName = "c", doc = "Graph (graph)")
     public CortexGraph CLEAN;
 
     @Argument(fullName = "graphDirty", shortName = "d", doc = "Graph (dirty)", required = false)

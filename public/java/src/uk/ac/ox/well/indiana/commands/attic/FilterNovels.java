@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class FilterNovels extends Module {
-    @Argument(fullName="clean", shortName="c", doc="Graph (clean)")
+    @Argument(fullName="graph", shortName="c", doc="Graph (graph)")
     public CortexGraph CLEAN;
 
     @Argument(fullName="dirty", shortName="d", doc="Graph (dirty)")

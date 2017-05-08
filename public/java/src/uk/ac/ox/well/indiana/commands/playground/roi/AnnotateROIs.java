@@ -87,10 +87,10 @@ public class AnnotateROIs extends Module {
             }
         }
 
-        log.info("Processing clean records...");
-        recset.put("clean", new HashSet<>());
+        log.info("Processing graph records...");
+        recset.put("graph", new HashSet<>());
         for (CortexRecord cr : GRAPH) {
-            if (recset.get("clean").size() > 10000) {
+            if (recset.get("graph").size() > 10000) {
                 break;
             }
 
@@ -105,7 +105,7 @@ public class AnnotateROIs extends Module {
                 }
 
                 if (isInAllSamples) {
-                    recset.get("clean").add(cr);
+                    recset.get("graph").add(cr);
                 }
             }
         }

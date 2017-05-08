@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-@Description(text="Identify regions of interest (putative de novo mutations) in graphs")
+@Description(text="Generate a (very liberal) list of kmers that identify potential de novo mutations")
 public class FindROIs extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
