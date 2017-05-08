@@ -203,7 +203,7 @@ public class GenotypeGraphUtils {
 
         for (int c = 0; c <= 2; c++) {
             for (AnnotatedVertex ak : extendAnyway) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(clean, dirty, ak.getKmer(), c, ag, ExplorationStopper.class);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfs = CortexUtils.dfs(graph, dirty, ak.getKmer(), c, ag, ExplorationStopper.class);
 
                 if (dfs != null) {
                     Graphs.addGraph(ag, dfs);
@@ -819,7 +819,7 @@ public class GenotypeGraphUtils {
         boolean isChimeric = isChimeric(clean, dirty, stretch, kl);
         boolean isPolymorphic = isPolymorphic(clean, dirty, p);
 
-        //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(clean, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(clean, p.stop, color, false));
+        //List<Set<Interval>> alignment = kl.align(CortexUtils.getSeededStretchLeft(graph, p.start, color, false) + p.parent + CortexUtils.getSeededStretchRight(graph, p.stop, color, false));
         //List<Set<Interval>> anovel = kl.align(stretch);
 
         // Build the GVC

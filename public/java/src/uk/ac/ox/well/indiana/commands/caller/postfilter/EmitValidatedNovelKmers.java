@@ -24,15 +24,15 @@ public class EmitValidatedNovelKmers extends Module {
     public void execute() {
         /*
         Colour 0: sample name: '803' (drafts)
-        Colour 1: sample name: 'PG0443-C' (clean)
+        Colour 1: sample name: 'PG0443-C' (graph)
         Colour 2: sample name: 'PG0443-C' (tips)
         Colour 3: sample name: 'PG0443-C' (raw)
         Colour 4: sample name: 'GB4' (drafts)
-        Colour 5: sample name: 'PG0050-CX2' (clean)
+        Colour 5: sample name: 'PG0050-CX2' (graph)
         Colour 6: sample name: 'PG0050-CX2' (tips)
         Colour 7: sample name: 'PG0050-CX2' (raw)
         Colour 8: sample name: '34F5' (drafts)
-        Colour 9: sample name: 'PG0476-C' (clean)
+        Colour 9: sample name: 'PG0476-C' (graph)
         Colour 10: sample name: 'PG0476-C' (tips)
         Colour 11: sample name: 'PG0476-C' (raw)
         */

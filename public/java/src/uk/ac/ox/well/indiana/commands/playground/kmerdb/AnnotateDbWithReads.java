@@ -29,7 +29,7 @@ public class AnnotateDbWithReads extends Module {
     @Argument(fullName="dirty", shortName="d", doc="Dirty graph", required=false)
     public CortexGraph DIRTY;
 
-    @Argument(fullName="clean", shortName="c", doc="Clean graph", required=false)
+    @Argument(fullName="graph", shortName="c", doc="Clean graph", required=false)
     public CortexGraph CLEAN;
 
     @Argument(fullName="bam", shortName="b", doc="BAM file", required=false)
