@@ -51,6 +51,11 @@ public class RemoveShared extends Module {
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding shared kmers")
                 .message("records processed")
