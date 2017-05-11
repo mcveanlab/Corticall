@@ -11,9 +11,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by kiran on 08/05/2017.
- */
 public class NahrExperiment extends Module {
     @Argument(fullName="reference", shortName="r", doc="Genome")
     public IndexedFastaSequenceFile REF;

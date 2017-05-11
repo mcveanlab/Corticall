@@ -11,7 +11,9 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Description(text="Generate a (very liberal) list of kmers that identify potential de novo mutations")
 public class FindROIs extends Module {
@@ -29,8 +31,14 @@ public class FindROIs extends Module {
 
     @Override
     public void execute() {
-        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
         int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = new ArrayList<>(GRAPH.getColorsForSampleNames(PARENTS));
+        //Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
+
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        //log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
         log.info("Color: {} {}", CHILD, childColor);
 

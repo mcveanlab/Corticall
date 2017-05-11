@@ -1,7 +1,8 @@
 package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
-import com.google.common.collect.Lists;
+import org.eclipse.collections.impl.factory.Sets;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -9,12 +10,11 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.ChildTraversalStopper;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.UniquePathStopper;
+import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.PathClosingStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.PathOpeningStopper;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
 import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.util.*;
 
@@ -33,19 +33,12 @@ public class RemoveSequencingErrors extends Module {
 
     @Override
     public void execute() {
-        TraversalEngine ce = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .traversalSamples(CHILD)
-                .joiningSamples(PARENTS)
-                .stopper(new UniquePathStopper())
-                .make();
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
-        TraversalEngine pe = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .traversalSamples(CHILD)
-                .joiningSamples(PARENTS)
-                //.stopper(new SharedPathStopper())
-                .make();
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding shared kmers")
@@ -57,30 +50,104 @@ public class RemoveSequencingErrors extends Module {
 
         for (CortexRecord rr : ROI) {
             if (!errorKmers.contains(rr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsUnique = ce.dfs(rr.getKmerAsString());
-                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> dfsShared = pe.dfs(dfsUnique);
+                DirectedGraph<AnnotatedVertex, AnnotatedEdge> g = CortexUtils.dfs_and(GRAPH, rr.getKmerAsString(), childColor, parentColors, PathOpeningStopper.class);
 
+                for (AnnotatedVertex v : g.vertexSet()) {
+                    errorKmers.add(new CortexKmer(v.getKmer()));
+                }
 
+                AnnotatedVertex ar = new AnnotatedVertex(rr.getKmerAsString());
 
-                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> gchild = CortexUtils.dfs(GRAPH, rr.getKmerAsString(), childColor, parentColors, ChildTraversalStopper.class);
-                //DirectedGraph<AnnotatedVertex, AnnotatedEdge> gparent1 = CortexUtils.dfs(GRAPH, null, rr.getKmerAsString(), )
-            }
-
-            /*
-            if (!sharedKmers.contains(rr.getCortexKmer())) {
-                CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
-
-                for (int c = 0; c < GRAPH.getNumColors(); c++) {
-                    if (c != childColor && !parentColors.contains(c) && !ignoreColors.contains(c) && cr.getCoverage(c) > 0) {
-                        sharedKmers.add(rr.getCortexKmer());
-
-                        log.debug("{}", cr);
-
+                AnnotatedVertex af = null;
+                while (g.inDegreeOf(ar) == 1) {
+                    if (g.outDegreeOf(ar) > 1) {
+                        af = new AnnotatedVertex(ar.getKmer());
                         break;
                     }
+
+                    ar = g.getEdgeSource(g.incomingEdgesOf(ar).iterator().next());
                 }
+
+                ar = new AnnotatedVertex(rr.getKmerAsString());
+                AnnotatedVertex al = null;
+                while (g.outDegreeOf(ar) == 1) {
+                    if (g.inDegreeOf(ar) > 1) {
+                        al = new AnnotatedVertex(ar.getKmer());
+                        break;
+                    }
+
+                    ar = g.getEdgeTarget(g.outgoingEdgesOf(ar).iterator().next());
+                }
+
+                log.info("{} {}", af, al);
+
+                TopologicalOrderIterator<AnnotatedVertex, AnnotatedEdge> toi = new TopologicalOrderIterator<>(g);
+
+                AnnotatedVertex avFirst = null;
+                AnnotatedVertex avLast = null;
+
+                log.info("{}", rr);
+                while (toi.hasNext()) {
+                    AnnotatedVertex v = toi.next();
+
+                    if (avFirst == null) { avFirst = v; }
+                    avLast = v;
+
+                    CortexRecord cr = GRAPH.findRecord(new CortexKmer(v.getKmer()));
+
+                    log.info(" - {} {} {} {} {} {} {} {}",
+                            cr.getKmerAsString(),
+                            cr.getCoverage(8), cr.getCoverage(0), cr.getCoverage(17),
+                            cr.getEdgesAsString(8), cr.getEdgesAsString(0), cr.getEdgesAsString(17),
+                            new CortexKmer(v.getKmer()).equals(rr.getCortexKmer())
+                    );
+                }
+                log.info("");
+
+                if (af != null && al != null) {
+                    Set<String> nextKmers = CortexUtils.getNextKmers(GRAPH, af.getKmer(), childColor);
+
+                    for (String nextKmer : nextKmers) {
+                        DirectedGraph<AnnotatedVertex, AnnotatedEdge> gc = CortexUtils.dfs(GRAPH, null, nextKmer, childColor, parentColors, g, PathClosingStopper.class, 0, true, new HashSet<>());
+
+                        if (gc != null) {
+                            TopologicalOrderIterator<AnnotatedVertex, AnnotatedEdge> toi2 = new TopologicalOrderIterator<>(gc);
+
+                            while (toi2.hasNext()) {
+                                AnnotatedVertex toi2av = toi2.next();
+                                CortexKmer toi2ck = new CortexKmer(toi2av.getKmer());
+                                CortexRecord toi2cr = GRAPH.findRecord(toi2ck);
+                                log.info("  {} {} {} {} {} {} {} {}", toi2av,
+                                        toi2cr.getKmerAsString(),
+                                        toi2cr.getCoverage(8), toi2cr.getCoverage(0), toi2cr.getCoverage(17),
+                                        toi2cr.getEdgesAsString(8), toi2cr.getEdgesAsString(0), toi2cr.getEdgesAsString(17)
+                                );
+                            }
+                        }
+                    }
+                }
+
+                log.info("");
+
+                /*
+                CortexRecord crFirst = GRAPH.findRecord(new CortexKmer(avFirst.getKmer()));
+                CortexRecord crLast  = GRAPH.findRecord(new CortexKmer(avLast.getKmer()));
+
+                if (crFirst != null && crLast != null) {
+                    log.info("{} {} {} {} {} {} {}",
+                            crFirst.getKmerAsString(),
+                            crFirst.getCoverage(8), crFirst.getCoverage(0), crFirst.getCoverage(17),
+                            crFirst.getEdgesAsString(8), crFirst.getEdgesAsString(0), crFirst.getEdgesAsString(17)
+                    );
+                    log.info("{} {} {} {} {} {} {}",
+                            crLast.getKmerAsString(),
+                            crLast.getCoverage(8), crLast.getCoverage(0), crLast.getCoverage(17),
+                            crLast.getEdgesAsString(8), crLast.getEdgesAsString(0), crLast.getEdgesAsString(17)
+                    );
+                    log.info("");
+                }
+                */
             }
-            */
 
             pm.update();
         }

@@ -315,8 +315,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     public List<Integer> getColorsForSampleNames(List<String> sampleNames) {
         List<Integer> colors = new ArrayList<>();
 
-        for (String sampleName : sampleNames) {
-            colors.add(getColorForSampleName(sampleName));
+        if (sampleNames != null && !sampleNames.isEmpty()) {
+            for (String sampleName : sampleNames) {
+                colors.add(getColorForSampleName(sampleName));
+            }
         }
 
         return colors;
