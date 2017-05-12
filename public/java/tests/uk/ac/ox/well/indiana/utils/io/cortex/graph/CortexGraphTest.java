@@ -219,6 +219,17 @@ public class CortexGraphTest {
     }
 
     @Test
+    public void constructRecordsFromString() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        for (CortexRecord cr : cg) {
+            CortexRecord nr = new CortexRecord(cr.toString());
+
+            Assert.assertEquals(nr, cr);
+        }
+    }
+
+    @Test
     public void constructRecords() {
         CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
 

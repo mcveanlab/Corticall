@@ -30,6 +30,48 @@ public class CortexRecord implements Comparable<CortexRecord> {
             throw new IndianaException("Coverage, in-edge, and out-edge lists must be equal length.");
         }
 
+        constructRecord(sk, coverageList, inEdgesList, outEdgesList);
+    }
+
+    public CortexRecord(String recordString) {
+        String[] fields = recordString.split("\\s+");
+
+        String sk = fields[0];
+        int numColors = (fields.length - 1) / 2;
+
+        List<Integer> coverageList = new ArrayList<>();
+        List<Set<String>> inEdgesList = new ArrayList<>();
+        List<Set<String>> outEdgesList = new ArrayList<>();
+
+        for (int c = 0; c < numColors; c++) {
+            Set<String> inEdges = new HashSet<>();
+            Set<String> outEdges = new HashSet<>();
+
+            String cov = fields[1 + c];
+            coverageList.add(Integer.valueOf(cov));
+
+            String edgesString = (fields[1 + numColors + c]).toUpperCase();
+
+            for (int i = 0; i < 4; i++) {
+                if (edgesString.charAt(i) != '.') {
+                    inEdges.add(String.valueOf(edgesString.charAt(i)));
+                }
+            }
+
+            for (int i = 4; i < 8; i++) {
+                if (edgesString.charAt(i) != '.') {
+                    outEdges.add(String.valueOf(edgesString.charAt(i)));
+                }
+            }
+
+            inEdgesList.add(inEdges);
+            outEdgesList.add(outEdges);
+        }
+
+        constructRecord(sk, coverageList, inEdgesList, outEdgesList);
+    }
+
+    private void constructRecord(String sk, List<Integer> coverageList, List<Set<String>> inEdgesList, List<Set<String>> outEdgesList) {
         CortexKmer ck = new CortexKmer(sk);
         this.kmerSize = ck.length();
         this.kmerBits = getKmerBits(kmerSize);
