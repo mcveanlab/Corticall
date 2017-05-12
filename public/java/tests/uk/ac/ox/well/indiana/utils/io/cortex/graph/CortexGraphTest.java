@@ -5,11 +5,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class CortexGraphTest {
     private class SimpleCortexRecord {
@@ -218,6 +216,50 @@ public class CortexGraphTest {
             Assert.assertEquals(scr.equals(cr), true, "Cortex record says '" + cr + "' but test record says '" + scr + "'");
 
             index++;
+        }
+    }
+
+    @Test
+    public void constructRecords() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        for (CortexRecord cr : cg) {
+            String sk = cr.getKmerAsString();
+            List<Integer> coverageList = new ArrayList<>();
+            List<Set<String>> inEdgesList = new ArrayList<>();
+            List<Set<String>> outEdgesList = new ArrayList<>();
+
+            for (int c = 0; c < cr.getNumColors(); c++) {
+                coverageList.add(cr.getCoverage(c));
+                inEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c)));
+                outEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c)));
+            }
+
+            CortexRecord nr = new CortexRecord(sk, coverageList, inEdgesList, outEdgesList);
+
+            Assert.assertEquals(nr, cr);
+        }
+    }
+
+    @Test
+    public void constructRcRecords() {
+        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+
+        for (CortexRecord cr : cg) {
+            String sk = SequenceUtils.reverseComplement(cr.getKmerAsString());
+            List<Integer> coverageList = new ArrayList<>();
+            List<Set<String>> inEdgesList = new ArrayList<>();
+            List<Set<String>> outEdgesList = new ArrayList<>();
+
+            for (int c = 0; c < cr.getNumColors(); c++) {
+                coverageList.add(cr.getCoverage(c));
+                inEdgesList.add(new HashSet<>(cr.getInEdgesComplementAsStrings(c)));
+                outEdgesList.add(new HashSet<>(cr.getOutEdgesComplementAsStrings(c)));
+            }
+
+            CortexRecord nr = new CortexRecord(sk, coverageList, inEdgesList, outEdgesList);
+
+            Assert.assertEquals(nr, cr);
         }
     }
 
