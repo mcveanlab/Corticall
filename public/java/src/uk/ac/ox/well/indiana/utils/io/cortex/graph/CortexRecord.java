@@ -1,10 +1,9 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.*;
 
 public class CortexRecord implements Comparable<CortexRecord> {
     private int kmerSize, kmerBits;
@@ -23,6 +22,32 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
         this.kmerSize = kmerSize;
         this.kmerBits = kmerBits;
+    }
+
+    public CortexRecord(String sk, List<Integer> coverageList, List<Set<String>> inEdgesList, List<Set<String>> outEdgesList) {
+        if (coverageList.size() != inEdgesList.size() && coverageList.size() != outEdgesList.size()) {
+            throw new IndianaException("Coverage, in-edge, and out-edge lists must be equal length.");
+        }
+
+        CortexKmer ck = new CortexKmer(sk);
+        this.kmerSize = ck.length();
+        this.kmerBits = CortexUtils.getKmerBits(kmerSize);
+
+        int colors = coverageList.size();
+        this.binaryKmer = new CortexBinaryKmer(sk.getBytes()).getBinaryKmer();
+        this.coverages = new int[colors];
+        this.edges = new byte[colors];
+
+        for (int c = 0; c < colors; c++) {
+            coverages[c] = coverageList.get(c);
+
+            Set<String> inEdges = inEdgesList.get(c);
+            Set<String> outEdges = outEdgesList.get(c);
+
+            byte edge = CortexUtils.encodeBinaryEdges(inEdges, outEdges, ck.isFlipped());
+
+            edges[c] = edge;
+        }
     }
 
     public int getKmerSize() { return kmerSize; }

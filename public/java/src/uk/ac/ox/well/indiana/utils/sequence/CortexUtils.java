@@ -1202,6 +1202,37 @@ public class CortexUtils {
         return bbuf.getLong(0);
     }
 
+    public static byte encodeBinaryEdges(Set<String> inEdges, Set<String> outEdges, boolean reverseComplement) {
+        byte edge = 0;
+
+        String[] alphabetFwd = { "A", "C", "G", "T" };
+        String[] alphabetRev = { "T", "G", "C", "A" };
+
+        if (reverseComplement) {
+            String[] a = alphabetFwd;
+            alphabetFwd = alphabetRev;
+            alphabetRev = a;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (inEdges.contains(alphabetFwd[i])) {
+                edge |= 1;
+            }
+            edge <<= 1;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (outEdges.contains(alphabetRev[i])) {
+                edge |= 1;
+            }
+            if (i != 3) {
+                edge <<= 1;
+            }
+        }
+
+        return edge;
+    }
+
     public static boolean isLowComplexity(CortexRecord cr, int color) {
         byte edges[][] = cr.getEdgesAsBytes();
 
