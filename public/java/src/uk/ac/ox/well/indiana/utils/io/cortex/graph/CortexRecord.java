@@ -1,8 +1,9 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 
 public class CortexRecord implements Comparable<CortexRecord> {
@@ -31,7 +32,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
         CortexKmer ck = new CortexKmer(sk);
         this.kmerSize = ck.length();
-        this.kmerBits = CortexUtils.getKmerBits(kmerSize);
+        this.kmerBits = getKmerBits(kmerSize);
 
         int colors = coverageList.size();
         this.binaryKmer = new CortexBinaryKmer(sk.getBytes()).getBinaryKmer();
@@ -44,7 +45,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
             Set<String> inEdges = inEdgesList.get(c);
             Set<String> outEdges = outEdgesList.get(c);
 
-            byte edge = CortexUtils.encodeBinaryEdges(inEdges, outEdges, ck.isFlipped());
+            byte edge = encodeBinaryEdges(inEdges, outEdges, ck.isFlipped());
 
             edges[c] = edge;
         }
@@ -55,7 +56,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
     public int getNumColors() { return coverages.length; }
 
     public long[] getBinaryKmer() { return this.binaryKmer; }
-    public byte[] getKmerAsBytes() { return CortexUtils.decodeBinaryKmer(binaryKmer, kmerSize, kmerBits); }
+    public byte[] getKmerAsBytes() { return decodeBinaryKmer(binaryKmer, kmerSize, kmerBits); }
     public CortexBinaryKmer getCortexBinaryKmer() { return new CortexBinaryKmer(this.binaryKmer); }
     public CortexKmer getCortexKmer() { return new CortexKmer(getKmerAsBytes(), true); }
     public String getKmerAsString() { return getCortexKmer().getKmerAsString(); }
@@ -277,4 +278,119 @@ public class CortexRecord implements Comparable<CortexRecord> {
     public int getInDegree(int color) { return getInEdgesAsBytes(color).size(); }
 
     public int getOutDegree(int color) { return getOutEdgesAsBytes(color).size(); }
+
+    public static byte[] decodeBinaryKmer(long[] kmer, int kmerSize, int kmerBits) {
+        byte[] rawKmer = new byte[kmerSize];
+
+        long[] binaryKmer = Arrays.copyOf(kmer, kmer.length);
+
+        for (int i = 0; i < binaryKmer.length; i++) {
+            binaryKmer[i] = reverse(binaryKmer[i]);
+        }
+
+        for (int i = kmerSize - 1; i >= 0; i--) {
+            rawKmer[i] = binaryNucleotideToChar(binaryKmer[kmerBits - 1] & 0x3);
+
+            shiftBinaryKmerByOneBase(binaryKmer, kmerBits);
+        }
+
+        return rawKmer;
+    }
+
+    public static int getKmerBits(int kmerSize) {
+        return (int) Math.ceil(((float) kmerSize)/32.0);
+    }
+
+    public static long[] encodeBinaryKmer(byte[] kmer) {
+        int numBits = getKmerBits(kmer.length);
+        long[] binaryKmer = new long[numBits];
+
+        for (int b = 0; b < numBits; b++) {
+            for (int i = kmer.length - 32*(b+1); i < kmer.length - 32*b; i++) {
+                if (i >= 0) {
+                    long nuc = charToBinaryNucleotide(kmer[i]);
+
+                    binaryKmer[numBits - b - 1] |= nuc;
+                }
+
+                if (i < kmer.length - 32*b - 1) {
+                    binaryKmer[numBits - b - 1] <<= 2;
+                }
+            }
+
+            binaryKmer[numBits - b - 1] = reverse(binaryKmer[numBits - b - 1]);
+        }
+
+        return binaryKmer;
+    }
+
+    private static byte binaryNucleotideToChar(long nucleotide) {
+        switch ((int) nucleotide) {
+            case 0: return 'A';
+            case 1: return 'C';
+            case 2: return 'G';
+            case 3: return 'T';
+            default:
+                throw new RuntimeException("Nucleotide '" + nucleotide + "' is not a valid binary nucleotide");
+        }
+    }
+
+    private static long charToBinaryNucleotide(byte b) {
+        switch (b) {
+            case 'A' : return 0;
+            case 'C' : return 1;
+            case 'G' : return 2;
+            case 'T' : return 3;
+            default:
+                throw new RuntimeException("Nucleotide '" + b + "' is not a valid character nucleotide");
+        }
+    }
+
+    private static void shiftBinaryKmerByOneBase(long[] binaryKmer, int bitfields) {
+        for(int i = bitfields - 1; i > 0; i--) {
+            binaryKmer[i] >>>= 2;
+            binaryKmer[i] |= (binaryKmer[i-1] << 62); // & 0x3
+        }
+        binaryKmer[0] >>>= 2;
+    }
+
+    private static long reverse(long x) {
+        ByteBuffer bbuf = ByteBuffer.allocate(8);
+        bbuf.order(ByteOrder.BIG_ENDIAN);
+        bbuf.putLong(x);
+        bbuf.order(ByteOrder.LITTLE_ENDIAN);
+
+        return bbuf.getLong(0);
+    }
+
+    private static byte encodeBinaryEdges(Set<String> inEdges, Set<String> outEdges, boolean reverseComplement) {
+        byte edge = 0;
+
+        String[] alphabetFwd = { "A", "C", "G", "T" };
+        String[] alphabetRev = { "T", "G", "C", "A" };
+
+        if (reverseComplement) {
+            String[] a = alphabetFwd;
+            alphabetFwd = alphabetRev;
+            alphabetRev = a;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (inEdges.contains(alphabetFwd[i])) {
+                edge |= 1;
+            }
+            edge <<= 1;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (outEdges.contains(alphabetRev[i])) {
+                edge |= 1;
+            }
+            if (i != 3) {
+                edge <<= 1;
+            }
+        }
+
+        return edge;
+    }
 }

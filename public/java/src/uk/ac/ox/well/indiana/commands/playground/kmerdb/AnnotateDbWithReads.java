@@ -1,9 +1,6 @@
 package uk.ac.ox.well.indiana.commands.playground.kmerdb;
 
-import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
-import htsjdk.samtools.util.SequenceUtil;
-import htsjdk.samtools.util.StringUtil;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -16,7 +13,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -76,7 +72,7 @@ public class AnnotateDbWithReads extends Module {
         Map<long[], HashMap<String, Object>> mo = new HashMap<>();
 
         for (long[] bk : nkdb.getKeys()) {
-            String sk = new String(CortexUtils.decodeBinaryKmer(bk, kmerSize, kmerBits));
+            String sk = new String(CortexRecord.decodeBinaryKmer(bk, kmerSize, kmerBits));
 
             HashMap<String, Object> m = nkdb.get(bk);
 

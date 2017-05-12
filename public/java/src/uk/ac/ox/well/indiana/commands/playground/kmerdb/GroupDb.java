@@ -92,7 +92,7 @@ public class GroupDb extends Module {
                 .make(log);
 
         for (CortexRecord cr : NOVEL_GRAPH) {
-            long[] bk = CortexUtils.encodeBinaryKmer(cr.getKmerAsBytes());
+            long[] bk = CortexRecord.encodeBinaryKmer(cr.getKmerAsBytes());
 
             Map<String, Object> h = new HashMap<>();
             h.put("group", kmerGroups.get(cr.getCortexKmer()));

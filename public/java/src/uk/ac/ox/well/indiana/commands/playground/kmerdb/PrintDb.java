@@ -7,11 +7,10 @@ import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.File;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class PrintDb extends Module {
     @Argument(fullName="db", shortName="db", doc="Novel kmer db")
@@ -35,7 +34,7 @@ public class PrintDb extends Module {
 
         long numNovelRecords = 0;
         for (long[] bk : nkdb.getKeys()) {
-            String sk = new String(CortexUtils.decodeBinaryKmer(bk, kmerSize, kmerBits));
+            String sk = new String(CortexRecord.decodeBinaryKmer(bk, kmerSize, kmerBits));
 
             Map<String, Object> m = nkdb.get(bk);
 
