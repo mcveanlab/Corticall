@@ -897,7 +897,7 @@ public class GenotypeGraph extends Module {
                         }
 
                         if (nr != null) {
-                            if (nr.getInEdgesAsStrings(0).size() == 0 || nr.getOutEdgesAsStrings(0).size() == 0) {
+                            if (nr.getInEdgesAsStrings(0, false).size() == 0 || nr.getOutEdgesAsStrings(0, false).size() == 0) {
                                 noConnections = true;
                             }
                         }

@@ -97,20 +97,14 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return edgesStrings;
     }
 
-    public byte[] getEdgesAsBytes(int color) {
-        return getEdgesAsBytes()[color];
-    }
+    public int[] getCoverages() { return coverages; }
+
+    public int getCoverage(int color) { return getCoverages()[color]; }
+
+    public byte[] getEdgesAsBytes(int color) { return getEdgesAsBytes()[color]; }
 
     public String getEdgesAsString(int color) {
         return getEdgeAsStrings()[color];
-    }
-
-    public int[] getCoverages() {
-        return coverages;
-    }
-
-    public int getCoverage(int color) {
-        return getCoverages()[color];
     }
 
     public String toString() {
@@ -145,10 +139,14 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return getKmerAsString().compareTo(cortexRecord.getKmerAsString());
     }
 
-    public Collection<Byte> getInEdgesAsBytes(int color) {
+    public Collection<Byte> getInEdgesAsBytes(int color, boolean complement) {
         Collection<Byte> leftEdges = new ArrayList<>();
 
         byte[] str = {'A', 'C', 'G', 'T'};
+
+        if (complement) {
+            str = new byte[] {'T', 'G', 'C', 'A'};
+        }
 
         byte edge = edges[color];
 
@@ -166,29 +164,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return leftEdges;
     }
 
-    public Collection<Byte> getInEdgesComplementAsBytes(int color) {
-        Collection<Byte> leftEdges = new ArrayList<>();
-
-        byte[] str = {'T', 'G', 'C', 'A'};
-
-        byte edge = edges[color];
-
-        int left = (edge >> 4);
-
-        for (int i = 0; i < 4; i++) {
-            int leftEdge = (left & (0x1 << (3-i)));
-            if (leftEdge != 0) {
-                byte edgeByte = str[i];
-
-                leftEdges.add(edgeByte);
-            }
-        }
-
-        return leftEdges;
-    }
-
-    public Collection<String> getInEdgesAsStrings(int color) {
-        Collection<Byte> leftEdges = getInEdgesAsBytes(color);
+    public Collection<String> getInEdgesAsStrings(int color, boolean complement) {
+        Collection<Byte> leftEdges = getInEdgesAsBytes(color, complement);
         Collection<String> leftEdgesAsStrings = new ArrayList<>();
 
         for (Byte e : leftEdges) {
@@ -199,42 +176,14 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return leftEdgesAsStrings;
     }
 
-    public Collection<String> getInEdgesComplementAsStrings(int color) {
-        Collection<Byte> leftEdges = getInEdgesComplementAsBytes(color);
-        Collection<String> leftEdgesAsStrings = new ArrayList<>();
-
-        for (Byte e : leftEdges) {
-            byte[] edge = { e };
-            leftEdgesAsStrings.add(new String(edge));
-        }
-
-        return leftEdgesAsStrings;
-    }
-
-    public Collection<Byte> getOutEdgesAsBytes(int color) {
+    public Collection<Byte> getOutEdgesAsBytes(int color, boolean complement) {
         Collection<Byte> rightEdges = new ArrayList<>();
 
         byte[] str = {'A', 'C', 'G', 'T'};
 
-        byte edge = edges[color];
-
-        int right = (edge & 0xf);
-
-        for (int i = 0; i < 4; i++) {
-            int rightEdge = (right & (0x1 << i));
-
-            if (rightEdge != 0) {
-                rightEdges.add(str[i]);
-            }
+        if (complement) {
+            str = new byte[] {'T', 'G', 'C', 'A'};
         }
-
-        return rightEdges;
-    }
-
-    public Collection<Byte> getOutEdgesComplementAsBytes(int color) {
-        Collection<Byte> rightEdges = new ArrayList<>();
-
-        byte[] str = {'T', 'G', 'C', 'A'};
 
         byte edge = edges[color];
 
@@ -251,8 +200,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return rightEdges;
     }
 
-    public Collection<String> getOutEdgesAsStrings(int color) {
-        Collection<Byte> rightEdges = getOutEdgesAsBytes(color);
+    public Collection<String> getOutEdgesAsStrings(int color, boolean complement) {
+        Collection<Byte> rightEdges = getOutEdgesAsBytes(color, complement);
         Collection<String> rightEdgesAsStrings = new ArrayList<>();
 
         for (Byte e : rightEdges) {
@@ -263,21 +212,9 @@ public class CortexRecord implements Comparable<CortexRecord> {
         return rightEdgesAsStrings;
     }
 
-    public Collection<String> getOutEdgesComplementAsStrings(int color) {
-        Collection<Byte> rightEdges = getOutEdgesComplementAsBytes(color);
-        Collection<String> rightEdgesAsStrings = new ArrayList<>();
+    public int getInDegree(int color) { return getInEdgesAsBytes(color, false).size(); }
 
-        for (Byte e : rightEdges) {
-            byte[] edge = { e };
-            rightEdgesAsStrings.add(new String(edge));
-        }
-
-        return rightEdgesAsStrings;
-    }
-
-    public int getInDegree(int color) { return getInEdgesAsBytes(color).size(); }
-
-    public int getOutDegree(int color) { return getOutEdgesAsBytes(color).size(); }
+    public int getOutDegree(int color) { return getOutEdgesAsBytes(color, false).size(); }
 
     public static byte[] decodeBinaryKmer(long[] kmer, int kmerSize, int kmerBits) {
         byte[] rawKmer = new byte[kmerSize];
