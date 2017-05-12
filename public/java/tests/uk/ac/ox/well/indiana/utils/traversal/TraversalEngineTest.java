@@ -18,6 +18,30 @@ import java.util.*;
  * Created by kiran on 10/05/2017.
  */
 public class TraversalEngineTest {
+    private class CortexGraphExpectation {
+        private CortexGraph eval;
+
+        public CortexGraphExpectation(CortexGraph eval) {
+            this.eval = eval;
+        }
+
+        public void hasNRecords(int n) {
+            Assert.assertEquals(eval.getNumRecords(), n);
+        }
+
+        public void hasRecord(String truth) {
+            boolean hasRecord = false;
+            for (CortexRecord cr : eval) {
+                if (cr.toString().equals(truth)) {
+                    hasRecord = true;
+                    break;
+                }
+            }
+
+            Assert.assertTrue(hasRecord, "Did not find record '" + truth + "'");
+        }
+    }
+
     private CortexGraph buildGraph(Map<String, String> haplotypes, int kmerSize) {
         File tempFile = null;
         try {
@@ -132,19 +156,14 @@ public class TraversalEngineTest {
         haplotypes.put("mom", "AATA");
         haplotypes.put("dad", "AATG");
 
-        Map<CortexKmer, String> truth = new HashMap<>();
-        truth.put(new CortexKmer("AAT"), "AAT 1 1 ....A... ......G.");
-        truth.put(new CortexKmer("ATA"), "ATA 1 0 a....... ........");
-        truth.put(new CortexKmer("ATG"), "ATG 0 1 ........ a.......");
-
         CortexGraph g = buildGraph(haplotypes, 3);
 
-        Assert.assertEquals(g.getNumRecords(), 3);
+        CortexGraphExpectation cge = new CortexGraphExpectation(g);
 
-        for (CortexRecord cr : g) {
-            Assert.assertTrue(truth.containsKey(cr.getCortexKmer()));
-            Assert.assertEquals(cr.toString(), truth.get(cr.getCortexKmer()));
-        }
+        cge.hasNRecords(3);
+        cge.hasRecord("AAT 1 1 ....A... ......G.");
+        cge.hasRecord("ATA 1 0 a....... ........");
+        cge.hasRecord("ATG 0 1 ........ a.......");
     }
 
     @Test
