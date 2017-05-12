@@ -20,8 +20,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 
 /**
@@ -38,10 +36,10 @@ public class CortexUtils {
         CortexRecord cr = cg.findRecord(ck);
 
         if (cr != null) {
-            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color, false);
 
             if (ck.isFlipped()) {
-                outEdges = cr.getInEdgesComplementAsStrings(color);
+                outEdges = cr.getInEdgesAsStrings(color, true);
             }
 
             if (outEdges.size() == 1) {
@@ -93,10 +91,10 @@ public class CortexUtils {
         Set<String> nextKmers = new HashSet<>();
 
         if (cr != null) {
-            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color, false);
 
             if (!cr.getKmerAsString().equals(kmer)) {
-                outEdges = cr.getInEdgesComplementAsStrings(color);
+                outEdges = cr.getInEdgesAsStrings(color, true);
             }
 
             for (String outEdge : outEdges) {
@@ -113,10 +111,10 @@ public class CortexUtils {
         Set<String> nextKmers = new HashSet<>();
 
         if (cr != null) {
-            Collection<String> outEdges = cr.getOutEdgesAsStrings(color);
+            Collection<String> outEdges = cr.getOutEdgesAsStrings(color, false);
 
             if (ck.isFlipped()) {
-                outEdges = cr.getInEdgesComplementAsStrings(color);
+                outEdges = cr.getInEdgesAsStrings(color, true);
             }
 
             for (String outEdge : outEdges) {
@@ -168,7 +166,7 @@ public class CortexUtils {
                 Set<String> nextKmers = new HashSet<>();
 
                 if (cr != null) {
-                    Collection<String> outEdges = (ck.isFlipped()) ? cr.getInEdgesComplementAsStrings(c) : cr.getOutEdgesAsStrings(c);
+                    Collection<String> outEdges = (ck.isFlipped()) ? cr.getInEdgesAsStrings(c, true) : cr.getOutEdgesAsStrings(c, false);
 
                     for (String outEdge : outEdges) {
                         nextKmers.add(kmer.substring(1, kmer.length()) + outEdge);
@@ -187,10 +185,10 @@ public class CortexUtils {
         CortexRecord cr = cg.findRecord(ck);
 
         if (cr != null) {
-            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color, false);
 
             if (ck.isFlipped()) {
-                inEdges = cr.getOutEdgesComplementAsStrings(color);
+                inEdges = cr.getOutEdgesAsStrings(color, true);
             }
 
             if (inEdges.size() == 1) {
@@ -242,10 +240,10 @@ public class CortexUtils {
         Set<String> prevKmers = new HashSet<>();
 
         if (cr != null) {
-            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color, false);
 
             if (!cr.getKmerAsString().equals(kmer)) {
-                inEdges = cr.getOutEdgesComplementAsStrings(color);
+                inEdges = cr.getOutEdgesAsStrings(color, true);
             }
 
             for (String inEdge : inEdges) {
@@ -262,10 +260,10 @@ public class CortexUtils {
         Set<String> prevKmers = new HashSet<>();
 
         if (cr != null) {
-            Collection<String> inEdges = cr.getInEdgesAsStrings(color);
+            Collection<String> inEdges = cr.getInEdgesAsStrings(color, false);
 
             if (ck.isFlipped()) {
-                inEdges = cr.getOutEdgesComplementAsStrings(color);
+                inEdges = cr.getOutEdgesAsStrings(color, true);
             }
 
             for (String inEdge : inEdges) {
@@ -305,7 +303,7 @@ public class CortexUtils {
                 Set<String> prevKmers = new HashSet<>();
 
                 if (cr != null) {
-                    Collection<String> inEdges = (ck.isFlipped()) ? cr.getOutEdgesComplementAsStrings(c) : cr.getInEdgesAsStrings(c);
+                    Collection<String> inEdges = (ck.isFlipped()) ? cr.getOutEdgesAsStrings(c, true) : cr.getInEdgesAsStrings(c, false);
 
                     for (String inEdge : inEdges) {
                         prevKmers.add(inEdge + kmer.substring(0, kmer.length() - 1));

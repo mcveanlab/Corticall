@@ -249,11 +249,11 @@ public class TraversalEngine {
 
         if (!kmerIsFlipped) {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                inEdges.put(c, new HashSet<>(cr.getInEdgesAsStrings(c)));
+                inEdges.put(c, new HashSet<>(cr.getInEdgesAsStrings(c, false)));
             }
         } else {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                inEdges.put(c, new HashSet<>(cr.getOutEdgesComplementAsStrings(c)));
+                inEdges.put(c, new HashSet<>(cr.getOutEdgesAsStrings(c, true)));
             }
         }
 
@@ -265,11 +265,11 @@ public class TraversalEngine {
 
         if (!kmerIsFlipped) {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                outEdges.put(c, new HashSet<>(cr.getOutEdgesAsStrings(c)));
+                outEdges.put(c, new HashSet<>(cr.getOutEdgesAsStrings(c, false)));
             }
         } else {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                outEdges.put(c, new HashSet<>(cr.getInEdgesComplementAsStrings(c)));
+                outEdges.put(c, new HashSet<>(cr.getInEdgesAsStrings(c, true)));
             }
         }
 

@@ -103,8 +103,8 @@ public class CortexGraphTest {
                 }
             }
 
-            Set<Byte> betterLeftEdges = new HashSet<>(cr.getInEdgesAsBytes(color));
-            Set<Byte> betterRightEdges = new HashSet<>(cr.getOutEdgesAsBytes(color));
+            Set<Byte> betterLeftEdges = new HashSet<>(cr.getInEdgesAsBytes(color, false));
+            Set<Byte> betterRightEdges = new HashSet<>(cr.getOutEdgesAsBytes(color, false));
 
             Assert.assertEquals(leftEdges, betterLeftEdges);
             Assert.assertEquals(rightEdges, betterRightEdges);
@@ -230,8 +230,8 @@ public class CortexGraphTest {
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 coverageList.add(cr.getCoverage(c));
-                inEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c)));
-                outEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c)));
+                inEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c, false)));
+                outEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c, false)));
             }
 
             CortexRecord nr = new CortexRecord(sk, coverageList, inEdgesList, outEdgesList);
@@ -252,8 +252,8 @@ public class CortexGraphTest {
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 coverageList.add(cr.getCoverage(c));
-                inEdgesList.add(new HashSet<>(cr.getInEdgesComplementAsStrings(c)));
-                outEdgesList.add(new HashSet<>(cr.getOutEdgesComplementAsStrings(c)));
+                inEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c, true)));
+                outEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c, true)));
             }
 
             CortexRecord nr = new CortexRecord(sk, coverageList, inEdgesList, outEdgesList);
