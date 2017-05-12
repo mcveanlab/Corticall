@@ -3,64 +3,148 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
-import org.junit.BeforeClass;
+import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.LongWalkStopper;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
  * Created by kiran on 10/05/2017.
  */
 public class TraversalEngineTest {
-    private File tempDir = new File("testdata");
-    private File simpleGraph = new File(tempDir.getAbsolutePath() + "/_simplegraph.ctx");
+    private CortexGraph buildGraph(Map<String, String> haplotypes, int kmerSize) {
+        File tempFile = null;
+        try {
+            tempFile = File.createTempFile("tempgraph", ".ctx");
+        } catch (IOException e) {
+            throw new IndianaException("Could not get a temp file for graph creation");
+        }
+        tempFile.deleteOnExit();
 
-    @BeforeClass
-    public void writeTemporaryTestFiles() {
-        CortexGraphWriter cgw = new CortexGraphWriter(simpleGraph);
-        cgw.setHeader(constructCortexHeader());
-
-        String seqMother = "ATGTACCGTGTTGGCACGAAGTTTTGCTGATATAGGAGATATCGTACGCGGTAAAGATCTGTATCTCGGTAATCCACAAGAAAGTACACAAAGAATAATATTAGAAAATAATTTGAAAGATATTTTCGCGAAAATACATAGTGACGTGATGTCAACGAGCGGGAGTAATGGGAGGGCGCTACAAAAACGCTACAAAGATACTGATAATTATTATGAATTGAGAGAAGATTGGTGGGCACTTAATAGAGACCAAGTATGGAAAGCTATCACATGCAATGCTGGGGGTGGTAATAGATATTTTCGACAAACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGGTGTAAGGACGACAAGGTCCCCACATATTTTGACTATGTGCCACAGTATCTTCGCTGGTTCGAGGAATGGGCCGAAGATTTTTGTAGATTAAGGAAACATAAATTAAAAGATGCTAAAAACAAATGTCGTGGAGATAGTGGTAACGATAGATATTGTGATCTTAATAGGTATGATTGCACACAAACTATTAGAGGAAATGAACATTTTGTTGAAAAGGATGATTGTAAAGGTTGTCAGTATTCGTGCGCTCATTTTGTGAACTGGATAGATAACCAAAAACTAGAATTTGAAAAACAAAAAGAAAAATATACAAAAGAAATTAAAAAAAAGCATCCAACAACCATAATAATAA";
-        String seqFather = "ATGTACCGTGTTGGCACGAAGTTTTGCTGATATAGGAGATATCGTACGCGATAAAGATCTGTATCTCGGTAATCCACAAGAAAGTACACAAAGAATAATATTAGAAAATAATTTGAAAGATATTTACGCGAAAATACATAGTGACGTGATGTCAACGAGCGGGAGTAATGGGAGGGCGCTACAAAAACGCTACAAAGATACTGATAATTATTATGAATTGAGAGACGATTGGTGGGCACTTAATAGAGACCAAGTATGGAAAGCTATCACATGCATTGCTGGGGGTGGTAATAGATATTTTCGACAAACATGTGGATCAGGAGAAAGGGCTAAAGACAAATGCCGGTGTAAGGACGACAAGGTCCAACGATTACCAGAACCATGGCCACAGTATCTTCGCTGGTTCGAGGAATGGGCCGAAGATTTTTGTAGAAAAAGGAAACACAAATTAAAAGATGCTAAAAACAAATGTCGTGGAGATAGTGGTAACGATAGATATTGTGATCTTAATAGGTATGATTGCACACAAACTATTAGAGGAAATCAACATTTTGTTGAAAAGGATGATTGTAAAGGTTGTCAGTATTCGTGCGCTCATTTTGTGAACTGGATAGATAACCAAAAACTAGAATTTGAAAAACAAACCGAAAAATATACAAAAGAAATTAAAAAAAAGCATCCAACAACCATAATAATAA";
-        String seqChild  = "ATGTACCGTGTTGGCACGAAGTTTTGCTGATATAGGAGATATCGTACGCGGTAAAGATCTGTATCTCGGTAATCCACAAGAAAGTACACAAAGAATAATATTAGAAAATAATTTGAAAGATATTTTCGCGAAAATACATAGTGACGTGATGTCAACGAGCGGGAGTAATGGGAGGGCGCTACAAAAACGCTACAAAGATACTGATAATTATTATGAATTGAGAGAAGATTGGTGGGCACTTAATAGAGACCAAGTATGGAAAGCTATCACATGCAATGCTGGGGGTGGTAATAGATATTTTCGACAAACATGTGGTTCAGGAGAAAGGGCTAAAGACAAATGCCGGTGTAAGGACGACAAGGTCCAACGATTACCAGAACCATGGCCACAGTATCTTCGCTGGTTCGAGGAATGGGCCGAAGATTTTTGTAGAAAAAGGAAACACAAATTAAAAGATGCTAAAAACAAATGTCGTGGAGATAGTGGTAACGATAGATATTGTGATCTTAATAGGTATGATTGCACACAAACTATTAGAGGAAATCAACATTTTGTTGAAAAGGATGATTGTAAAGGTTGTCAGTATTCGTGCGCTCATTTTGTGAACTGGATAGATAACCAAAAACTAGAATTTGAAAAACAAACCGAAAAATATACAAAAGAAATTAAAAAAAAGCATCCAACAACCATAATAATAA";
-        // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------mom-||-dad------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        CortexGraphWriter cgw = new CortexGraphWriter(tempFile);
+        cgw.setHeader(constructCortexHeader(haplotypes, kmerSize));
 
         Map<CortexKmer, CortexRecord> crs = new TreeMap<>();
 
-        for (int i = 0; i <= seqMother.length() - cgw.getHeader().getKmerSize(); i++) {
-            String sk = seqMother.substring(i, i + cgw.getHeader().getKmerSize());
-            CortexKmer ck = new CortexKmer(sk);
+        int c = 0;
+        for (String sampleName : haplotypes.keySet()) {
+            String sequence = haplotypes.get(sampleName);
 
-            //CortexRecord cr = new CortexRecord(new CortexBinaryKmer(sk.getBytes()), );
+            for (int i = 0; i <= sequence.length() - kmerSize; i++) {
+                String sk = sequence.substring(i, i + kmerSize);
 
+                String prevBase = i == 0 ? null : sequence.substring(i - 1, i);
+                String nextBase = i == sequence.length() - kmerSize ? null : sequence.substring(i + kmerSize, i + kmerSize + 1);
+
+                updateRecord(crs, haplotypes.size(), c, sk, prevBase, nextBase);
+            }
+
+            c++;
         }
+
+        for (CortexKmer cr : crs.keySet()) {
+            cgw.addRecord(crs.get(cr));
+        }
+
+        cgw.close();
+
+        return new CortexGraph(tempFile);
+    }
+
+    private void updateRecord(Map<CortexKmer, CortexRecord> crs, int numColors, int color, String sk, String prevBase, String nextBase) {
+        CortexKmer ck = new CortexKmer(sk);
+
+        List<Integer> coverageList = new ArrayList<>();
+        List<Set<String>> inEdgesList = new ArrayList<>();
+        List<Set<String>> outEdgesList = new ArrayList<>();
+
+        CortexRecord oldRc = crs.containsKey(ck) ? crs.get(ck) : null;
+
+        for (int c = 0; c < numColors; c++) {
+            int cov = 0;
+            Set<String> inEdges = new HashSet<>();
+            Set<String> outEdges = new HashSet<>();
+
+            if (oldRc != null) {
+                cov += oldRc.getCoverage(c);
+
+                inEdges.addAll(!ck.isFlipped() ? oldRc.getInEdgesAsStrings(c, false) : oldRc.getOutEdgesAsStrings(c, true));
+                outEdges.addAll(!ck.isFlipped() ? oldRc.getOutEdgesAsStrings(c, false) : oldRc.getInEdgesAsStrings(c, true));
+            }
+
+            if (c == color) {
+                cov++;
+
+                if (!ck.isFlipped()) {
+                    if (prevBase != null) { inEdges.add(prevBase); }
+                    if (nextBase != null) { outEdges.add(nextBase); }
+                } else {
+                    if (nextBase != null) { inEdges.add(SequenceUtils.reverseComplement(nextBase)); }
+                    if (prevBase != null) { outEdges.add(SequenceUtils.reverseComplement(prevBase)); }
+                }
+            }
+
+            coverageList.add(cov);
+            inEdgesList.add(inEdges);
+            outEdgesList.add(outEdges);
+        }
+
+        crs.put(ck, new CortexRecord(SequenceUtils.alphanumericallyLowestOrientation(sk), coverageList, inEdgesList, outEdgesList));
     }
 
     @NotNull
-    private CortexHeader constructCortexHeader() {
+    private CortexHeader constructCortexHeader(Map<String, String> haplotypes, int kmerSize) {
         CortexHeader ch = new CortexHeader();
         ch.setVersion(6);
-        ch.setNumColors(3);
-        ch.setKmerSize(31);
-        ch.setKmerBits(CortexRecord.getKmerBits(31));
+        ch.setNumColors(haplotypes.size());
+        ch.setKmerSize(kmerSize);
+        ch.setKmerBits(CortexRecord.getKmerBits(kmerSize));
 
-        CortexColor cmother = new CortexColor();
-        cmother.setSampleName("mother");
+        for (String sampleName : haplotypes.keySet()) {
+            CortexColor col = new CortexColor();
 
-        CortexColor cfather = new CortexColor();
-        cfather.setSampleName("father");
+            col.setSampleName(sampleName);
+            col.setCleanedAgainstGraph(false);
+            col.setCleanedAgainstGraphName("");
+            col.setErrorRate(0.0);
+            col.setLowCovgKmersRemoved(false);
+            col.setLowCovgSupernodesRemoved(false);
+            col.setLowCovKmerThreshold(0);
+            col.setTipClippingApplied(false);
+            col.setMeanReadLength(0);
+            col.setTotalSequence(0);
 
-        CortexColor cchild = new CortexColor();
-        cchild.setSampleName("child");
-
-        ch.addColor(cmother);
-        ch.addColor(cfather);
-        ch.addColor(cchild);
+            ch.addColor(col);
+        }
 
         return ch;
+    }
+
+    @Test
+    public void testArbitraryGraphConstruction() {
+        Map<String, String> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("mom", "AATA");
+        haplotypes.put("dad", "AATG");
+
+        Map<CortexKmer, String> truth = new HashMap<>();
+        truth.put(new CortexKmer("AAT"), "AAT 1 1 ....A... ......G.");
+        truth.put(new CortexKmer("ATA"), "ATA 1 0 a....... ........");
+        truth.put(new CortexKmer("ATG"), "ATG 0 1 ........ a.......");
+
+        CortexGraph g = buildGraph(haplotypes, 3);
+
+        Assert.assertEquals(g.getNumRecords(), 3);
+
+        for (CortexRecord cr : g) {
+            Assert.assertTrue(truth.containsKey(cr.getCortexKmer()));
+            Assert.assertEquals(cr.toString(), truth.get(cr.getCortexKmer()));
+        }
     }
 
     @Test
