@@ -1,6 +1,5 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.Arrays;
@@ -13,7 +12,7 @@ public class CortexBinaryKmer implements Comparable<CortexBinaryKmer> {
     }
 
     public CortexBinaryKmer(byte[] kmer) {
-        this.binaryKmer = CortexUtils.encodeBinaryKmer(SequenceUtils.alphanumericallyLowestOrientation(kmer));
+        this.binaryKmer = CortexRecord.encodeBinaryKmer(SequenceUtils.alphanumericallyLowestOrientation(kmer));
     }
 
     public long[] getBinaryKmer() {

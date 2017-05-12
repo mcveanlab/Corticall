@@ -6,10 +6,7 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 import org.junit.BeforeClass;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.DustStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.LongWalkStopper;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.OrphanStopper;
 
 import java.io.File;
 import java.util.*;
@@ -48,7 +45,7 @@ public class TraversalEngineTest {
         ch.setVersion(6);
         ch.setNumColors(3);
         ch.setKmerSize(31);
-        ch.setKmerBits(CortexUtils.getKmerBits(31));
+        ch.setKmerBits(CortexRecord.getKmerBits(31));
 
         CortexColor cmother = new CortexColor();
         cmother.setSampleName("mother");

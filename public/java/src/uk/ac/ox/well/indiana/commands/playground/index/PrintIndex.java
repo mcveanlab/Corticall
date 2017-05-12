@@ -8,7 +8,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -58,7 +58,7 @@ public class PrintIndex extends Module {
 
             log.info("{}: {} {}",
                     i,
-                    new String(CortexUtils.decodeBinaryKmer(p.getFirst().getBinaryKmer(), KMER_SIZE, CortexUtils.getKmerBits(KMER_SIZE))),
+                    new String(CortexRecord.decodeBinaryKmer(p.getFirst().getBinaryKmer(), KMER_SIZE, CortexRecord.getKmerBits(KMER_SIZE))),
                     Joiner.on(";").join(intervals)
             );
         }

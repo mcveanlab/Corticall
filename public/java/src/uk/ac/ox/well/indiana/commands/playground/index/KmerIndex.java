@@ -4,19 +4,16 @@ import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class KmerIndex {
     private Path path;
@@ -59,7 +56,7 @@ public class KmerIndex {
     private void writeHeader(int kmerSize) {
         try {
             this.kmerSize = kmerSize;
-            this.kmerBits = CortexUtils.getKmerBits(kmerSize);
+            this.kmerBits = CortexRecord.getKmerBits(kmerSize);
             this.recordSize = (8*kmerBits) + 8 + 8;
 
             ByteBuffer buffer = ByteBuffer.allocate(9 + 4 + 4);
