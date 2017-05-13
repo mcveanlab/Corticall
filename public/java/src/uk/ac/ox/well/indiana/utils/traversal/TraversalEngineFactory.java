@@ -14,7 +14,7 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator op) { configuration.setGraphCombinationOperator(op); return this; }
     public TraversalEngineFactory traversalDirection(TraversalEngineConfiguration.TraversalDirection td) { configuration.setTraversalDirection(td); return this; }
-    public TraversalEngineFactory connectUnusedNeighbors(boolean connectUnusedNeighbors) { configuration.setConnectUnusedNeighbors(connectUnusedNeighbors); return this; }
+    public TraversalEngineFactory connectUnusedNeighbors(boolean connectUnusedNeighbors) { configuration.setConnectAllNeighbors(connectUnusedNeighbors); return this; }
 
     public TraversalEngineFactory traversalColor(int color) { configuration.setTraversalColor(color); return this; }
 

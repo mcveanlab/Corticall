@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
@@ -22,8 +21,8 @@ public class TraversalEngine {
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
     public DirectedGraph<CortexVertex, CortexEdge> dfs(String sk) {
-        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
-        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0) : null;
 
         DirectedGraph<CortexVertex, CortexEdge> dfs = new DefaultDirectedGraph<>(CortexEdge.class);
 
@@ -46,7 +45,7 @@ public class TraversalEngine {
         return null;
     }
 
-    private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> history) {
+    private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
@@ -59,17 +58,28 @@ public class TraversalEngine {
             Set<CortexVertex> nvs = getNextVertices(cv.getSk());
             avs = goForward ? nvs : pvs;
 
-            if (ec.getConnectUnusedNeighbors()) {
+            // Avoid traversing infinite loops by removing from traversal consideration
+            // those vertices that have already been incorporated into the graph.
+            Set<CortexVertex> seen = new HashSet<>();
+            for (CortexVertex av : avs) {
+                if (g.containsVertex(av)) {
+                    seen.add(av);
+                }
+            }
+            avs.removeAll(seen);
+
+            if (ec.connectAllNeighbors()) {
                 connectVertex(g, cv, pvs, nvs);
             }
 
-            if (ec.getStoppingRule().keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal()) && !history.contains(cv)) {
-                history.add(cv);
-
+            if (ec.getStoppingRule().keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal()) /*&& !history.contains(cv)*/) {
                 if (avs.size() == 1) {
-                    if (!ec.getConnectUnusedNeighbors()) {
-                        if (goForward) { connectVertex(g, cv, null, nvs); }
-                        else { connectVertex(g, cv, pvs, null); }
+                    if (!ec.connectAllNeighbors()) {
+                        if (goForward) {
+                            connectVertex(g, cv, null, nvs);
+                        } else {
+                            connectVertex(g, cv, pvs, null);
+                        }
                     }
 
                     cv = avs.iterator().next();
@@ -77,27 +87,25 @@ public class TraversalEngine {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        if (!av.getSk().equals(sk)) {
-                            DirectedGraph<CortexVertex, CortexEdge> branch = dfs(sk, goForward, currentTraversalDepth + 1, history);
+                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getSk(), goForward, currentTraversalDepth + 1);
 
-                            if (branch != null) {
-                                if (!ec.getConnectUnusedNeighbors()) {
-                                    if (goForward) { connectVertex(g, cv, null, nvs); }
-                                    else { connectVertex(g, cv, pvs, null); }
-                                }
-
-                                Graphs.addGraph(g, branch);
-                                childrenWereSuccessful = true;
-                            } else {
-                                // mark a rejected traversal here
+                        if (branch != null) {
+                            if (!ec.connectAllNeighbors()) {
+                                if (goForward) { connectVertex(g, cv, null, nvs); }
+                                else { connectVertex(g, cv, pvs, null); }
                             }
+
+                            Graphs.addGraph(g, branch);
+                            childrenWereSuccessful = true;
+                        } else {
+                            // could mark a rejected traversal here rather than just throwing it away
                         }
                     }
 
                     if (childrenWereSuccessful || ec.getStoppingRule().hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal())) {
                         return g;
                     } else {
-                        // mark a rejected traversal here
+                        // could mark a rejected traversal here rather than just throwing it away
                     }
                 }
             } else if (ec.getStoppingRule().traversalSucceeded()) {

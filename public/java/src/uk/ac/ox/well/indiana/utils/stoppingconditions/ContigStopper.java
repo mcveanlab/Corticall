@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * Created by kiran on 10/05/2017.
  */
-public class LongWalkStopper extends AbstractTraversalStopper<CortexVertex, CortexEdge> {
+public class ContigStopper extends AbstractTraversalStopper<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<CortexVertex, CortexEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
         return false;
