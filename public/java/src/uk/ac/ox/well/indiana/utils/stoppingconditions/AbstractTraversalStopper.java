@@ -27,6 +27,10 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
         traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph);
         traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph);
 
+        if (traversalSucceeded) {
+            anyTraversalSucceeded = true;
+        }
+
         return !traversalSucceeded && !traversalFailed;
     }
 

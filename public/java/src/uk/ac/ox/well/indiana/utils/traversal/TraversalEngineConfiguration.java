@@ -19,7 +19,7 @@ public class TraversalEngineConfiguration {
 
     private GraphCombinationOperator gco = GraphCombinationOperator.OR;
     private TraversalDirection td = TraversalDirection.BOTH;
-    private boolean connectUnusedNeighbors = false;
+    private boolean connectAllNeighbors = false;
 
     private int traversalColor = -1;
     private Set<Integer> joiningColors = new HashSet<>();
@@ -50,12 +50,12 @@ public class TraversalEngineConfiguration {
         this.td = td;
     }
 
-    public boolean getConnectUnusedNeighbors() {
-        return connectUnusedNeighbors;
+    public boolean connectAllNeighbors() {
+        return connectAllNeighbors;
     }
 
-    public void setConnectUnusedNeighbors(boolean connectUnusedNeighbors) {
-        this.connectUnusedNeighbors = connectUnusedNeighbors;
+    public void setConnectAllNeighbors(boolean connectAllNeighbors) {
+        this.connectAllNeighbors = connectAllNeighbors;
     }
 
     public int getTraversalColor() {
