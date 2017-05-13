@@ -17,19 +17,17 @@ import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration
 public class TraversalEngine {
     private TraversalEngineConfiguration ec;
 
-    public TraversalEngine(TraversalEngineConfiguration ec) {
-        this.ec = ec;
+    public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
 
-        if (this.ec.graph == null) { throw new IndianaException("Graph must be specified"); }
-    }
+    public TraversalEngineConfiguration getConfiguration() { return ec; }
 
     public DirectedGraph<CortexVertex, CortexEdge> dfs(String sk) {
-        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.td == BOTH || ec.td == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
-        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.td == BOTH || ec.td == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
 
         DirectedGraph<CortexVertex, CortexEdge> dfs = new DefaultDirectedGraph<>(CortexEdge.class);
 
-        if (ec.gco == OR) {
+        if (ec.getGraphCombinationOperator() == OR) {
             if (dfsr != null || dfsf != null) {
                 if (dfsr != null) { Graphs.addGraph(dfs, dfsr); }
                 if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
@@ -51,8 +49,8 @@ public class TraversalEngine {
     private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> history) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
-        CortexRecord cr = ec.graph.findRecord(new CortexKmer(sk));
-        CortexVertex cv = new CortexVertex(sk, cr, ec.traversalColor);
+        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
+        CortexVertex cv = new CortexVertex(sk, cr, ec.getTraversalColor());
 
         Set<CortexVertex> avs;
 
@@ -61,15 +59,15 @@ public class TraversalEngine {
             Set<CortexVertex> nvs = getNextVertices(cv.getSk());
             avs = goForward ? nvs : pvs;
 
-            if (ec.connectUnusedNeighbors) {
+            if (ec.getConnectUnusedNeighbors()) {
                 connectVertex(g, cv, pvs, nvs);
             }
 
-            if (ec.stoppingRule.keepGoing(cv, goForward, ec.traversalColor, ec.joiningColors, currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.previousGraph) && !history.contains(cv)) {
+            if (ec.getStoppingRule().keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal()) && !history.contains(cv)) {
                 history.add(cv);
 
                 if (avs.size() == 1) {
-                    if (!ec.connectUnusedNeighbors) {
+                    if (!ec.getConnectUnusedNeighbors()) {
                         if (goForward) { connectVertex(g, cv, null, nvs); }
                         else { connectVertex(g, cv, pvs, null); }
                     }
@@ -83,7 +81,7 @@ public class TraversalEngine {
                             DirectedGraph<CortexVertex, CortexEdge> branch = dfs(sk, goForward, currentTraversalDepth + 1, history);
 
                             if (branch != null) {
-                                if (!ec.connectUnusedNeighbors) {
+                                if (!ec.getConnectUnusedNeighbors()) {
                                     if (goForward) { connectVertex(g, cv, null, nvs); }
                                     else { connectVertex(g, cv, pvs, null); }
                                 }
@@ -96,13 +94,13 @@ public class TraversalEngine {
                         }
                     }
 
-                    if (childrenWereSuccessful || ec.stoppingRule.hasTraversalSucceeded(cv, goForward, ec.traversalColor, ec.joiningColors, currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.previousGraph)) {
+                    if (childrenWereSuccessful || ec.getStoppingRule().hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal())) {
                         return g;
                     } else {
                         // mark a rejected traversal here
                     }
                 }
-            } else if (ec.stoppingRule.traversalSucceeded()) {
+            } else if (ec.getStoppingRule().traversalSucceeded()) {
                 return g;
             } else {
                 return null;
@@ -135,14 +133,14 @@ public class TraversalEngine {
 
         Map<Integer, Set<String>> prevKmers = getAllPrevKmers(sk);
 
-        if (prevKmers.get(ec.traversalColor).size() > 0) {
-            for (String prevKmer : prevKmers.get(ec.traversalColor)) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.graph.findRecord(new CortexKmer(prevKmer)), ec.traversalColor));
+        if (prevKmers.get(ec.getTraversalColor()).size() > 0) {
+            for (String prevKmer : prevKmers.get(ec.getTraversalColor())) {
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer)), ec.getTraversalColor()));
             }
         } else {
             Map<String, Set<Integer>> inKmerMap = new HashMap<>();
 
-            for (int c : ec.recruitmentColors) {
+            for (int c : ec.getRecruitmentColors()) {
                 Set<String> inKmers = prevKmers.get(c);
 
                 for (String inKmer : inKmers) {
@@ -155,7 +153,7 @@ public class TraversalEngine {
             }
 
             for (String prevKmer : inKmerMap.keySet()) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.graph.findRecord(new CortexKmer(prevKmer)), inKmerMap.get(prevKmer)));
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer)), inKmerMap.get(prevKmer)));
             }
         }
 
@@ -166,14 +164,14 @@ public class TraversalEngine {
         Set<CortexVertex> nextVertices = new HashSet<>();
 
         Map<Integer, Set<String>> nextKmers = getAllNextKmers(sk);
-        if (nextKmers.get(ec.traversalColor).size() > 0) {
-            for (String nextKmer : nextKmers.get(ec.traversalColor)) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.graph.findRecord(new CortexKmer(nextKmer)), ec.traversalColor));
+        if (nextKmers.get(ec.getTraversalColor()).size() > 0) {
+            for (String nextKmer : nextKmers.get(ec.getTraversalColor())) {
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer)), ec.getTraversalColor()));
             }
         } else {
             Map<String, Set<Integer>> outKmerMap = new HashMap<>();
 
-            for (int c : ec.recruitmentColors) {
+            for (int c : ec.getRecruitmentColors()) {
                 Set<String> outKmers = nextKmers.get(c);
 
                 for (String outKmer : outKmers) {
@@ -186,7 +184,7 @@ public class TraversalEngine {
             }
 
             for (String nextKmer : outKmerMap.keySet()) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.graph.findRecord(new CortexKmer(nextKmer)), outKmerMap.get(nextKmer)));
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer)), outKmerMap.get(nextKmer)));
             }
         }
 
@@ -196,7 +194,7 @@ public class TraversalEngine {
 
     private Map<Integer, Set<String>> getAllPrevKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
-        CortexRecord cr = ec.graph.findRecord(ck);
+        CortexRecord cr = ec.getGraph().findRecord(ck);
 
         Map<Integer, Set<String>> prevKmers = new HashMap<>();
 
@@ -221,7 +219,7 @@ public class TraversalEngine {
 
     private Map<Integer, Set<String>> getAllNextKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
-        CortexRecord cr = ec.graph.findRecord(ck);
+        CortexRecord cr = ec.getGraph().findRecord(ck);
 
         Map<Integer, Set<String>> nextKmers = new HashMap<>();
 

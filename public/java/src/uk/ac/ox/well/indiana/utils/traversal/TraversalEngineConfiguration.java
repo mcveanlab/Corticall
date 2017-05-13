@@ -17,20 +17,116 @@ public class TraversalEngineConfiguration {
     public enum GraphCombinationOperator { OR, AND }
     public enum TraversalDirection { BOTH, FORWARD, REVERSE }
 
-    public GraphCombinationOperator gco = GraphCombinationOperator.OR;
-    public TraversalDirection td = TraversalDirection.BOTH;
-    public boolean connectUnusedNeighbors = false;
+    private GraphCombinationOperator gco = GraphCombinationOperator.OR;
+    private TraversalDirection td = TraversalDirection.BOTH;
+    private boolean connectUnusedNeighbors = false;
 
-    public int traversalColor;
-    public Set<Integer> joiningColors = new HashSet<>();
-    public Set<Integer> recruitmentColors = new HashSet<>();
-    public Set<Integer> displayColors = new HashSet<>();
+    private int traversalColor = -1;
+    private Set<Integer> joiningColors = new HashSet<>();
+    private Set<Integer> recruitmentColors = new HashSet<>();
+    private Set<Integer> displayColors = new HashSet<>();
 
-    public DirectedGraph<CortexVertex, CortexEdge> previousGraph;
-    public TraversalStopper<CortexVertex, CortexEdge> stoppingRule;
+    private DirectedGraph<CortexVertex, CortexEdge> previousTraversal;
+    private TraversalStopper<CortexVertex, CortexEdge> stoppingRule;
 
-    public Map<Integer, CortexLinks> links = new HashMap<>();
+    private Map<Integer, CortexLinks> links = new HashMap<>();
 
-    public CortexGraph graph;
-    public CortexGraph dirty;
+    private CortexGraph graph;
+    private CortexGraph dirty;
+
+    public GraphCombinationOperator getGraphCombinationOperator() {
+        return gco;
+    }
+
+    public void setGraphCombinationOperator(GraphCombinationOperator gco) {
+        this.gco = gco;
+    }
+
+    public TraversalDirection getTraversalDirection() {
+        return td;
+    }
+
+    public void setTraversalDirection(TraversalDirection td) {
+        this.td = td;
+    }
+
+    public boolean getConnectUnusedNeighbors() {
+        return connectUnusedNeighbors;
+    }
+
+    public void setConnectUnusedNeighbors(boolean connectUnusedNeighbors) {
+        this.connectUnusedNeighbors = connectUnusedNeighbors;
+    }
+
+    public int getTraversalColor() {
+        return traversalColor;
+    }
+
+    public void setTraversalColor(int traversalColor) {
+        this.traversalColor = traversalColor;
+    }
+
+    public Set<Integer> getJoiningColors() {
+        return joiningColors;
+    }
+
+    public void setJoiningColors(Set<Integer> joiningColors) {
+        this.joiningColors = joiningColors;
+    }
+
+    public Set<Integer> getRecruitmentColors() {
+        return recruitmentColors;
+    }
+
+    public void setRecruitmentColors(Set<Integer> recruitmentColors) {
+        this.recruitmentColors = recruitmentColors;
+    }
+
+    public Set<Integer> getDisplayColors() {
+        return displayColors;
+    }
+
+    public void setDisplayColors(Set<Integer> displayColors) {
+        this.displayColors = displayColors;
+    }
+
+    public DirectedGraph<CortexVertex, CortexEdge> getPreviousTraversal() {
+        return previousTraversal;
+    }
+
+    public void setPreviousTraversal(DirectedGraph<CortexVertex, CortexEdge> previousTraversal) {
+        this.previousTraversal = previousTraversal;
+    }
+
+    public TraversalStopper<CortexVertex, CortexEdge> getStoppingRule() {
+        return stoppingRule;
+    }
+
+    public void setStoppingRule(TraversalStopper<CortexVertex, CortexEdge> stoppingRule) {
+        this.stoppingRule = stoppingRule;
+    }
+
+    public Map<Integer, CortexLinks> getLinks() {
+        return links;
+    }
+
+    public void setLinks(Map<Integer, CortexLinks> links) {
+        this.links = links;
+    }
+
+    public CortexGraph getGraph() {
+        return graph;
+    }
+
+    public void setGraph(CortexGraph graph) {
+        this.graph = graph;
+    }
+
+    public CortexGraph getDirty() {
+        return dirty;
+    }
+
+    public void setDirty(CortexGraph dirty) {
+        this.dirty = dirty;
+    }
 }
