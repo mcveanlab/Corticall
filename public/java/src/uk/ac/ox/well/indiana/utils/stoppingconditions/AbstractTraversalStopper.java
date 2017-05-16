@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 
@@ -23,9 +24,9 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
     }
 
     @Override
-    public boolean keepGoing(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph) {
-        traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph);
-        traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph);
+    public boolean keepGoing(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+        traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph, rois);
+        traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph, rois);
 
         if (traversalSucceeded) {
             anyTraversalSucceeded = true;
@@ -35,13 +36,13 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph) {
+    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
         return false;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph) {
-        return false;
+    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+        return true;
     }
 
     public boolean anyTraversalSucceeded() { return anyTraversalSucceeded; }

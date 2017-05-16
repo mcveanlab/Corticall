@@ -9,18 +9,18 @@ import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.indiana.utils.traversal.*;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -30,205 +30,155 @@ public class VarAssemblyExperiment extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="child", shortName="c", doc="Child sample")
-    public String CHILD;
-
-    @Argument(fullName="parent", shortName="p", doc="Parent sample")
+    @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="roi", shortName="i", doc="ROI")
+    @Argument(fullName="child", shortName="c", doc="Child")
+    public String CHILD;
+
+    @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
-    @Argument(fullName="reference", shortName="r", doc="Reference")
-    public IndexedFastaSequenceFile REF;
-
-    @Argument(fullName="refgraph", shortName="rg", doc="Reference graph")
-    public CortexGraph REFGRAPH;
-
-    @Argument(fullName="geneModel", shortName="m", doc="GFF file")
-    public GFF3 GFF;
+    @Output
+    public File out;
 
     @Override
     public void execute() {
+        CortexLinksMap lm = new CortexLinksMap("PG0063-C.ERR019060.k47.3D7.ref.links.raw.ctp.gz");
+
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
-        log.info("Colors:");
-        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
-        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        Map<String, String> varSeqs = new LinkedHashMap<>();
+        varSeqs.put("PF3D7_0100100", "ATGGTGACGCAAAGTAGTGGTGGGGGTGCTGCTGGTAGTAGTGGTGAGGAAGATGCCAAACATGTATTGGATGAATTTGGGCAACAAGTGTACAATGAAAAAGTGGAAAAGTATGCTAATTCTAAAATATATAAAGAGGCGTTGAAAGGAGATTTGTCACAAGCATCAATTTTGAGCGAATTAGCTGGCACCTATAAACCATGTGCCCTTGAATATGAATATTATAAGCATACTAATGGCGGTGGTAAGGGTAAAAGGTATCCGTGTACAGAGTTAGGTGAAAAAGTAGAACCACGTTTTTCGGATACACTTGGTGGTCAGTGTACTAACAAAAAAATAGAAGGTAATAAATATATTAAAGGTAAGGATGTTGGTGCTTGTGCACCATACCGACGTCTACATCTATGTAGTCATAATTTGGAAAGTATACAAACAAATAATTATAATAGTGGTAATGCTAAACATAATTTATTGGTAGATGTGTGTATGGCAGCCAAATACGAAGGGGACTCAATAAAAAACTATTATCCAAAGTATCAAAGAACATATCCTGATACTAATTCTCAATTATGTACCGTGTTGGCACGAAGTTTTGCTGATATAGGAGATATCGTACGCGGTAAAGATCTGTATCTCGGTAATCCACAAGAAAGTACACAAAGAATAATATTAGAAAATAATTTGAAAGATATTTTCGCGAAAATACATAGTGACGTGATGTCAACGAGCGGGAGTAATGGGAGGGCGCTACAAAAACGCTACAAAGATACTGATAATTATTATGAATTGAGAGAAGATTGGTGGGCACTTAATAGAGACCAAGTATGGAAAGCTATCACATGCAATGCTGGGGGTGGTAATAGATATTTTCGACAAACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGGTGTAAGGACGACAAGGTCCCCACATATTTTGACTATGTGCCACAGTATCTTCGCTGGTTCGAGGAATGGGCCGAAGATTTTTGTAGATTAAGGAAACATAAATTAAAAGATGCTAAAAACAAATGTCGTGGAGATAGTGGTAACGATAGATATTGTGATCTTAATAGGTATGATTGCACACAAACTATTAGAGGAAATGAACATTTTGTTGAAAAGGATGATTGTAAAGGTTGTCAGTATTCGTGCGCTCATTTTGTGAACTGGATAGATAACCAAAAACTAGAATTTGAAAAACAAAAAGAAAAATATACAAAAGAAATTAAAAAAAAGCATCCAACAACCATAATAATAAAAACTGCAAATCGAAAAACAACTATTAATAACTTATATGTAAAAGAATTTTATAAAAAACTTCAAGAGAAATATGGAGATGTCGAAAATTTTTTACAAAAATTAAATGAAGAACAAATATGCAAAAATCAACCGTACAATGATGAAAGTAGTATTGATATTAATTTCAAAAGTATTAAAGATATTGACATATTTTCTCATACGGAATACTGTCAAGCATGTCCATGGTGCGGGGCCAAACGTAAAGGTAAAGGATGGGAACCTAAAGAAAAAACCTGTGGAAAAACAAAGACATACGATCCTAAGAAAACAACGAATATACCAATACTTACCCCTTATATATCACAGCAAAGTATACTAAAAAAATATAATAAATTTTGTAATGGTAATGGTGGAAATGGTGCACCTGCTACTGCAACTGGTGGTGGTCAAATTAAAAATTGGCAATGTCATTATGAAGGTGATAATAATGATAATTGTGTAGAAGGAGAATGGAAAGAGTTTAAAGAGGGTAAAAACGTTATGTCCTATAATGCTTTTTTTTGGAAGTGGGTTCATGATATGTTAATCGACTCTATGCAATGGAGAAATGAACATGGAAATTGTATAAATAAAGATAATGACAACACATGTAAAAATTCATGCAAAAGACCATGTGAATGTTTTAAAAGATGGGTAGATCAAAAAAAAAAAAACGAATGGGAGGCAATAAAAGACCATTTTAAAAAGCAAAATATTGCAGCTGAAACACAATGTGATCCTGGCGTAACTCTTCAATGGGTTTTGATATTAGACTTTTTGAAAGACGAATCCACAGAAGATAAGGAAAATAAGGTGAGTGCAGAGGAGGCAAAGGAAATAAAACACCTTCGCCAAATGTTGCAACAAGCAGGCGTTGATGATCCTGCTGCTTTTGCTCGTCCGTGTACTGAAGATGGTGTCGCTGAACAGGACACTATAATGGATAAATTGCTCAATCGCGAAGAAAACGATGCCACTGAATGCAAAAAATGCGACAAACCACCACCAGCACCCACTGCAGGAGATCGTGGCCCTGGAGCCCGCGCCGACCCCCACGACGTCCAACAGCCACGACCTCCTGGTAGTGGCCCCGGCACGGACGCCAACGACGAAGACGATGATGACGATGATGACGATGATGACGAAGAAGACGGTGAAGCCAAAGAAGAAGAAGAAGACGAGGAAAAACAAGAGGACGTCCACCAGGAGGAAAAGGCAAAGAAGGAAGAACCACAAAAAGAGGAGGTGGCACGAACACCAAAAGACGATGTAAATGTGTGCAATATAGTGAACAATGTGTTTACAGACGGCAGTAGTCTCCAAGCAGCGTGCTCTCTCAAATATGGCAAAAACGCACCCACAAGTTGGAAGTGTGTCACACCAAGTGGTAACACGAGTGACACCACTGTCAAAAGTGGTGACACCACCGGTGGTAGTATTTGTGTGCCACCCAGGAGACGACGATTATATGTCACACCACTAACGAGATTGACAGGTGGTGACAGTACCACACAGGCGTCACAGGCGAGTGAGGTACAGACACAAGCACGTGGTAGTAACACGGATAAGTCACCAGGTAGTAGTGAGGCAGCACAAGGTGACGGCGTGTCGAAAGACCCACAAAAGGCACTACTCAAAGCTTTTGTTGAGTCTGCAGCAGTTGAAACCTTCTTCCTATGGGATAGATATAAAAAAATAAAAGAGAAGGAGAAAAAGGAAAAAAAGAAAACATATGAACAAATATATGAATCAACCGACTATGACGATGAAGAAAAAGATCCACAAGAAGAATTAAAAAAAGGAATAATCCCTGATGAGTTTAAGCGTCAAATGTTTTATACGTTAGGTGACTACAAAGATATATTATACAGTGGTGATACGGTGAATGGTGGTAATGAGGACAAAATAAAAAAAGCTATAAATAACTATTTTCAAAAAATTCGTGAACAATCTTCTAGTGATAACAACCCATCTCCTCGTAGTGTCAAAACCCCTTCAACTAGTGACAAGGACCCTCAAACCTGGTGGAATGCACACGCCCCTTCCATCTGGAATGCTATGGTATGTGCTTTAACATATGATACAAACAGTGGCGGAGAGGGCAAAACCACAACTATTACGCAGGATCCTAATTTGAAAACTGCACTTTGGGACGAAAACGGCAAAAAACCCCTCAAAACCAAATACCAATATGATAGTGTCACAATTGGTGCTAGTGGTGCCAAACCCCAAACCAAAGCCAAACCCACTGGTGGTGACACCCCCCTCACCCAATTTGTGTTACGCCCCACCTACTTCCGATACCTTGAAGAATGGGGTCAAAATTTTTGTAAAAAACGAACAGAGATGTTGGAGAAAATAAAATATGAGTGTAAAGTAGGACAAGGTCGTGGTGGTCGTAAACAAAAAACCCCACAATGTAGTTGTTATGGGGAAAATTGTGACGATCAGCTTGACGACAATCCTAGTACTGATGCGGATTTAAAATGTCCTGGTTGTGGAAGAGAATGTAGAAAATATAAAAAATGGATAGAAAAAAAAAAAGAGGAATTTACTAAACAATCAAATGTATATGAAGAACAAAAAACAAAATGCCAAAAGGAAAGTAAGAGTGCTAAAGGTAATAACCACGGTAATGAATTTTGTGGAACACAAGGAACGTGCGATACAGCTGGAGACTTTTTAAATAGGTTAAAAAGTGGACCATGTAAAAAGGAGAATGGAAAGGATAATCAAGAGGATGAAATAAATTTTAAGGATGAAGATAAAACATTTGGACATGAAAATTATTGTGCTCCATGTCCTGTATTTAAAGATATATGTAAAAAAAAGGATTGCCGTAATGCTTCTAACAATATGTGCAATGGAAAAGATTTTATTACTGCAGAAGATATTAAAATAATGGACAGCAGTAGTGAAGAAGTTAATATGCTTGTGAGTGATAACGATACAAATAAATTTGATGGTGGTTTAGACGCTTGTAAAGATGCCCATATCTTTAAAGGTATTAAAGAAAATAAATGGTCATGTGGTAACGTATGTGGTTATAATGTGTGTAAACCGAAAAAAGTTAATGGGGAAAAAGGTAGTGGGGAAAACAATGATCAAATTATAACAATTAGAGGTTTGGTTACACATTGGGTACAAAATTTTTTAGACGATTATAATAAAATTAGAACAAAATTAAAGCCATGTAGGAATAATGGTGAGGTATCCAAATGTATAAAAGATTGTGTGAAAAAATGGGTAGAAAAAAAAACTGAAGAATGGCCAAAAATACGAGATCGTTACTTGGAACCATATAAAAGTGATGATGGCTATAACAAAAAATCTTTGGTTAGAAGTTTTATGGAGACCTTGATACCTCTAATGGATCTTACAAATGGTAAGGAAAAGATTCAAGAATTAAATAAGTTCCTTAGGTCATATGAATGTAATTGCGCTGATAACTCACAACAAAAAGGTGATACACCAAAAGACATCGTAGAATGTTTGCTTGAAAAGCTTGAAGATAAAGCAAACAAGTGTAAAACCCAAACTAGTGGTACCGACTGTCACCCCTCCACCCCCCTTGAAGATGACGATGAACCCCTTGAAGAAACAGAAGAAAATACTGTGGAACAACCGAACATTTGTCCAACAAAACAACCACAACCAGAGAAAGAAGACGGTTGTGAAGCAGCACCAACAACAGCAGAAGAAACGTCACCAACAGCAACTAGTGAAGGCACAGAGAACCAATCCCCTCCACCTCCTCCTCCAGCACCAGCACCAGCACCAGCACCGGCACCAGAAAAATCACAACCAAAAGAAGACAAAAAAGTGGAACCACAACCCAAACCACAACCAACAAACCCCCCCCCAAATTTGTTCAACAACCCCGCTGTTATACCCGCCCTCATGTCTTCTACCATCATGTGGAGTATTGGCATCGGTTTTGCTGCATTCACTTATTTTCTTCTAAAGgtattatatatatatatgtatatgtggggatgtgttttttttatatgtatttgtggggtgtgtttggatatatatatatgtatatgtgtttctgtatatgtgttttctgtatatgtatgtgttcgtatgtttggatatatatttgtgtatatgtatgtgttttatatatattttatatatatgtatttatattgataaagaaaaaaatgaaaaaaagaaaaaaaaaaatttattaaaataaaaaaaaaaaaaaaaaaaaggagaaaaatattttaaaaataataaaaattaaaataaaaatataaattttgataaaataaaaaatgaaaaatattatcaaaaagaaattaaaaaaaattttatatataaaaaaaatgattataaaaaaaatttattagaaataaaataaaaaaaaatttattaaataaaaacaaaaaaaaaaaaaaaggagaaaaatattttaaaaataataaaaattaaaataaaaatataaattttgataaaatgaaaaatgaaaaatattatcaaaaagaaattaaaaaaaattttatatataaaaaaaatgattataaaaaaaatttattagaaataaaataaaaacaaatttattaaataaaaaaaaaaaatgttaaaaaaaaatatatatatcataaaataaaaaaaaaagaaaaaaatatattaaaaaaaaaatatatatcataaaataaaaagaaaagggaaaaaatgtttaaaaaaaaaataaaaataaaaaaaaaaaaaaaaaaaaaaaaaaaattaaaaaaaaaaaataaaattaaaataaaaaaaaataaaaaaaatttaattaaataaaaaaaaaaaaatttaattaaataaaaaaaaaaaaattaaattaaatacatgcacatatacatatacgcatacatatacatatacacataaatatatatattatatatatatacccataactacattcacatatacacatacatatatatattatatatatatatacccataactacatacatatatacattaacaaacacatagatatacataaatacatatatacattaacaaacacatatatatacctaaatacatatatacatacacatatatgttcatttttttttttagAAAAAAACCAAATCATCTGTTGGAAATTTATTCCAAATACTGCAAATACCCCAAAACGATTATGGAATACCAACATTGAAATCCAAAAATAGGTACATACCATATAGAAGTGGTACATATAAAGGCAAAACATATATTTATATGGAAGGAGATAGCAGTGGAGATGAAAAATATGCATTTATGTCTGATACTACTGATGTAACTTCCTCAGAAAGTGAGTATGAAGAATTGGATATTAATGATATATATGTACCGCATGCTCCTAAATATAAAACATTAATTGAAGTAGTACTTGAACCTAGTGGTAACAACACAACAGCTAGTGGTAAAAACACACCTAGTGATACACAAAATGATATACCAACTAGTGATACACCACCACCCATTACTGATAATGAGTGGAATACATTGAAAGATGAATTTATATCACAATATCTACAAAGTGAACAACCAAAGGATGTACCAAATGATTATAAAAGTGGTGATATTCCATTGAATACACAACCGAATACTTTATATTTTAATAAACCTGAAGAAAAACCTTTTATTACTTCTATTCATGATAGGGATTTATATACTGGAGAACAAATTAGTTATAATATTCATATGAGTACTAATACTATGGATGATCCAAAATATGTATCAAATAATGTATATTCTGGTATAGATTTAATTAATGACGCACTAAATGGTGATTATGACATTTACGATGAAATATTGAAACGAAAAGAAAATGAATTATTTGGAACAAATCATGTGAAACAAACAAGTATACATAGTGTTGCCAAACTAACAAATAGTGACCCCATCCACAACCAACTGGAACTATTCCATAAATGGTTAGATAGACATAGAAATATGTGTGAAAAGTGGAAAAATGATAATGAGCGGTTAGCCAAATTAAAAGAAGAGTGGGAAAATGAGACACATAGTGGTAACACTCACCCTAGTGATAGTAACAAAACGTTAAATACTGATGTTTCTATACAGATAGATATGGATCATGAAAAACGAATGAAGGAATTTACTAATATGGATACTATCTTGGATGATTTGAAAACATATAATGAACCTTATTATGATGTGCAAGATGATATTTATTATGATGTAAATGATCATGATGCATCAACTGTGGATAGTAATAATATGGATGTTCCCAGTAGAGTACAAATTGAAATGGATGTAAATACGAAATTGGTGAAAGAGAAATATCCTATAGCCGATGTATGGGATATATAA".toUpperCase());
+        varSeqs.put("PF3D7_0223500", "ATGGGGAGTGGTAAGGGCGGTGATCCGCAGGATGAAAGTGTCAAACATATGTTTGATAGGATAGGAGAAGATGTGTACGAGCAAGTGAAAAGTGAAACTGTAAATTATGTTAGTGAATTGGAAGGAAAGTTGTCACTAGCACCAATTTTGGGTGTGGAATCAGGTAGCACCAATGAAACATGCAACCTTGTACAGGATTATTATAATAAGCCTGTTTATGGTAACAGTAACAGGTATCCGTGCAAAAATTTAAAAGGAATTACAAATGAAGAACGTTTTTCGGATACACTTGGTGGCCAGTGTACTAACAAAAAAATAAAAGGTAATGAATATAGTACTAAAAGTGGTAAAGATTGTGGAGCATGTGCACCATACCGACGTCTACATTTATGTAGTCATAATTTGGAATCTATAGACACAACGTCGATGACGCATAAGTTGTTGTTAGAGGTGTGTATGGCAGCAAAATACGAAGGAAACTCAATAGATACACATTATCCACAACATCAACGAACTAATGAGGATTCTCCTTCTCAAATATGTACTATGTTGGCACGAAGTTTTGCAGATATAGGTGATATTGTAAGAGGAAAAGATTTATTTTATGGTAATAGCAAAGAAAAAGAAAAAAGAGATGAATTAGAAACCAATTTGAAAACAATTTTCGGGAAAATACATGAAAAATTGAAGGATAAGGAAGGAGCAGAAACTCGTTACGGAAGTGATACTACAAATTATTATCAATTACGAGAAGACTGGTGGTATGCGAATCGCGCCACAGTGTGGGAAGCTATCACGTGCGACGTTCATGGTTCTGACTATTTTCGACAAACATGTGGTGATAAAGAAACCACTGCAACTCGGGTTAAAGACAAATGCCGCTGTAAGGACGAAAACGGCAAAAAGCCCGGCTCAAATGCCGACCAAGTCCCCACATATTTTGACTACGTGCCGCAGTATCTTCGCTGGTTCGAGGAATGGGCAGAAGACTTTTGTAGGAAAAAAAAAAAGAAATTAGAAAAGTTGGAACAACAGTGTCGCGATTACAAACAAAATTTATATTGTAGTGGTAATGGCTACGATTGCACAAAAACTATATACAAAAAAGGTAAACTTGTTATAGGTGAACATTGTACAAACTGTTCTGTTTGGTGTCGTCTGTATGAATCTTGGATAGATAACCAAAAACTAGAATTTCTAAAACAAAAACAAAAATACGAAACAGAAATATCAAATAGCGGTAGTTGTGGTGGGAGTGGTGGTGTTAAGGGTAGGAATAGGAAAAAACGGGGTGCAGGTGTAGAAACTGCTACTAATTATGATGGGTATGAAAAAAAATTTTATAAAGAACTGAAAGAAAGTGAGTATGGAAAAGTCGATGATTTTTTAAAATTATTAAATAATGAAGATGTATGCAAAAAAATTAAGGATGAAAAAGAAAAAATTGATTTTACCAAACCTGCTGATAAAAATAGTAATAATGAAGGAACATTTTATCATTCGGAATATTGTAAACCGTGTCCCGACTGTGGGGTCAAACGTAAAGATAATCAATGGAAAGATAAATATGATGGCAAGTGCACACGTGGAAAACTTTATGAGCCTGCAAGTGGCGCACAAGGTACTCCTATTAAAATCCTTAAAAGTGGTGAAAAACAAAAAGAAATTGAAACAAAATTAAAAGCGTTTTGCGATCAAACAAATGGTGATACAACAAATAGTGTTGCTAGAGGCGGTGGCGCTGATGGTAGTGGTAGTAAGAGTAATAGTAAGGAACTGTATGAAGAATGGAAATGTTATAACGAGGTACAGAAAGTTAAAGATGATAAAAATGGAGAGGAAGAGGATGAAGACGAGGAAGATGTAGACAAGGTAAAAAAAGCAGGCGGATTATGTATATTGGAAAACAAAAAACATGAAAGTAGAAATAATTCTTCAAATGAACCTGAGCAATTCCAAAAGACATTCCATGATTTTTTTTACTTTTGGATAGGACGTTTTTTGAACGATTCTATGTATTGGAGAGGAAAAGTTAACAGTTGTATAAATAATCCTAAGCGAAAGAAATGTAGAAATGAATGTAAGGATGATTGTGGTTGTTTTAAAGAATGGATTGGAAAAAAGAAAGAAGAATGGGAAAATATAAAAAAACATTTTAAAACGCAAGAAGCTTTTAAGAATAAACGAGAAAATAGCGGAATTGACATGTTCAGCGGACTAATGGATTCTGCTGATGTTGTTCTTGAATTGGCTTTGGAATTAGAACAACTTTTCCAAGATATTAAAGATGGTTATGGGGATGTAAAGGAATTAAAAGGAATTAAAGAACTGTTGGATGAGGAAAAAAAAAAAAAACAAGCAGAAGAAGCAGTTGTTGTTGTTGTTGCCGACAATCAAAAGAAGACCACAATTGATAAATTACTACAACATGAAGGAGACGATGCCAATAACTGCCTAAAAACACACAAAGAAAAATGCGAAGAAACGCAACCAAAACCACCCGGCGCTGGAGGTCCTGGTGCCCCCTCCGAAACCGGAGAAACCACTACACTTGAGGACGAAGAAGAAGAAGAAGACGAAGAAGAAGACGCAGGCGACGAAGTCGAGGAGGGGGAGACGGTGGACACCACAGAAGGGGATGAGACAGAGACGGTGGAGCAGCCGGTGAAGGACACGGACAGGGAGGGGGAGGAGGAAGAGGCAAAGAAGGCAACAGATACGACTACATCACTAGACGTTTGCGACACAGTGAAAAACGCACTCACAAACAACGACAATCTCACTGATGCATGTAAACTAAAATACGGTCCAGGTGGAAAGGAAAGATTCCCCAATTGGAAATGTGTATCAAGTGGTGAAAAAAGTGTTGCCACTGCCGGTAGTAGTGGTGCCACTGGCAAAAGTGGTGATAAGGGTGCCATTTGTGTGCCACCCAGGAGGCGACGACTATACGTGGGTGGGTTAACCAAGTTGACAAGTGCTGGCACGTCTAGTGAGTCACCACAGGGGGGTAGTGAGTCATCACGGGCGAGTGATGTGTCACAAGGTAACGGCGGCGACGACATCACCACCACCGAGTCATTACGTAAGTGGTTTATAGAGACGGCAGCTATAGAGACTTTTTTCTTATGGCATAGATATAAAAAAGAGTGGGAGGCACAAAAGAAGGCGGAACTACAACGAAATGGATTACTACTCGGCACAGGTGCTAGCCTCAACCTTGGTGGTGATGACTCCAACCCCCAAACACAATTACAAAAAAGTGGTACCATACCCCTCGATTTCTTGAGATTAATGTTTTATACTTTAGGTGATTATAGAGATATTTTGGTACGAGGTGTTGCTGACGACAAAAACGGTGGCAACAACATAATACTTAATGCGAGTGGTAACAAGGATGAAAAACAGAAAATGGAGAAAATACAAGAGAAAATAGAACAAATTCTTCCAACTAGTGGTAACAAAGAAACTCGTGGCCCCCAAAATAGTGTCAATGACCGTCAATCCTTGTGGGATAGAATCGCCGAACATGTTTGGCATGGAATGGTTTGCGCATTAACATATAAAGATGACGACAATGGCCTCAAAGGCGTCGTAAAAAAACCACAAAAGATTGAAAATCCGGAGAAACTTTGGAACGAAACAACCAAAAAACCCAAAGACGAGAAATACCAATACCAAACTGCCAAACTCGAAGATGAAAGTGGCGAAAAACGACCAGACTCCTCAGCCAGTGGTACGAAATTAACCGACTTCATCAAACGCCCCCCTTATTTCCGTTACCTTGAAGAATGGGGTGAAAATTTTTGTAAAAAACGAACAGAGATGTTGGGGAAGATAAAGGAGGATTGCTACAAAAATGGTGGACGTTGTAGTGGTGATGGTTTGAAATGTAACGAAATAGTTATAGATAAGGAAAAAATTTTTGGCGATTTACTTTGTCCGACGTGTGCCAGACATTGTAGATTTTATAAAAAGTGGATAAACACAAAAAGGGACGAATTTAATAAACAATCAAATGCATATTCTGAACAAAAAAAAAAATACGAAGAGGAAAATGATAGTGCTCAAAAGAATAATGGAGTTTGCGGAACACTAAAAGATGACGCTGCAGAATTTTTAAATAGGTTAAAAAACGGACCATGTAAAAATGAGAGTGAAGAGAATAAAAAAGCAGAGGATGAAATAGATTTTAAGAAACCAGATGATACATTTAAAGATGCAGATAATTGTAAACCATGTTCTGAATTTAAAATTAAATGTGAAAATCATAATTGCAGCAGTGGTGGTAATACACAAGGGAAGTGCGATGGAAAAACGACTATTGCTGCAACAGAAATTGAAAATATAAAAACAAATACTAAAGAAGTTACTATGCTTGTGAGTGATGACAGTAAAAGTGCAACGGAATTTAAGGATGGTTTAAGCGAATGTAAAGATAAAGGTATATTTAAAGGTATTAGAAAAGATGAATGGGAATGTGGCAAAGTATGTGGTGTAGATATATGTAATCTGAAAAAAAAAGATAACATTGGGAAAGAAAGCGATAAAAAATATATCATAATGAAAGAATTGCTTAAACGATGGTTAGAATATTTTTTAGAAGATTATAATAAAATTAAACATAAAATTTCACATTGTACGAAAAATGGTAAAGGATCCAAATGTATAAAAGGTTGCGTAGATAAATGGGTACAACAGAAAAAGGAAGAATGGAAACAAATAAAAGAACGTTTCAATGAACAATATAAAAGTAAAACCTCAGATGAATATTTTAACGTTAAAAGTTTTTTGGAGACCTGGATACCTAAAATTGCTGTTGTAAATGATCAAGATAATGTTATAAAATTAAGTAAGTTCGGTAATTCTTGTGGATGTAGTGCCAGTGCGATCTCAACAAATGGTAATGAGGAGGATGCTATAGATTGTATGATTAAAAAGCTTGAAAAAAAAATTGACGAATGCAAAAGGAAACCTGGCGAAAATAGTGGTCAAACATGTAACGAAACACTAACACATCCCCTTGACGTTCAGGATGAAGATGAACCCCTTGAAGAAACAGAAGAAAACCCAGTGGGAAAACAACACCCATCATTTTGTCCGCCAGTGGAAGATAAAAAAAAAGAGGAAGAAGGAGAAACTTGTACACCGGCATCACCAGCACCAGCACCAGCACCAGCACCAGCATCTCCATCCCCGACACCGGCCCCTGCGGATGAACCGTTTGACCCAACTATACTACAAACAACCATTCCTTTAGGTATTGCGCTGGCATTAGGATCCATTGCTTTTTTATTTTTGAAGgtaatatatatatgtgtggtatatatgtatatatatatgtgtttctgtatatatatgtatgtgtgggtgtgtttggatatatatatatgtgtatgtataagtgtttgtgtatatgtatgtgatttatatatattttatatatatgtatttatattgaaaaagaaaaaaaaaaaaaaaaaaaaaaaaaaaaatttattaaaataaaaaaaaaaaaaaaaaaaaagagaaagattttaaaaataataaaaattataataaaaatataaattttgatagaataaaaaatgaaaaatattatcaaaaaaaaattaaaaaaaattttatatataaaaaaaatttattagaaataaaataaaaacaaaagaagaaaaaaaaaacattaaaaaaaaaaaaaatatatatatcataaaataaaaaaaaattaaaaaaatgttaaaaaaaaaatatatatcataaaataaaaaaaaaattaaaaaaatgttaaaaaaaaatatatatatcataaaataaaaaaaaaattaaaaaatttaattaaataaaaaaaaataataaataaaaaaatttaattaaataaaaaaaaaaaattaaaaaaaataaaataaaaaaaaaaaataaaaaaattaaaaaaaaaaaaaaaaaaaaaaatattttattcatacacatacatatacacatatatatatacatatattatatacatacacatatacctacatacatatacaaacctacttatacatacatacctcttttattattttagAAAAAAACTAAACACCCTGTCGACCTTTTCAGTGTTATTAATATCCCCAAAAGTGATTATGATATACCGACAAAACTTTCACCCAATAGATATATACCTTATACTAGTGGTAAATACAGAGGCAAACGGTACATTTACCTTGAAGGAGATAGTGGAACTGATAGTGGTTACACCGATCATTATAGTGATATTACTTCATCTTCCGAAAGTGAGTATGAAGAAATGGATATTAATGATATATATGTACCTGGTAGTCCTAAATATAAAACATTGATAGAAGTAGTACTTGAACCTAGTGGTAACAACACAACAGCTAGTGATACACAAAATGATATACAAAATGATGGTATACCTAGCAATAAATTTAGTGATAATGAATGGAATACATTGAAAGATGATTTTATATCTAATATGTTACAAAATCAACCAAAGGATGTACCAAATGATTATAAAAGTGGAGATATTCCATTCAATACACAACCGAATACTTTATATTTTGATAAACCTGAAGAAAAACCTTTTATTACTTCTATTCATGATAGAAATTTACTTAACGGAGAAGAATATAGTTATAATGTTAATATGAGTACTAATAGTATGGATGATCCAAAATATGTATCAAATAATGTATATTCTGGTATAGATTTAATTAATGATTCACTAAGTGGTAACAAACATATTGATATATATGATGAAGTTTTGAAACGAAAAGAAAATGAATTATTTGGAACAAATCATGTGAAACATACGAGTATACATAGTGTTGCAAAAAATACAAACAGTGATCCTATACTCAATCAAATAAATTTGTTCCATACATGGTTAGATAGACATAGAGATATGTGCGAAAAGTGGGAAAATCATCACGAACGATTAGCCAAATTGAAAGAAGAGTGGGAAAATGAGACACATAGTGGTAACACTCACCCTAGTGATAGTAACAAAACGTTAAATACTGATGTTTCTATACAAATACATATGGATAATCCTAAACCTATAAATCAATTTACTAATATGGATACTATCTTGGAGGATCTGGACAAACCATTTAATGAACCCTACTATTATGATATGTATGACGATGATATTTATTATGATGTAAATGATCATGATACATCAACTGTGGATACTAATGCTATGGATGTACCTAGTAAAGTACAAATTGAAATGGATGTAAATACCAAATTGGTGAAAGAGAAATATCCTATAGCAGATGTATGGGATATATAA".toUpperCase());
 
-        /*
-        TraversalEngine e = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .traversalSamples(CHILD)
-                .recruitmentSamples(PARENTS)
-                .make();
-                */
-        //DirectedGraph<AnnotatedVertex, AnnotatedEdge> vg = new DefaultDirectedGraph<>(AnnotatedEdge.class);
-        Map<String, Set<String>> vars = new HashMap<>();
-
-        for (GFF3Record gr : GFF) {
-            if (gr.getType().equals("gene") &&
-                    gr.getAttribute("description").contains("VAR") &&
-                    !gr.getAttribute("description").contains("pseudogene") &&
-                    !gr.getAttribute("description").contains("truncated") &&
-                    !gr.getAttribute("description").contains("putative") &&
-                    !gr.getAttribute("description").contains("like")) {
-
-                log.info("{}", gr);
-
-                String seq = REF.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBaseString();
-                vars.put(gr.getAttribute("ID"), new HashSet<>());
-
-                StringBuilder sb = new StringBuilder();
-                StringBuilder cb = new StringBuilder();
-                int missing = 0;
-
-                for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                    String sk = seq.substring(i, i + GRAPH.getKmerSize());
-                    CortexKmer ck = new CortexKmer(sk);
-                    CortexRecord cr = GRAPH.findRecord(ck);
-
-                    if (cr != null) {
-                        if (cr.getCoverage(childColor) > 0) {
-                            cb.append("1");
-                        } else {
-                            cb.append(".");
-                            missing++;
-                        }
-                    } else {
-                        cb.append(".");
-                        missing++;
-                    }
-
-                    if (cr == null) {
-                        cr = REFGRAPH.findRecord(ck);
-                    }
-
-                    sb.append(cr == null ? "." : 1);
-                }
-
-                log.info("  {}", seq);
-                log.info("  {}", sb.toString());
-                log.info("  {}", cb.toString());
-                log.info("  missing: {}", missing);
-
-                for (int i = 0; i <= seq.length() - GRAPH.getKmerSize() - 1; i++) {
-                    String sk0 = seq.substring(i, i + GRAPH.getKmerSize());
-                    String sk1 = seq.substring(i + 1, i + 1 + GRAPH.getKmerSize());
-                }
-            }
-        }
-
-        int i = 0;
-        for (GFF3Record gr : GFF) {
-            if (gr.getType().equals("gene") &&
-                gr.getAttribute("description").contains("VAR") &&
-                !gr.getAttribute("description").contains("pseudogene") &&
-                !gr.getAttribute("description").contains("truncated") &&
-                !gr.getAttribute("description").contains("putative") &&
-                !gr.getAttribute("description").contains("like")) {
-                String seq = REF.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBaseString();
-
-                log.info("gr: {} {} {}", i, gr, seq);
-
-                String sl = seq.substring(0, GRAPH.getKmerSize());
-                for (int j = 0; j <= seq.length() - GRAPH.getKmerSize(); j++) {
-                    String sk = seq.substring(j, j + GRAPH.getKmerSize());
-                    CortexKmer ck = new CortexKmer(sk);
-
-                    CortexRecord cr = GRAPH.findRecord(ck);
-
-                    if (cr == null) {
-                        log.info("{}:{} {} {} {} {}", gr.getAttribute("ID"), j, sk, null, null, null);
-                    } else {
-                        log.info("{}:{} {} {} {} {}", gr.getAttribute("ID"), j, sk, cr.getCoverage(GRAPH.getColorForSampleName(CHILD)), cr.getEdgesAsString(GRAPH.getColorForSampleName(CHILD)), cr);
-                    }
-
-                    if (cr != null && cr.getCoverage(childColor) == 0) {
-                        Set<String> nextKmers = CortexUtils.getNextKmers(GRAPH, sl, childColor);
-
-                        for (String nextKmer : nextKmers) {
-                            DirectedGraph<AnnotatedVertex, AnnotatedEdge> g = CortexUtils.dfs(GRAPH, null, nextKmer, childColor, parentColors, null, NahrStopper.class, 0, true, new HashSet<>());
-
-                            if (g != null) {
-                                DepthFirstIterator<AnnotatedVertex, AnnotatedEdge> dfi = new DepthFirstIterator<>(g, new AnnotatedVertex(sl));
-
-                                StringBuilder sb = new StringBuilder();
-                                StringBuilder ab = new StringBuilder(StringUtil.repeatCharNTimes(' ', GRAPH.getKmerSize() - 1));
-
-                                while (dfi.hasNext()) {
-                                    AnnotatedVertex av = dfi.next();
-                                    CortexRecord ar = GRAPH.findRecord(new CortexKmer(av.getKmer()));
-                                    log.info("{} {} {} {} {} {} {} {} {}",
-                                            av.getKmer(),
-                                            ar.getCortexKmer(),
-                                            ar.getCoverage(8), ar.getCoverage(0), ar.getCoverage(17),
-                                            ar.getEdgesAsString(8), ar.getEdgesAsString(0), ar.getEdgesAsString(17),
-                                            ROI.findRecord(ar.getCortexKmer()) == null ? "" : "*"
-                                    );
-
-                                    if (sb.length() == 0) {
-                                        sb.append(av.getKmer());
-                                    } else {
-                                        sb.append(av.getKmer().substring(av.getKmer().length() - 1));
-                                    }
-
-                                    //if ()
-                                }
-
-
-                                /*
-                                for (String s : vars.values()) {
-                                    log.info(" - {}", s);
-                                }
-                                log.info(" - {}", sb.toString());
-                                */
-
-                                log.info("");
-                            }
-                        }
-                    }
-
-                    sl = sk;
-                }
-
-                i++;
-            }
-        }
-
-        /*
-        ReferenceSequence rseq;
-        while ((rseq = REF.nextSequence()) != null) {
-            String seq = rseq.getBaseString();
+        Map<String, List<String>> varSeqList = new HashMap<>();
+        Map<String, Integer> varSeqIndex = new HashMap<>();
+        Map<String, String> varSeqId = new HashMap<>();
+        for (String id : varSeqs.keySet()) {
+            String seq = varSeqs.get(id);
+            varSeqList.put(id, new ArrayList<>());
 
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                 String sk = seq.substring(i, i + GRAPH.getKmerSize());
-                CortexKmer ck = new CortexKmer(sk);
 
-                CortexRecord cr = GRAPH.findRecord(ck);
+                varSeqList.get(id).add(sk);
 
-                if (cr == null) {
-                    log.info("{}:{} {} {} {} {}",
-                            rseq.getName(),
-                            i,
-                            sk,
-                            null,
-                            null,
-                            null
-                    );
-                } else {
-                    log.info("{}:{} {} {} {} {}",
-                            rseq.getName(),
-                            i,
-                            sk,
-                            cr.getCoverage(GRAPH.getColorForSampleName(CHILD)),
-                            cr.getEdgesAsString(GRAPH.getColorForSampleName(CHILD)),
-                            cr
-                    );
+                if (!varSeqIndex.containsKey(sk)) {
+                    varSeqIndex.put(sk, i);
+                    varSeqId.put(sk, id);
                 }
             }
         }
+
+        String id = "PF3D7_0100100";
+        int i = 0;
+        String lk = varSeqList.get(id).get(0);
+
+        do {
+            String sk = varSeqList.get(id).get(i);
+
+            CortexKmer ck = new CortexKmer(sk);
+            CortexRecord cr = GRAPH.findRecord(ck);
+
+            if (cr.getCoverage(childColor) > 0) {
+                log.info("{} {} {} {} {} {} {} {} {} {} {}", id, i, sk, cr.getCortexKmer(), cr.getCoverage(childColor), cr.getCoverage(0), cr.getCoverage(17), cr.getEdgesAsString(childColor), cr.getEdgesAsString(0), cr.getEdgesAsString(17), id);
+                lk = sk;
+                i++;
+            } else {
+                TraversalEngine e = new TraversalEngineFactory()
+                        .traversalDirection(TraversalEngineConfiguration.TraversalDirection.FORWARD)
+                        .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
+                        .traversalColor(childColor)
+                        .recruitmentColors(parentColors)
+                        .stopper(NahrStopper.class)
+                        .graph(GRAPH)
+                        .links(lm)
+                        .make();
+
+                DirectedGraph<CortexVertex, CortexEdge> dfs = e.dfs(lk);
+
+                String contig = e.getContig(dfs, lk, childColor);
+
+                for (int j = 0; j <= contig.length() - GRAPH.getKmerSize(); j++) {
+                    String skn = contig.substring(j, j + GRAPH.getKmerSize());
+                    CortexKmer ckn = new CortexKmer(skn);
+                    CortexRecord crn = GRAPH.findRecord(ckn);
+
+                    log.info("{} {} {} {} {} {} {} {} {} {} {}", "recon", j, skn, crn.getCortexKmer(), crn.getCoverage(childColor), crn.getCoverage(0), crn.getCoverage(17), crn.getEdgesAsString(childColor), crn.getEdgesAsString(0), crn.getEdgesAsString(17), varSeqId.get(skn));
+
+                    lk = skn;
+                }
+
+                if (varSeqIndex.containsKey(lk)) {
+                    i = varSeqIndex.get(lk);
+                    id = varSeqId.get(lk);
+                } else {
+                    i = -1;
+                }
+
+                log.info("---");
+            }
+        } while (i >= 0 && i < varSeqs.get(id).length());
+
+        log.info("");
+
+        /*
+        for (String id : varSeqs.keySet()) {
+            String seq = varSeqs.get(id);
+
+            Set<String> visited = new HashSet<>();
+
+            String lk = seq.substring(0, GRAPH.getKmerSize());
+            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                String sk = seq.substring(i, i + GRAPH.getKmerSize());
+
+                if (!visited.contains(sk)) {
+                    CortexKmer ck = new CortexKmer(sk);
+                    CortexRecord cr = GRAPH.findRecord(ck);
+
+                    if (cr.getCoverage(childColor) > 0) {
+                        log.info("{} {} {} {} {} {} {} {} {} {} {}", id, i, sk, cr.getCortexKmer(), cr.getCoverage(childColor), cr.getCoverage(0), cr.getCoverage(17), cr.getEdgesAsString(childColor), cr.getEdgesAsString(0), cr.getEdgesAsString(17), varSeqSet.get(sk));
+                        lk = sk;
+                    } else {
+                        TraversalEngine e = new TraversalEngineFactory()
+                                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.FORWARD)
+                                .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
+                                .traversalColor(childColor)
+                                .recruitmentColors(parentColors)
+                                .stopper(new NahrStopper(ROI))
+                                .graph(GRAPH)
+                                .links(lm)
+                                .make();
+
+                        DirectedGraph<CortexVertex, CortexEdge> dfs = e.dfs(lk);
+
+                        String contig = e.getContig(dfs, lk, childColor);
+
+                        for (int j = 0; j <= contig.length() - GRAPH.getKmerSize(); j++) {
+                            String skn = contig.substring(j, j + GRAPH.getKmerSize());
+                            CortexKmer ckn = new CortexKmer(skn);
+                            CortexRecord crn = GRAPH.findRecord(ckn);
+
+                            log.info("{} {} {} {} {} {} {} {} {} {} {}", "recon", j, skn, crn.getCortexKmer(), crn.getCoverage(childColor), crn.getCoverage(0), crn.getCoverage(17), crn.getEdgesAsString(childColor), crn.getEdgesAsString(0), crn.getEdgesAsString(17), varSeqSet.get(skn));
+
+                            visited.add(skn);
+
+                            lk = skn;
+                        }
+
+                        log.info("---");
+                    }
+                }
+
+                visited.add(sk);
+            }
+
+            log.info("");
+        }
         */
+
+        log.info("");
     }
 }

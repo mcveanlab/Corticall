@@ -10,6 +10,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.*;
 
@@ -53,103 +54,6 @@ public class TraversalEngine {
 
         return null;
     }
-
-    /*
-    public String getContig(DirectedGraph<CortexVertex, CortexEdge> goriginal, String kmer, int color, boolean collapseCycles) {
-        DirectedGraph<CortexVertex, CortexEdge> gcopy = new DefaultDirectedGraph<>(CortexEdge.class);
-        Graphs.addGraph(gcopy, goriginal);
-
-        CortexVertex cv = new CortexVertex(kmer, ec.getGraph().findRecord(new CortexKmer(kmer)), color);
-        Set<String> history = new HashSet<>();
-
-        Map<String, String> cycleExpansions = new HashMap<>();
-
-        if (collapseCycles) {
-            DirectedSimpleCycles<CortexVertex, CortexEdge> cf = new TarjanSimpleCycles<>(gcopy);
-            List<List<CortexVertex>> cycles = cf.findSimpleCycles();
-
-            for (int i = 0; i < cycles.size(); i++) {
-                int startIndex = 0;
-                for (int j = 0; j < cycles.get(i).size(); j++) {
-                    CortexVertex v = cycles.get(i).get(j);
-
-                    if (gcopy.outDegreeOf(v) != 1) {
-                        startIndex = j;
-                        break;
-                    }
-                }
-
-                StringBuilder sb = new StringBuilder();
-                List<CortexVertex> cyclesAligned = new ArrayList<>();
-                Set<CortexEdge> edgesToRemove = new HashSet<>();
-                for (int j = 0, offset = startIndex + j + 1; j < cycles.get(i).size(); j++, offset++) {
-                    if (offset == cycles.get(i).size()) {
-                        offset = 0;
-                    }
-
-                    CortexVertex v = cycles.get(i).get(offset);
-                    cyclesAligned.add(v);
-
-                    sb.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
-
-                    if (gcopy.inDegreeOf(v) == 1 && gcopy.outDegreeOf(Graphs.predecessorListOf(gcopy, v).get(0)) > 1) {
-                        edgesToRemove.addAll(gcopy.incomingEdgesOf(v));
-                    }
-
-                    if (gcopy.outDegreeOf(v) == 1 && gcopy.inDegreeOf(Graphs.successorListOf(gcopy, v).get(0)) > 1) {
-                        edgesToRemove.addAll(gcopy.outgoingEdgesOf(v));
-                    }
-
-                    if (gcopy.outDegreeOf(v) > 0) {
-                        for (CortexEdge e : gcopy.outgoingEdgesOf(v)) {
-                            if (gcopy.getEdgeTarget(e).equals(v)) {
-                                edgesToRemove.add(e);
-                            }
-                        }
-                    }
-                }
-
-                gcopy.removeAllEdges(edgesToRemove);
-
-                cycleExpansions.put(cycles.get(i).get(startIndex).getSk(), sb.toString());
-            }
-        }
-
-        List<String> contigKmers = new ArrayList<>();
-        contigKmers.add(cv.getSk());
-
-        while (gcopy.inDegreeOf(cv) == 1 && !history.contains(cv.getSk())) {
-            history.add(cv.getSk());
-
-            cv = Graphs.predecessorListOf(gcopy, cv).iterator().next();
-            contigKmers.add(0, cv.getSk());
-        }
-
-        cv = new CortexVertex(kmer, ec.getGraph().findRecord(new CortexKmer(kmer)), color);
-        history.clear();
-
-        while (gcopy.outDegreeOf(cv) == 1 && !history.contains(cv.getSk())) {
-            history.add(cv.getSk());
-
-            cv = Graphs.successorListOf(gcopy, cv).iterator().next();
-            contigKmers.add(cv.getSk());
-        }
-
-        StringBuilder sb = new StringBuilder(contigKmers.get(0));
-        for (int i = 1; i < contigKmers.size(); i++) {
-            String sk = contigKmers.get(i);
-            int prevLength = contigKmers.get(i-1).length();
-            String b = sk.substring(prevLength - 1, sk.length());
-            sb.append(b);
-
-            if (cycleExpansions.containsKey(sk)) {
-                sb.append(cycleExpansions.get(sk));
-            }
-        }
-
-        return sb.toString();
-    }
-    */
 
     public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
         List<CortexVertex> contigKmers = new ArrayList<>();
@@ -282,6 +186,16 @@ public class TraversalEngine {
         return sb.toString();
     }
 
+    private static TraversalStopper<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stopperClass) {
+        try {
+            return stopperClass.newInstance();
+        } catch (InstantiationException e) {
+            throw new IndianaException("Could not instantiate stopper: ", e);
+        } catch (IllegalAccessException e) {
+            throw new IndianaException("Illegal access while trying to instantiate stopper: ", e);
+        }
+    }
+
     @Nullable
     private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
@@ -290,6 +204,8 @@ public class TraversalEngine {
         CortexVertex cv = new CortexVertex(sk, cr, ec.getTraversalColor());
 
         Set<CortexVertex> avs;
+
+        TraversalStopper<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         do {
             Set<CortexVertex> pvs = getPrevVertices(cv.getSk());
@@ -318,7 +234,7 @@ public class TraversalEngine {
             avs.removeAll(seen);
 
             // Decide if we should keep exploring the graph or not
-            if (ec.getStoppingRule().keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal()) /*&& !history.contains(cv)*/) {
+            if (stoppingRule.keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal(), ec.getRois())) {
                 if (avs.size() == 1) {
                     cv = avs.iterator().next();
                 } else if (avs.size() != 1) {
@@ -335,13 +251,13 @@ public class TraversalEngine {
                         }
                     }
 
-                    if (childrenWereSuccessful || ec.getStoppingRule().hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal())) {
+                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal(), ec.getRois())) {
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away
                     }
                 }
-            } else if (ec.getStoppingRule().traversalSucceeded()) {
+            } else if (stoppingRule.traversalSucceeded()) {
                 return g;
             } else {
                 return null;

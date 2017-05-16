@@ -1,18 +1,11 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
-import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graphs;
-import org.jgrapht.alg.cycle.SzwarcfiterLauerSimpleCycles;
-import org.jgrapht.traverse.TopologicalOrderIterator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import uk.ac.ox.well.indiana.utils.alignment.pairwise.GlobalAligner;
-import uk.ac.ox.well.indiana.utils.alignment.pairwise.LocalAligner;
 import uk.ac.ox.well.indiana.utils.assembler.TempGraphAssembler;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.CycleCollapsingContigStopper;
@@ -112,7 +105,7 @@ public class TraversalEngineTest {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .connectAllNeighbors(false)
-                .stopper(new ContigStopper())
+                .stopper(ContigStopper.class)
                 .graph(g)
                 .make();
 
@@ -146,7 +139,7 @@ public class TraversalEngineTest {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .connectAllNeighbors(false)
-                .stopper(new ContigStopper())
+                .stopper(ContigStopper.class)
                 .graph(g)
                 .make();
 
@@ -178,7 +171,7 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("test"))
-                .stopper(new CycleCollapsingContigStopper())
+                .stopper(CycleCollapsingContigStopper.class)
                 .graph(g)
                 .make();
 
@@ -200,7 +193,7 @@ public class TraversalEngineTest {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .connectAllNeighbors(false)
-                .stopper(new CycleCollapsingContigStopper())
+                .stopper(CycleCollapsingContigStopper.class)
                 .graph(g)
                 .links(l)
                 .make();
