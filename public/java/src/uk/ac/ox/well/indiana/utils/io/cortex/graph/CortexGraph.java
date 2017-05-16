@@ -275,6 +275,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 throw new IndianaException("Records are not sorted ('" + startKmer + "' is found before '" + stopKmer + "' but is lexicographically greater)");
             }
 
+            if (startKmer.compareTo(midKmer) > 0) {
+                throw new IndianaException("Records are not sorted ('" + startKmer + "' is found before '" + midKmer + "' but is lexicographically greater)");
+            }
+
             if (kmer.compareTo(stopKmer) > 0 || kmer.compareTo(startKmer) < 0) { return null; }
             else if (startKmer.equals(kmer)) {
                 cache.put(kmer, startRecord);

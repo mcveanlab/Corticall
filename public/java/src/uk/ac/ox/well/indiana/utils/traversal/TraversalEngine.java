@@ -1,8 +1,12 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
+import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.cycle.DirectedSimpleCycles;
+import org.jgrapht.alg.cycle.SzwarcfiterLauerSimpleCycles;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
@@ -21,8 +25,12 @@ public class TraversalEngine {
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
     public DirectedGraph<CortexVertex, CortexEdge> dfs(String sk) {
-        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0) : null;
-        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0) : null;
+        if (sk.length() != ec.getGraph().getKmerSize()) {
+            throw new IndianaException("Graph traversal starting kmer is not equal to graph kmer size (" + sk.length() + " vs " + ec.getGraph().getKmerSize() + ")");
+        }
+
+        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
 
         DirectedGraph<CortexVertex, CortexEdge> dfs = new DefaultDirectedGraph<>(CortexEdge.class);
 
@@ -45,7 +53,100 @@ public class TraversalEngine {
         return null;
     }
 
-    private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth) {
+    public String getContig(DirectedGraph<CortexVertex, CortexEdge> goriginal, String kmer, int color) {
+        DirectedGraph<CortexVertex, CortexEdge> gcopy = new DefaultDirectedGraph<>(CortexEdge.class);
+        Graphs.addGraph(gcopy, goriginal);
+
+        CortexVertex cv = new CortexVertex(kmer, ec.getGraph().findRecord(new CortexKmer(kmer)), color);
+        Set<String> history = new HashSet<>();
+
+        DirectedSimpleCycles<CortexVertex, CortexEdge> cf = new SzwarcfiterLauerSimpleCycles<>(gcopy);
+        List<List<CortexVertex>> cycles = cf.findSimpleCycles();
+
+        Map<String, String> cycleExpansions = new HashMap<>();
+
+        for (int i = 0; i < cycles.size(); i++) {
+            int startIndex = 0;
+            for (int j = 0; j < cycles.get(i).size(); j++) {
+                CortexVertex v = cycles.get(i).get(j);
+
+                if (gcopy.outDegreeOf(v) != 1) {
+                    startIndex = j;
+                    break;
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+            List<CortexVertex> cyclesAligned = new ArrayList<>();
+            Set<CortexEdge> edgesToRemove = new HashSet<>();
+            for (int j = 0, offset = startIndex + j + 1; j < cycles.get(i).size(); j++, offset++) {
+                if (offset == cycles.get(i).size()) { offset = 0; }
+
+                CortexVertex v = cycles.get(i).get(offset);
+                cyclesAligned.add(v);
+
+                sb.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
+
+                if (gcopy.inDegreeOf(v) == 1 && gcopy.outDegreeOf(Graphs.predecessorListOf(gcopy, v).get(0)) > 1) {
+                    edgesToRemove.addAll(gcopy.incomingEdgesOf(v));
+                }
+
+                if (gcopy.outDegreeOf(v) == 1 && gcopy.inDegreeOf(Graphs.successorListOf(gcopy, v).get(0)) > 1) {
+                    edgesToRemove.addAll(gcopy.outgoingEdgesOf(v));
+                }
+
+                if (gcopy.outDegreeOf(v) > 0) {
+                    for (CortexEdge e : gcopy.outgoingEdgesOf(v)) {
+                        if (gcopy.getEdgeTarget(e).equals(v)) {
+                            edgesToRemove.add(e);
+                        }
+                    }
+                }
+            }
+
+            gcopy.removeAllEdges(edgesToRemove);
+
+            cycleExpansions.put(cycles.get(i).get(startIndex).getSk(), sb.toString());
+        }
+
+        List<String> contigKmers = new ArrayList<>();
+        contigKmers.add(cv.getSk());
+
+        while (gcopy.inDegreeOf(cv) == 1 && !history.contains(cv.getSk())) {
+            history.add(cv.getSk());
+
+            cv = Graphs.predecessorListOf(gcopy, cv).iterator().next();
+            contigKmers.add(0, cv.getSk());
+        }
+
+        cv = new CortexVertex(kmer, ec.getGraph().findRecord(new CortexKmer(kmer)), color);
+        history.clear();
+
+        while (gcopy.outDegreeOf(cv) == 1 && !history.contains(cv.getSk())) {
+            history.add(cv.getSk());
+
+            cv = Graphs.successorListOf(gcopy, cv).iterator().next();
+            contigKmers.add(cv.getSk());
+        }
+
+        StringBuilder sb = new StringBuilder(contigKmers.get(0));
+        for (int i = 1; i < contigKmers.size(); i++) {
+            String sk = contigKmers.get(i);
+            int prevLength = contigKmers.get(i-1).length();
+            String b = sk.substring(prevLength - 1, sk.length());
+
+            sb.append(b);
+
+            if (cycleExpansions.containsKey(sk)) {
+                sb.append(cycleExpansions.get(sk));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    @Nullable
+    private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
@@ -58,43 +159,38 @@ public class TraversalEngine {
             Set<CortexVertex> nvs = getNextVertices(cv.getSk());
             avs = goForward ? nvs : pvs;
 
+            // Connect the new vertices to the graph
+            if (ec.connectAllNeighbors()) {
+                connectVertex(g, cv, pvs,  nvs);
+            } else if (goForward) {
+                connectVertex(g, cv, null, nvs);
+            } else {
+                connectVertex(g, cv, pvs,  null);
+            }
+
+            visited.add(cv);
+
             // Avoid traversing infinite loops by removing from traversal consideration
             // those vertices that have already been incorporated into the graph.
             Set<CortexVertex> seen = new HashSet<>();
             for (CortexVertex av : avs) {
-                if (g.containsVertex(av)) {
+                if (visited.contains(av)) {
                     seen.add(av);
                 }
             }
             avs.removeAll(seen);
 
-            if (ec.connectAllNeighbors()) {
-                connectVertex(g, cv, pvs, nvs);
-            }
-
+            // Decide if we should keep exploring the graph or not
             if (ec.getStoppingRule().keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal()) /*&& !history.contains(cv)*/) {
                 if (avs.size() == 1) {
-                    if (!ec.connectAllNeighbors()) {
-                        if (goForward) {
-                            connectVertex(g, cv, null, nvs);
-                        } else {
-                            connectVertex(g, cv, pvs, null);
-                        }
-                    }
-
                     cv = avs.iterator().next();
                 } else if (avs.size() != 1) {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getSk(), goForward, currentTraversalDepth + 1);
+                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getSk(), goForward, currentTraversalDepth + 1, visited);
 
                         if (branch != null) {
-                            if (!ec.connectAllNeighbors()) {
-                                if (goForward) { connectVertex(g, cv, null, nvs); }
-                                else { connectVertex(g, cv, pvs, null); }
-                            }
-
                             Graphs.addGraph(g, branch);
                             childrenWereSuccessful = true;
                         } else {
@@ -199,12 +295,15 @@ public class TraversalEngine {
         return nextVertices;
     }
 
-
     private Map<Integer, Set<String>> getAllPrevKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         Map<Integer, Set<String>> prevKmers = new HashMap<>();
+
+        if (cr == null) {
+            cr = ec.getGraph().findRecord(ck);
+        }
 
         if (cr != null) {
             String suffix = sk.substring(0, sk.length() - 1);

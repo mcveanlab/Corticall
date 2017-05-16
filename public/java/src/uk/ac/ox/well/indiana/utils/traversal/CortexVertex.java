@@ -2,6 +2,8 @@ package uk.ac.ox.well.indiana.utils.traversal;
 
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -10,24 +12,43 @@ import java.util.TreeSet;
  */
 public class CortexVertex {
     private String sk;
-    private CortexRecord cr;
+    private List<CortexRecord> cr = new ArrayList<>();
     private Set<Integer> colors = new TreeSet<>();
+    private String leftSequence;
+    private String rightSequence;
 
     public CortexVertex(String sk, CortexRecord cr, int color) {
         this.sk = sk;
-        this.cr = cr;
+        this.cr.add(cr);
         this.colors.add(color);
+
+        this.leftSequence = sk.substring(0, 1);
+        this.rightSequence = sk.substring(sk.length() - 1, sk.length());
     }
 
     public CortexVertex(String sk, CortexRecord cr, Set<Integer> colors) {
         this.sk = sk;
-        this.cr = cr;
+        this.cr.add(cr);
         this.colors.addAll(colors);
+
+        this.leftSequence = sk.substring(0, 1);
+        this.rightSequence = sk.substring(sk.length() - 1, sk.length());
+    }
+
+    public CortexVertex(String sk, CortexRecord cr, int color, String leftSequence, String rightSequence) {
+        this.sk = sk;
+        this.cr.add(cr);
+        this.colors.add(color);
+
+        this.leftSequence = leftSequence;
+        this.rightSequence = rightSequence;
     }
 
     public String getSk() { return sk; }
 
-    public CortexRecord getCr() { return cr; }
+    public CortexRecord getCr() { return cr.get(0); }
+
+    public List<CortexRecord> getCrs() { return cr; }
 
     public Set<Integer> getColors() { return colors; }
 

@@ -14,18 +14,22 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator op) { configuration.setGraphCombinationOperator(op); return this; }
     public TraversalEngineFactory traversalDirection(TraversalEngineConfiguration.TraversalDirection td) { configuration.setTraversalDirection(td); return this; }
-    public TraversalEngineFactory connectUnusedNeighbors(boolean connectUnusedNeighbors) { configuration.setConnectAllNeighbors(connectUnusedNeighbors); return this; }
+    public TraversalEngineFactory connectAllNeighbors(boolean connectAllNeighbors) { configuration.setConnectAllNeighbors(connectAllNeighbors); return this; }
 
     public TraversalEngineFactory traversalColor(int color) { configuration.setTraversalColor(color); return this; }
+    public TraversalEngineFactory traversalColor() { configuration.setTraversalColor(-1); return this; }
 
     public TraversalEngineFactory joiningColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
     public TraversalEngineFactory joiningColors(Collection<Integer> colors) { configuration.getJoiningColors().addAll(colors); return this; }
+    public TraversalEngineFactory joiningColors() { configuration.getJoiningColors().clear(); return this; }
 
     public TraversalEngineFactory recruitmentColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getRecruitmentColors().add(c)); return this; }
     public TraversalEngineFactory recruitmentColors(Collection<Integer> colors) { configuration.getRecruitmentColors().addAll(colors); return this; }
+    public TraversalEngineFactory recruitmentColors() { configuration.getRecruitmentColors().clear(); return this; }
 
     public TraversalEngineFactory displayColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
     public TraversalEngineFactory displayColors(Collection<Integer> colors) { configuration.getJoiningColors().addAll(colors); return this; }
+    public TraversalEngineFactory displayColors() { configuration.getJoiningColors().clear(); return this; }
 
     public TraversalEngineFactory previousTraversal(DirectedGraph<CortexVertex, CortexEdge> previousTraversal) { configuration.setPreviousTraversal(previousTraversal); return this; }
 
