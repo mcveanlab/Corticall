@@ -15,7 +15,7 @@ import java.util.*;
 public class TempGraphAssembler {
     private TempGraphAssembler() {}
 
-    public static CortexGraph buildGraph(Map<String, String> haplotypes, int kmerSize) {
+    public static CortexGraph buildGraph(Map<String, Collection<String>> haplotypeLists, int kmerSize) {
         File tempFile = null;
         try {
             tempFile = File.createTempFile("tempgraph", ".ctx");
@@ -25,21 +25,23 @@ public class TempGraphAssembler {
         tempFile.deleteOnExit();
 
         CortexGraphWriter cgw = new CortexGraphWriter(tempFile);
-        cgw.setHeader(constructCortexHeader(haplotypes, kmerSize));
+        cgw.setHeader(constructCortexHeader(haplotypeLists.keySet(), kmerSize));
 
         Map<CortexKmer, CortexRecord> crs = new TreeMap<>();
 
         int c = 0;
-        for (String sampleName : haplotypes.keySet()) {
-            String sequence = haplotypes.get(sampleName);
+        for (String sampleName : haplotypeLists.keySet()) {
+            for (String sequence : haplotypeLists.get(sampleName)) {
+                sequence = sequence.toUpperCase();
 
-            for (int i = 0; i <= sequence.length() - kmerSize; i++) {
-                String sk = sequence.substring(i, i + kmerSize);
+                for (int i = 0; i <= sequence.length() - kmerSize; i++) {
+                    String sk = sequence.substring(i, i + kmerSize);
 
-                String prevBase = i == 0 ? null : sequence.substring(i - 1, i);
-                String nextBase = i == sequence.length() - kmerSize ? null : sequence.substring(i + kmerSize, i + kmerSize + 1);
+                    String prevBase = i == 0 ? null : sequence.substring(i - 1, i);
+                    String nextBase = i == sequence.length() - kmerSize ? null : sequence.substring(i + kmerSize, i + kmerSize + 1);
 
-                updateRecord(crs, haplotypes.size(), c, sk, prevBase, nextBase);
+                    updateRecord(crs, haplotypeLists.size(), c, sk, prevBase, nextBase);
+                }
             }
 
             c++;
@@ -96,14 +98,14 @@ public class TempGraphAssembler {
     }
 
     @NotNull
-    public static CortexHeader constructCortexHeader(Map<String, String> haplotypes, int kmerSize) {
+    public static CortexHeader constructCortexHeader(Set<String> colors, int kmerSize) {
         CortexHeader ch = new CortexHeader();
         ch.setVersion(6);
-        ch.setNumColors(haplotypes.size());
+        ch.setNumColors(colors.size());
         ch.setKmerSize(kmerSize);
         ch.setKmerBits(CortexRecord.getKmerBits(kmerSize));
 
-        for (String sampleName : haplotypes.keySet()) {
+        for (String sampleName : colors) {
             CortexColor col = new CortexColor();
 
             col.setSampleName(sampleName);

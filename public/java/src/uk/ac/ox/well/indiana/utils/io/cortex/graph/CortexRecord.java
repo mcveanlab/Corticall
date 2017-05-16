@@ -320,6 +320,10 @@ public class CortexRecord implements Comparable<CortexRecord> {
             case 'C' : return 1;
             case 'G' : return 2;
             case 'T' : return 3;
+            case 'a' : return 0;
+            case 'c' : return 1;
+            case 'g' : return 2;
+            case 't' : return 3;
             default:
                 throw new RuntimeException("Nucleotide '" + b + "' is not a valid character nucleotide");
         }
