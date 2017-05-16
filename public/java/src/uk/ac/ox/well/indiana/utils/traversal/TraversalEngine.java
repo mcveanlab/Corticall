@@ -3,12 +3,13 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.cycle.DirectedSimpleCycles;
-import org.jgrapht.alg.cycle.SzwarcfiterLauerSimpleCycles;
+import org.jgrapht.alg.cycle.*;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.util.*;
 
@@ -53,60 +54,65 @@ public class TraversalEngine {
         return null;
     }
 
-    public String getContig(DirectedGraph<CortexVertex, CortexEdge> goriginal, String kmer, int color) {
+    /*
+    public String getContig(DirectedGraph<CortexVertex, CortexEdge> goriginal, String kmer, int color, boolean collapseCycles) {
         DirectedGraph<CortexVertex, CortexEdge> gcopy = new DefaultDirectedGraph<>(CortexEdge.class);
         Graphs.addGraph(gcopy, goriginal);
 
         CortexVertex cv = new CortexVertex(kmer, ec.getGraph().findRecord(new CortexKmer(kmer)), color);
         Set<String> history = new HashSet<>();
 
-        DirectedSimpleCycles<CortexVertex, CortexEdge> cf = new SzwarcfiterLauerSimpleCycles<>(gcopy);
-        List<List<CortexVertex>> cycles = cf.findSimpleCycles();
-
         Map<String, String> cycleExpansions = new HashMap<>();
 
-        for (int i = 0; i < cycles.size(); i++) {
-            int startIndex = 0;
-            for (int j = 0; j < cycles.get(i).size(); j++) {
-                CortexVertex v = cycles.get(i).get(j);
+        if (collapseCycles) {
+            DirectedSimpleCycles<CortexVertex, CortexEdge> cf = new TarjanSimpleCycles<>(gcopy);
+            List<List<CortexVertex>> cycles = cf.findSimpleCycles();
 
-                if (gcopy.outDegreeOf(v) != 1) {
-                    startIndex = j;
-                    break;
-                }
-            }
+            for (int i = 0; i < cycles.size(); i++) {
+                int startIndex = 0;
+                for (int j = 0; j < cycles.get(i).size(); j++) {
+                    CortexVertex v = cycles.get(i).get(j);
 
-            StringBuilder sb = new StringBuilder();
-            List<CortexVertex> cyclesAligned = new ArrayList<>();
-            Set<CortexEdge> edgesToRemove = new HashSet<>();
-            for (int j = 0, offset = startIndex + j + 1; j < cycles.get(i).size(); j++, offset++) {
-                if (offset == cycles.get(i).size()) { offset = 0; }
-
-                CortexVertex v = cycles.get(i).get(offset);
-                cyclesAligned.add(v);
-
-                sb.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
-
-                if (gcopy.inDegreeOf(v) == 1 && gcopy.outDegreeOf(Graphs.predecessorListOf(gcopy, v).get(0)) > 1) {
-                    edgesToRemove.addAll(gcopy.incomingEdgesOf(v));
+                    if (gcopy.outDegreeOf(v) != 1) {
+                        startIndex = j;
+                        break;
+                    }
                 }
 
-                if (gcopy.outDegreeOf(v) == 1 && gcopy.inDegreeOf(Graphs.successorListOf(gcopy, v).get(0)) > 1) {
-                    edgesToRemove.addAll(gcopy.outgoingEdgesOf(v));
-                }
+                StringBuilder sb = new StringBuilder();
+                List<CortexVertex> cyclesAligned = new ArrayList<>();
+                Set<CortexEdge> edgesToRemove = new HashSet<>();
+                for (int j = 0, offset = startIndex + j + 1; j < cycles.get(i).size(); j++, offset++) {
+                    if (offset == cycles.get(i).size()) {
+                        offset = 0;
+                    }
 
-                if (gcopy.outDegreeOf(v) > 0) {
-                    for (CortexEdge e : gcopy.outgoingEdgesOf(v)) {
-                        if (gcopy.getEdgeTarget(e).equals(v)) {
-                            edgesToRemove.add(e);
+                    CortexVertex v = cycles.get(i).get(offset);
+                    cyclesAligned.add(v);
+
+                    sb.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
+
+                    if (gcopy.inDegreeOf(v) == 1 && gcopy.outDegreeOf(Graphs.predecessorListOf(gcopy, v).get(0)) > 1) {
+                        edgesToRemove.addAll(gcopy.incomingEdgesOf(v));
+                    }
+
+                    if (gcopy.outDegreeOf(v) == 1 && gcopy.inDegreeOf(Graphs.successorListOf(gcopy, v).get(0)) > 1) {
+                        edgesToRemove.addAll(gcopy.outgoingEdgesOf(v));
+                    }
+
+                    if (gcopy.outDegreeOf(v) > 0) {
+                        for (CortexEdge e : gcopy.outgoingEdgesOf(v)) {
+                            if (gcopy.getEdgeTarget(e).equals(v)) {
+                                edgesToRemove.add(e);
+                            }
                         }
                     }
                 }
+
+                gcopy.removeAllEdges(edgesToRemove);
+
+                cycleExpansions.put(cycles.get(i).get(startIndex).getSk(), sb.toString());
             }
-
-            gcopy.removeAllEdges(edgesToRemove);
-
-            cycleExpansions.put(cycles.get(i).get(startIndex).getSk(), sb.toString());
         }
 
         List<String> contigKmers = new ArrayList<>();
@@ -134,11 +140,142 @@ public class TraversalEngine {
             String sk = contigKmers.get(i);
             int prevLength = contigKmers.get(i-1).length();
             String b = sk.substring(prevLength - 1, sk.length());
-
             sb.append(b);
 
             if (cycleExpansions.containsKey(sk)) {
                 sb.append(cycleExpansions.get(sk));
+            }
+        }
+
+        return sb.toString();
+    }
+    */
+
+    public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
+        List<CortexVertex> contigKmers = new ArrayList<>();
+
+        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(kmer));
+        CortexVertex cv = new CortexVertex(kmer, cr, ec.getTraversalColor());
+
+        CortexLinksRecord currentLink = null;
+        LinkedList<String> sks = new LinkedList<>();
+
+        Set<CortexVertex> visited = new HashSet<>();
+
+        while (cv != null) {
+            if (ec.getLinks().containsKey(color) && ec.getLinks().get(color).containsKey(cv.getCr().getCortexKmer())) {
+                CortexLinksRecord clr = ec.getLinks().get(color).get(cv.getCr().getCortexKmer());
+
+                if (currentLink == null) {
+                    currentLink = clr;
+
+                    sks.clear();
+
+                    String seq = clr.getJunctions().get(0).getSeq();
+                    if (!clr.getKmerAsString().equals(cv.getSk())) {
+                        seq = SequenceUtils.reverseComplement(seq);
+                    }
+
+                    for (int i = 0; i <= seq.length() - clr.getKmer().length(); i++) {
+                        String seqk = seq.substring(i, i + clr.getKmer().length());
+                        sks.add(seqk);
+                    }
+                }
+            }
+
+            if (sks.size() > 0) { sks.removeLast(); }
+
+            contigKmers.add(0, cv);
+            if (sks.size() == 0) {
+                if (visited.contains(cv)) { break; }
+                visited.add(cv);
+            }
+
+            if (g.inDegreeOf(cv) == 0) {
+                cv = null;
+            } else if (g.inDegreeOf(cv) == 1) {
+                cv = Graphs.predecessorListOf(g, cv).get(0);
+            } else {
+                if (sks.size() > 0) {
+                    List<CortexVertex> pvs = Graphs.predecessorListOf(g, cv);
+                    for (CortexVertex pv : pvs) {
+                        if (pv.getSk().equals(sks.peekLast())) {
+                            cv = pv;
+                            break;
+                        }
+                    }
+                } else {
+                    cv = null;
+                }
+            }
+        }
+
+        cv = new CortexVertex(kmer, cr, ec.getTraversalColor());
+
+        boolean pastFirst = false;
+        currentLink = null;
+        sks.clear();
+        visited.clear();
+
+        while (cv != null) {
+            if (ec.getLinks().containsKey(color) && ec.getLinks().get(color).containsKey(cv.getCr().getCortexKmer())) {
+                CortexLinksRecord clr = ec.getLinks().get(color).get(cv.getCr().getCortexKmer());
+
+                if (currentLink == null) {
+                    currentLink = clr;
+
+                    sks.clear();
+
+                    String seq = clr.getJunctions().get(0).getSeq();
+                    if (!clr.getKmerAsString().equals(cv.getSk())) {
+                        seq = SequenceUtils.reverseComplement(seq);
+                    }
+
+                    for (int i = 0; i <= seq.length() - clr.getKmer().length(); i++) {
+                        String seqk = seq.substring(i, i + clr.getKmer().length());
+                        sks.add(seqk);
+                    }
+                }
+            }
+
+            if (sks.size() > 0) { sks.removeFirst(); }
+
+            if (pastFirst) {
+                contigKmers.add(cv);
+
+                if (sks.size() == 0) {
+                    if (visited.contains(cv)) { break; }
+                    visited.add(cv);
+                }
+            }
+
+            if (g.outDegreeOf(cv) == 0) {
+                cv = null;
+            } else if (g.outDegreeOf(cv) == 1) {
+                cv = Graphs.successorListOf(g, cv).get(0);
+            } else {
+                if (sks.size() > 0) {
+                    List<CortexVertex> nvs = Graphs.successorListOf(g, cv);
+                    for (CortexVertex nv : nvs) {
+                        if (nv.getSk().equals(sks.peekFirst())) {
+                            cv = nv;
+                            break;
+                        }
+                    }
+                } else {
+                    cv = null;
+                }
+            }
+
+            pastFirst = true;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (CortexVertex cva : contigKmers) {
+            if (sb.length() == 0) {
+                sb.append(cva.getSk());
+            } else {
+                sb.append(cva.getSk().substring(cva.getSk().length() - 1, cva.getSk().length()));
             }
         }
 

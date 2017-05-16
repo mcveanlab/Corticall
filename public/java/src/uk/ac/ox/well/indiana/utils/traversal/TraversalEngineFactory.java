@@ -2,6 +2,8 @@ package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.Arrays;
@@ -35,11 +37,16 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory stopper(TraversalStopper<CortexVertex, CortexEdge> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 
-    //public TraversalEngineFactory links(CortexLinks... links) { Arrays.stream(links).forEach(l -> configuration.links.add(l)); return this; }
-    //public TraversalEngineFactory links(Collection<CortexLinks> links) { configuration.links.addAll(links); return this; }
-
     public TraversalEngineFactory graph(CortexGraph clean) { configuration.setGraph(clean); return this; }
     //public TraversalEngineFactory dirty(CortexGraph dirty) { configuration.dirty = dirty; return this; }
+
+    public TraversalEngineFactory links(CortexLinksMap lm) {
+        int linkColor = configuration.getGraph().getColorForSampleName(lm.getCortexLinks().getColor(0).getSampleName());
+
+        configuration.getLinks().put(linkColor, lm);
+
+        return this;
+    }
 
     public TraversalEngine make() { return new TraversalEngine(configuration); }
 }
