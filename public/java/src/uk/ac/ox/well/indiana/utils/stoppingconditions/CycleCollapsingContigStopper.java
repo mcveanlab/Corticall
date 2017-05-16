@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
@@ -22,12 +23,12 @@ public class CycleCollapsingContigStopper extends AbstractTraversalStopper<Corte
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<CortexVertex, CortexEdge> previousGraph) {
+    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         return numAdjacentEdges == 0;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<CortexVertex, CortexEdge> previousGraph) {
+    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         return false;
     }
 }

@@ -35,10 +35,11 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory previousTraversal(DirectedGraph<CortexVertex, CortexEdge> previousTraversal) { configuration.setPreviousTraversal(previousTraversal); return this; }
 
-    public TraversalEngineFactory stopper(TraversalStopper<CortexVertex, CortexEdge> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
+    public TraversalEngineFactory stopper(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 
     public TraversalEngineFactory graph(CortexGraph clean) { configuration.setGraph(clean); return this; }
-    //public TraversalEngineFactory dirty(CortexGraph dirty) { configuration.dirty = dirty; return this; }
+
+    public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 
     public TraversalEngineFactory links(CortexLinksMap lm) {
         int linkColor = configuration.getGraph().getColorForSampleName(lm.getCortexLinks().getColor(0).getSampleName());
