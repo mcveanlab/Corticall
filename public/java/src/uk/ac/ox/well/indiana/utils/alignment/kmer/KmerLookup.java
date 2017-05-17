@@ -49,15 +49,15 @@ public class KmerLookup {
     public Set<Interval> findKmer(String sk) {
         Set<Interval> intervals = new HashSet<>();
 
+        /*
         if (kmerIndex != null) {
-            /*
             for (Object l[] : Fun.filter(kmerIndex, sk)) {
                 String chr = (String) l[1];
                 int pos = (Integer) l[2];
                 intervals.add(new Interval(chr, pos, pos + kmerSize));
             }
-            */
         }
+        */
 
         return intervals;
     }
