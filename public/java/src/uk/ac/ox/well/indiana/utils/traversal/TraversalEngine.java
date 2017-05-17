@@ -234,7 +234,7 @@ public class TraversalEngine {
             avs.removeAll(seen);
 
             // Decide if we should keep exploring the graph or not
-            if (stoppingRule.keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal(), ec.getRois())) {
+            if (stoppingRule.keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois())) {
                 if (avs.size() == 1) {
                     cv = avs.iterator().next();
                 } else if (avs.size() != 1) {
@@ -251,7 +251,7 @@ public class TraversalEngine {
                         }
                     }
 
-                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), ec.getPreviousTraversal(), ec.getRois())) {
+                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), true, ec.getPreviousTraversal(), ec.getRois())) {
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away
@@ -285,7 +285,7 @@ public class TraversalEngine {
         }
     }
 
-    private Set<CortexVertex> getPrevVertices(String sk) {
+    public Set<CortexVertex> getPrevVertices(String sk) {
         Set<CortexVertex> prevVertices = new HashSet<>();
 
         Map<Integer, Set<String>> prevKmers = getAllPrevKmers(sk);
@@ -317,7 +317,7 @@ public class TraversalEngine {
         return prevVertices;
     }
 
-    private Set<CortexVertex> getNextVertices(String sk) {
+    public Set<CortexVertex> getNextVertices(String sk) {
         Set<CortexVertex> nextVertices = new HashSet<>();
 
         Map<Integer, Set<String>> nextKmers = getAllNextKmers(sk);
@@ -348,7 +348,7 @@ public class TraversalEngine {
         return nextVertices;
     }
 
-    private Map<Integer, Set<String>> getAllPrevKmers(String sk) {
+    public Map<Integer, Set<String>> getAllPrevKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
@@ -377,7 +377,7 @@ public class TraversalEngine {
         return prevKmers;
     }
 
-    private Map<Integer, Set<String>> getAllNextKmers(String sk) {
+    public Map<Integer, Set<String>> getAllNextKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
         CortexRecord cr = ec.getGraph().findRecord(ck);
 

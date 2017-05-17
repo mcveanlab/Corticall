@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.ArrayList;
@@ -47,6 +48,8 @@ public class CortexVertex {
     public String getSk() { return sk; }
 
     public CortexRecord getCr() { return cr.get(0); }
+
+    public CortexKmer getCk() { return cr.get(0).getCortexKmer(); }
 
     public List<CortexRecord> getCrs() { return cr; }
 

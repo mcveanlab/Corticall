@@ -24,9 +24,9 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
     }
 
     @Override
-    public boolean keepGoing(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
-        traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph, rois);
-        traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, previousGraph, rois);
+    public boolean keepGoing(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+        traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
+        traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
 
         if (traversalSucceeded) {
             anyTraversalSucceeded = true;
@@ -36,12 +36,12 @@ public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
         return false;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
         return true;
     }
 
