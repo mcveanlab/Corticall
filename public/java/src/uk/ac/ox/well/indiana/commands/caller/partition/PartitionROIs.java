@@ -56,12 +56,6 @@ public class PartitionROIs extends Module {
             p.put(cr.getCortexKmer(), -1);
         }
 
-        //p.clear();
-        //p.put(new CortexKmer("CTCCTTCTCAAATATGTACTATGTTGGCACGAAGTTTTGCTGATATA"), -1);
-
-        //List<CortexKmer> ll = new ArrayList<>();
-        //ll.add(new CortexKmer("CTCCTTCTCAAATATGTACTATGTTGGCACGAAGTTTTGCTGATATA"));
-
         int group = 0;
         for (CortexKmer ck : p.keySet()) {
             log.info("{}", ck);

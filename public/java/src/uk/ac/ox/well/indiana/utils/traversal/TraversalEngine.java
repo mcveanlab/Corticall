@@ -3,7 +3,6 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.cycle.*;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -316,6 +315,10 @@ public class TraversalEngine {
 
         return prevVertices;
     }
+
+    public int getInDegree(String sk) { return getPrevVertices(sk).size(); }
+
+    public int getOutDegree(String sk) { return getNextVertices(sk).size(); }
 
     public Set<CortexVertex> getNextVertices(String sk) {
         Set<CortexVertex> nextVertices = new HashSet<>();
