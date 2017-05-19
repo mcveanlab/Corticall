@@ -47,8 +47,12 @@ public class RemoveContamination extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Processing records")
+                .header("Finding contamination")
                 .message("records processed")
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);

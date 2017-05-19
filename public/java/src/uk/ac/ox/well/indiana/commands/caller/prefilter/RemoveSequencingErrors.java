@@ -1,8 +1,11 @@
 package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
-import org.eclipse.collections.impl.factory.Sets;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.traverse.TopologicalOrderIterator;
+import org.jgrapht.GraphPath;
+import org.jgrapht.Graphs;
+import org.jgrapht.alg.DijkstraShortestPath;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -10,13 +13,19 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.sequence.CortexUtils;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.PathClosingStopper;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.PathOpeningStopper;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedEdge;
-import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
+import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.util.*;
+
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class RemoveSequencingErrors extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
@@ -41,7 +50,7 @@ public class RemoveSequencingErrors extends Module {
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Finding shared kmers")
+                .header("Finding sequencing errors")
                 .message("records processed")
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
@@ -49,114 +58,99 @@ public class RemoveSequencingErrors extends Module {
         Set<CortexKmer> errorKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
+            log.info("{}", rr);
+
             if (!errorKmers.contains(rr.getCortexKmer())) {
-                DirectedGraph<AnnotatedVertex, AnnotatedEdge> g = CortexUtils.dfs_and(GRAPH, rr.getKmerAsString(), childColor, parentColors, PathOpeningStopper.class);
+                TraversalEngine o = new TraversalEngineFactory()
+                        .traversalColor(childColor)
+                        .joiningColors(parentColors)
+                        .combinationOperator(AND)
+                        .traversalDirection(BOTH)
+                        .stopper(BubbleOpeningStopper.class)
+                        .rois(ROI)
+                        .graph(GRAPH)
+                        .make();
 
-                for (AnnotatedVertex v : g.vertexSet()) {
-                    errorKmers.add(new CortexKmer(v.getKmer()));
-                }
+                DirectedGraph<CortexVertex, CortexEdge> g1 = o.dfs(rr.getKmerAsString());
 
-                AnnotatedVertex ar = new AnnotatedVertex(rr.getKmerAsString());
+                TraversalEngine c = new TraversalEngineFactory()
+                        .traversalColor(childColor)
+                        .joiningColors(parentColors)
+                        .combinationOperator(AND)
+                        .traversalDirection(FORWARD)
+                        .stopper(BubbleClosingStopper.class)
+                        .rois(ROI)
+                        .graph(GRAPH)
+                        .previousTraversal(g1)
+                        .make();
 
-                AnnotatedVertex af = null;
-                while (g.inDegreeOf(ar) == 1) {
-                    if (g.outDegreeOf(ar) > 1) {
-                        af = new AnnotatedVertex(ar.getKmer());
-                        break;
-                    }
+                for (CortexVertex cv : g1.vertexSet()) {
+                    if (o.getOutDegree(cv.getSk()) > 1) {
+                        DirectedGraph<CortexVertex, CortexEdge> g2 = c.dfs(cv.getSk());
 
-                    ar = g.getEdgeSource(g.incomingEdgesOf(ar).iterator().next());
-                }
+                        if (g2 != null) {
+                            DepthFirstIterator<CortexVertex, CortexEdge> dfi1 = new DepthFirstIterator<>(g1, cv);
+                            DepthFirstIterator<CortexVertex, CortexEdge> dfi2 = new DepthFirstIterator<>(g2, cv);
 
-                ar = new AnnotatedVertex(rr.getKmerAsString());
-                AnnotatedVertex al = null;
-                while (g.outDegreeOf(ar) == 1) {
-                    if (g.inDegreeOf(ar) > 1) {
-                        al = new AnnotatedVertex(ar.getKmer());
-                        break;
-                    }
+                            Set<GraphPath<CortexVertex, CortexEdge>> ps1 = new HashSet<>();
 
-                    ar = g.getEdgeTarget(g.outgoingEdgesOf(ar).iterator().next());
-                }
+                            Set<CortexVertex> ends = new HashSet<>();
+                            while (dfi1.hasNext()) {
+                                CortexVertex ev = dfi1.next();
 
-                log.info("{} {}", af, al);
+                                if (o.getInDegree(ev.getSk()) > 1) {
+                                    ends.add(ev);
 
-                TopologicalOrderIterator<AnnotatedVertex, AnnotatedEdge> toi = new TopologicalOrderIterator<>(g);
+                                    DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
 
-                AnnotatedVertex avFirst = null;
-                AnnotatedVertex avLast = null;
+                                    ps1.add(dj.getPath());
+                                }
+                            }
 
-                log.info("{}", rr);
-                while (toi.hasNext()) {
-                    AnnotatedVertex v = toi.next();
+                            Set<GraphPath<CortexVertex, CortexEdge>> ps2 = new HashSet<>();
 
-                    if (avFirst == null) { avFirst = v; }
-                    avLast = v;
+                            while (dfi2.hasNext()) {
+                                CortexVertex ev = dfi2.next();
 
-                    CortexRecord cr = GRAPH.findRecord(new CortexKmer(v.getKmer()));
+                                if (ends.contains(ev)) {
+                                    DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
 
-                    log.info(" - {} {} {} {} {} {} {} {}",
-                            cr.getKmerAsString(),
-                            cr.getCoverage(8), cr.getCoverage(0), cr.getCoverage(17),
-                            cr.getEdgesAsString(8), cr.getEdgesAsString(0), cr.getEdgesAsString(17),
-                            new CortexKmer(v.getKmer()).equals(rr.getCortexKmer())
-                    );
-                }
-                log.info("");
+                                    if (!ps1.contains(dj.getPath())) {
+                                        ps2.add(dj.getPath());
+                                    }
+                                }
+                            }
 
-                if (af != null && al != null) {
-                    Set<String> nextKmers = CortexUtils.getNextKmers(GRAPH, af.getKmer(), childColor);
+                            for (GraphPath<CortexVertex, CortexEdge> p1 : ps1) {
+                                float covMean1 = 0.0f;
+                                for (CortexVertex c1 : p1.getVertexList()) {
+                                    covMean1 += c1.getCr().getCoverage(childColor);
+                                }
+                                covMean1 = covMean1 / p1.getLength();
 
-                    for (String nextKmer : nextKmers) {
-                        DirectedGraph<AnnotatedVertex, AnnotatedEdge> gc = CortexUtils.dfs(GRAPH, null, nextKmer, childColor, parentColors, g, PathClosingStopper.class, 0, true, new HashSet<>());
+                                for (GraphPath<CortexVertex, CortexEdge> p2 : ps2) {
+                                    float covMean2 = 0.0f;
+                                    for (CortexVertex c2 : p2.getVertexList()) {
+                                        covMean2 += c2.getCr().getCoverage(childColor);
+                                    }
+                                    covMean2 = covMean2 / p2.getLength();
 
-                        if (gc != null) {
-                            TopologicalOrderIterator<AnnotatedVertex, AnnotatedEdge> toi2 = new TopologicalOrderIterator<>(gc);
-
-                            while (toi2.hasNext()) {
-                                AnnotatedVertex toi2av = toi2.next();
-                                CortexKmer toi2ck = new CortexKmer(toi2av.getKmer());
-                                CortexRecord toi2cr = GRAPH.findRecord(toi2ck);
-                                log.info("  {} {} {} {} {} {} {} {}", toi2av,
-                                        toi2cr.getKmerAsString(),
-                                        toi2cr.getCoverage(8), toi2cr.getCoverage(0), toi2cr.getCoverage(17),
-                                        toi2cr.getEdgesAsString(8), toi2cr.getEdgesAsString(0), toi2cr.getEdgesAsString(17)
-                                );
+                                    log.info(" - {} {} {} {}", covMean1, covMean2, p1.getLength(), p2.getLength());
+                                }
                             }
                         }
                     }
                 }
-
-                log.info("");
-
-                /*
-                CortexRecord crFirst = GRAPH.findRecord(new CortexKmer(avFirst.getKmer()));
-                CortexRecord crLast  = GRAPH.findRecord(new CortexKmer(avLast.getKmer()));
-
-                if (crFirst != null && crLast != null) {
-                    log.info("{} {} {} {} {} {} {}",
-                            crFirst.getKmerAsString(),
-                            crFirst.getCoverage(8), crFirst.getCoverage(0), crFirst.getCoverage(17),
-                            crFirst.getEdgesAsString(8), crFirst.getEdgesAsString(0), crFirst.getEdgesAsString(17)
-                    );
-                    log.info("{} {} {} {} {} {} {}",
-                            crLast.getKmerAsString(),
-                            crLast.getCoverage(8), crLast.getCoverage(0), crLast.getCoverage(17),
-                            crLast.getEdgesAsString(8), crLast.getEdgesAsString(0), crLast.getEdgesAsString(17)
-                    );
-                    log.info("");
-                }
-                */
             }
 
             pm.update();
         }
 
-        log.info("Found {} shared kmers", errorKmers.size());
-
-        log.info("Writing...");
+        log.info("Found {} sequencing errors", errorKmers.size());
 
         /*
+        log.info("Writing...");
+
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
