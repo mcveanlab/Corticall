@@ -75,6 +75,13 @@ public class RemoveSequencingErrors extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g1 = o.dfs(rr.getKmerAsString());
 
+                VisualCortex vc = new VisualCortexFactory()
+                        .subgraph(g1)
+                        .make();
+
+                break;
+
+                /*
                 if (g1 != null) {
                     TraversalEngine c = new TraversalEngineFactory()
                             .traversalColor(childColor)
@@ -161,6 +168,7 @@ public class RemoveSequencingErrors extends Module {
                         }
                     }
                 }
+                */
             }
 
             pm.update();
