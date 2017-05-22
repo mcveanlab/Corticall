@@ -19,6 +19,8 @@ import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.indiana.utils.visualizer.VisualCortex;
+import uk.ac.ox.well.indiana.utils.visualizer.VisualCortexFactory;
 
 import java.util.*;
 
@@ -73,69 +75,87 @@ public class RemoveSequencingErrors extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g1 = o.dfs(rr.getKmerAsString());
 
-                TraversalEngine c = new TraversalEngineFactory()
-                        .traversalColor(childColor)
-                        .joiningColors(parentColors)
-                        .combinationOperator(AND)
-                        .traversalDirection(FORWARD)
-                        .stopper(BubbleClosingStopper.class)
-                        .rois(ROI)
-                        .graph(GRAPH)
-                        .previousTraversal(g1)
-                        .make();
+                if (g1 != null) {
+                    TraversalEngine c = new TraversalEngineFactory()
+                            .traversalColor(childColor)
+                            .joiningColors(parentColors)
+                            .combinationOperator(AND)
+                            .traversalDirection(FORWARD)
+                            .stopper(BubbleClosingStopper.class)
+                            .rois(ROI)
+                            .graph(GRAPH)
+                            .previousTraversal(g1)
+                            .make();
 
-                for (CortexVertex cv : g1.vertexSet()) {
-                    if (o.getOutDegree(cv.getSk()) > 1) {
-                        DirectedGraph<CortexVertex, CortexEdge> g2 = c.dfs(cv.getSk());
+                    for (CortexVertex cv : g1.vertexSet()) {
+                        if (o.getOutDegree(cv.getSk()) > 1) {
+                            DirectedGraph<CortexVertex, CortexEdge> g2 = c.dfs(cv.getSk());
 
-                        if (g2 != null) {
-                            DepthFirstIterator<CortexVertex, CortexEdge> dfi1 = new DepthFirstIterator<>(g1, cv);
-                            DepthFirstIterator<CortexVertex, CortexEdge> dfi2 = new DepthFirstIterator<>(g2, cv);
-
-                            Set<GraphPath<CortexVertex, CortexEdge>> ps1 = new HashSet<>();
-
-                            Set<CortexVertex> ends = new HashSet<>();
-                            while (dfi1.hasNext()) {
-                                CortexVertex ev = dfi1.next();
-
-                                if (o.getInDegree(ev.getSk()) > 1) {
-                                    ends.add(ev);
-
-                                    DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
-
-                                    ps1.add(dj.getPath());
+                            if (g2 != null) {
+                                DirectedGraph<CortexVertex, CortexEdge> gvis = new DefaultDirectedGraph<>(CortexEdge.class);
+                                Graphs.addAllVertices(gvis, g1.vertexSet());
+                                Graphs.addAllVertices(gvis, g2.vertexSet());
+                                for (CortexEdge e : g1.edgeSet()) {
+                                    gvis.addEdge(g1.getEdgeSource(e), g1.getEdgeTarget(e), new CortexEdge(1, 0.0));
                                 }
-                            }
+                                for (CortexEdge e : g2.edgeSet()) {
+                                    gvis.addEdge(g2.getEdgeSource(e), g2.getEdgeTarget(e), new CortexEdge(1, 0.0));
+                                }
 
-                            Set<GraphPath<CortexVertex, CortexEdge>> ps2 = new HashSet<>();
+                                VisualCortex vc = new VisualCortexFactory()
+                                        .subgraph(gvis)
+                                        .port(9000)
+                                        .logger(log)
+                                        .make();
 
-                            while (dfi2.hasNext()) {
-                                CortexVertex ev = dfi2.next();
+                                DepthFirstIterator<CortexVertex, CortexEdge> dfi1 = new DepthFirstIterator<>(g1, cv);
+                                DepthFirstIterator<CortexVertex, CortexEdge> dfi2 = new DepthFirstIterator<>(g2, cv);
 
-                                if (ends.contains(ev)) {
-                                    DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
+                                Set<GraphPath<CortexVertex, CortexEdge>> ps1 = new HashSet<>();
 
-                                    if (!ps1.contains(dj.getPath())) {
-                                        ps2.add(dj.getPath());
+                                Set<CortexVertex> ends = new HashSet<>();
+                                while (dfi1.hasNext()) {
+                                    CortexVertex ev = dfi1.next();
+
+                                    if (o.getInDegree(ev.getSk()) > 1) {
+                                        ends.add(ev);
+
+                                        DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
+
+                                        ps1.add(dj.getPath());
                                     }
                                 }
-                            }
 
-                            for (GraphPath<CortexVertex, CortexEdge> p1 : ps1) {
-                                float covMean1 = 0.0f;
-                                for (CortexVertex c1 : p1.getVertexList()) {
-                                    covMean1 += c1.getCr().getCoverage(childColor);
-                                }
-                                covMean1 = covMean1 / p1.getLength();
+                                Set<GraphPath<CortexVertex, CortexEdge>> ps2 = new HashSet<>();
 
-                                for (GraphPath<CortexVertex, CortexEdge> p2 : ps2) {
-                                    float covMean2 = 0.0f;
-                                    for (CortexVertex c2 : p2.getVertexList()) {
-                                        covMean2 += c2.getCr().getCoverage(childColor);
+                                while (dfi2.hasNext()) {
+                                    CortexVertex ev = dfi2.next();
+
+                                    if (ends.contains(ev)) {
+                                        DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
+
+                                        if (!ps1.contains(dj.getPath())) {
+                                            ps2.add(dj.getPath());
+                                        }
                                     }
-                                    covMean2 = covMean2 / p2.getLength();
+                                }
 
-                                    log.info(" - {} {} {} {}", covMean1, covMean2, p1.getLength(), p2.getLength());
+                                for (GraphPath<CortexVertex, CortexEdge> p1 : ps1) {
+                                    float covMean1 = 0.0f;
+                                    for (CortexVertex c1 : p1.getVertexList()) {
+                                        covMean1 += c1.getCr().getCoverage(childColor);
+                                    }
+                                    covMean1 = covMean1 / p1.getLength();
+
+                                    for (GraphPath<CortexVertex, CortexEdge> p2 : ps2) {
+                                        float covMean2 = 0.0f;
+                                        for (CortexVertex c2 : p2.getVertexList()) {
+                                            covMean2 += c2.getCr().getCoverage(childColor);
+                                        }
+                                        covMean2 = covMean2 / p2.getLength();
+
+                                        log.info(" - {} {} {} {}", covMean1, covMean2, p1.getLength(), p2.getLength());
+                                    }
                                 }
                             }
                         }
