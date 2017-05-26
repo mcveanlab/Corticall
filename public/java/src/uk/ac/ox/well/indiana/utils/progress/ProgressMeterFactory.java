@@ -20,6 +20,10 @@ public class ProgressMeterFactory {
     public ProgressMeter make(Logger log) {
         if (updateRecord == 0 && maxRecord > 0) {
             updateRecord = maxRecord / 10;
+
+            if (updateRecord == 0) {
+                updateRecord = 1;
+            }
         }
 
         return new ProgressMeter(log, currentRecord, updateRecord, maxRecord, header, message, indent);
