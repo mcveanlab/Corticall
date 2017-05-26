@@ -21,27 +21,22 @@ public class FindROIs extends Module {
     public CortexGraph GRAPH;
 
     @Argument(fullName="parents", shortName="p", doc="Parents")
-    public ArrayList<Integer> PARENTS;
+    public ArrayList<String> PARENTS;
 
     @Argument(fullName="child", shortName="c", doc="Child")
-    public Integer CHILD;
+    public String CHILD;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
-        int childColor = CHILD;
-        List<Integer> parentColors = PARENTS;
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = new ArrayList<>(GRAPH.getColorsForSampleNames(PARENTS));
 
-        //int childColor = GRAPH.getColorForSampleName(CHILD);
-        //List<Integer> parentColors = new ArrayList<>(GRAPH.getColorsForSampleNames(PARENTS));
-        //Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
-
-        //log.info("Colors:");
-        //log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
-        //log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
-        //log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         log.info("Color: {} {}", CHILD, childColor);
 
@@ -54,7 +49,7 @@ public class FindROIs extends Module {
         long numNovelRecords = 0L;
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
-        cgw.setHeader(makeCortexHeader());
+        cgw.setHeader(makeCortexHeader(childColor));
 
         for (CortexRecord cr : GRAPH) {
             if (isNovel(cr, parentColors, childColor)) {
@@ -89,7 +84,7 @@ public class FindROIs extends Module {
     }
 
     @NotNull
-    private CortexHeader makeCortexHeader() {
+    private CortexHeader makeCortexHeader(int childColor) {
         CortexHeader ch = new CortexHeader();
         ch.setVersion(6);
         ch.setNumColors(1);
@@ -104,8 +99,7 @@ public class FindROIs extends Module {
         cc.setLowCovgSupernodesRemoved(false);
         cc.setTipClippingApplied(false);
         cc.setTotalSequence(0);
-        //cc.setSampleName(CHILD);
-        cc.setSampleName(GRAPH.getSampleName(CHILD));
+        cc.setSampleName(GRAPH.getSampleName(childColor));
 
         ch.addColor(cc);
 
