@@ -8,6 +8,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NovelKmerAggregationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
@@ -58,6 +60,12 @@ public class RecoverNovelty extends Module {
                 .rois(ROI)
                 .make();
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing records")
+                .message("records processed")
+                .maxRecord(ROI.getNumRecords())
+                .make(log);
+
         Map<CortexKmer, CortexRecord> seen = new TreeMap<>();
         for (CortexRecord rr : ROI) {
             if (!seen.containsKey(rr.getCortexKmer())) {
@@ -65,6 +73,8 @@ public class RecoverNovelty extends Module {
 
                 for (CortexVertex cv : g.vertexSet()) {
                     CortexRecord cr = cv.getCr();
+
+                    log.info("  {}", cr);
 
                     CortexRecord qr = new CortexRecord(
                             cr.getBinaryKmer(),
@@ -77,6 +87,8 @@ public class RecoverNovelty extends Module {
                     seen.put(qr.getCortexKmer(), qr);
                 }
             }
+
+            pm.update();
         }
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
