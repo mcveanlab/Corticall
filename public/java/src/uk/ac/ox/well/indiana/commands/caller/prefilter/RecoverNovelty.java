@@ -60,20 +60,22 @@ public class RecoverNovelty extends Module {
 
         Map<CortexKmer, CortexRecord> seen = new TreeMap<>();
         for (CortexRecord rr : ROI) {
-            DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
+            if (!seen.containsKey(rr.getCortexKmer())) {
+                DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
 
-            for (CortexVertex cv : g.vertexSet()) {
-                CortexRecord cr = cv.getCr();
+                for (CortexVertex cv : g.vertexSet()) {
+                    CortexRecord cr = cv.getCr();
 
-                CortexRecord qr = new CortexRecord(
-                        cr.getBinaryKmer(),
-                        new int[] { cr.getCoverage(childColor) },
-                        new byte[] { cr.getEdges()[childColor] },
-                        cr.getKmerSize(),
-                        cr.getKmerBits()
-                );
+                    CortexRecord qr = new CortexRecord(
+                            cr.getBinaryKmer(),
+                            new int[]{cr.getCoverage(childColor)},
+                            new byte[]{cr.getEdges()[childColor]},
+                            cr.getKmerSize(),
+                            cr.getKmerBits()
+                    );
 
-                seen.put(qr.getCortexKmer(), qr);
+                    seen.put(qr.getCortexKmer(), qr);
+                }
             }
         }
 
