@@ -44,6 +44,10 @@ public class RecoverNovelty extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
+        log.info("Colors:");
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
