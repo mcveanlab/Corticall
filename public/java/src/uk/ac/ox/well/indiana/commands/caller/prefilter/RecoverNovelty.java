@@ -69,12 +69,14 @@ public class RecoverNovelty extends Module {
         Map<CortexKmer, CortexRecord> seen = new TreeMap<>();
         for (CortexRecord rr : ROI) {
             if (!seen.containsKey(rr.getCortexKmer())) {
+                log.info("{}", rr);
+
                 DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
 
                 for (CortexVertex cv : g.vertexSet()) {
                     CortexRecord cr = cv.getCr();
 
-                    log.info("  {}", cr);
+                    log.info("  {} {}", g.vertexSet().size(), cr);
 
                     CortexRecord qr = new CortexRecord(
                             cr.getBinaryKmer(),
