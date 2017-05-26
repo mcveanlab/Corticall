@@ -74,19 +74,27 @@ public class RecoverNovelty extends Module {
                 DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
 
                 for (CortexVertex cv : g.vertexSet()) {
-                    CortexRecord cr = cv.getCr();
+                    boolean childHasCoverage = cv.getCr().getCoverage(childColor) > 0;
+                    boolean parentsHaveCoverage = false;
+                    for (int c : parentColors) {
+                        parentsHaveCoverage |= cv.getCr().getCoverage(c) > 0;
+                    }
 
-                    log.info("  {} {}", g.vertexSet().size(), cr);
+                    if (childHasCoverage && !parentsHaveCoverage) {
+                        CortexRecord cr = cv.getCr();
 
-                    CortexRecord qr = new CortexRecord(
-                            cr.getBinaryKmer(),
-                            new int[]{cr.getCoverage(childColor)},
-                            new byte[]{cr.getEdges()[childColor]},
-                            cr.getKmerSize(),
-                            cr.getKmerBits()
-                    );
+                        log.info("  {} {}", g.vertexSet().size(), cr);
 
-                    seen.put(qr.getCortexKmer(), qr);
+                        CortexRecord qr = new CortexRecord(
+                                cr.getBinaryKmer(),
+                                new int[]{cr.getCoverage(childColor)},
+                                new byte[]{cr.getEdges()[childColor]},
+                                cr.getKmerSize(),
+                                cr.getKmerBits()
+                        );
+
+                        seen.put(qr.getCortexKmer(), qr);
+                    }
                 }
             }
 
