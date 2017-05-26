@@ -73,27 +73,29 @@ public class RecoverNovelty extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
 
-                for (CortexVertex cv : g.vertexSet()) {
-                    boolean childHasCoverage = cv.getCr().getCoverage(childColor) > 0;
-                    boolean parentsHaveCoverage = false;
-                    for (int c : parentColors) {
-                        parentsHaveCoverage |= cv.getCr().getCoverage(c) > 0;
-                    }
+                if (g != null) {
+                    for (CortexVertex cv : g.vertexSet()) {
+                        boolean childHasCoverage = cv.getCr().getCoverage(childColor) > 0;
+                        boolean parentsHaveCoverage = false;
+                        for (int c : parentColors) {
+                            parentsHaveCoverage |= cv.getCr().getCoverage(c) > 0;
+                        }
 
-                    if (childHasCoverage && !parentsHaveCoverage) {
-                        CortexRecord cr = cv.getCr();
+                        if (childHasCoverage && !parentsHaveCoverage) {
+                            CortexRecord cr = cv.getCr();
 
-                        log.info("  {} {}", g.vertexSet().size(), cr);
+                            log.info("  {} {}", g.vertexSet().size(), cr);
 
-                        CortexRecord qr = new CortexRecord(
-                                cr.getBinaryKmer(),
-                                new int[]{cr.getCoverage(childColor)},
-                                new byte[]{cr.getEdges()[childColor]},
-                                cr.getKmerSize(),
-                                cr.getKmerBits()
-                        );
+                            CortexRecord qr = new CortexRecord(
+                                    cr.getBinaryKmer(),
+                                    new int[]{cr.getCoverage(childColor)},
+                                    new byte[]{cr.getEdges()[childColor]},
+                                    cr.getKmerSize(),
+                                    cr.getKmerBits()
+                            );
 
-                        seen.put(qr.getCortexKmer(), qr);
+                            seen.put(qr.getCortexKmer(), qr);
+                        }
                     }
                 }
             }
