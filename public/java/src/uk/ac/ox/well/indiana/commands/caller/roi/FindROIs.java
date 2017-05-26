@@ -21,23 +21,26 @@ public class FindROIs extends Module {
     public CortexGraph GRAPH;
 
     @Argument(fullName="parents", shortName="p", doc="Parents")
-    public ArrayList<String> PARENTS;
+    public ArrayList<Integer> PARENTS;
 
     @Argument(fullName="child", shortName="c", doc="Child")
-    public String CHILD;
+    public Integer CHILD;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = new ArrayList<>(GRAPH.getColorsForSampleNames(PARENTS));
+        int childColor = CHILD;
+        List<Integer> parentColors = PARENTS;
+
+        //int childColor = GRAPH.getColorForSampleName(CHILD);
+        //List<Integer> parentColors = new ArrayList<>(GRAPH.getColorsForSampleNames(PARENTS));
         //Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
-        log.info("Colors:");
-        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
-        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        //log.info("Colors:");
+        //log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        //log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
         //log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
         log.info("Color: {} {}", CHILD, childColor);
@@ -101,7 +104,8 @@ public class FindROIs extends Module {
         cc.setLowCovgSupernodesRemoved(false);
         cc.setTipClippingApplied(false);
         cc.setTotalSequence(0);
-        cc.setSampleName(CHILD);
+        //cc.setSampleName(CHILD);
+        cc.setSampleName(GRAPH.getSampleName(CHILD));
 
         ch.addColor(cc);
 
