@@ -1,11 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.GraphPath;
-import org.jgrapht.Graphs;
-import org.jgrapht.alg.DijkstraShortestPath;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -13,21 +8,18 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
-import uk.ac.ox.well.indiana.utils.visualizer.VisualCortex;
-import uk.ac.ox.well.indiana.utils.visualizer.VisualCortexFactory;
+import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
+import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizationFactory;
 
 import java.util.*;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class RemoveSequencingErrors extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
@@ -75,7 +67,7 @@ public class RemoveSequencingErrors extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g1 = o.dfs(rr.getKmerAsString());
 
-                VisualCortex vc = new VisualCortexFactory()
+                GraphVisualizer vc = new GraphVisualizationFactory()
                         .subgraph(g1)
                         .make();
 

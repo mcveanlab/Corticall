@@ -1,12 +1,18 @@
 package uk.ac.ox.well.indiana.utils.visualizer.handlers;
 
+import com.google.api.client.http.HttpStatusCodes;
 import com.sun.net.httpserver.HttpExchange;
+import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONObject;
+import uk.ac.ox.well.indiana.Main;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -17,18 +23,39 @@ import java.util.Set;
  */
 public class SubGraphHandler extends BaseHandler {
     private DirectedGraph<CortexVertex, CortexEdge> g;
+    private CortexGraph graph;
+    private CortexGraph rois;
 
     public SubGraphHandler(DirectedGraph<CortexVertex, CortexEdge> g) {
         this.g = g;
     }
 
-    @Override
-    public void handle(HttpExchange httpExchange) throws IOException {
+    public SubGraphHandler(CortexGraph graph, CortexGraph rois) {
+        this.graph = graph;
+        this.rois = rois;
+    }
+
+    public Pair<Integer, String> respond(HttpExchange httpExchange) {
         JSONObject jo = new JSONObject();
 
         Set<Map<String, Object>> vs = new HashSet<>();
         Set<Map<String, Object>> es = new HashSet<>();
 
+        Map<String, String> qm = query(httpExchange);
+        String kmer = qm.getOrDefault("kmer", null);
+
+        Main.getLogger().info("query: {}, kmer: {}", qm, kmer);
+
+        if (kmer != null) {
+            TraversalEngine e = new TraversalEngineFactory()
+                    .graph(graph)
+                    .rois(rois)
+                    .traversalColor(0)
+                    .stopper(ExplorationStopper.class)
+                    .make();
+        }
+
+        /*
         for (CortexVertex v : g.vertexSet()) {
             Map<String, Object> vm = new HashMap<>();
 
@@ -45,9 +72,12 @@ public class SubGraphHandler extends BaseHandler {
             es.add(em);
         }
 
-        jo.put("nodes", vs);
-        jo.put("links", es);
+        jo.put("vertices", vs);
+        jo.put("edges", es);
 
-        write(httpExchange, jo.toString());
+        //write(httpExchange, jo.toString());
+        */
+
+        return new Pair<>(HttpStatusCodes.STATUS_CODE_OK, jo.toString());
     }
 }

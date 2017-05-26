@@ -9,10 +9,11 @@ import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 /**
  * Created by kiran on 19/05/2017.
  */
-public class VisualCortexConfiguration {
+public class GraphVisualizationConfiguration {
     private int port;
     private Logger log;
     private CortexGraph graph;
+    private CortexGraph rois;
     private DirectedGraph<CortexVertex, CortexEdge> subGraph;
 
     public int getPort() { return port; }
@@ -26,4 +27,7 @@ public class VisualCortexConfiguration {
 
     public DirectedGraph<CortexVertex, CortexEdge> getSubGraph() { return subGraph; }
     public void setSubGraph(DirectedGraph<CortexVertex, CortexEdge> subGraph) { this.subGraph = subGraph; }
+
+    public CortexGraph getRois() { return rois; }
+    public void setRois(CortexGraph rois) { this.rois = rois; }
 }

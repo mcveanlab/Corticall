@@ -51,6 +51,7 @@ public class partition extends Module {
                 .createOrOpen();
                 */
 
+        /*
         Set<DirectedGraph<AnnotatedVertex, AnnotatedEdge>> partition = new HashSet<>();
 
         for (CortexRecord cr : NOVELS) {
@@ -73,6 +74,7 @@ public class partition extends Module {
         }
 
         log.info("  Fragments: {}", partition.size());
+        */
 
         /*
         db.commit();
