@@ -337,6 +337,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         if (sampleColor == -1) {
             try {
                 sampleColor = Integer.valueOf(sampleName);
+                sampleCopies = 1;
             } catch (NumberFormatException e) {}
         }
 
