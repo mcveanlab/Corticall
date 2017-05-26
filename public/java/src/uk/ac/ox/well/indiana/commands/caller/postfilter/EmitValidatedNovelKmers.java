@@ -43,13 +43,24 @@ public class EmitValidatedNovelKmers extends Module {
                 .message("records processed")
                 .make(log);
 
+        //int childColor = 9;
+
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(GRAPH.getHeader());
+        //cgw.setHeader(makeCortexHeader(childColor));
 
         for (CortexRecord cr : GRAPH) {
             if (cr.getCoverage(0) == 0 && cr.getCoverage(1) == 0 && cr.getCoverage(2) == 0 && cr.getCoverage(3) == 0 &&
                 cr.getCoverage(4) == 0 && cr.getCoverage(5) == 0 && cr.getCoverage(6) == 0 && cr.getCoverage(7) == 0 &&
                 cr.getCoverage(8)  > 0 && cr.getCoverage(9)  > 0 && cr.getCoverage(10) > 0 && cr.getCoverage(11) > 0) {
+
+                //CortexRecord novelCr = new CortexRecord(
+                //        cr.getBinaryKmer(),
+                //        new int[] { cr.getCoverages()[childColor] },
+                //        new byte[] { cr.getEdges()[childColor] },
+                //        cr.getKmerSize(), cr.getKmerBits()
+                //);
+                //cgw.addRecord(novelCr);
 
                 cgw.addRecord(cr);
             }
@@ -59,4 +70,29 @@ public class EmitValidatedNovelKmers extends Module {
 
         cgw.close();
     }
+
+    /*
+    @NotNull
+    private CortexHeader makeCortexHeader(int childColor) {
+        CortexHeader ch = new CortexHeader();
+        ch.setVersion(6);
+        ch.setNumColors(1);
+        ch.setKmerSize(GRAPH.getKmerSize());
+        ch.setKmerBits(GRAPH.getKmerBits());
+
+        CortexColor cc = new CortexColor();
+        cc.setCleanedAgainstGraph(false);
+        cc.setCleanedAgainstGraphName("");
+        cc.setErrorRate(0);
+        cc.setLowCovgKmersRemoved(false);
+        cc.setLowCovgSupernodesRemoved(false);
+        cc.setTipClippingApplied(false);
+        cc.setTotalSequence(0);
+        cc.setSampleName(GRAPH.getSampleName(childColor));
+
+        ch.addColor(cc);
+
+        return ch;
+    }
+    */
 }
