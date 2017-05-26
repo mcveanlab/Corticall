@@ -1,7 +1,9 @@
 package uk.ac.ox.well.indiana.utils.visualizer.handlers;
 
+import com.google.api.client.http.HttpStatusCodes;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
+import org.apache.commons.math3.util.Pair;
 
 import java.io.*;
 
@@ -15,12 +17,11 @@ public class PageHandler extends BaseHandler {
         this.serveFromJar = serveFromFilesystem;
     }
 
-    @Override
-    public void handle(HttpExchange httpExchange) throws IOException {
+    public Pair<Integer, String> respond(HttpExchange httpExchange) throws IOException {
         String page = "/html/" + httpExchange.getRequestURI();
         File f = new File("./public" + page);
 
-        int code = 200;
+        int code = HttpStatusCodes.STATUS_CODE_OK;
         String response;
 
         if (f.exists()) {
@@ -47,10 +48,10 @@ public class PageHandler extends BaseHandler {
 
             response = responseData.toString();
         } else {
-            code = 404;
+            code = HttpStatusCodes.STATUS_CODE_NOT_FOUND;
             response = "Page not found.";
         }
 
-        write(httpExchange, code, response);
+        return new Pair<>(code, response);
     }
 }

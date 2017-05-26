@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.visualizer;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.junit.Test;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
@@ -48,7 +47,7 @@ public class VisualCortexTest extends Module {
             }
         }
 
-        VisualCortex vc = new VisualCortexFactory()
+        GraphVisualizer vc = new GraphVisualizationFactory()
                 .subgraph(g)
                 .make();
     }
