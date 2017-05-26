@@ -44,6 +44,6 @@ public class NovelKmerAggregationStopper extends AbstractTraversalStopper<Cortex
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
-        return !haveSeenNovelKmers && currentGraphSize >= 100 && currentTraversalDepth >= 3;
+        return !haveSeenNovelKmers && (currentGraphSize >= 100 || currentTraversalDepth >= 3);
     }
 }
