@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.visualizer.handlers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.apache.commons.math3.util.Pair;
+import uk.ac.ox.well.indiana.Main;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,6 +35,8 @@ public abstract class BaseHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
+        Main.getLogger().info("[VisualCortex] request: {} {}", httpExchange.getRequestMethod(), httpExchange.getRequestURI());
+
         Pair<Integer, String> r = respond(httpExchange);
 
         write(httpExchange, r.getFirst(), r.getSecond());

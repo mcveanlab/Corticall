@@ -44,8 +44,6 @@ public class SubGraphHandler extends BaseHandler {
         Map<String, String> qm = query(httpExchange);
         String kmer = qm.getOrDefault("kmer", null);
 
-        Main.getLogger().info("query: {}, kmer: {}", qm, kmer);
-
         if (kmer != null) {
             TraversalEngine e = new TraversalEngineFactory()
                     .graph(graph)
@@ -55,7 +53,6 @@ public class SubGraphHandler extends BaseHandler {
                     .make();
         }
 
-        /*
         for (CortexVertex v : g.vertexSet()) {
             Map<String, Object> vm = new HashMap<>();
 
@@ -74,9 +71,6 @@ public class SubGraphHandler extends BaseHandler {
 
         jo.put("vertices", vs);
         jo.put("edges", es);
-
-        //write(httpExchange, jo.toString());
-        */
 
         return new Pair<>(HttpStatusCodes.STATUS_CODE_OK, jo.toString());
     }
