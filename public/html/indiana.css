@@ -1,6 +1,8 @@
 body {
     font-family: Lucidatypewriter, monospace;
     font-size: 16.0px;
+    position: fixed;
+    overflow-y: scroll;
 
     background-color: #FFFFFF;
 }
@@ -100,4 +102,3 @@ body {
 .markerFather {
     fill: #00AAB5;
 }
-

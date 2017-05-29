@@ -12,10 +12,10 @@ import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
 @Description(text="Starts the server for visualizing assembly data")
 public class VisualCortex extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
+    @Argument(fullName="graph", shortName="g", doc="Graph", required=false)
     public CortexGraph GRAPH;
 
-    @Argument(fullName="rois", shortName="r", doc="ROIs")
+    @Argument(fullName="rois", shortName="r", doc="ROIs", required=false)
     public CortexGraph ROIS;
 
     @Argument(fullName="port", shortName="p", doc="Port")
@@ -23,16 +23,21 @@ public class VisualCortex extends Module {
 
     @Override
     public void execute() {
-        log.info("Graph: {} {}", GRAPH.getNumRecords(), GRAPH.getCortexFile());
-        log.info("Rois:  {} {}", ROIS.getNumRecords(), ROIS.getCortexFile());
-        log.info("");
+        GraphVisualizationFactory gvf = new GraphVisualizationFactory()
+            .port(PORT)
+            .logger(log);
 
-        GraphVisualizer gv = new GraphVisualizationFactory()
-                .port(PORT)
-                .logger(log)
-                .graph(GRAPH)
-                .rois(ROIS)
-                .make();
+        if (GRAPH != null) {
+            log.info("Graph: {} {}", GRAPH.getNumRecords(), GRAPH.getCortexFile());
 
+            gvf = gvf.graph(GRAPH);
+        }
+        if (ROIS != null) {
+            log.info("Rois:  {} {}", ROIS.getNumRecords(), ROIS.getCortexFile());
+
+            gvf = gvf.rois(ROIS);
+        }
+
+        GraphVisualizer gv = gvf.make();
     }
 }
