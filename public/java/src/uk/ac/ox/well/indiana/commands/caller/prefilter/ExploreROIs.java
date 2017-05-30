@@ -5,11 +5,14 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
-import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
+import uk.ac.ox.well.indiana.utils.traversal.*;
 import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by kiran on 30/05/2017.
@@ -23,9 +26,27 @@ public class ExploreROIs extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(ROIS.getSampleName(11));
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(Arrays.asList("PG0443-C", "PG0050-CX2"));
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(childColor)
+                .joiningColors(parentColors)
+                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
+                .stopper(ExplorationStopper.class)
+                .graph(GRAPH)
+                .rois(ROIS)
+                .make();
+
         GraphVisualizer gv = new GraphVisualizer(9000);
 
+        List<CortexRecord> rrs = new ArrayList<>();
         for (CortexRecord rr : ROIS) {
+            rrs.add(rr);
+        }
+
+        for (CortexRecord rr : rrs) {
             CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
             log.info("{} {} {} {} {} {}",
@@ -37,8 +58,12 @@ public class ExploreROIs extends Module {
                     cr
             );
 
-            //TraversalEngine e = new TraversalEngineFactory()
-            //DirectedGraph<CortexVertex, CortexEdge> g =
+            DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
+
+            gv.display(g);
+
+            log.info("Press enter for next graph");
+            System.console().readLine();
         }
     }
 }
