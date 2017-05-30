@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.prefilter;
 
+import com.google.api.client.util.Joiner;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -20,6 +21,7 @@ import uk.ac.ox.well.indiana.utils.traversal.AnnotatedVertex;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Description(text="Remove kmers shared among children (as these are unlikely to tag de novo mutations)")
@@ -68,14 +70,25 @@ public class RemoveShared extends Module {
             if (!sharedKmers.contains(rr.getCortexKmer())) {
                 CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
+                boolean isShared = false;
+
                 for (int c = 0; c < GRAPH.getNumColors(); c++) {
                     if (c != childColor && !parentColors.contains(c) && !ignoreColors.contains(c) && cr.getCoverage(c) > 0) {
                         sharedKmers.add(rr.getCortexKmer());
-
-                        log.debug("{}", cr);
+                        isShared = true;
 
                         break;
                     }
+                }
+
+                if (isShared && log.isDebugEnabled()) {
+                    List<String> records = new ArrayList<>();
+
+                    for (int c = 0; c < GRAPH.getNumColors(); c++) {
+                        records.add(String.format("%d:%d", c, cr.getCoverage(c)));
+                    }
+
+                    log.debug("{}", Joiner.on(' ').join(records));
                 }
             }
 
