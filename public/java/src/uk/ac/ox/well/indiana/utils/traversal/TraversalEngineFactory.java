@@ -29,9 +29,9 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory recruitmentColors(Collection<Integer> colors) { configuration.getRecruitmentColors().addAll(colors); return this; }
     public TraversalEngineFactory recruitmentColors() { configuration.getRecruitmentColors().clear(); return this; }
 
-    public TraversalEngineFactory displayColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
-    public TraversalEngineFactory displayColors(Collection<Integer> colors) { configuration.getJoiningColors().addAll(colors); return this; }
-    public TraversalEngineFactory displayColors() { configuration.getJoiningColors().clear(); return this; }
+    public TraversalEngineFactory displayColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getDisplayColors().add(c)); return this; }
+    public TraversalEngineFactory displayColors(Collection<Integer> colors) { configuration.getDisplayColors().addAll(colors); return this; }
+    public TraversalEngineFactory displayColors() { configuration.getDisplayColors().clear(); return this; }
 
     public TraversalEngineFactory previousTraversal(DirectedGraph<CortexVertex, CortexEdge> previousTraversal) { configuration.setPreviousTraversal(previousTraversal); return this; }
 
