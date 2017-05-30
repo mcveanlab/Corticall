@@ -6,6 +6,7 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
@@ -66,10 +67,19 @@ public class GraphVisualizer {
         for (CortexEdge e : g.edgeSet()) {
             Map<String, Object> em = new HashMap<>();
 
-            em.put("source", g.getEdgeSource(e).getSk());
-            em.put("target", g.getEdgeTarget(e).getSk());
-            em.put("color", e.getColor());
-            es.add(em);
+            CortexVertex cs = g.getEdgeSource(e);
+            boolean isFlipped = new CortexKmer(cs.getSk()).isFlipped();
+
+            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cs.getCr(), isFlipped);
+
+            for (int color : nks.keySet()) {
+                for (String nk : nks.get(color)) {
+                    em.put("source", cs.getSk());
+                    em.put("target", nk);
+                    em.put("color",  color);
+                    es.add(em);
+                }
+            }
         }
 
         jo.put("vertices", vs);

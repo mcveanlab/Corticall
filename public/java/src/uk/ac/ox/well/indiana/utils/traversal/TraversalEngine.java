@@ -33,25 +33,34 @@ public class TraversalEngine {
         DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
         DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
 
-        DirectedGraph<CortexVertex, CortexEdge> dfs = new DefaultDirectedGraph<>(CortexEdge.class);
+        DirectedGraph<CortexVertex, CortexEdge> dfs = null;
 
         if (ec.getGraphCombinationOperator() == OR) {
             if (dfsr != null || dfsf != null) {
+                dfs = new DefaultDirectedGraph<>(CortexEdge.class);
+
                 if (dfsr != null) { Graphs.addGraph(dfs, dfsr); }
                 if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
-
-                return dfs;
             }
         } else {
             if (dfsr != null && dfsf != null) {
+                dfs = new DefaultDirectedGraph<>(CortexEdge.class);
+
                 Graphs.addGraph(dfs, dfsr);
                 Graphs.addGraph(dfs, dfsf);
-
-                return dfs;
             }
         }
 
-        return null;
+        /*
+        if (dfs != null) {
+            for (CortexEdge e : dfs.edgeSet()) {
+                CortexVertex cs = dfs.getEdgeSource(e);
+                CortexVertex ct = dfs.getEdgeTarget(e);
+            }
+        }
+        */
+
+        return dfs;
     }
 
     public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
@@ -351,20 +360,14 @@ public class TraversalEngine {
         return nextVertices;
     }
 
-    public Map<Integer, Set<String>> getAllPrevKmers(String sk) {
-        CortexKmer ck = new CortexKmer(sk);
-        CortexRecord cr = ec.getGraph().findRecord(ck);
-
+    public static Map<Integer, Set<String>> getAllPrevKmers(CortexRecord cr, boolean isFlipped) {
         Map<Integer, Set<String>> prevKmers = new HashMap<>();
 
-        if (cr == null) {
-            cr = ec.getGraph().findRecord(ck);
-        }
-
         if (cr != null) {
+            String sk = !isFlipped ? cr.getKmerAsString() : SequenceUtils.reverseComplement(cr.getKmerAsString());
             String suffix = sk.substring(0, sk.length() - 1);
 
-            Map<Integer, Set<String>> inEdges = getInEdges(cr, ck.isFlipped());
+            Map<Integer, Set<String>> inEdges = getInEdges(cr, isFlipped);
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 Set<String> inKmers = new HashSet<>();
@@ -380,16 +383,21 @@ public class TraversalEngine {
         return prevKmers;
     }
 
-    public Map<Integer, Set<String>> getAllNextKmers(String sk) {
+    public Map<Integer, Set<String>> getAllPrevKmers(String sk) {
         CortexKmer ck = new CortexKmer(sk);
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
+        return getAllPrevKmers(cr, ck.isFlipped());
+    }
+
+    public static Map<Integer, Set<String>> getAllNextKmers(CortexRecord cr, boolean isFlipped) {
         Map<Integer, Set<String>> nextKmers = new HashMap<>();
 
         if (cr != null) {
+            String sk = !isFlipped ? cr.getKmerAsString() : SequenceUtils.reverseComplement(cr.getKmerAsString());
             String prefix = sk.substring(1, sk.length());
 
-            Map<Integer, Set<String>> outEdges = getOutEdges(cr, ck.isFlipped());
+            Map<Integer, Set<String>> outEdges = getOutEdges(cr, isFlipped);
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 Set<String> outKmers = new HashSet<>();
@@ -405,7 +413,14 @@ public class TraversalEngine {
         return nextKmers;
     }
 
-    private Map<Integer, Set<String>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
+    public Map<Integer, Set<String>> getAllNextKmers(String sk) {
+        CortexKmer ck = new CortexKmer(sk);
+        CortexRecord cr = ec.getGraph().findRecord(ck);
+
+        return getAllNextKmers(cr, ck.isFlipped());
+    }
+
+    private static Map<Integer, Set<String>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
         Map<Integer, Set<String>> inEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
@@ -421,7 +436,7 @@ public class TraversalEngine {
         return inEdges;
     }
 
-    private Map<Integer, Set<String>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
+    private static Map<Integer, Set<String>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
         Map<Integer, Set<String>> outEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
