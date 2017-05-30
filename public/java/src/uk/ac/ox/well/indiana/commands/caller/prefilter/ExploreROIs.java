@@ -9,10 +9,7 @@ import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.*;
 import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by kiran on 30/05/2017.
@@ -29,9 +26,14 @@ public class ExploreROIs extends Module {
         int childColor = GRAPH.getColorForSampleName(ROIS.getSampleName(11));
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(Arrays.asList("PG0443-C", "PG0050-CX2"));
 
+        Set<Integer> displayColors = new TreeSet<>();
+        displayColors.add(childColor);
+        displayColors.addAll(parentColors);
+
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(childColor)
                 .joiningColors(parentColors)
+                .displayColors(displayColors)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
                 .stopper(ExplorationStopper.class)
