@@ -26,6 +26,10 @@ public class ExploreROIs extends Module {
         int childColor = GRAPH.getColorForSampleName(ROIS.getSampleName(11));
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(Arrays.asList("PG0443-C", "PG0050-CX2"));
 
+        log.info("Colors:");
+        log.info(" -   child: {}", childColor);
+        log.info(" - parents: {}", parentColors);
+
         Set<Integer> displayColors = new TreeSet<>();
         displayColors.add(childColor);
         displayColors.addAll(parentColors);
