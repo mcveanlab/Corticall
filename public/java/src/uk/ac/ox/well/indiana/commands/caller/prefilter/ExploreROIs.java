@@ -29,10 +29,10 @@ public class ExploreROIs extends Module {
             CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
             log.info("{} {} {} {} {} {}",
-                    GRAPH.getSampleName(8),
-                    GRAPH.getSampleName(9),
-                    GRAPH.getSampleName(10),
-                    GRAPH.getSampleName(11),
+                    ROIS.getSampleName(8),
+                    ROIS.getSampleName(9),
+                    ROIS.getSampleName(10),
+                    ROIS.getSampleName(11),
                     rr,
                     cr
             );
