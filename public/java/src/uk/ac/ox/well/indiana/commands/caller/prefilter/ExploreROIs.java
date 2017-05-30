@@ -26,15 +26,19 @@ public class ExploreROIs extends Module {
         GraphVisualizer gv = new GraphVisualizer(9000);
 
         for (CortexRecord rr : ROIS) {
-            log.info("rr: {}", rr);
-
             CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
 
-            log.info("{} {}", rr, cr);
+            log.info("{} {} {} {} {} {}",
+                    GRAPH.getSampleName(8),
+                    GRAPH.getSampleName(9),
+                    GRAPH.getSampleName(10),
+                    GRAPH.getSampleName(11),
+                    rr,
+                    cr
+            );
 
             //TraversalEngine e = new TraversalEngineFactory()
             //DirectedGraph<CortexVertex, CortexEdge> g =
         }
-
     }
 }
