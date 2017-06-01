@@ -47,6 +47,6 @@ public class ExplorationStopper extends AbstractTraversalStopper<CortexVertex, C
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
-        return !novelKmerFound && (currentGraphSize > 1000 || numAdjacentEdges == 0 || currentTraversalDepth > 10);
+        return !novelKmerFound && (currentGraphSize > 500 || numAdjacentEdges == 0 || currentTraversalDepth > 5);
     }
 }
