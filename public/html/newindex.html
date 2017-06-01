@@ -70,27 +70,6 @@ d3.json("listener", function(data) {
 </script>
 
 <script type="text/javascript">
-function checkForNewGraph() {
-    d3.json("listener", function(newGraph) {
-        oldIds = oldGraph == "" ? "" : oldGraph.vertices.map(function(e) { return e.id; });
-        newIds = newGraph == "" ? "" : newGraph.vertices.map(function(e) { return e.id; });
-
-        if (newGraph != null && JSON.stringify(oldIds) != JSON.stringify(newIds)) {
-            drawGraph(newGraph);
-            setStatus("Vertices: " + newGraph.vertices.length);
-
-            oldGraph = newGraph;
-        }
-    });
-}
-
-oldGraph = "";
-//checkForNewGraph()
-
-//setInterval(checkForNewGraph, 30000);
-</script>
-
-<script type="text/javascript">
 function setStatus(status) {
     d3.select("#status").text(status);
 }
@@ -121,9 +100,9 @@ function drawGraph(graph) {
 
     var link = g.append("g")
         .attr("class", "links")
-        .selectAll("line")
+        .selectAll("path")
         .data(graph.edges)
-        .enter().append("line")
+        .enter().append("path")
         .attr("stroke", function(d) {
             return color(d.color)
         })
@@ -134,8 +113,6 @@ function drawGraph(graph) {
         .selectAll("circle")
         .data(graph.vertices)
         .enter().append("circle")
-        //.attr("r", 5)
-        //.attr("fill", "#cc0000")
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
@@ -150,6 +127,10 @@ function drawGraph(graph) {
         .links(graph.edges);
 
     function ticked() {
+        link.attr("d", positionLink);
+        node.attr("transform", positionNode);
+
+        /*
         link
             .attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
@@ -159,6 +140,17 @@ function drawGraph(graph) {
         node
             .attr("cx", function(d) { return d.x; })
             .attr("cy", function(d) { return d.y; })
+        */
+    }
+
+    function positionLink(d) {
+        offset = (d.color % 2 == 0 ? -1 : 1) * d.color;
+        return "M" + d.source.x + "," + d.source.y + " " +
+               "C" + d.source.x + "," + (d.source.y + offset) + " " + d.target.x + "," + (d.target.y + offset) + " " + d.target.x + "," + d.target.y;
+    }
+
+    function positionNode(d) {
+        return "translate(" + d.x + "," + d.y + ")";
     }
 
     function dragstarted(d) {
