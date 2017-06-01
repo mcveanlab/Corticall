@@ -24,4 +24,26 @@ public class CortexEdge extends DefaultWeightedEdge {
     @Override
     public double getWeight() { return weight; }
     public void setWeight(double weight) { this.weight = weight; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CortexEdge that = (CortexEdge) o;
+
+        if (color != that.color) return false;
+        return Double.compare(that.weight, weight) == 0;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        result = color;
+        temp = Double.doubleToLongBits(weight);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
+    }
 }

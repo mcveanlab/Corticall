@@ -51,33 +51,33 @@ public class GraphVisualizer {
         vcc.setPort(port);
     }
 
-    public int display(DirectedGraph<CortexVertex, CortexEdge> g) {
+    public int display(DirectedGraph<CortexVertex, CortexEdge> g, Set<Integer> displayColors) {
         JSONObject jo = new JSONObject();
 
         Set<Map<String, Object>> vs = new HashSet<>();
         Set<Map<String, Object>> es = new HashSet<>();
 
-        for (CortexVertex v : g.vertexSet()) {
-            Map<String, Object> vm = new HashMap<>();
-
-            vm.put("id", v.getSk());
-            vs.add(vm);
-        }
-
         for (CortexEdge e : g.edgeSet()) {
-            Map<String, Object> em = new HashMap<>();
-
             CortexVertex cs = g.getEdgeSource(e);
             boolean isFlipped = new CortexKmer(cs.getSk()).isFlipped();
 
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cs.getCr(), isFlipped);
 
-            for (int color : nks.keySet()) {
+            for (int color : displayColors) {
                 for (String nk : nks.get(color)) {
+                    Map<String, Object> em = new HashMap<>();
                     em.put("source", cs.getSk());
                     em.put("target", nk);
                     em.put("color",  color);
                     es.add(em);
+
+                    Map<String, Object> va = new HashMap<>();
+                    va.put("id", cs.getSk());
+                    vs.add(va);
+
+                    Map<String, Object> vb = new HashMap<>();
+                    va.put("id", nk);
+                    vs.add(vb);
                 }
             }
         }
