@@ -14,7 +14,7 @@ body {
 }
 
 #graphSelector {
-    font-family: Lucidatypewriter, monospace;
+    font-family: monospace;
     font-size: 16.0px;
     width: 500px;
 }
