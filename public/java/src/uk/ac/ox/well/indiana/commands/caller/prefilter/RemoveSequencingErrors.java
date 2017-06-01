@@ -9,6 +9,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
@@ -62,7 +63,8 @@ public class RemoveSequencingErrors extends Module {
                         .joiningColors(parentColors)
                         .combinationOperator(AND)
                         .traversalDirection(BOTH)
-                        .stopper(BubbleOpeningStopper.class)
+                        //.stopper(BubbleOpeningStopper.class)
+                        .stopper(ExplorationStopper.class)
                         .rois(ROI)
                         .graph(GRAPH)
                         .make();
