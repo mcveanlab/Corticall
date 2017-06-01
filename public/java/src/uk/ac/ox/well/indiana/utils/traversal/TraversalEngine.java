@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -11,6 +12,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.*;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;

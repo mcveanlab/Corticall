@@ -66,7 +66,7 @@ public class ExploreROIs extends Module {
 
             DirectedGraph<CortexVertex, CortexEdge> g = e.dfs(rr.getKmerAsString());
 
-            gv.display(g);
+            gv.display(g, displayColors);
 
             log.info("Press enter for next graph");
             System.console().readLine();
