@@ -10,6 +10,10 @@
 
 <div id="nav">
     <!--<div id="kmerSelection"><input type="text" id="kmerBox" /></div>-->
+    <div id="graphSelection">
+        <select id="graphSelector"></select>
+    </div>
+
     <div id="info"></div>
     <div id="status"></div>
 </div>
@@ -33,6 +37,39 @@ d3.select("#kmerBox").on("keyup", function (d) {
 </script>
 
 <script type="text/javascript">
+var select = d3.select("#graphSelector");
+
+d3.json("listener", function(data) {
+    select
+        .selectAll("option")
+        .data(data.names)
+        .enter()
+        .append("option")
+        .attr("value", function(d) { return d; })
+        .text(function(d) { return d; })
+
+    select.append("option")
+        .attr("disabled", true)
+        .attr("selected", true)
+        .text("-- select graph --");
+
+    select
+        .on("change", function() {
+            graphName = d3.select(this)
+                .selectAll("option")
+                .filter(function() {
+                    return this.selected;
+                })
+                .text();
+
+            d3.json("listener?name=" + graphName, function(graph) {
+                drawGraph(graph);
+            });
+        });
+});
+</script>
+
+<script type="text/javascript">
 function checkForNewGraph() {
     d3.json("listener", function(newGraph) {
         oldIds = oldGraph == "" ? "" : oldGraph.vertices.map(function(e) { return e.id; });
@@ -48,9 +85,9 @@ function checkForNewGraph() {
 }
 
 oldGraph = "";
-checkForNewGraph()
+//checkForNewGraph()
 
-setInterval(checkForNewGraph, 30000);
+//setInterval(checkForNewGraph, 30000);
 </script>
 
 <script type="text/javascript">

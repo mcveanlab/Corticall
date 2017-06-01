@@ -25,6 +25,7 @@ public class CortexEdge extends DefaultWeightedEdge {
     public double getWeight() { return weight; }
     public void setWeight(double weight) { this.weight = weight; }
 
+    /*
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -46,4 +47,5 @@ public class CortexEdge extends DefaultWeightedEdge {
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }
+    */
 }
