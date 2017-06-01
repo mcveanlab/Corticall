@@ -60,7 +60,7 @@ public class RemoveSequencingErrors extends Module {
         Set<CortexKmer> errorKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
-            log.info("{}", rr);
+            //log.info("{}", rr);
 
             if (!errorKmers.contains(rr.getCortexKmer())) {
                 TraversalEngine o = new TraversalEngineFactory()
@@ -87,7 +87,7 @@ public class RemoveSequencingErrors extends Module {
                     }
                 }
 
-                log.info("  vertices: {}, novels: {}", g.vertexSet().size(), numNovels);
+                log.info("  rr: {}, vertices: {}, novels: {}", rr, g.vertexSet().size(), numNovels);
 
                 vc.display(g, displayColors, rr.getKmerAsString());
 
