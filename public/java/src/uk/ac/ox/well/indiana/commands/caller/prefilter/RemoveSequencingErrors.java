@@ -75,7 +75,7 @@ public class RemoveSequencingErrors extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g = o.dfs(rr.getKmerAsString());
 
-                log.info("  {} {}", rr.getCortexKmer(), g.vertexSet().size());
+                log.info("  {}", g.vertexSet().size());
 
                 vc.display(g, displayColors, rr.getKmerAsString());
 
