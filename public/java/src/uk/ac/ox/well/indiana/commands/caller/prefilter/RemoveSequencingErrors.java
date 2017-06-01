@@ -92,9 +92,10 @@ public class RemoveSequencingErrors extends Module {
                 vc.display(g, displayColors, rr.getKmerAsString());
 
                 for (CortexVertex v : g.vertexSet()) {
-                    errorKmers.add(v.getCr().getCortexKmer());
+                    if (roiKmers.contains(v.getCk())) {
+                        errorKmers.add(v.getCr().getCortexKmer());
+                    }
                 }
-
             }
 
             pm.update();
