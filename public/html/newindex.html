@@ -75,6 +75,8 @@ function setStatus(status) {
 }
 
 function drawGraph(graph) {
+    d3.select("#graphDisplay").selectAll("svg").remove();
+
     var svg = d3.select("#graphDisplay")
                 .append("svg")
                 .attr("width", window.innerWidth)
@@ -129,18 +131,6 @@ function drawGraph(graph) {
     function ticked() {
         link.attr("d", positionLink);
         node.attr("transform", positionNode);
-
-        /*
-        link
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; })
-
-        node
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; })
-        */
     }
 
     function positionLink(d) {
