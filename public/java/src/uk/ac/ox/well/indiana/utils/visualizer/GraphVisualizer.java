@@ -76,7 +76,7 @@ public class GraphVisualizer {
                     vs.add(va);
 
                     Map<String, Object> vb = new HashMap<>();
-                    va.put("id", nk);
+                    vb.put("id", nk);
                     vs.add(vb);
                 }
             }
