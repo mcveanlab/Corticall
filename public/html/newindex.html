@@ -115,6 +115,7 @@ function drawGraph(graph) {
         .selectAll("circle")
         .data(graph.vertices)
         .enter().append("circle")
+        .attr("id", function(d) { return d.id; })
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
