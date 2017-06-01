@@ -46,8 +46,8 @@ public class GraphVisualizerTest {
 
         GraphVisualizer gv = new GraphVisualizer(9000);
 
-        int response = gv.display(g);
+        //int response = gv.display(g);
 
-        System.out.println("Response: " + response);
+        //System.out.println("Response: " + response);
     }
 }
