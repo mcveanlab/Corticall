@@ -50,6 +50,11 @@ public class RemoveSequencingErrors extends Module {
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
+        Set<CortexKmer> roiKmers = new HashSet<>();
+        for (CortexRecord rr : ROI) {
+            roiKmers.add(rr.getCortexKmer());
+        }
+
         GraphVisualizer vc = new GraphVisualizer(9000);
 
         Set<CortexKmer> errorKmers = new HashSet<>();
@@ -61,8 +66,8 @@ public class RemoveSequencingErrors extends Module {
                 TraversalEngine o = new TraversalEngineFactory()
                         .traversalColor(childColor)
                         .joiningColors(parentColors)
-                        .combinationOperator(AND)
                         .traversalDirection(BOTH)
+                        .combinationOperator(AND)
                         //.stopper(BubbleOpeningStopper.class)
                         .stopper(ExplorationStopper.class)
                         .rois(ROI)
@@ -75,7 +80,14 @@ public class RemoveSequencingErrors extends Module {
 
                 DirectedGraph<CortexVertex, CortexEdge> g = o.dfs(rr.getKmerAsString());
 
-                log.info("  {}", g.vertexSet().size());
+                int numNovels = 0;
+                for (CortexVertex cv : g.vertexSet()) {
+                    if (roiKmers.contains(cv.getCk())) {
+                        numNovels++;
+                    }
+                }
+
+                log.info("  vertices: {}, novels: {}", g.vertexSet().size(), numNovels);
 
                 vc.display(g, displayColors, rr.getKmerAsString());
 
@@ -83,94 +95,6 @@ public class RemoveSequencingErrors extends Module {
                     errorKmers.add(v.getCr().getCortexKmer());
                 }
 
-                /*
-                if (g1 != null) {
-                    TraversalEngine c = new TraversalEngineFactory()
-                            .traversalColor(childColor)
-                            .joiningColors(parentColors)
-                            .combinationOperator(AND)
-                            .traversalDirection(FORWARD)
-                            .stopper(BubbleClosingStopper.class)
-                            .rois(ROI)
-                            .graph(GRAPH)
-                            .previousTraversal(g1)
-                            .make();
-
-                    for (CortexVertex cv : g1.vertexSet()) {
-                        if (o.getOutDegree(cv.getSk()) > 1) {
-                            DirectedGraph<CortexVertex, CortexEdge> g2 = c.dfs(cv.getSk());
-
-                            if (g2 != null) {
-                                DirectedGraph<CortexVertex, CortexEdge> gvis = new DefaultDirectedGraph<>(CortexEdge.class);
-                                Graphs.addAllVertices(gvis, g1.vertexSet());
-                                Graphs.addAllVertices(gvis, g2.vertexSet());
-                                for (CortexEdge e : g1.edgeSet()) {
-                                    gvis.addEdge(g1.getEdgeSource(e), g1.getEdgeTarget(e), new CortexEdge(1, 0.0));
-                                }
-                                for (CortexEdge e : g2.edgeSet()) {
-                                    gvis.addEdge(g2.getEdgeSource(e), g2.getEdgeTarget(e), new CortexEdge(1, 0.0));
-                                }
-
-                                VisualCortex vc = new VisualCortexFactory()
-                                        .subgraph(gvis)
-                                        .port(9000)
-                                        .logger(log)
-                                        .make();
-
-                                DepthFirstIterator<CortexVertex, CortexEdge> dfi1 = new DepthFirstIterator<>(g1, cv);
-                                DepthFirstIterator<CortexVertex, CortexEdge> dfi2 = new DepthFirstIterator<>(g2, cv);
-
-                                Set<GraphPath<CortexVertex, CortexEdge>> ps1 = new HashSet<>();
-
-                                Set<CortexVertex> ends = new HashSet<>();
-                                while (dfi1.hasNext()) {
-                                    CortexVertex ev = dfi1.next();
-
-                                    if (o.getInDegree(ev.getSk()) > 1) {
-                                        ends.add(ev);
-
-                                        DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
-
-                                        ps1.add(dj.getPath());
-                                    }
-                                }
-
-                                Set<GraphPath<CortexVertex, CortexEdge>> ps2 = new HashSet<>();
-
-                                while (dfi2.hasNext()) {
-                                    CortexVertex ev = dfi2.next();
-
-                                    if (ends.contains(ev)) {
-                                        DijkstraShortestPath<CortexVertex, CortexEdge> dj = new DijkstraShortestPath<>(g1, cv, ev);
-
-                                        if (!ps1.contains(dj.getPath())) {
-                                            ps2.add(dj.getPath());
-                                        }
-                                    }
-                                }
-
-                                for (GraphPath<CortexVertex, CortexEdge> p1 : ps1) {
-                                    float covMean1 = 0.0f;
-                                    for (CortexVertex c1 : p1.getVertexList()) {
-                                        covMean1 += c1.getCr().getCoverage(childColor);
-                                    }
-                                    covMean1 = covMean1 / p1.getLength();
-
-                                    for (GraphPath<CortexVertex, CortexEdge> p2 : ps2) {
-                                        float covMean2 = 0.0f;
-                                        for (CortexVertex c2 : p2.getVertexList()) {
-                                            covMean2 += c2.getCr().getCoverage(childColor);
-                                        }
-                                        covMean2 = covMean2 / p2.getLength();
-
-                                        log.info(" - {} {} {} {}", covMean1, covMean2, p1.getLength(), p2.getLength());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                */
             }
 
             pm.update();
