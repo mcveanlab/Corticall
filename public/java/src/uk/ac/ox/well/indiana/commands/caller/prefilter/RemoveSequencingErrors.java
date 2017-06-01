@@ -68,6 +68,7 @@ public class RemoveSequencingErrors extends Module {
                         .joiningColors(parentColors)
                         .traversalDirection(BOTH)
                         .combinationOperator(AND)
+                        .connectAllNeighbors(true)
                         //.stopper(BubbleOpeningStopper.class)
                         .stopper(ExplorationStopper.class)
                         .rois(ROI)
