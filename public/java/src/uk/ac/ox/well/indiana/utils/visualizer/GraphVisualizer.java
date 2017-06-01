@@ -51,7 +51,7 @@ public class GraphVisualizer {
         vcc.setPort(port);
     }
 
-    public int display(DirectedGraph<CortexVertex, CortexEdge> g, Set<Integer> displayColors) {
+    public int display(DirectedGraph<CortexVertex, CortexEdge> g, Set<Integer> displayColors, String name) {
         JSONObject jo = new JSONObject();
 
         Set<Map<String, Object>> vs = new HashSet<>();
@@ -84,6 +84,7 @@ public class GraphVisualizer {
 
         jo.put("vertices", vs);
         jo.put("edges", es);
+        jo.put("name", name);
 
         try {
             URL obj = new URL("http://localhost:" + vcc.getPort() + "/listener");
@@ -99,9 +100,7 @@ public class GraphVisualizer {
             wr.flush();
             wr.close();
 
-            int responseCode = con.getResponseCode();
-
-            return responseCode;
+            return con.getResponseCode();
         } catch (MalformedURLException e) {
             throw new IndianaException("Malformed URL", e);
         } catch (IOException e) {

@@ -49,6 +49,8 @@ public class RemoveSequencingErrors extends Module {
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
+        GraphVisualizer vc = new GraphVisualizer(9000);
+
         Set<CortexKmer> errorKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
@@ -65,13 +67,17 @@ public class RemoveSequencingErrors extends Module {
                         .graph(GRAPH)
                         .make();
 
-                DirectedGraph<CortexVertex, CortexEdge> g1 = o.dfs(rr.getKmerAsString());
+                Set<Integer> displayColors = new HashSet<>();
+                displayColors.add(childColor);
+                displayColors.addAll(parentColors);
 
-                GraphVisualizer vc = new GraphVisualizationFactory()
-                        .subgraph(g1)
-                        .make();
+                DirectedGraph<CortexVertex, CortexEdge> g = o.dfs(rr.getKmerAsString());
 
-                break;
+                vc.display(g, displayColors, rr.getKmerAsString());
+
+                for (CortexVertex v : g.vertexSet()) {
+                    errorKmers.add(v.getCr().getCortexKmer());
+                }
 
                 /*
                 if (g1 != null) {
