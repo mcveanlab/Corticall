@@ -42,11 +42,11 @@ public class ExplorationStopper extends AbstractTraversalStopper<CortexVertex, C
             distanceFromLastNovelKmer = 0;
         }
 
-        return novelKmerFound && (distanceFromLastNovelKmer > 100 || childrenAlreadyTraversed);
+        return novelKmerFound && (distanceFromLastNovelKmer > 200 || childrenAlreadyTraversed);
     }
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
-        return !novelKmerFound && (currentGraphSize > 200 || numAdjacentEdges == 0 || currentTraversalDepth > 3);
+        return !novelKmerFound && (currentGraphSize > 300 || numAdjacentEdges == 0 || currentTraversalDepth > 4);
     }
 }
