@@ -1,17 +1,11 @@
 package uk.ac.ox.well.indiana.utils.visualizer;
 
-import com.google.api.client.http.HttpStatusCodes;
 import com.sun.net.httpserver.HttpServer;
-import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 import uk.ac.ox.well.indiana.utils.visualizer.handlers.PageHandler;
 import uk.ac.ox.well.indiana.utils.visualizer.handlers.SubGraphHandler;
 import uk.ac.ox.well.indiana.utils.visualizer.handlers.SubGraphListener;
@@ -51,13 +45,31 @@ public class GraphVisualizer {
         vcc.setPort(port);
     }
 
-    public int display(DirectedGraph<CortexVertex, CortexEdge> g, Set<Integer> displayColors, String name) {
+    public int display(DirectedGraph<CortexVertex, CortexEdge> g, String name) {
         JSONObject jo = new JSONObject();
 
         Set<Map<String, Object>> vs = new HashSet<>();
         Set<Map<String, Object>> es = new HashSet<>();
 
         for (CortexEdge e : g.edgeSet()) {
+            CortexVertex s = g.getEdgeSource(e);
+            CortexVertex t = g.getEdgeTarget(e);
+
+            Map<String, Object> em = new HashMap<>();
+            em.put("source", s.getSk());
+            em.put("target", t.getSk());
+            em.put("color", e.getColor());
+            es.add(em);
+
+            Map<String, Object> sm = new HashMap<>();
+            sm.put("id", s.getSk());
+            vs.add(sm);
+
+            Map<String, Object> tm = new HashMap<>();
+            tm.put("id", t.getSk());
+            vs.add(tm);
+
+            /*
             CortexVertex cs = g.getEdgeSource(e);
             boolean isFlipped = new CortexKmer(cs.getSk()).isFlipped();
 
@@ -80,6 +92,7 @@ public class GraphVisualizer {
                     vs.add(vb);
                 }
             }
+            */
         }
 
         jo.put("vertices", vs);

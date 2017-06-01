@@ -284,14 +284,14 @@ public class TraversalEngine {
         if (pvs != null) {
             for (CortexVertex pv : pvs) {
                 g.addVertex(pv);
-                g.addEdge(pv, cv, new CortexEdge());
+                g.addEdge(pv, cv, new CortexEdge(ec.getTraversalColor(), 1.0));
             }
         }
 
         if (nvs != null) {
             for (CortexVertex nv : nvs) {
                 g.addVertex(nv);
-                g.addEdge(cv, nv, new CortexEdge());
+                g.addEdge(cv, nv, new CortexEdge(ec.getTraversalColor(), 1.0));
             }
         }
     }

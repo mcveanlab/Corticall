@@ -8,14 +8,12 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
-import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizationFactory;
 
 import java.util.*;
 
@@ -90,7 +88,7 @@ public class RemoveSequencingErrors extends Module {
 
                 log.info("  rr: {}, vertices: {}, novels: {}", rr, g.vertexSet().size(), numNovels);
 
-                vc.display(g, displayColors, rr.getKmerAsString());
+                vc.display(g, rr.getKmerAsString());
 
                 for (CortexVertex v : g.vertexSet()) {
                     if (roiKmers.contains(v.getCk())) {
