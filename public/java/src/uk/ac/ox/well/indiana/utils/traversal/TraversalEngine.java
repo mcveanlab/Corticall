@@ -68,6 +68,8 @@ public class TraversalEngine {
             Map<Integer, Set<String>> pks = getAllPrevKmers(v.getSk());
             Map<Integer, Set<String>> nks = getAllNextKmers(v.getSk());
 
+            g2.addVertex(v);
+
             for (int c : ec.getDisplayColors()) {
                 for (String pk : pks.get(c)) {
                     CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk), c);
