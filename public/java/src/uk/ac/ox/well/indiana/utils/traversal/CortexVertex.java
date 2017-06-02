@@ -13,36 +13,18 @@ import java.util.TreeSet;
  */
 public class CortexVertex {
     private String sk;
-    private List<CortexRecord> cr = new ArrayList<>();
-    private Set<Integer> colors = new TreeSet<>();
+    private CortexRecord cr;
 
-    public CortexVertex(String sk, CortexRecord cr, int color) {
+    public CortexVertex(String sk, CortexRecord cr) {
         this.sk = sk;
-        this.cr.add(cr);
-        this.colors.add(color);
-    }
-
-    public CortexVertex(String sk, CortexRecord cr, Set<Integer> colors) {
-        this.sk = sk;
-        this.cr.add(cr);
-        this.colors.addAll(colors);
-    }
-
-    public CortexVertex(String sk, CortexRecord cr, int color, String leftSequence, String rightSequence) {
-        this.sk = sk;
-        this.cr.add(cr);
-        this.colors.add(color);
+        this.cr = cr;
     }
 
     public String getSk() { return sk; }
 
-    public CortexRecord getCr() { return cr.get(0); }
+    public CortexRecord getCr() { return cr; }
 
-    public CortexKmer getCk() { return cr.get(0).getCortexKmer(); }
-
-    public List<CortexRecord> getCrs() { return cr; }
-
-    public Set<Integer> getColors() { return colors; }
+    public CortexKmer getCk() { return cr.getCortexKmer(); }
 
     @Override
     public boolean equals(Object o) {
@@ -52,8 +34,7 @@ public class CortexVertex {
         CortexVertex that = (CortexVertex) o;
 
         if (sk != null ? !sk.equals(that.sk) : that.sk != null) return false;
-        if (cr != null ? !cr.equals(that.cr) : that.cr != null) return false;
-        return colors != null ? colors.equals(that.colors) : that.colors == null;
+        return cr != null ? cr.equals(that.cr) : that.cr == null;
 
     }
 
@@ -61,7 +42,6 @@ public class CortexVertex {
     public int hashCode() {
         int result = sk != null ? sk.hashCode() : 0;
         result = 31 * result + (cr != null ? cr.hashCode() : 0);
-        result = 31 * result + (colors != null ? colors.hashCode() : 0);
         return result;
     }
 
@@ -69,7 +49,6 @@ public class CortexVertex {
     public String toString() {
         return "CortexVertex{" +
                 "sk='" + sk + '\'' +
-                ", colors=" + colors +
                 ", cr=" + cr +
                 '}';
     }

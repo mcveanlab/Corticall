@@ -72,14 +72,14 @@ public class TraversalEngine {
 
             for (int c : ec.getDisplayColors()) {
                 for (String pk : pks.get(c)) {
-                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk), c);
+                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk));
 
                     g2.addVertex(pv);
                     g2.addEdge(pv, v, new CortexEdge(c, 1.0));
                 }
 
                 for (String nk : nks.get(c)) {
-                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk), c);
+                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk));
 
                     g2.addVertex(nv);
                     g2.addEdge(v, nv, new CortexEdge(c, 1.0));
@@ -94,7 +94,7 @@ public class TraversalEngine {
         List<CortexVertex> contigKmers = new ArrayList<>();
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(kmer));
-        CortexVertex cv = new CortexVertex(kmer, cr, ec.getTraversalColor());
+        CortexVertex cv = new CortexVertex(kmer, cr);
 
         CortexLinksRecord currentLink = null;
         LinkedList<String> sks = new LinkedList<>();
@@ -149,7 +149,7 @@ public class TraversalEngine {
             }
         }
 
-        cv = new CortexVertex(kmer, cr, ec.getTraversalColor());
+        cv = new CortexVertex(kmer, cr);
 
         boolean pastFirst = false;
         currentLink = null;
@@ -236,7 +236,7 @@ public class TraversalEngine {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
-        CortexVertex cv = new CortexVertex(sk, cr, ec.getTraversalColor());
+        CortexVertex cv = new CortexVertex(sk, cr);
 
         Set<CortexVertex> avs;
 
@@ -327,7 +327,7 @@ public class TraversalEngine {
 
         if (prevKmers.get(ec.getTraversalColor()).size() > 0) {
             for (String prevKmer : prevKmers.get(ec.getTraversalColor())) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer)), ec.getTraversalColor()));
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer))));
             }
         } else {
             Map<String, Set<Integer>> inKmerMap = new HashMap<>();
@@ -345,7 +345,7 @@ public class TraversalEngine {
             }
 
             for (String prevKmer : inKmerMap.keySet()) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer)), inKmerMap.get(prevKmer)));
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer))));
             }
         }
 
@@ -362,7 +362,7 @@ public class TraversalEngine {
         Map<Integer, Set<String>> nextKmers = getAllNextKmers(sk);
         if (nextKmers.get(ec.getTraversalColor()).size() > 0) {
             for (String nextKmer : nextKmers.get(ec.getTraversalColor())) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer)), ec.getTraversalColor()));
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer))));
             }
         } else {
             Map<String, Set<Integer>> outKmerMap = new HashMap<>();
@@ -380,7 +380,7 @@ public class TraversalEngine {
             }
 
             for (String nextKmer : outKmerMap.keySet()) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer)), outKmerMap.get(nextKmer)));
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer))));
             }
         }
 
