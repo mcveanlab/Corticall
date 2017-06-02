@@ -15,7 +15,7 @@
     </div>
 
     <div id="info"></div>
-    <div id="status"></div>
+    <div id="status">Ready.</div>
 </div>
 
 <div id="graphDisplay"></div>
@@ -117,10 +117,10 @@ function drawGraph(graph) {
         .enter().append("circle")
         .attr("id", function(d) { return d.id; })
         .on("mouseover", function(d) {
-            d3.select("#status").text(d.cr);
+            setStatus(d.cr);
         })
         .on("mouseout", function(d) {
-            d3.select("#status").text("");
+            setStatus("Ready.");
         })
         .call(d3.drag()
             .on("start", dragstarted)
