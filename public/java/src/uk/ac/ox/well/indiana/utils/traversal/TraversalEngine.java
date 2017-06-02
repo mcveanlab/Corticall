@@ -72,14 +72,14 @@ public class TraversalEngine {
 
             for (int c : ec.getDisplayColors()) {
                 for (String pk : pks.get(c)) {
-                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk));
+                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
 
                     g2.addVertex(pv);
                     g2.addEdge(pv, v, new CortexEdge(c, 1.0));
                 }
 
                 for (String nk : nks.get(c)) {
-                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk));
+                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
 
                     g2.addVertex(nv);
                     g2.addEdge(v, nv, new CortexEdge(c, 1.0));
