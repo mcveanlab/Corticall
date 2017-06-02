@@ -54,16 +54,34 @@ public class TraversalEngine {
             }
         }
 
-        /*
         if (dfs != null) {
-            for (CortexEdge e : dfs.edgeSet()) {
-                CortexVertex cs = dfs.getEdgeSource(e);
-                CortexVertex ct = dfs.getEdgeTarget(e);
-            }
+            addDisplayColors(dfs);
         }
-        */
 
         return dfs;
+    }
+
+    private void addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+        for (CortexVertex v : g.vertexSet()) {
+            Map<Integer, Set<String>> pks = getAllPrevKmers(v.getSk());
+            Map<Integer, Set<String>> nks = getAllNextKmers(v.getSk());
+
+            for (int c : ec.getDisplayColors()) {
+                for (String pk : pks.get(c)) {
+                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk), c);
+
+                    g.addVertex(pv);
+                    g.addEdge(pv, v, new CortexEdge(c, 1.0));
+                }
+
+                for (String nk : nks.get(c)) {
+                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk), c);
+
+                    g.addVertex(nv);
+                    g.addEdge(v, nv, new CortexEdge(c, 1.0));
+                }
+            }
+        }
     }
 
     public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
