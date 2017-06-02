@@ -124,9 +124,8 @@ public class GraphVisualizer {
 
         for (int c = 0; c < cr.getNumColors(); c++) {
             if (colors.contains(c)) {
-                for (String edge : cr.getEdgeAsStrings()) {
-                    ed += " " + c + ":" + (fw ? edge : SequenceUtils.reverseComplement(edge));
-                }
+                String edge = cr.getEdgesAsString(c);
+                ed += " " + c + ":" + (fw ? edge : SequenceUtils.reverseComplement(edge));
             }
         }
 
