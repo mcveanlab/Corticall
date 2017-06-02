@@ -110,13 +110,6 @@ function drawGraph(graph) {
         })
         .attr("stroke-width", 2);
 
-    var tooltip = d3.select("body")
-        .append("div")
-        .style("position", "absolute")
-        .style("z-index", "10")
-        .style("visibility", "hidden")
-        .text("a simple tooltip");
-
     var node = g.append("g")
         .attr("class", "nodes")
         .selectAll("circle")
@@ -124,10 +117,10 @@ function drawGraph(graph) {
         .enter().append("circle")
         .attr("id", function(d) { return d.id; })
         .on("mouseover", function(d) {
-            return tooltip.text(d.id).style("visibility", "visible");
+            d3.select("#status").text(d.cr);
         })
         .on("mouseout", function(d) {
-            return tooltip.style("visibility", "hidden");
+            d3.select("#status").text("");
         })
         .call(d3.drag()
             .on("start", dragstarted)
