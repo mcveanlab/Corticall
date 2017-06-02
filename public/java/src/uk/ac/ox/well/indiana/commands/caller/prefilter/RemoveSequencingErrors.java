@@ -37,6 +37,9 @@ public class RemoveSequencingErrors extends Module {
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
+        Set<Integer> displayColors = new HashSet<>();
+        displayColors.add(childColor);
+        displayColors.addAll(parentColors);
 
         log.info("Colors:");
         log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
@@ -64,6 +67,7 @@ public class RemoveSequencingErrors extends Module {
                 TraversalEngine o = new TraversalEngineFactory()
                         .traversalColor(childColor)
                         .joiningColors(parentColors)
+                        .displayColors(displayColors)
                         .traversalDirection(BOTH)
                         .combinationOperator(AND)
                         .connectAllNeighbors(true)
@@ -73,9 +77,6 @@ public class RemoveSequencingErrors extends Module {
                         .graph(GRAPH)
                         .make();
 
-                Set<Integer> displayColors = new HashSet<>();
-                displayColors.add(childColor);
-                displayColors.addAll(parentColors);
 
                 DirectedGraph<CortexVertex, CortexEdge> g = o.dfs(rr.getKmerAsString());
 
