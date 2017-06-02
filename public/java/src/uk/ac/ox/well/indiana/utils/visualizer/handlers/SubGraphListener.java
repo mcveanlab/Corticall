@@ -47,7 +47,7 @@ public class SubGraphListener extends BaseHandler {
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 String kmer = seq.substring(i, i + kmerSize);
 
-                CortexVertex cv = new CortexVertex(kmer, null, 0);
+                CortexVertex cv = new CortexVertex(kmer, null);
                 g.addVertex(cv);
 
                 if (lv != null) {
