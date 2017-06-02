@@ -70,7 +70,7 @@ public class GraphVisualizer {
 
             Map<String, Object> tm = new HashMap<>();
             tm.put("id", t.getSk());
-            sm.put("cr", recordToString(t.getSk(), t.getCr()));
+            tm.put("cr", recordToString(t.getSk(), t.getCr()));
             vs.add(tm);
         }
 
