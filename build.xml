@@ -237,7 +237,7 @@
     <!-- Get a compilation date for the executable -->
     <target name="build.date">
         <tstamp>
-            <format property="build.date.output" pattern="yyyy-MM-dd H:mm:ss Z" />
+            <format property="build.date.output" pattern="yyyy-MM-dd HH:mm:ss Z" />
         </tstamp>
         <echo message="${build.date.output}" />
     </target>
