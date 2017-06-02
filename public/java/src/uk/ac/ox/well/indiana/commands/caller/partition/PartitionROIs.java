@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.caller.partition;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DirectedWeightedMultigraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -61,7 +62,7 @@ public class PartitionROIs extends Module {
             log.info("{}", ck);
 
             if (p.containsKey(ck) && p.get(ck) == -1) {
-                DirectedGraph<CortexVertex, CortexEdge> dfs = e.dfs(ck.getKmerAsString());
+                DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs = e.dfs(ck.getKmerAsString());
 
                 if (dfs != null) {
                     int numNovels = 0;

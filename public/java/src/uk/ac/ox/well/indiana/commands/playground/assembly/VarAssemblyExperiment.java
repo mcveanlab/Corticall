@@ -6,6 +6,7 @@ import htsjdk.samtools.util.StringUtil;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedMultigraph;
 import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -68,17 +69,17 @@ public class VarAssemblyExperiment extends Module {
                 .links(lm)
                 .make();
 
-        DirectedGraph<CortexVertex, CortexEdge> dfs1 = e.dfs(sk);
+        DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs1 = e.dfs(sk);
         String contig1 = e.getContig(dfs1, sk, childColor);
 
         String lk2 = contig1.substring(contig1.length() - GRAPH.getKmerSize(), contig1.length());
         String nk2 = CortexUtils.getNextKmer(GRAPH, lk2, 0, false);
-        DirectedGraph<CortexVertex, CortexEdge> dfs2 = e.dfs(nk2);
+        DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs2 = e.dfs(nk2);
         String contig2 = e.getContig(dfs2, nk2, childColor);
 
         String lk3 = contig1.substring(contig2.length() - GRAPH.getKmerSize(), contig2.length());
         String nk3 = CortexUtils.getNextKmer(GRAPH, lk3, 0, false);
-        DirectedGraph<CortexVertex, CortexEdge> dfs3 = e.dfs(nk3);
+        DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs3 = e.dfs(nk3);
         String contig3 = e.getContig(dfs3, nk3, childColor);
 
         StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', GRAPH.getKmerSize() - 1));
@@ -166,7 +167,7 @@ public class VarAssemblyExperiment extends Module {
 
                 boolean found = false;
                 for (CortexVertex cv : vs) {
-                    DirectedGraph<CortexVertex, CortexEdge> d = f.dfs(cv.getSk());
+                    DirectedWeightedMultigraph<CortexVertex, CortexEdge> d = f.dfs(cv.getSk());
                     if (d != null) {
                         String contig = f.getContig(d, cv.getSk(), childColor);
 
