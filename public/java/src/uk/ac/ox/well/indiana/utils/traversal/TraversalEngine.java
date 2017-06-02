@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedMultigraph;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -61,35 +62,33 @@ public class TraversalEngine {
         return dfs;
     }
 
-    private void addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
-        DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
+    private DirectedWeightedMultigraph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+        DirectedWeightedMultigraph<CortexVertex, CortexEdge> m = new DirectedWeightedMultigraph<>(CortexEdge.class);
 
         for (CortexVertex v : g.vertexSet()) {
             Map<Integer, Set<String>> pks = getAllPrevKmers(v.getSk());
             Map<Integer, Set<String>> nks = getAllNextKmers(v.getSk());
 
-            g2.addVertex(v);
+            m.addVertex(v);
 
             for (int c : ec.getDisplayColors()) {
-                if (c != 24) {
-                    for (String pk : pks.get(c)) {
-                        CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
+                for (String pk : pks.get(c)) {
+                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
 
-                        g2.addVertex(pv);
-                        g2.addEdge(pv, v, new CortexEdge(c, 1.0));
-                    }
+                    m.addVertex(pv);
+                    m.addEdge(pv, v, new CortexEdge(c, 1.0));
+                }
 
-                    for (String nk : nks.get(c)) {
-                        CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
+                for (String nk : nks.get(c)) {
+                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
 
-                        g2.addVertex(nv);
-                        g2.addEdge(v, nv, new CortexEdge(c, 1.0));
-                    }
+                    m.addVertex(nv);
+                    m.addEdge(v, nv, new CortexEdge(c, 1.0));
                 }
             }
         }
 
-        Graphs.addGraph(g, g2);
+        return m;
     }
 
     public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
