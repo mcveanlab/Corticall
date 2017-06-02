@@ -62,6 +62,8 @@ public class TraversalEngine {
     }
 
     private void addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+        DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
+
         for (CortexVertex v : g.vertexSet()) {
             Map<Integer, Set<String>> pks = getAllPrevKmers(v.getSk());
             Map<Integer, Set<String>> nks = getAllNextKmers(v.getSk());
@@ -70,18 +72,20 @@ public class TraversalEngine {
                 for (String pk : pks.get(c)) {
                     CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk), c);
 
-                    g.addVertex(pv);
-                    g.addEdge(pv, v, new CortexEdge(c, 1.0));
+                    g2.addVertex(pv);
+                    g2.addEdge(pv, v, new CortexEdge(c, 1.0));
                 }
 
                 for (String nk : nks.get(c)) {
                     CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk), c);
 
-                    g.addVertex(nv);
-                    g.addEdge(v, nv, new CortexEdge(c, 1.0));
+                    g2.addVertex(nv);
+                    g2.addEdge(v, nv, new CortexEdge(c, 1.0));
                 }
             }
         }
+
+        Graphs.addGraph(g, g2);
     }
 
     public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
