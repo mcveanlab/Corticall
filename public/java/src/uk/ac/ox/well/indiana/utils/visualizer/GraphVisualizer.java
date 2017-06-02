@@ -53,6 +53,11 @@ public class GraphVisualizer {
         Set<Map<String, Object>> vs = new HashSet<>();
         Set<Map<String, Object>> es = new HashSet<>();
 
+        Set<Integer> colors = new HashSet<>();
+        for (CortexEdge e : g.edgeSet()) {
+            colors.add(e.getColor());
+        }
+
         for (CortexEdge e : g.edgeSet()) {
             CortexVertex s = g.getEdgeSource(e);
             CortexVertex t = g.getEdgeTarget(e);
@@ -65,12 +70,12 @@ public class GraphVisualizer {
 
             Map<String, Object> sm = new HashMap<>();
             sm.put("id", s.getSk());
-            sm.put("cr", recordToString(s.getSk(), s.getCr()));
+            sm.put("cr", recordToString(s.getSk(), s.getCr(), colors));
             vs.add(sm);
 
             Map<String, Object> tm = new HashMap<>();
             tm.put("id", t.getSk());
-            tm.put("cr", recordToString(t.getSk(), t.getCr()));
+            tm.put("cr", recordToString(t.getSk(), t.getCr(), colors));
             vs.add(tm);
         }
 
@@ -100,7 +105,7 @@ public class GraphVisualizer {
         }
     }
 
-    private String recordToString(String sk, CortexRecord cr) {
+    private String recordToString(String sk, CortexRecord cr, Set<Integer> colors) {
         String kmer = cr.getKmerAsString();
         String cov = "";
         String ed = "";
@@ -111,14 +116,20 @@ public class GraphVisualizer {
             kmer = SequenceUtils.reverseComplement(kmer);
         }
 
-        for (int coverage : cr.getCoverages()) {
-            cov += " " + coverage;
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (colors.contains(c)) {
+                cov += " " + c + ":" + cr.getCoverage(c);
+            }
         }
 
-        for (String edge : cr.getEdgeAsStrings()) {
-            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (colors.contains(c)) {
+                for (String edge : cr.getEdgeAsStrings()) {
+                    ed += " " + c + ":" + (fw ? edge : SequenceUtils.reverseComplement(edge));
+                }
+            }
         }
 
-        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed;
+        return kmer + " " + cov + " " + ed;
     }
 }
