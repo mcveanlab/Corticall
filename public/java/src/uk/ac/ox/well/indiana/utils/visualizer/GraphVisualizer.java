@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpServer;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.visualizer.handlers.PageHandler;
@@ -63,36 +65,13 @@ public class GraphVisualizer {
 
             Map<String, Object> sm = new HashMap<>();
             sm.put("id", s.getSk());
+            sm.put("cr", recordToString(s.getSk(), s.getCr()));
             vs.add(sm);
 
             Map<String, Object> tm = new HashMap<>();
             tm.put("id", t.getSk());
+            sm.put("cr", recordToString(t.getSk(), t.getCr()));
             vs.add(tm);
-
-            /*
-            CortexVertex cs = g.getEdgeSource(e);
-            boolean isFlipped = new CortexKmer(cs.getSk()).isFlipped();
-
-            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cs.getCr(), isFlipped);
-
-            for (int color : displayColors) {
-                for (String nk : nks.get(color)) {
-                    Map<String, Object> em = new HashMap<>();
-                    em.put("source", cs.getSk());
-                    em.put("target", nk);
-                    em.put("color",  color);
-                    es.add(em);
-
-                    Map<String, Object> va = new HashMap<>();
-                    va.put("id", cs.getSk());
-                    vs.add(va);
-
-                    Map<String, Object> vb = new HashMap<>();
-                    vb.put("id", nk);
-                    vs.add(vb);
-                }
-            }
-            */
         }
 
         jo.put("vertices", vs);
@@ -119,5 +98,27 @@ public class GraphVisualizer {
         } catch (IOException e) {
             throw new IndianaException("IOException", e);
         }
+    }
+
+    private String recordToString(String sk, CortexRecord cr) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
+        for (int coverage : cr.getCoverages()) {
+            cov += " " + coverage;
+        }
+
+        for (String edge : cr.getEdgeAsStrings()) {
+            ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+        }
+
+        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed;
     }
 }
