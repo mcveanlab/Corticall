@@ -88,7 +88,7 @@ function drawGraph(graph) {
        .style("fill", "none")
        .style("pointer-events", "all")
        .call(d3.zoom()
-               .scaleExtent([1 / 2, 4])
+               .scaleExtent([1 / 4, 4])
                .on("zoom", zoomed));
 
     var g = svg.append("g");
