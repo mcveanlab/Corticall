@@ -5,7 +5,6 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedMultigraph;
-import org.json.JSONObject;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -13,8 +12,6 @@ import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.*;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
@@ -29,7 +26,7 @@ public class TraversalEngine {
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
-    public DirectedGraph<CortexVertex, CortexEdge> dfs(String sk) {
+    public DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs(String sk) {
         if (sk.length() != ec.getGraph().getKmerSize()) {
             throw new IndianaException("Graph traversal starting kmer is not equal to graph kmer size (" + sk.length() + " vs " + ec.getGraph().getKmerSize() + ")");
         }
@@ -56,42 +53,57 @@ public class TraversalEngine {
         }
 
         if (dfs != null) {
-            addDisplayColors(dfs);
+            return addDisplayColors(dfs);
         }
 
-        return dfs;
+        return null;
     }
 
     private DirectedWeightedMultigraph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
         DirectedWeightedMultigraph<CortexVertex, CortexEdge> m = new DirectedWeightedMultigraph<>(CortexEdge.class);
 
-        for (CortexVertex v : g.vertexSet()) {
-            Map<Integer, Set<String>> pks = getAllPrevKmers(v.getSk());
-            Map<Integer, Set<String>> nks = getAllNextKmers(v.getSk());
+        Set<Integer> displayColors = new HashSet<>(ec.getDisplayColors());
+        if (displayColors.isEmpty()) {
+            Graphs.addGraph(m, g);
+        } else {
+            Map<String, Map<Integer, Set<String>>> pkscache = new HashMap<>();
+            Map<String, Map<Integer, Set<String>>> nkscache = new HashMap<>();
 
-            m.addVertex(v);
+            for (int c : displayColors) {
+                DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
 
-            for (int c : ec.getDisplayColors()) {
-                for (String pk : pks.get(c)) {
-                    CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
+                for (CortexVertex v : g.vertexSet()) {
+                    Map<Integer, Set<String>> pks = pkscache.containsKey(v.getSk()) ? pkscache.get(v.getSk()) : getAllPrevKmers(v.getSk());
+                    Map<Integer, Set<String>> nks = nkscache.containsKey(v.getSk()) ? nkscache.get(v.getSk()) : getAllNextKmers(v.getSk());
 
-                    m.addVertex(pv);
-                    m.addEdge(pv, v, new CortexEdge(c, 1.0));
+                    pkscache.put(v.getSk(), pks);
+                    nkscache.put(v.getSk(), nks);
+
+                    g2.addVertex(v);
+
+                    for (String pk : pks.get(c)) {
+                        CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
+
+                        g2.addVertex(pv);
+                        g2.addEdge(pv, v, new CortexEdge(c, 1.0));
+                    }
+
+                    for (String nk : nks.get(c)) {
+                        CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
+
+                        g2.addVertex(nv);
+                        g2.addEdge(v, nv, new CortexEdge(c, 1.0));
+                    }
                 }
 
-                for (String nk : nks.get(c)) {
-                    CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
-
-                    m.addVertex(nv);
-                    m.addEdge(v, nv, new CortexEdge(c, 1.0));
-                }
+                Graphs.addGraph(m, g2);
             }
         }
 
         return m;
     }
 
-    public String getContig(DirectedGraph<CortexVertex, CortexEdge> g, String kmer, int color) {
+    public String getContig(DirectedWeightedMultigraph<CortexVertex, CortexEdge> g, String kmer, int color) {
         List<CortexVertex> contigKmers = new ArrayList<>();
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(kmer));
