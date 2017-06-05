@@ -67,6 +67,7 @@ public class KmerLookup {
 
         if (l != null) {
             for (int i = 0; i < l.length - 1; i += 2) {
+                System.out.println(ref.getSequenceDictionary());
                 System.out.println(l[i] + " " + l[i + 1]);
 
                 String chr = ref.getSequenceDictionary().getSequence(l[i]).getSequenceName();
