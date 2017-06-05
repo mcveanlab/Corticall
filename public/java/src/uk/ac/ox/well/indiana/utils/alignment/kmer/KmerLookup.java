@@ -25,19 +25,23 @@ public class KmerLookup {
         initialize(refFile, 47);
     }
 
-    public KmerLookup(File ref, int kmerSize) {
-        initialize(ref, kmerSize);
+    public KmerLookup(File refFile, int kmerSize) {
+        initialize(refFile, kmerSize);
     }
 
-    private void initialize(File ref, int kmerSize) {
+    private void initialize(File refFile, int kmerSize) {
         this.kmerSize = kmerSize;
         try {
-            this.ref = new IndexedFastaSequenceFile(ref);
+            this.ref = new IndexedFastaSequenceFile(refFile);
+
+            if (this.ref.getSequenceDictionary() == null) {
+                throw new IndianaException("Reference must have a sequence dictionary");
+            }
         } catch (FileNotFoundException e) {
             throw new IndianaException("File not found", e);
         }
 
-        loadIndex(ref);
+        loadIndex(refFile);
     }
 
     private void loadIndex(File ref) {
@@ -67,9 +71,6 @@ public class KmerLookup {
 
         if (l != null) {
             for (int i = 0; i < l.length - 1; i += 2) {
-                System.out.println(ref.getSequenceDictionary());
-                System.out.println(l[i] + " " + l[i + 1]);
-
                 String chr = ref.getSequenceDictionary().getSequence(l[i]).getSequenceName();
                 int pos = l[i + 1];
 
