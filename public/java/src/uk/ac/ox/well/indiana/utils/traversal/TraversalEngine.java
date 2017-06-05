@@ -4,7 +4,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DirectedWeightedMultigraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -26,7 +26,7 @@ public class TraversalEngine {
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
-    public DirectedWeightedMultigraph<CortexVertex, CortexEdge> dfs(String sk) {
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk) {
         if (sk.length() != ec.getGraph().getKmerSize()) {
             throw new IndianaException("Graph traversal starting kmer is not equal to graph kmer size (" + sk.length() + " vs " + ec.getGraph().getKmerSize() + ")");
         }
@@ -59,8 +59,8 @@ public class TraversalEngine {
         return null;
     }
 
-    private DirectedWeightedMultigraph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
-        DirectedWeightedMultigraph<CortexVertex, CortexEdge> m = new DirectedWeightedMultigraph<>(CortexEdge.class);
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         Set<Integer> displayColors = new HashSet<>(ec.getDisplayColors());
         if (displayColors.isEmpty()) {
@@ -103,7 +103,7 @@ public class TraversalEngine {
         return m;
     }
 
-    public String getContig(DirectedWeightedMultigraph<CortexVertex, CortexEdge> g, String kmer, int color) {
+    public String getContig(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String kmer, int color) {
         List<CortexVertex> contigKmers = new ArrayList<>();
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(kmer));
@@ -249,6 +249,9 @@ public class TraversalEngine {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
+
+        if (cr == null) { throw new IndianaException("Record '" + sk + "' does not exist in graph."); }
+
         CortexVertex cv = new CortexVertex(sk, cr);
 
         Set<CortexVertex> avs;
@@ -490,5 +493,27 @@ public class TraversalEngine {
         }
 
         return outEdges;
+    }
+
+    public static int outDegree(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexVertex v) {
+        Set<CortexVertex> vs = new HashSet<>();
+
+        Set<CortexEdge> es = g.outgoingEdgesOf(v);
+        for (CortexEdge e : es) {
+            vs.add(g.getEdgeTarget(e));
+        }
+
+        return vs.size();
+    }
+
+    public static int inDegree(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexVertex v) {
+        Set<CortexVertex> vs = new HashSet<>();
+
+        Set<CortexEdge> es = g.incomingEdgesOf(v);
+        for (CortexEdge e : es) {
+            vs.add(g.getEdgeSource(e));
+        }
+
+        return vs.size();
     }
 }

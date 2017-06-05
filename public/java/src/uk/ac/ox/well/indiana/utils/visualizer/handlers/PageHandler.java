@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.math3.util.Pair;
 
 import java.io.*;
+import java.nio.charset.Charset;
 
 /**
  * Created by kiran on 19/05/2017.
@@ -33,7 +34,7 @@ public class PageHandler extends BaseHandler {
                 is = this.getClass().getResourceAsStream(page);
             }
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(is));
+            BufferedReader in = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF8")));
             StringBuilder responseData = new StringBuilder();
 
             String line;
