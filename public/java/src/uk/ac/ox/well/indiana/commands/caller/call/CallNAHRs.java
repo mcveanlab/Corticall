@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
+import com.google.api.client.util.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
@@ -47,6 +48,9 @@ public class CallNAHRs extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(GRAPH.getColorForSampleName(CHILD))
                 .joiningColors(GRAPH.getColorsForSampleNames(PARENTS))
@@ -78,7 +82,11 @@ public class CallNAHRs extends Module {
 
                         Set<Interval> intervals = kl.findKmer(cv.getSk());
 
-                        log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), cv);
+                        if (intervals.size() == 1) {
+                            log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                        } else {
+                            log.info(" -- {} {} {} {}", parent, "[many]", used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                        }
                     }
 
                     if (used.containsKey(cv.getCk())) {
@@ -87,5 +95,16 @@ public class CallNAHRs extends Module {
                 }
             }
         }
+    }
+
+    private String recordToString(CortexRecord cr, int childColor, List<Integer> parentColors) {
+        List<Object> pieces = new ArrayList<>();
+        pieces.add(cr.getKmerAsString());
+        pieces.add(cr.getCoverage(childColor));
+        parentColors.forEach(c -> pieces.add(cr.getCoverage(c)));
+        pieces.add(cr.getEdgesAsString(childColor));
+        parentColors.forEach(c -> pieces.add(cr.getEdgesAsString(c)));
+
+        return Joiner.on(' ').join(pieces);
     }
 }
