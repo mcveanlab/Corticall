@@ -1,21 +1,28 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
+import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 //import org.mapdb.Fun;
 
 public class KmerLookup {
     private int kmerSize;
-    private NavigableSet<Object[]> kmerIndex;
+    private BTreeMap<long[], int[]> kmerIndex;
+    private IndexedFastaSequenceFile ref;
 
-    public KmerLookup(File ref) {
-        initialize(ref, 47);
+    public KmerLookup(File refFile) {
+        initialize(refFile, 47);
     }
 
     public KmerLookup(File ref, int kmerSize) {
@@ -24,23 +31,30 @@ public class KmerLookup {
 
     private void initialize(File ref, int kmerSize) {
         this.kmerSize = kmerSize;
+        try {
+            this.ref = new IndexedFastaSequenceFile(ref);
+        } catch (FileNotFoundException e) {
+            throw new IndianaException("File not found", e);
+        }
 
-        loadIndex(ref, kmerSize);
+        loadIndex(ref);
     }
 
-    private void loadIndex(File ref, int kmerSize) {
+    private void loadIndex(File ref) {
         File dbFile = new File(ref.getAbsoluteFile() + ".kmerdb");
 
         if (dbFile.exists()) {
             DB db = DBMaker.fileDB(dbFile)
-                    //.transactionDisable()
                     .fileMmapEnable()
-                    //.cacheSize(1000000)
                     .closeOnJvmShutdown()
                     .readOnly()
                     .make();
 
-            //kmerIndex = db.treeSet("index" + kmerSize);
+            kmerIndex = db.treeMap("index")
+                    .keySerializer(Serializer.LONG_ARRAY)
+                    .valueSerializer(Serializer.INT_ARRAY)
+                    .counterEnable()
+                    .open();
         } else {
             System.err.println("No index for '" + dbFile + "'");
         }
@@ -49,15 +63,16 @@ public class KmerLookup {
     public Set<Interval> findKmer(String sk) {
         Set<Interval> intervals = new HashSet<>();
 
-        /*
-        if (kmerIndex != null) {
-            for (Object l[] : Fun.filter(kmerIndex, sk)) {
-                String chr = (String) l[1];
-                int pos = (Integer) l[2];
-                intervals.add(new Interval(chr, pos, pos + kmerSize));
+        int[] l = kmerIndex.get(new CortexBinaryKmer(sk.getBytes()).getBinaryKmer());
+
+        if (l != null) {
+            for (int i = 0; i < l.length - 1; i += 2) {
+                String chr = ref.getSequenceDictionary().getSequence(l[i]).getSequenceName();
+                int pos = l[i + 1];
+
+                intervals.add(new Interval(chr, pos, pos));
             }
         }
-        */
 
         return intervals;
     }
