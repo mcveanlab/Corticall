@@ -78,7 +78,7 @@ public class CallNAHRs extends Module {
 
                         Set<Interval> intervals = kl.findKmer(cv.getSk());
 
-                        log.info(" -- {} {} {}", parent, intervals, cv);
+                        log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), cv);
                     }
 
                     if (used.containsKey(cv.getCk())) {
