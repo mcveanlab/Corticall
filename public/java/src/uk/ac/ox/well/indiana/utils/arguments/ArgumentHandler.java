@@ -13,6 +13,7 @@ import org.apache.commons.cli.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.indiana.commands.Command;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -277,6 +278,8 @@ public class ArgumentHandler {
                 return new XMFASequenceFile(value);
             } else if (type.equals(IndexedFastaSequenceFile.class)) {
                 return new IndexedFastaSequenceFile(new File(value));
+            } else if (type.equals(KmerLookup.class)) {
+                return new KmerLookup(new File(value));
             } else if (type.equals(PrintStream.class)) {
                 FileOutputStream fdout = new FileOutputStream(value);
                 BufferedOutputStream bos = new BufferedOutputStream(fdout, 1048576);
