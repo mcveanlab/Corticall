@@ -3,7 +3,7 @@
 <head>
     <title>Graph viewer</title>
     <link rel="stylesheet" href="indiana.css" />
-    <script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="d3.v4.js" charset="utf-8"></script>
 </head>
 
 <body>
@@ -100,6 +100,22 @@ function drawGraph(graph) {
         .force("charge", d3.forceManyBody())
         .force("center", d3.forceCenter(window.innerWidth/2, window.innerHeight/2))
 
+    var defs = svg.append("defs");
+    var markerClasses = ["Child", "Mother", "Father"];
+    markerClasses.map(function(markerClass) {
+        defs.append("marker")
+                .attr("id", "marker" + markerClass)
+                .attr("class", "marker" + markerClass)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 12)
+                .attr("refY", 0)
+                .attr("markerWidth", 3)
+                .attr("markerHeight", 3)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5");
+    });
+
     var link = g.append("g")
         .attr("class", "links")
         .selectAll("path")
@@ -108,7 +124,10 @@ function drawGraph(graph) {
         .attr("stroke", function(d) {
             return color(d.color)
         })
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 2)
+        .attr("marker-end", function (d) {
+            return "url(#markerChild)";
+        });
 
     var node = g.append("g")
         .attr("class", "nodes")
