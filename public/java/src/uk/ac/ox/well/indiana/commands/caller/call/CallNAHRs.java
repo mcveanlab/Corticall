@@ -68,7 +68,7 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
-        Map<String, IntervalTreeMap<Interval>> candidateLoci = new HashMap<>();
+        Map<String, IntervalTreeMap<Interval>> candidateLoci = new TreeMap<>();
 
         for (CortexKmer rk : used.keySet()) {
             if (!used.get(rk)) {
@@ -141,8 +141,10 @@ public class CallNAHRs extends Module {
             }
         }
 
-        for (Interval interval : candidateLoci.keySet()) {
-            log.info("{} {}", interval, candidateLoci.get(interval));
+        for (String contig : candidateLoci.keySet()) {
+            for (Interval interval : candidateLoci.get(contig).keySet()) {
+                log.info("{}", interval);
+            }
         }
     }
 
