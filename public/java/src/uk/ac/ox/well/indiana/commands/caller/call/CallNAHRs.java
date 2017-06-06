@@ -163,7 +163,7 @@ public class CallNAHRs extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
 
         Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize());
-        String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize()));
+        String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize() - 1));
         CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
         boolean goForward = true;
 
