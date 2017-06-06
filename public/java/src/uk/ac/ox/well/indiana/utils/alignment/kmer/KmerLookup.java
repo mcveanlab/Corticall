@@ -74,7 +74,7 @@ public class KmerLookup {
                 String chr = ref.getSequenceDictionary().getSequence(l[i]).getSequenceName();
                 int pos = l[i + 1];
 
-                intervals.add(new Interval(chr, pos, pos));
+                intervals.add(new Interval(chr, pos, pos + 1));
             }
         }
 
