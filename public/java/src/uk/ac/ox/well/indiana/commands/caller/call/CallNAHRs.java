@@ -222,7 +222,7 @@ public class CallNAHRs extends Module {
                                 onRef = true;
                                 goForward = ci.isPositiveStrand();
                             } else {
-                                throw new IndianaException("Unhandled");
+                                onRef = false;
                             }
                         } else {
                             throw new IndianaException("Unhandled");
