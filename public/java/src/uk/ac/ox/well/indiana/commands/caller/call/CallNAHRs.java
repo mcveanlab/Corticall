@@ -231,7 +231,13 @@ public class CallNAHRs extends Module {
                         throw new IndianaException("Unhandled");
                     }
                 } else {
-                    throw new IndianaException("Unhandled");
+                    if (refnks.size() == 1) {
+                        String refnk = refnks.iterator().next();
+                        sk = refnk;
+                        path.add(sk);
+                    } else {
+                        throw new IndianaException("Unhandled");
+                    }
                 }
             }
         } while (true);
