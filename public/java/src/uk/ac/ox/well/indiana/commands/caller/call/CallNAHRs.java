@@ -169,6 +169,8 @@ public class CallNAHRs extends Module {
         List<String> path = new ArrayList<>();
         path.add(sk);
 
+        boolean onRef = true;
+
         do {
             CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
@@ -177,16 +179,29 @@ public class CallNAHRs extends Module {
             Map<Integer, Set<String>> aks = goForward ? nks : pks;
 
             if (goForward) {
-                ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1);
-                String refnk = LOOKUPS.get(background).findKmer(ci);
-                Set<String> altnks = nks.get(childColor);
+                if (onRef) {
+                    ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1);
+                    String refnk = LOOKUPS.get(background).findKmer(ci);
+                    Set<String> altnks = nks.get(childColor);
 
-                if (altnks.contains(refnk)) {
-                    path.add(refnk);
+                    if (altnks.contains(refnk)) {
+                        path.add(refnk);
 
-                    sk = refnk;
+                        sk = refnk;
+                    } else if (altnks.size() == 1) {
+                        sk = altnks.iterator().next();
+                        path.add(sk);
+
+                        onRef = false;
+                    }
                 } else {
-                    System.out.println("Hello!");
+                    Set<String> refnks = nks.get(parentColor);
+                    Set<String> altnks = nks.get(childColor);
+
+                    if (altnks.size() == 1) {
+                        sk = altnks.iterator().next();
+                        path.add(sk);
+                    }
                 }
             }
         } while (true);
