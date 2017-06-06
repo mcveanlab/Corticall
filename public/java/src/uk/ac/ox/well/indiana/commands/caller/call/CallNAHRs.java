@@ -112,10 +112,11 @@ public class CallNAHRs extends Module {
                 log.info("  --  stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground, chrCount);
                 log.info("");
 
-                while (toi.hasNext()) {
-                    CortexVertex cv = toi.next();
+                if (mostFrequentBackground != null) {
+                    toi = new TopologicalOrderIterator<>(g);
+                    while (toi.hasNext()) {
+                        CortexVertex cv = toi.next();
 
-                    if (mostFrequentBackground != null) {
                         Set<Interval> intervals = LOOKUPS.get(mostFrequentBackground).findKmer(cv.getSk());
 
                         if (intervals.size() == 1) {
