@@ -152,7 +152,7 @@ public class CallNAHRs extends Module {
     }
 
     private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
-        Map<String, IntervalTreeMap<Interval>> newCandidates = new HashMap<>();
+        Map<String, IntervalTreeMap<Interval>> newCandidates = new TreeMap<>();
 
         for (String contig : candidates.keySet()) {
             newCandidates.put(contig, new IntervalTreeMap<>());
