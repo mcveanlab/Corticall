@@ -92,10 +92,6 @@ public class CallNAHRs extends Module {
                         if (intervals.size() == 1) {
                             ContainerUtils.increment(refCount, parent);
                             ContainerUtils.increment(chrCount.get(parent), intervals.iterator().next().getContig());
-
-                            log.info(" -- {} {} {} {}", parent, used.containsKey(cv.getCk()), intervals, recordToString(cv.getCr(), childColor, parentColors));
-                        } else {
-                            log.info(" -- {} [{}] {} {}", parent, used.containsKey(cv.getCk()), intervals.size(), recordToString(cv.getCr(), childColor, parentColors));
                         }
                     }
 
@@ -111,8 +107,24 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("  --  stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground(refCount, 3), chrCount);
+                String mostFrequentBackground = mostFrequentBackground(refCount, 3);
+
+                log.info("  --  stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground, chrCount);
                 log.info("");
+
+                while (toi.hasNext()) {
+                    CortexVertex cv = toi.next();
+
+                    if (mostFrequentBackground != null) {
+                        Set<Interval> intervals = LOOKUPS.get(mostFrequentBackground).findKmer(cv.getSk());
+
+                        if (intervals.size() == 1) {
+                            log.info(" -- {} {} {} {}", mostFrequentBackground, used.containsKey(cv.getCk()), intervals, recordToString(cv.getCr(), childColor, parentColors));
+                        } else {
+                            log.info(" -- {} [{}] {} {}", mostFrequentBackground, used.containsKey(cv.getCk()), intervals.size(), recordToString(cv.getCr(), childColor, parentColors));
+                        }
+                    }
+                }
             }
         }
     }
