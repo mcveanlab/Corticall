@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.alignment.kmer;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
@@ -62,6 +63,16 @@ public class KmerLookup {
         } else {
             System.err.println("No index for '" + dbFile + "'");
         }
+    }
+
+    public String findKmer(Interval interval) {
+        ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
+
+        if (rseq != null) {
+            return rseq.getBaseString();
+        }
+
+        return null;
     }
 
     public Set<Interval> findKmer(String sk) {
