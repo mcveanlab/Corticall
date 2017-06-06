@@ -199,8 +199,23 @@ public class CallNAHRs extends Module {
                     Set<String> altnks = nks.get(childColor);
 
                     if (altnks.size() == 1) {
-                        sk = altnks.iterator().next();
-                        path.add(sk);
+                        if (refnks.size() == 0) {
+                            sk = altnks.iterator().next();
+                            path.add(sk);
+                        } else if (refnks.size() == 1) {
+                            String refnk = refnks.iterator().next();
+                            sk = altnks.iterator().next();
+                            path.add(sk);
+
+                            if (refnk.equals(sk)) {
+                                Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+
+                                if (intervals.size() == 1) {
+                                    ci = intervals.iterator().next();
+                                    onRef = true;
+                                }
+                            }
+                        }
                     }
                 }
             }
