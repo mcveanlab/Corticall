@@ -109,10 +109,9 @@ public class CallNAHRs extends Module {
 
                 String mostFrequentBackground = mostFrequentBackground(refCount, 3);
 
-                log.info("  --  stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground, chrCount);
-                log.info("");
+                log.info(" -- stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground, chrCount);
 
-                if (mostFrequentBackground != null) {
+                if (mostFrequentBackground != null && numNovelStretches > 1 && chrCount.get(mostFrequentBackground).keySet().size() > 1) {
                     toi = new TopologicalOrderIterator<>(g);
                     while (toi.hasNext()) {
                         CortexVertex cv = toi.next();
@@ -126,6 +125,8 @@ public class CallNAHRs extends Module {
                         }
                     }
                 }
+
+                log.info("");
             }
         }
     }
