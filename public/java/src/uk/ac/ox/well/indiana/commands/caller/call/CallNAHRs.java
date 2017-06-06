@@ -98,7 +98,7 @@ public class CallNAHRs extends Module {
 
                             Interval newInterval = intervals.iterator().next();
 
-                            if (candidateLoci.containsKey(newInterval.getContig())) {
+                            if (!candidateLoci.containsKey(newInterval.getContig())) {
                                 candidateLoci.put(newInterval.getContig(), new IntervalTreeMap<>());
                             }
 
