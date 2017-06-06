@@ -77,13 +77,14 @@ public class CallNAHRs extends Module {
 
                 Map<String, Integer> refCount = new HashMap<>();
                 Map<String, Map<String, Integer>> chrCount = new HashMap<>();
+                for (String parent : LOOKUPS.keySet()) {
+                    chrCount.put(parent, new HashMap<>());
+                }
 
                 while (toi.hasNext()) {
                     CortexVertex cv = toi.next();
 
                     for (String parent : LOOKUPS.keySet()) {
-                        chrCount.put(parent, new HashMap<>());
-
                         Set<Interval> intervals = LOOKUPS.get(parent).findKmer(cv.getSk());
 
                         if (intervals.size() == 1) {
