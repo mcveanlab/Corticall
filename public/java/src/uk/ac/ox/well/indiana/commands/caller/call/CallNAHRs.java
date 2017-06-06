@@ -68,7 +68,7 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
-        IntervalTreeMap<Interval> candidateLoci = new IntervalTreeMap<>();
+        Map<String, IntervalTreeMap<Interval>> candidateLoci = new HashMap<>();
 
         for (CortexKmer rk : used.keySet()) {
             if (!used.get(rk)) {
@@ -97,31 +97,12 @@ public class CallNAHRs extends Module {
                             ContainerUtils.increment(chrCount.get(parent), intervals.iterator().next().getContig());
 
                             Interval newInterval = intervals.iterator().next();
-                            Interval probeInterval = new Interval(newInterval.getContig(), newInterval.getStart() - 100, newInterval.getEnd() + 100);
 
-                            if (candidateLoci.containsOverlapping(probeInterval)) {
-                                Collection<Interval> storedIntervals = candidateLoci.getOverlapping(probeInterval);
-
-                                String contig = null;
-                                int start = -1, end = -1;
-                                for (Interval storedInterval : storedIntervals) {
-                                    if (contig == null) {
-                                        contig = storedInterval.getContig();
-                                        start = storedInterval.getStart();
-                                        end = storedInterval.getEnd();
-                                    }
-
-                                    if (newInterval.getStart() < start) { start = newInterval.getStart(); }
-                                    if (newInterval.getEnd() > end) { end = newInterval.getEnd(); }
-
-                                    candidateLoci.remove(storedInterval);
-                                }
-
-                                Interval replacementInterval = new Interval(contig, start, end);
-                                candidateLoci.put(replacementInterval, replacementInterval);
-                            } else {
-                                candidateLoci.put(newInterval, newInterval);
+                            if (candidateLoci.containsKey(newInterval.getContig())) {
+                                candidateLoci.put(newInterval.getContig(), new IntervalTreeMap<>());
                             }
+
+                            candidateLoci.get(newInterval.getContig()).put(newInterval, newInterval);
                         }
                     }
 
