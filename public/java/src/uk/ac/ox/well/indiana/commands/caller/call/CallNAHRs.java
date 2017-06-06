@@ -143,6 +143,9 @@ public class CallNAHRs extends Module {
         }
 
         candidateLoci = mergeIntervals(candidateLoci, 1);
+        //candidateLoci = mergeIntervals(candidateLoci, 10);
+        //candidateLoci = mergeIntervals(candidateLoci, 100);
+        //candidateLoci = mergeIntervals(candidateLoci, 1000);
 
         for (String contig : candidateLoci.keySet()) {
             for (Interval interval : candidateLoci.get(contig).keySet()) {
@@ -162,7 +165,7 @@ public class CallNAHRs extends Module {
             for (Interval interval : candidates.get(contig).keySet()) {
                 if (curInterval == null) {
                     curInterval = interval;
-                } else if (curInterval.getEnd() + scan == interval.getEnd()) {
+                } else if (curInterval.getEnd() + scan <= interval.getEnd()) {
                     curInterval = new Interval(contig, curInterval.getStart(), interval.getEnd());
                 } else {
                     newCandidates.get(contig).put(curInterval, curInterval);
