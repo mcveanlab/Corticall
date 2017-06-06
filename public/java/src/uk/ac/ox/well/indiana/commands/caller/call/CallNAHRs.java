@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 import com.google.api.client.util.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -67,6 +68,8 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
+        IntervalTreeMap<Interval> candidateLoci = new IntervalTreeMap<>();
+
         for (CortexKmer rk : used.keySet()) {
             if (!used.get(rk)) {
                 log.info("{}", rk);
@@ -92,6 +95,33 @@ public class CallNAHRs extends Module {
                         if (intervals.size() == 1) {
                             ContainerUtils.increment(refCount, parent);
                             ContainerUtils.increment(chrCount.get(parent), intervals.iterator().next().getContig());
+
+                            Interval newInterval = intervals.iterator().next();
+                            Interval probeInterval = new Interval(newInterval.getContig(), newInterval.getStart() - 100, newInterval.getEnd() + 100);
+
+                            if (candidateLoci.containsOverlapping(probeInterval)) {
+                                Collection<Interval> storedIntervals = candidateLoci.getOverlapping(probeInterval);
+
+                                String contig = null;
+                                int start = -1, end = -1;
+                                for (Interval storedInterval : storedIntervals) {
+                                    if (contig == null) {
+                                        contig = storedInterval.getContig();
+                                        start = storedInterval.getStart();
+                                        end = storedInterval.getEnd();
+                                    }
+
+                                    if (newInterval.getStart() < start) { start = newInterval.getStart(); }
+                                    if (newInterval.getEnd() > end) { end = newInterval.getEnd(); }
+
+                                    candidateLoci.remove(storedInterval);
+                                }
+
+                                Interval replacementInterval = new Interval(contig, start, end);
+                                candidateLoci.put(replacementInterval, replacementInterval);
+                            } else {
+                                candidateLoci.put(newInterval, newInterval);
+                            }
                         }
                     }
 
@@ -128,6 +158,10 @@ public class CallNAHRs extends Module {
 
                 log.info("");
             }
+        }
+
+        for (Interval interval : candidateLoci.keySet()) {
+            log.info("{} {}", interval, candidateLoci.get(interval));
         }
     }
 
