@@ -161,16 +161,17 @@ public class CallNAHRs extends Module {
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci) {
         int parentColor = GRAPH.getColorForSampleName(background);
         int childColor = GRAPH.getColorForSampleName(CHILD);
+        boolean goForward = true;
 
         Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize());
         String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize() - 1));
-        CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-        boolean goForward = true;
 
         List<String> path = new ArrayList<>();
         path.add(sk);
 
         do {
+            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> aks = goForward ? nks : pks;
@@ -181,6 +182,8 @@ public class CallNAHRs extends Module {
 
                 if (altnks.contains(refnk)) {
                     path.add(refnk);
+
+                    sk = refnk;
                 } else {
                     System.out.println("Hello!");
                 }
