@@ -163,8 +163,8 @@ public class CallNAHRs extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         boolean goForward = true;
 
-        Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize());
-        String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize() - 1));
+        Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize() - 1);
+        String sk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart(), ci.getEnd()));
 
         List<String> path = new ArrayList<>();
         path.add(sk);
