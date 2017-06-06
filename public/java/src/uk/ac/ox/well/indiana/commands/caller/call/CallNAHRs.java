@@ -167,15 +167,24 @@ public class CallNAHRs extends Module {
         CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
         boolean goForward = true;
 
+        List<String> path = new ArrayList<>();
+        path.add(sk);
+
         do {
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> aks = goForward ? nks : pks;
 
-            String refnk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1));
-            Set<String> altnks = nks.get(childColor);
+            if (goForward) {
+                String refnk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd()));
+                Set<String> altnks = nks.get(childColor);
 
-            System.out.println("Hello!");
+                if (altnks.contains(refnk)) {
+                    path.add(refnk);
+                } else {
+                    System.out.println("Hello!");
+                }
+            }
         } while (true);
     }
 
