@@ -99,9 +99,31 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("  {}", refCount);
+                log.info("  {} {}", refCount, mostFrequentBackground(refCount, 3));
             }
         }
+    }
+
+    private String mostFrequentBackground(Map<String, Integer> refCount, int thresholdMultiplier) {
+        Map.Entry<String, Integer> maxEntry = null;
+
+        for (Map.Entry<String, Integer> e : refCount.entrySet()) {
+            if (maxEntry == null || e.getValue() > maxEntry.getValue()) {
+                maxEntry = e;
+            }
+        }
+
+        boolean meetsThreshold = false;
+
+        if (maxEntry != null) {
+            for (Map.Entry<String, Integer> e : refCount.entrySet()) {
+                if (!maxEntry.getKey().equals(e.getKey()) && maxEntry.getValue() >= thresholdMultiplier*e.getValue()) {
+                    meetsThreshold = true;
+                }
+            }
+        }
+
+        return meetsThreshold ? maxEntry.getKey() : null;
     }
 
     private String recordToString(CortexRecord cr, int childColor, List<Integer> parentColors) {
