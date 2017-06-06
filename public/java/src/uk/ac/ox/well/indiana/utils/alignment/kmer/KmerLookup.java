@@ -69,7 +69,11 @@ public class KmerLookup {
         ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
 
         if (rseq != null) {
-            return rseq.getBaseString();
+            if (interval.isPositiveStrand()) {
+                return rseq.getBaseString();
+            } else {
+                return SequenceUtils.reverseComplement(rseq.getBaseString());
+            }
         }
 
         return null;
@@ -89,9 +93,9 @@ public class KmerLookup {
                 String rc = SequenceUtils.reverseComplement(ref.getSubsequenceAt(chr, pos + 1, pos + sk.length()).getBaseString());
 
                 if (sk.equals(fw)) {
-                    intervals.add(new Interval(chr, pos, pos + 1));
+                    intervals.add(new Interval(chr, pos, pos + sk.length() - 1));
                 } else if (sk.equals(rc)) {
-                    intervals.add(new Interval(chr, pos + 1, pos + 2, true, null));
+                    intervals.add(new Interval(chr, pos + 1, pos + sk.length(), true, null));
                 }
             }
         }

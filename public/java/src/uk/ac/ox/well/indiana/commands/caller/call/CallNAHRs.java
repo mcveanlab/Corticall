@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -178,46 +179,59 @@ public class CallNAHRs extends Module {
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> aks = goForward ? nks : pks;
 
-            if (goForward) {
-                if (onRef) {
+            if (onRef) {
+                if (goForward) {
                     ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1);
-                    String refnk = LOOKUPS.get(background).findKmer(ci);
-                    Set<String> altnks = nks.get(childColor);
+                } else {
+                    ci = new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1);
+                }
+                String refnk = LOOKUPS.get(background).findKmer(ci);
+                Set<String> altnks = nks.get(childColor);
 
-                    if (altnks.contains(refnk)) {
-                        path.add(refnk);
+                if (altnks.contains(refnk)) {
+                    path.add(refnk);
 
-                        sk = refnk;
-                    } else if (altnks.size() == 1) {
+                    sk = refnk;
+                } else if (altnks.size() == 1) {
+                    sk = altnks.iterator().next();
+                    path.add(sk);
+
+                    onRef = false;
+                } else {
+                    throw new IndianaException("Unhandled");
+                }
+            } else {
+                Set<String> refnks = nks.get(parentColor);
+                Set<String> altnks = nks.get(childColor);
+
+                if (altnks.size() == 1) {
+                    if (refnks.size() == 0) {
+                        sk = altnks.iterator().next();
+                        path.add(sk);
+                    } else if (refnks.size() == 1) {
+                        String refnk = refnks.iterator().next();
                         sk = altnks.iterator().next();
                         path.add(sk);
 
-                        onRef = false;
+                        if (refnk.equals(sk)) {
+                            Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+
+                            if (intervals.size() == 1) {
+                                ci = intervals.iterator().next();
+
+                                onRef = true;
+                                goForward = ci.isPositiveStrand();
+                            } else {
+                                throw new IndianaException("Unhandled");
+                            }
+                        } else {
+                            throw new IndianaException("Unhandled");
+                        }
+                    } else {
+                        throw new IndianaException("Unhandled");
                     }
                 } else {
-                    Set<String> refnks = nks.get(parentColor);
-                    Set<String> altnks = nks.get(childColor);
-
-                    if (altnks.size() == 1) {
-                        if (refnks.size() == 0) {
-                            sk = altnks.iterator().next();
-                            path.add(sk);
-                        } else if (refnks.size() == 1) {
-                            String refnk = refnks.iterator().next();
-                            sk = altnks.iterator().next();
-                            path.add(sk);
-
-                            if (refnk.equals(sk)) {
-                                Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
-
-                                if (intervals.size() == 1) {
-                                    ci = intervals.iterator().next();
-
-                                    onRef = true;
-                                }
-                            }
-                        }
-                    }
+                    throw new IndianaException("Unhandled");
                 }
             }
         } while (true);
