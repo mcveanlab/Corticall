@@ -212,6 +212,7 @@ public class CallNAHRs extends Module {
 
                                 if (intervals.size() == 1) {
                                     ci = intervals.iterator().next();
+
                                     onRef = true;
                                 }
                             }
