@@ -9,6 +9,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -74,6 +75,8 @@ public class CallNAHRs extends Module {
 
                 TopologicalOrderIterator<CortexVertex, CortexEdge> toi = new TopologicalOrderIterator<>(g);
 
+                Map<String, Integer> refCount = new HashMap<>();
+
                 while (toi.hasNext()) {
                     CortexVertex cv = toi.next();
 
@@ -83,9 +86,11 @@ public class CallNAHRs extends Module {
                         Set<Interval> intervals = kl.findKmer(cv.getSk());
 
                         if (intervals.size() == 1) {
-                            log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                            ContainerUtils.increment(refCount, parent);
+
+                            //log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
                         } else {
-                            log.info(" -- {} {} {} {}", parent, "[many]", used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                            //log.info(" -- {} [{}] {} {}", parent, intervals.size(), used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
                         }
                     }
 
@@ -93,6 +98,8 @@ public class CallNAHRs extends Module {
                         used.put(cv.getCk(), true);
                     }
                 }
+
+                log.info("  {}", refCount);
             }
         }
     }
