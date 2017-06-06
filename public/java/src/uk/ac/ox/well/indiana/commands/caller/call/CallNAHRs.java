@@ -164,7 +164,7 @@ public class CallNAHRs extends Module {
 
         Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize());
         String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize()));
-        CortexRecord cr = GRAPH.findRecord(sk);
+        CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
         boolean goForward = true;
 
         do {
