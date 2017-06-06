@@ -157,10 +157,12 @@ public class CallNAHRs extends Module {
         for (String contig : candidates.keySet()) {
             newCandidates.put(contig, new IntervalTreeMap<>());
 
-            Interval curInterval = candidates.get(contig).keySet().iterator().next();
+            Interval curInterval = null;
 
             for (Interval interval : candidates.get(contig).keySet()) {
-                if (curInterval.getEnd() + scan == interval.getEnd()) {
+                if (curInterval == null) {
+                    curInterval = interval;
+                } else if (curInterval.getEnd() + scan == interval.getEnd()) {
                     curInterval = new Interval(contig, curInterval.getStart(), interval.getEnd());
                 } else {
                     newCandidates.get(contig).put(curInterval, curInterval);
