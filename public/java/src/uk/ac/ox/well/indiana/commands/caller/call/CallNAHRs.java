@@ -80,6 +80,8 @@ public class CallNAHRs extends Module {
                 for (String parent : LOOKUPS.keySet()) {
                     chrCount.put(parent, new HashMap<>());
                 }
+                int numNovelStretches = 0;
+                boolean inNovelStretch = false;
 
                 while (toi.hasNext()) {
                     CortexVertex cv = toi.next();
@@ -98,11 +100,18 @@ public class CallNAHRs extends Module {
                     }
 
                     if (used.containsKey(cv.getCk())) {
+                        if (!inNovelStretch) {
+                            numNovelStretches++;
+                            inNovelStretch = true;
+                        }
+
                         used.put(cv.getCk(), true);
+                    } else {
+                        inNovelStretch = false;
                     }
                 }
 
-                log.info("  {} {} {}", refCount, mostFrequentBackground(refCount, 3), chrCount);
+                log.info("  {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground(refCount, 3), chrCount);
             }
         }
     }
