@@ -165,7 +165,7 @@ public class CallNAHRs extends Module {
             for (Interval interval : candidates.get(contig).keySet()) {
                 if (curInterval == null) {
                     curInterval = interval;
-                } else if (curInterval.getEnd() + scan <= interval.getEnd()) {
+                } else if (interval.getEnd() - curInterval.getEnd() <= scan) {
                     curInterval = new Interval(contig, curInterval.getStart(), interval.getEnd());
                 } else {
                     newCandidates.get(contig).put(curInterval, curInterval);
