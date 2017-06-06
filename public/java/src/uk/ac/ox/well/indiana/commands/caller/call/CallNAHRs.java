@@ -82,9 +82,9 @@ public class CallNAHRs extends Module {
                     CortexVertex cv = toi.next();
 
                     for (String parent : LOOKUPS.keySet()) {
-                        KmerLookup kl = LOOKUPS.get(parent);
+                        chrCount.put(parent, new HashMap<>());
 
-                        Set<Interval> intervals = kl.findKmer(cv.getSk());
+                        Set<Interval> intervals = LOOKUPS.get(parent).findKmer(cv.getSk());
 
                         if (intervals.size() == 1) {
                             ContainerUtils.increment(refCount, parent);
