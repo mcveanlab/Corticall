@@ -76,6 +76,7 @@ public class CallNAHRs extends Module {
                 TopologicalOrderIterator<CortexVertex, CortexEdge> toi = new TopologicalOrderIterator<>(g);
 
                 Map<String, Integer> refCount = new HashMap<>();
+                Map<String, Integer> chrCount = new HashMap<>();
 
                 while (toi.hasNext()) {
                     CortexVertex cv = toi.next();
@@ -87,6 +88,7 @@ public class CallNAHRs extends Module {
 
                         if (intervals.size() == 1) {
                             ContainerUtils.increment(refCount, parent);
+                            ContainerUtils.increment(chrCount, intervals.iterator().next().getContig());
 
                             //log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
                         } else {
@@ -99,7 +101,7 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("  {} {}", refCount, mostFrequentBackground(refCount, 3));
+                log.info("  {} {} {}", refCount, mostFrequentBackground(refCount, 3), chrCount);
             }
         }
     }
