@@ -154,6 +154,29 @@ public class CallNAHRs extends Module {
                 log.info("{}", interval);
             }
         }
+
+        reconstruct("3D7", new Interval("Pf3D7_01_v3", 22375, 32158), candidateLoci);
+    }
+
+    private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci) {
+        int parentColor = GRAPH.getColorForSampleName(background);
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+
+        Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize());
+        String sk = LOOKUPS.get(background).findKmer(new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize()));
+        CortexRecord cr = GRAPH.findRecord(sk);
+        boolean goForward = true;
+
+        do {
+            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
+            Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+            Map<Integer, Set<String>> aks = goForward ? nks : pks;
+
+            String refnk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1));
+            Set<String> altnks = nks.get(childColor);
+
+            System.out.println("Hello!");
+        } while (true);
     }
 
     private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
