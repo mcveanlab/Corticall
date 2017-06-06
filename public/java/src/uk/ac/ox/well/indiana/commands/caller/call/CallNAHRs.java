@@ -183,7 +183,7 @@ public class CallNAHRs extends Module {
                 if (goForward) {
                     ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1);
                 } else {
-                    ci = new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1);
+                    ci = new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, true, null);
                 }
                 String refnk = LOOKUPS.get(background).findKmer(ci);
                 Set<String> altnks = nks.get(childColor);
