@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 import com.google.api.client.util.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTreeMap;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
@@ -141,11 +142,36 @@ public class CallNAHRs extends Module {
             }
         }
 
+        candidateLoci = mergeIntervals(candidateLoci, 1);
+
         for (String contig : candidateLoci.keySet()) {
             for (Interval interval : candidateLoci.get(contig).keySet()) {
                 log.info("{}", interval);
             }
         }
+    }
+
+    private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
+        Map<String, IntervalTreeMap<Interval>> newCandidates = new HashMap<>();
+
+        for (String contig : candidates.keySet()) {
+            newCandidates.put(contig, new IntervalTreeMap<>());
+
+            Interval curInterval = candidates.get(contig).keySet().iterator().next();
+
+            for (Interval interval : candidates.get(contig).keySet()) {
+                if (curInterval.getEnd() + scan <= interval.getEnd()) {
+                    curInterval = new Interval(contig, curInterval.getStart(), interval.getEnd());
+                } else {
+                    newCandidates.get(contig).put(curInterval, curInterval);
+                    curInterval = interval;
+                }
+            }
+
+            newCandidates.get(contig).put(curInterval, curInterval);
+        }
+
+        return newCandidates;
     }
 
     private String mostFrequentBackground(Map<String, Integer> refCount, int thresholdMultiplier) {
