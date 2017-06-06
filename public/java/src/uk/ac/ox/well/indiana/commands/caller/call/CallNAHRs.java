@@ -177,7 +177,8 @@ public class CallNAHRs extends Module {
             Map<Integer, Set<String>> aks = goForward ? nks : pks;
 
             if (goForward) {
-                String refnk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd()));
+                ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd());
+                String refnk = LOOKUPS.get(background).findKmer(ci);
                 Set<String> altnks = nks.get(childColor);
 
                 if (altnks.contains(refnk)) {
