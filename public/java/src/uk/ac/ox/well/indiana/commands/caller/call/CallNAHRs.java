@@ -93,9 +93,9 @@ public class CallNAHRs extends Module {
                             ContainerUtils.increment(refCount, parent);
                             ContainerUtils.increment(chrCount.get(parent), intervals.iterator().next().getContig());
 
-                            log.info(" -- {} {} {} {}", parent, intervals, used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                            log.info(" -- {} {} {} {}", parent, used.containsKey(cv.getCk()), intervals, recordToString(cv.getCr(), childColor, parentColors));
                         } else {
-                            log.info(" -- {} [{}] {} {}", parent, intervals.size(), used.containsKey(cv.getCk()), recordToString(cv.getCr(), childColor, parentColors));
+                            log.info(" -- {} [{}] {} {}", parent, used.containsKey(cv.getCk()), intervals.size(), recordToString(cv.getCr(), childColor, parentColors));
                         }
                     }
 
@@ -111,7 +111,8 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("  {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground(refCount, 3), chrCount);
+                log.info("  --  stats {} {} {} {}", numNovelStretches, refCount, mostFrequentBackground(refCount, 3), chrCount);
+                log.info("");
             }
         }
     }
