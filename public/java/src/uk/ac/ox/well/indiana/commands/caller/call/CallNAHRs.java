@@ -147,6 +147,7 @@ public class CallNAHRs extends Module {
         candidateLoci = mergeIntervals(candidateLoci, 100);
         candidateLoci = mergeIntervals(candidateLoci, 1000);
         candidateLoci = mergeIntervals(candidateLoci, 10000);
+        candidateLoci = mergeIntervals(candidateLoci, 20000);
 
         for (String contig : candidateLoci.keySet()) {
             for (Interval interval : candidateLoci.get(contig).keySet()) {
