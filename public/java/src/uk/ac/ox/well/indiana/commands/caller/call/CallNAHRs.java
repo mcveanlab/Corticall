@@ -5,6 +5,7 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTreeMap;
+import htsjdk.samtools.util.StringUtil;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -156,10 +157,10 @@ public class CallNAHRs extends Module {
             }
         }
 
-        reconstruct("3D7", new Interval("Pf3D7_01_v3", 22375, 32158), candidateLoci);
+        reconstruct("3D7", new Interval("Pf3D7_01_v3", 22375, 32158), candidateLoci, used);
     }
 
-    private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci) {
+    private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
         int parentColor = GRAPH.getColorForSampleName(background);
         int childColor = GRAPH.getColorForSampleName(CHILD);
         boolean goForward = true;
@@ -171,6 +172,7 @@ public class CallNAHRs extends Module {
         path.add(sk);
 
         boolean onRef = true;
+        boolean keepGoing = true;
 
         do {
             CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
@@ -198,7 +200,7 @@ public class CallNAHRs extends Module {
 
                     onRef = false;
                 } else {
-                    throw new IndianaException("Unhandled");
+                    keepGoing = false;
                 }
             } else {
                 Set<String> refnks = nks.get(parentColor);
@@ -224,8 +226,6 @@ public class CallNAHRs extends Module {
                             } else {
                                 onRef = false;
                             }
-                        } else {
-                            throw new IndianaException("Unhandled");
                         }
                     } else {
                         sk = altnks.iterator().next();
@@ -237,11 +237,30 @@ public class CallNAHRs extends Module {
                         sk = refnk;
                         path.add(sk);
                     } else {
-                        throw new IndianaException("Unhandled");
+                        keepGoing = false;
                     }
                 }
             }
-        } while (true);
+        } while (keepGoing);
+
+        StringBuilder sb = new StringBuilder();
+        StringBuilder in = new StringBuilder();
+
+        for (String s : path) {
+            if (sb.length() == 0) {
+                sb.append(s);
+                in.append(StringUtil.repeatCharNTimes(' ', s.length() - 1));
+            }
+
+            if (used.containsKey(new CortexKmer(s))) {
+                in.append(".");
+            } else {
+                in.append(" ");
+            }
+        }
+
+        log.info("sb: {}", sb);
+        log.info("in: {}", in);
     }
 
     private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
