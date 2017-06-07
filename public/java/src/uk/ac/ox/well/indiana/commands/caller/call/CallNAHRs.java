@@ -245,6 +245,8 @@ public class CallNAHRs extends Module {
             }
         } while (keepGoing);
 
+        log.info("path: {}", path.size());
+
         /*
         StringBuilder sb = new StringBuilder();
         StringBuilder in = new StringBuilder();
