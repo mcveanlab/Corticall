@@ -248,9 +248,11 @@ public class CallNAHRs extends Module {
 
         for (String s : path) {
             if (sb.length() == 0) {
-                sb.append(s);
+                sb.append(s.substring(0, s.length() - 1));
                 in.append(StringUtil.repeatCharNTimes(' ', s.length() - 1));
             }
+
+            sb.append(s.substring(s.length() - 1, s.length()));
 
             if (used.containsKey(new CortexKmer(s))) {
                 in.append(".");
