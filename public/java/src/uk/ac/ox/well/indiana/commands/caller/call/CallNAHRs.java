@@ -228,7 +228,8 @@ public class CallNAHRs extends Module {
                             throw new IndianaException("Unhandled");
                         }
                     } else {
-                        throw new IndianaException("Unhandled");
+                        sk = altnks.iterator().next();
+                        path.add(sk);
                     }
                 } else {
                     if (refnks.size() == 1) {
