@@ -175,6 +175,8 @@ public class CallNAHRs extends Module {
         boolean keepGoing = true;
 
         do {
+            log.info("{} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci);
+
             CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
@@ -243,6 +245,7 @@ public class CallNAHRs extends Module {
             }
         } while (keepGoing);
 
+        /*
         StringBuilder sb = new StringBuilder();
         StringBuilder in = new StringBuilder();
 
@@ -265,6 +268,7 @@ public class CallNAHRs extends Module {
 
         log.info("sb: {}", sb);
         log.info("in: {}", in);
+        */
     }
 
     private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
