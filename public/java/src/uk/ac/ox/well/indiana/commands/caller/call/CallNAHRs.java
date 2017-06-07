@@ -157,7 +157,7 @@ public class CallNAHRs extends Module {
             }
         }
 
-        reconstruct("3D7", new Interval("Pf3D7_01_v3", 22375, 32158), candidateLoci, used);
+        reconstruct("3D7", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
@@ -175,9 +175,9 @@ public class CallNAHRs extends Module {
         boolean keepGoing = true;
 
         do {
-            log.info("{} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci);
-
             CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+
+            log.info("{} {} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci, cr);
 
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
