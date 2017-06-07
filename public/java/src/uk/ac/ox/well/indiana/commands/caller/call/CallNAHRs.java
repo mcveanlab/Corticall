@@ -247,6 +247,8 @@ public class CallNAHRs extends Module {
         StringBuilder in = new StringBuilder();
 
         for (String s : path) {
+            log.info("{} {} {}", s, used.containsKey(new CortexKmer(s)), LOOKUPS.get(background).findKmer(s));
+
             if (sb.length() == 0) {
                 sb.append(s.substring(0, s.length() - 1));
                 in.append(StringUtil.repeatCharNTimes(' ', s.length() - 1));
