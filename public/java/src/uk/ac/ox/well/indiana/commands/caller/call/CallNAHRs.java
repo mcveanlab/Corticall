@@ -157,7 +157,7 @@ public class CallNAHRs extends Module {
             }
         }
 
-        reconstruct("3D7", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
+        reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
