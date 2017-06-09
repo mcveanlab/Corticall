@@ -177,7 +177,7 @@ public class CallNAHRs extends Module {
         do {
             CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
-            log.info("{} {} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci, cr);
+            log.info("{} {} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci, recordToString(cr, childColor, GRAPH.getColorsForSampleNames(PARENTS)));
 
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
