@@ -221,6 +221,10 @@ public class CallNAHRs extends Module {
                 Set<Interval> acis = LOOKUPS.get(background).findKmer(skchi);
             }
         }
+
+        log.info("  {}", vertices.size());
+        log.info("  {}", loci.size());
+        log.info("");
     }
 
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
