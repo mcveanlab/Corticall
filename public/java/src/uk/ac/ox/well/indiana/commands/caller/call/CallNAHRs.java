@@ -95,6 +95,9 @@ public class CallNAHRs extends Module {
         boolean onRef = false;
         boolean positiveStrand = false;
 
+        vertices.add(sk);
+        loci.add(null);
+
         while (distanceFromNovel < limit) {
             if (ci == null) {
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
@@ -115,7 +118,7 @@ public class CallNAHRs extends Module {
                         vertices.add(0, sk);
                         loci.add(0, ci);
                     }
-                    log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+                    log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
 
                     if (ci != null) {
                         onRef = true;
@@ -146,7 +149,8 @@ public class CallNAHRs extends Module {
                             vertices.add(0, sk);
                             loci.add(0, ci);
                         }
-                        log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+                        //log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+                        log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
                     } else {
                         if (achi.size() == 1) {
                             distanceFromNovel = 0;
@@ -160,7 +164,8 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
-                            log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+                            //log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+                            log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
                         } else {
                             log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
                             break;
