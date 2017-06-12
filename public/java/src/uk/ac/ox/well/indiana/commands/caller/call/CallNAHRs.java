@@ -186,6 +186,8 @@ public class CallNAHRs extends Module {
         boolean onRef = true;
 
         while (sk != null) {
+            log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
+
             if (ci != null) {
                 do {
                     Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
