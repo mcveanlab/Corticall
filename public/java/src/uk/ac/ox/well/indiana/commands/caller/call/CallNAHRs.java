@@ -236,6 +236,7 @@ public class CallNAHRs extends Module {
 
                     if (ci != null) {
                         onRef = true;
+                        goForward = ci.isPositiveStrand();
                     }
                 } else {
                     log.info("Hello!");
