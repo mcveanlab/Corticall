@@ -193,7 +193,8 @@ public class CallNAHRs extends Module {
                     String aref = LOOKUPS.get(background).findKmer(aci);
 
                     CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-                    Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                    //Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                    Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
