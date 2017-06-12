@@ -17,6 +17,7 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
@@ -162,7 +163,9 @@ public class CallNAHRs extends Module {
         Interval it = new Interval("Pf3D7_01_v3", 29500, 29546);
 
         String qk = LOOKUPS.get("ref").findKmer(it);
-        Set<Interval> its = LOOKUPS.get("ref").findKmer(qk);
+        String rk = SequenceUtils.reverseComplement(qk);
+        Set<Interval> iqs = LOOKUPS.get("ref").findKmer(qk);
+        Set<Interval> irs = LOOKUPS.get("ref").findKmer(rk);
 
         reconstruct("ref", qk, true);
 
