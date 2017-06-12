@@ -119,7 +119,7 @@ public class CallNAHRs extends Module {
                         vertices.add(0, sk);
                         loci.add(0, ci);
                     }
-                    log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
+                    log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
 
                     if (ci != null) {
                         onRef = true;
@@ -131,7 +131,6 @@ public class CallNAHRs extends Module {
                 }
             } else {
                 do {
-                    //Interval aci = positiveStrand ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
                     Interval aci;
 
                     if (positiveStrand) {
@@ -166,8 +165,8 @@ public class CallNAHRs extends Module {
                             vertices.add(0, sk);
                             loci.add(0, ci);
                         }
-                        //log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
-                        log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
+                        //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
+                        log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                     } else {
                         if (achi.size() == 1) {
                             distanceFromNovel = 0;
@@ -181,8 +180,8 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
-                            //log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
-                            log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
+                            //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
+                            log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                         } else {
                             log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
                             keepGoing = false;
