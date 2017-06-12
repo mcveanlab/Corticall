@@ -183,45 +183,47 @@ public class CallNAHRs extends Module {
         vertices.add(sk);
         loci.add(ci);
 
-        if (ci != null) {
-            boolean onRef = true;
-            do {
-                Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
-                String aref = LOOKUPS.get(background).findKmer(aci);
+        while (sk != null) {
+            if (ci != null) {
+                boolean onRef = true;
+                do {
+                    Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
+                    String aref = LOOKUPS.get(background).findKmer(aci);
 
-                CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-                Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-                Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
+                    CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+                    Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                    Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
-                if (achi.contains(aref)) {
-                    sk = aref;
-                    ci = aci;
-
-                    vertices.add(sk);
-                    loci.add(ci);
-                } else {
-                    if (achi.size() == 1) {
-                        sk = achi.iterator().next();
-                        ci = null;
+                    if (achi.contains(aref)) {
+                        sk = aref;
+                        ci = aci;
 
                         vertices.add(sk);
                         loci.add(ci);
                     } else {
-                        log.info("Hello!");
+                        if (achi.size() == 1) {
+                            sk = achi.iterator().next();
+                            ci = null;
+
+                            vertices.add(sk);
+                            loci.add(ci);
+                        } else {
+                            log.info("Hello!");
+                        }
+
+                        onRef = false;
                     }
+                } while (onRef);
+            } else {
+                CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+                Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                Set<String> apar = aks.get(GRAPH.getColorForSampleName(background));
+                Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
-                    onRef = false;
+                if (achi.size() == 1) {
+                    String skchi = achi.iterator().next();
+                    Set<Interval> acis = LOOKUPS.get(background).findKmer(skchi);
                 }
-            } while (onRef);
-        } else {
-            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-            Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-            Set<String> apar = aks.get(GRAPH.getColorForSampleName(background));
-            Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
-
-            if (achi.size() == 1) {
-                String skchi = achi.iterator().next();
-                Set<Interval> acis = LOOKUPS.get(background).findKmer(skchi);
             }
         }
 
