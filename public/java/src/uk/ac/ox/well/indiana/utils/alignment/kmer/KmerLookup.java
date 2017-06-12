@@ -89,8 +89,8 @@ public class KmerLookup {
                 String chr = ref.getSequenceDictionary().getSequence(l[i]).getSequenceName();
                 int pos = l[i + 1];
 
-                String fw = ref.getSubsequenceAt(chr, pos, pos + sk.length() - 1).getBaseString();
-                String rc = SequenceUtils.reverseComplement(ref.getSubsequenceAt(chr, pos + 1, pos + sk.length()).getBaseString());
+                String fw = ref.getSubsequenceAt(chr, pos + 1, pos + sk.length()).getBaseString();
+                String rc = SequenceUtils.reverseComplement(fw);
 
                 if (sk.equals(fw)) {
                     intervals.add(new Interval(chr, pos, pos + sk.length() - 1));
