@@ -185,8 +185,9 @@ public class CallNAHRs extends Module {
         log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
 
         boolean onRef = true;
+        int distanceFromNovel = 0;
 
-        while (sk != null) {
+        while (distanceFromNovel < 5000) {
             if (ci != null) {
                 do {
                     Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
@@ -198,6 +199,7 @@ public class CallNAHRs extends Module {
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
+                        distanceFromNovel++;
                         sk = aref;
                         ci = aci;
 
@@ -206,6 +208,7 @@ public class CallNAHRs extends Module {
                         log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
                     } else {
                         if (achi.size() == 1) {
+                            distanceFromNovel = 0;
                             sk = achi.iterator().next();
                             ci = null;
 
@@ -227,6 +230,7 @@ public class CallNAHRs extends Module {
                 Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                 if (achi.size() == 1) {
+                    distanceFromNovel = 0;
                     sk = achi.iterator().next();
 
                     Set<Interval> acis = LOOKUPS.get(background).findKmer(sk);
