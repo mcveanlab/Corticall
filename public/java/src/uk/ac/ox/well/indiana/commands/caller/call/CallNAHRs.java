@@ -168,16 +168,17 @@ public class CallNAHRs extends Module {
         Set<Interval> iqs = LOOKUPS.get("ref").findKmer(qk);
         Set<Interval> irs = LOOKUPS.get("ref").findKmer(rk);
 
-        reconstruct("ref", qk, true);
+        reconstruct("ref", qk);
 
         //reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
     private void reconstruct(String background, String sk) {
-
+        Pair<List<String>, List<Interval>> fwd = reconstruct("ref", sk, true, 5000);
+        //Pair<List<String>, List<Interval>> rev = reconstruct("ref", sk, false);
     }
 
-    private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward) {
+    private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward, int limit) {
         List<String> vertices = new ArrayList<>();
         List<Interval> loci = new ArrayList<>();
 
@@ -191,16 +192,17 @@ public class CallNAHRs extends Module {
 
         boolean onRef = true;
         int distanceFromNovel = 0;
+        boolean positiveStrand = true;
 
-        while (distanceFromNovel < 5000) {
+        while (distanceFromNovel < limit) {
             if (ci != null) {
                 do {
-                    Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
+                    Interval aci = positiveStrand ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
                     String aref = LOOKUPS.get(background).findKmer(aci);
 
                     CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-                    //Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-                    Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
+                    Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                    //Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
@@ -208,8 +210,13 @@ public class CallNAHRs extends Module {
                         sk = aref;
                         ci = aci;
 
-                        vertices.add(sk);
-                        loci.add(ci);
+                        if (goForward) {
+                            vertices.add(sk);
+                            loci.add(ci);
+                        } else {
+                            vertices.add(0, sk);
+                            loci.add(0, ci);
+                        }
                         log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
                     } else {
                         if (achi.size() == 1) {
@@ -217,8 +224,13 @@ public class CallNAHRs extends Module {
                             sk = achi.iterator().next();
                             ci = null;
 
-                            vertices.add(sk);
-                            loci.add(ci);
+                            if (goForward) {
+                                vertices.add(sk);
+                                loci.add(ci);
+                            } else {
+                                vertices.add(0, sk);
+                                loci.add(0, ci);
+                            }
                             log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
                         } else {
                             log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
@@ -230,8 +242,8 @@ public class CallNAHRs extends Module {
                 } while (onRef);
             } else {
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-                //Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-                Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
+                Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                //Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                 Set<String> apar = aks.get(GRAPH.getColorForSampleName(background));
                 Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
@@ -242,13 +254,19 @@ public class CallNAHRs extends Module {
                     Set<Interval> acis = LOOKUPS.get(background).findKmer(sk);
                     ci = acis.size() == 1 ? acis.iterator().next() : null;
 
-                    vertices.add(sk);
-                    loci.add(ci);
+                    if (goForward) {
+                        vertices.add(sk);
+                        loci.add(ci);
+                    } else {
+                        vertices.add(0, sk);
+                        loci.add(0, ci);
+                    }
                     log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
 
                     if (ci != null) {
                         onRef = true;
-                        goForward = ci.isPositiveStrand();
+                        //goForward = ci.isPositiveStrand();
+                        positiveStrand = ci.isPositiveStrand();
                     }
                 } else {
                     log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
@@ -262,166 +280,6 @@ public class CallNAHRs extends Module {
         log.info("");
 
         return new Pair<>(vertices, loci);
-    }
-
-    private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
-        int parentColor = GRAPH.getColorForSampleName(background);
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        boolean goForward = true;
-
-        Interval ci = new Interval(candidate.getContig(), candidate.getStart(), candidate.getStart() + GRAPH.getKmerSize() - 1);
-        String sk = LOOKUPS.get(background).findKmer(new Interval(ci.getContig(), ci.getStart(), ci.getEnd()));
-
-        List<String> path = new ArrayList<>();
-        path.add(sk);
-
-        boolean onRef = true;
-        boolean keepGoing = true;
-
-        do {
-            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
-
-            log.info("{} {} {} {}", sk, used.containsKey(new CortexKmer(sk)), ci, recordToString(cr, childColor, GRAPH.getColorsForSampleNames(PARENTS)));
-
-            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
-            Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-            Map<Integer, Set<String>> aks = goForward ? nks : pks;
-
-            if (onRef) {
-                if (goForward) {
-                    ci = new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1);
-                } else {
-                    ci = new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, true, null);
-                }
-                String refnk = LOOKUPS.get(background).findKmer(ci);
-                Set<String> altnks = nks.get(childColor);
-
-                if (altnks.contains(refnk)) {
-                    path.add(refnk);
-
-                    sk = refnk;
-                } else if (altnks.size() == 1) {
-                    sk = altnks.iterator().next();
-                    path.add(sk);
-
-                    onRef = false;
-                } else {
-                    keepGoing = false;
-                }
-            } else {
-                Set<String> refnks = nks.get(parentColor);
-                Set<String> altnks = nks.get(childColor);
-
-                if (altnks.size() == 1) {
-                    if (refnks.size() == 0) {
-                        sk = altnks.iterator().next();
-                        path.add(sk);
-                    } else if (refnks.size() == 1) {
-                        String refnk = refnks.iterator().next();
-                        sk = altnks.iterator().next();
-                        path.add(sk);
-
-                        if (refnk.equals(sk)) {
-                            Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
-
-                            if (intervals.size() == 1) {
-                                ci = intervals.iterator().next();
-
-                                onRef = true;
-                                goForward = ci.isPositiveStrand();
-                            } else {
-                                onRef = false;
-                            }
-                        }
-                    } else {
-                        sk = altnks.iterator().next();
-                        path.add(sk);
-                    }
-                } else {
-                    if (refnks.size() == 1) {
-                        String refnk = refnks.iterator().next();
-                        sk = refnk;
-                        path.add(sk);
-                    } else {
-                        keepGoing = false;
-                    }
-                }
-            }
-        } while (keepGoing);
-
-        log.info("path: {}", path.size());
-
-        /*
-        StringBuilder sb = new StringBuilder();
-        StringBuilder in = new StringBuilder();
-
-        for (String s : path) {
-            log.info("{} {} {}", s, used.containsKey(new CortexKmer(s)), LOOKUPS.get(background).findKmer(s));
-
-            if (sb.length() == 0) {
-                sb.append(s.substring(0, s.length() - 1));
-                in.append(StringUtil.repeatCharNTimes(' ', s.length() - 1));
-            }
-
-            sb.append(s.substring(s.length() - 1, s.length()));
-
-            if (used.containsKey(new CortexKmer(s))) {
-                in.append(".");
-            } else {
-                in.append(" ");
-            }
-        }
-
-        log.info("sb: {}", sb);
-        log.info("in: {}", in);
-        */
-    }
-
-    private Map<String, IntervalTreeMap<Interval>> mergeIntervals(Map<String, IntervalTreeMap<Interval>> candidates, int scan) {
-        Map<String, IntervalTreeMap<Interval>> newCandidates = new TreeMap<>();
-
-        for (String contig : candidates.keySet()) {
-            newCandidates.put(contig, new IntervalTreeMap<>());
-
-            Interval curInterval = null;
-
-            for (Interval interval : candidates.get(contig).keySet()) {
-                if (curInterval == null) {
-                    curInterval = interval;
-                } else if (interval.getEnd() - curInterval.getEnd() <= scan) {
-                    curInterval = new Interval(contig, curInterval.getStart(), interval.getEnd());
-                } else {
-                    newCandidates.get(contig).put(curInterval, curInterval);
-                    curInterval = interval;
-                }
-            }
-
-            newCandidates.get(contig).put(curInterval, curInterval);
-        }
-
-        return newCandidates;
-    }
-
-    private String mostFrequentBackground(Map<String, Integer> refCount, int thresholdMultiplier) {
-        Map.Entry<String, Integer> maxEntry = null;
-
-        for (Map.Entry<String, Integer> e : refCount.entrySet()) {
-            if (maxEntry == null || e.getValue() > maxEntry.getValue()) {
-                maxEntry = e;
-            }
-        }
-
-        boolean meetsThreshold = false;
-
-        if (maxEntry != null) {
-            for (Map.Entry<String, Integer> e : refCount.entrySet()) {
-                if (!maxEntry.getKey().equals(e.getKey()) && maxEntry.getValue() >= thresholdMultiplier*e.getValue()) {
-                    meetsThreshold = true;
-                }
-            }
-        }
-
-        return meetsThreshold ? maxEntry.getKey() : null;
     }
 
     private String recordToString(CortexRecord cr, int childColor, List<Integer> parentColors) {
