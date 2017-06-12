@@ -160,6 +160,60 @@ public class CallNAHRs extends Module {
         reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
+    private void reconstruct(String background, String sk, boolean goForward) {
+        List<String> vertices = new ArrayList<>();
+        List<Interval> loci = new ArrayList<>();
+
+        Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+        Interval ci = null;
+        if (intervals.size() == 1) { ci = intervals.iterator().next(); }
+
+        vertices.add(sk);
+        loci.add(ci);
+
+        if (ci != null) {
+            boolean onRef = true;
+            do {
+                Interval aci = goForward ? new Interval(ci.getContig(), ci.getStart() + 1, ci.getEnd() + 1, ci.isNegativeStrand(), null) : new Interval(ci.getContig(), ci.getStart() - 1, ci.getEnd() - 1, ci.isNegativeStrand(), null);
+                String aref = LOOKUPS.get(background).findKmer(aci);
+
+                CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+                Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
+
+                if (achi.contains(aref)) {
+                    sk = aref;
+                    ci = aci;
+
+                    vertices.add(sk);
+                    loci.add(ci);
+                } else {
+                    if (achi.size() == 1) {
+                        sk = achi.iterator().next();
+                        ci = null;
+
+                        vertices.add(sk);
+                        loci.add(ci);
+                    } else {
+                        log.info("Hello!");
+                    }
+
+                    onRef = false;
+                }
+            } while (onRef);
+        } else {
+            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
+            Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+            Set<String> apar = aks.get(GRAPH.getColorForSampleName(background));
+            Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
+
+            if (achi.size() == 1) {
+                String skchi = achi.iterator().next();
+                Set<Interval> acis = LOOKUPS.get(background).findKmer(skchi);
+            }
+        }
+    }
+
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
         int parentColor = GRAPH.getColorForSampleName(background);
         int childColor = GRAPH.getColorForSampleName(CHILD);
