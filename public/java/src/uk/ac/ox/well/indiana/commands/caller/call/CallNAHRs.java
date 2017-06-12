@@ -157,7 +157,9 @@ public class CallNAHRs extends Module {
             }
         }
 
-        reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
+        reconstruct("ref", LOOKUPS.get("ref").findKmer(new Interval("Pf3D7_01_v3", 29500, 29546)), true);
+
+        //reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
     private void reconstruct(String background, String sk, boolean goForward) {
