@@ -71,6 +71,7 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
+        /*
         Map<String, IntervalTreeMap<Interval>> candidateLoci = new TreeMap<>();
 
         for (CortexKmer rk : used.keySet()) {
@@ -156,6 +157,7 @@ public class CallNAHRs extends Module {
                 log.info("{}", interval);
             }
         }
+        */
 
         reconstruct("ref", LOOKUPS.get("ref").findKmer(new Interval("Pf3D7_01_v3", 29500, 29546)), true);
 
