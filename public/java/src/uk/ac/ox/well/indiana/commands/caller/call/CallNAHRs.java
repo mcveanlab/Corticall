@@ -78,12 +78,54 @@ public class CallNAHRs extends Module {
         reconstruct("ref", sk);
     }
 
-    private void reconstruct(String background, String sk) {
-        log.info("Fwd:");
-        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 5000);
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> reconstruct(String background, String sk) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         log.info("Rev:");
         Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 5000);
+
+        log.info("Fwd:");
+        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 5000);
+
+        List<String> allKmers = new ArrayList<>();
+        List<Interval> allLoci = new ArrayList<>();
+
+        allKmers.addAll(rev.getFirst());
+        allKmers.add(sk);
+        allKmers.addAll(fwd.getFirst());
+
+        allLoci.addAll(rev.getSecond());
+        allLoci.add(null);
+        allLoci.addAll(fwd.getSecond());
+
+        for (int i = 0; i < allKmers.size() - 1; i++) {
+            String s0 = allKmers.get(i);
+            CortexRecord c0 = GRAPH.findRecord(new CortexKmer(s0));
+            Interval i0 = allLoci.get(i);
+            CortexVertex v0 = new CortexVertex(s0, c0, i0);
+
+            String s1 = allKmers.get(i + 1);
+            CortexRecord c1 = GRAPH.findRecord(new CortexKmer(s1));
+            Interval i1 = allLoci.get(i + 1);
+            CortexVertex v1 = new CortexVertex(s1, c1, i1);
+
+            g.addVertex(v0);
+            g.addVertex(v1);
+
+            Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(c0, !sk.equals(c0.getKmerAsString()));
+            Set<String> pnk = aks.get(GRAPH.getColorForSampleName(background));
+            Set<String> cnk = aks.get(GRAPH.getColorForSampleName(CHILD));
+
+            if (pnk.contains(s1)) {
+                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(background), 1.0));
+            }
+
+            if (cnk.contains(s1)) {
+                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(CHILD), 1.0));
+            }
+        }
+
+        return g;
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward, int limit) {
@@ -95,9 +137,6 @@ public class CallNAHRs extends Module {
         boolean onRef = false;
         boolean positiveStrand = false;
         boolean keepGoing = true;
-
-        vertices.add(sk);
-        loci.add(null);
 
         while (distanceFromNovel < limit && keepGoing) {
             if (ci == null) {

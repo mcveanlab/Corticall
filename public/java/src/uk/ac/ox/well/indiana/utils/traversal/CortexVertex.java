@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
@@ -14,10 +15,17 @@ import java.util.TreeSet;
 public class CortexVertex {
     private String sk;
     private CortexRecord cr;
+    private Interval locus;
 
     public CortexVertex(String sk, CortexRecord cr) {
         this.sk = sk;
         this.cr = cr;
+    }
+
+    public CortexVertex(String sk, CortexRecord cr, Interval locus) {
+        this.sk = sk;
+        this.cr = cr;
+        this.locus = locus;
     }
 
     public String getSk() { return sk; }
@@ -25,6 +33,8 @@ public class CortexVertex {
     public CortexRecord getCr() { return cr; }
 
     public CortexKmer getCk() { return cr.getCortexKmer(); }
+
+    public Interval getLocus() { return locus; }
 
     @Override
     public boolean equals(Object o) {
@@ -34,7 +44,8 @@ public class CortexVertex {
         CortexVertex that = (CortexVertex) o;
 
         if (sk != null ? !sk.equals(that.sk) : that.sk != null) return false;
-        return cr != null ? cr.equals(that.cr) : that.cr == null;
+        if (cr != null ? !cr.equals(that.cr) : that.cr != null) return false;
+        return locus != null ? locus.equals(that.locus) : that.locus == null;
 
     }
 
@@ -42,6 +53,7 @@ public class CortexVertex {
     public int hashCode() {
         int result = sk != null ? sk.hashCode() : 0;
         result = 31 * result + (cr != null ? cr.hashCode() : 0);
+        result = 31 * result + (locus != null ? locus.hashCode() : 0);
         return result;
     }
 
@@ -50,6 +62,7 @@ public class CortexVertex {
         return "CortexVertex{" +
                 "sk='" + sk + '\'' +
                 ", cr=" + cr +
+                ", locus=" + locus +
                 '}';
     }
 }
