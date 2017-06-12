@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
+import org.apache.commons.math3.util.Pair;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -172,7 +173,11 @@ public class CallNAHRs extends Module {
         //reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
-    private void reconstruct(String background, String sk, boolean goForward) {
+    private void reconstruct(String background, String sk) {
+
+    }
+
+    private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward) {
         List<String> vertices = new ArrayList<>();
         List<Interval> loci = new ArrayList<>();
 
@@ -217,6 +222,7 @@ public class CallNAHRs extends Module {
                             log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
                         } else {
                             log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
+                            break;
                         }
 
                         onRef = false;
@@ -246,6 +252,7 @@ public class CallNAHRs extends Module {
                     }
                 } else {
                     log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
+                    break;
                 }
             }
         }
@@ -253,6 +260,8 @@ public class CallNAHRs extends Module {
         log.info("  {}", vertices.size());
         log.info("  {}", loci.size());
         log.info("");
+
+        return new Pair<>(vertices, loci);
     }
 
     private void reconstruct(String background, Interval candidate, Map<String, IntervalTreeMap<Interval>> candidateLoci, Map<CortexKmer, Boolean> used) {
