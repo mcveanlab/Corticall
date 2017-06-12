@@ -93,7 +93,7 @@ public class KmerLookup {
                 String rc = SequenceUtils.reverseComplement(fw);
 
                 if (sk.equals(fw)) {
-                    intervals.add(new Interval(chr, pos, pos + sk.length() - 1));
+                    intervals.add(new Interval(chr, pos + 1, pos + sk.length()));
                 } else if (sk.equals(rc)) {
                     intervals.add(new Interval(chr, pos + 1, pos + sk.length(), true, null));
                 }
