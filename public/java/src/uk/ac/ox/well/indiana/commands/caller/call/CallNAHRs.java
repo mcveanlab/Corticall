@@ -171,6 +171,12 @@ public class CallNAHRs extends Module {
                 } while (onRef);
             }
         }
+
+        log.info("  {}", vertices.size());
+        log.info("  {}", loci.size());
+        log.info("");
+
+        return new Pair<>(vertices, loci);
     }
 
     /*
