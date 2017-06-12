@@ -216,7 +216,7 @@ public class CallNAHRs extends Module {
                             loci.add(ci);
                             log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
                         } else {
-                            log.info("Hello!");
+                            log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
                         }
 
                         onRef = false;
@@ -245,7 +245,7 @@ public class CallNAHRs extends Module {
                         goForward = ci.isPositiveStrand();
                     }
                 } else {
-                    log.info("Hello!");
+                    log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
                 }
             }
         }
