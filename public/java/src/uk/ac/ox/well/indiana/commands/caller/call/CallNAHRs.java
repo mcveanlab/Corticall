@@ -162,20 +162,17 @@ public class CallNAHRs extends Module {
         */
 
         Interval it = new Interval("Pf3D7_01_v3", 29500, 29546);
-
         String qk = LOOKUPS.get("ref").findKmer(it);
-        String rk = SequenceUtils.reverseComplement(qk);
-        Set<Interval> iqs = LOOKUPS.get("ref").findKmer(qk);
-        Set<Interval> irs = LOOKUPS.get("ref").findKmer(rk);
 
         reconstruct("ref", qk);
-
-        //reconstruct("ref", new Interval("Pf3D7_01_v3", 29500, 29600), candidateLoci, used);
     }
 
     private void reconstruct(String background, String sk) {
+        log.info("Fwd:");
         Pair<List<String>, List<Interval>> fwd = reconstruct("ref", sk, true, 5000);
-        //Pair<List<String>, List<Interval>> rev = reconstruct("ref", sk, false);
+
+        log.info("Rev:");
+        Pair<List<String>, List<Interval>> rev = reconstruct("ref", sk, false, 5000);
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward, int limit) {
@@ -190,9 +187,9 @@ public class CallNAHRs extends Module {
         loci.add(ci);
         log.info("{} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1));
 
-        boolean onRef = true;
+        boolean onRef = ci != null;
         int distanceFromNovel = 0;
-        boolean positiveStrand = true;
+        boolean positiveStrand = ci == null || ci.isPositiveStrand();
 
         while (distanceFromNovel < limit) {
             if (ci != null) {
@@ -202,7 +199,6 @@ public class CallNAHRs extends Module {
 
                     CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                     Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-                    //Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
@@ -243,7 +239,6 @@ public class CallNAHRs extends Module {
             } else {
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                 Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
-                //Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                 Set<String> apar = aks.get(GRAPH.getColorForSampleName(background));
                 Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
@@ -265,7 +260,6 @@ public class CallNAHRs extends Module {
 
                     if (ci != null) {
                         onRef = true;
-                        //goForward = ci.isPositiveStrand();
                         positiveStrand = ci.isPositiveStrand();
                     }
                 } else {
