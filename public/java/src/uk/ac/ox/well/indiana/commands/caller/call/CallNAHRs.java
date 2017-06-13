@@ -212,7 +212,7 @@ public class CallNAHRs extends Module {
             if (locus == null) {
                 locus = it;
             } else {
-                if (it != null && locus.getContig().equals(it.getContig()) && locus.isPositiveStrand() == it.isPositiveStrand()) {
+                if (it != null && locus.getContig().equals(it.getContig()) && locus.isPositiveStrand() == it.isPositiveStrand() && locus.getIntersectionLength(it) == GRAPH.getKmerSize() - 1) {
                     int start = locus.getStart() < it.getStart() ? locus.getStart() : it.getStart();
                     int end   = locus.getEnd()   > it.getEnd()   ? locus.getEnd()   : it.getEnd();
 
