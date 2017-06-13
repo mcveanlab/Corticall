@@ -101,6 +101,8 @@ public class CallNAHRs extends Module {
             rseqs.add(nseq);
         }
 
+        out.println(Joiner.on('\t').join(Arrays.asList("kmer", "interval", "pos", "contigIndex")));
+
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String kmer = recon.getFirst().get(i);
             Interval interval = recon.getSecond().get(i);
@@ -108,8 +110,11 @@ public class CallNAHRs extends Module {
 
             if (contigIndex >= 0) {
                 log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
+                String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
+                out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
             } else {
                 log.info("{} NA {} {}", kmer, i, contigIndex);
+                out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
             }
         }
 
