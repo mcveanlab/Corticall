@@ -81,19 +81,21 @@ public class CallNAHRs extends Module {
                 //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 //printReconstruction(recon1, aggregatedIntervals1, "HB3");
 
-                log.info("{}", sk);
-                log.info("  - {} {}", recon0.getFirst().size(), aggregatedIntervals0);
-                log.info("  - {} {}", recon1.getFirst().size(), aggregatedIntervals1);
-
+                int novels0 = 0;
                 for (String qk : recon0.getFirst()) {
                     CortexKmer rk = new CortexKmer(qk);
-                    if (used.containsKey(rk)) { used.put(rk, true); }
+                    if (used.containsKey(rk)) { used.put(rk, true); novels0++; }
                 }
 
+                int novels1 = 0;
                 for (String qk : recon1.getFirst()) {
                     CortexKmer rk = new CortexKmer(qk);
-                    if (used.containsKey(rk)) { used.put(rk, true); }
+                    if (used.containsKey(rk)) { used.put(rk, true); novels1++; }
                 }
+
+                log.info("{}", sk);
+                log.info("  - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
+                log.info("  - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
             }
         }
     }
