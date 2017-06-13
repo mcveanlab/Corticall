@@ -115,7 +115,7 @@ public class CallNAHRs extends Module {
             g.addVertex(v0);
             g.addVertex(v1);
 
-            Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(c0, !sk.equals(c0.getKmerAsString()));
+            Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(c0, !s0.equals(c0.getKmerAsString()));
             Set<String> pnk = aks.get(GRAPH.getColorForSampleName("ref"));
             Set<String> cnk = aks.get(GRAPH.getColorForSampleName(CHILD));
 
