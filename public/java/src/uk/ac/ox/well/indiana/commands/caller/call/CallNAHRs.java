@@ -61,16 +61,6 @@ public class CallNAHRs extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(CHILD))
-                .joiningColors(GRAPH.getColorsForSampleNames(PARENTS))
-                .traversalDirection(BOTH)
-                .combinationOperator(AND)
-                .stopper(NahrStopper.class)
-                .graph(GRAPH)
-                .rois(ROI)
-                .make();
-
         Map<CortexKmer, Boolean> used = new HashMap<>();
         for (CortexRecord rr : ROI) {
             used.put(rr.getCortexKmer(), false);
@@ -80,25 +70,15 @@ public class CallNAHRs extends Module {
 
         Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(recon);
-
         Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
-        Map<String, Integer> contigIndices = new HashMap<>();
 
+        //DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(recon);
+
+        Map<String, Integer> contigIndices = new HashMap<>();
         int index = aggregatedIntervals.size();
         for (String contig : aggregatedIntervals.keySet()) {
             contigIndices.put(contig, index);
             index--;
-        }
-
-        List<ReferenceSequence> rseqs = new ArrayList<>();
-
-        for (String contig : aggregatedIntervals.keySet()) {
-            Interval it = aggregatedIntervals.get(contig);
-            ReferenceSequence rseq = LOOKUPS.get("ref").getReferenceSequence().getSubsequenceAt(it.getContig(), it.getStart(), it.getEnd());
-            ReferenceSequence nseq = new ReferenceSequence(rseq.getName(), rseq.getContigIndex(), it.isPositiveStrand() ? rseq.getBaseString().getBytes() : SequenceUtils.reverseComplement(rseq.getBaseString()).getBytes());
-
-            rseqs.add(nseq);
         }
 
         out.println(Joiner.on('\t').join(Arrays.asList("kmer", "interval", "pos", "contigIndex")));
@@ -108,20 +88,15 @@ public class CallNAHRs extends Module {
             Interval interval = recon.getSecond().get(i);
             int contigIndex = interval == null ? -1 : contigIndices.get(interval.getContig());
 
-            log.info("{} {} {}", kmer, interval, LOOKUPS.get("ref").findKmer(kmer));
+            log.info("{} {} {} {}", kmer, interval, LOOKUPS.get("ref").findKmer(kmer), LOOKUPS.get("HB3").findKmer(kmer));
 
             if (contigIndex >= 0) {
-                //log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
                 String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
                 out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
             } else {
-                //log.info("{} NA {} {}", kmer, i, contigIndex);
                 out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
             }
         }
-
-        GraphVisualizer gv = new GraphVisualizer(9000);
-        gv.display(g, rseqs, "nahr1");
     }
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> buildGraph(Pair<List<String>, List<Interval>> recon) {
@@ -254,14 +229,12 @@ public class CallNAHRs extends Module {
                         vertices.add(0, sk);
                         loci.add(0, ci);
                     }
-                    //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
 
                     if (ci != null) {
                         onRef = true;
                         positiveStrand = ci.isPositiveStrand();
                     }
                 } else {
-                    //log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
                     keepGoing = false;
                 }
             } else {
@@ -300,8 +273,6 @@ public class CallNAHRs extends Module {
                             vertices.add(0, sk);
                             loci.add(0, ci);
                         }
-                        //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
-                        //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                     } else {
                         if (achi.size() == 1) {
                             distanceFromNovel = 0;
@@ -318,11 +289,7 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
-
-                            //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
-                            //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                         } else {
-                            //log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
                             keepGoing = false;
                         }
 
@@ -331,10 +298,6 @@ public class CallNAHRs extends Module {
                 } while (onRef);
             }
         }
-
-        //log.info("  {}", vertices.size());
-        //log.info("  {}", loci.size());
-        //log.info("");
 
         return new Pair<>(vertices, loci);
     }
