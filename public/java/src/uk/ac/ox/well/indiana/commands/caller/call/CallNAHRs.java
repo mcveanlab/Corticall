@@ -109,18 +109,39 @@ public class CallNAHRs extends Module {
                 }
 
                 if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0, used)) {
+                    String contig0 = getContig(recon0);
+
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
+                    log.info("    - {} {} {} {} {}", recon0.getFirst().size(), contig0.length(), novels0, mergedIntervals0);
+
+                    log.info("      {}", contig0);
 
                     //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
+                    String contig1 = getContig(recon1);
+
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
+                    log.info("    - {} {} {} {} {}", recon1.getFirst().size(), contig1.length(), novels1, mergedIntervals1);
+
+                    log.info("      {}", contig1);
 
                     //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
+            }
+        }
+    }
+
+    private String getContig(Pair<List<String>, List<Interval>> recon) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < recon.getFirst().size(); i++) {
+            String sk = recon.getFirst().get(i);
+            if (i == 0) {
+                sb.append(sk);
+            } else {
+                sb.append(sk.substring(sk.length() - 1, sk.length()));
             }
         }
     }
