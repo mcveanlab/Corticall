@@ -254,7 +254,7 @@ public class CallNAHRs extends Module {
 
         while (distanceFromNovel < limit && keepGoing) {
             if (ci == null) {
-                log.info("  {} {}", sk, ci);
+                log.debug("  {} {}", sk, ci);
 
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                 Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
@@ -287,7 +287,7 @@ public class CallNAHRs extends Module {
                     keepGoing = false;
                 }
             } else {
-                log.info("  {} {}", sk, ci);
+                log.debug("  {} {}", sk, ci);
 
                 do {
                     Interval aci;
