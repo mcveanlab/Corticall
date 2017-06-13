@@ -138,8 +138,6 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                //log.info("b0 = {}; {}", b0, i);
-
                 Interval b1 = null;
                 for (int j = i + 1; j < recon.getFirst().size(); j++) {
                     if (recon.getSecond().get(j) != null) {
@@ -148,8 +146,6 @@ public class CallNAHRs extends Module {
                         break;
                     }
                 }
-
-                //log.info("b1 = {}; {}", b1, i);
 
                 if (b0 != null && b1 != null && !b0.getContig().equals(b1.getContig())) {
                     return true;
@@ -241,7 +237,7 @@ public class CallNAHRs extends Module {
 
     @NotNull
     private Set<Interval> mergeIntervals(Pair<List<String>, List<Interval>> recon) {
-        Set<Interval> mergedIntervals = new TreeSet<>();
+        Set<Interval> mergedIntervals = new LinkedHashSet<>();
 
         Interval locus = null;
         for (Interval it : recon.getSecond()) {
