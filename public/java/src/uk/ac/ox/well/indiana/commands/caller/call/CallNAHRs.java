@@ -109,9 +109,9 @@ public class CallNAHRs extends Module {
                 }
 
                 if (Math.max(novels0, novels1) >= 10 && (aggregatedIntervals0.size() > 1 || aggregatedIntervals1.size() > 1)) {
-                    log.info("{}", sk);
-                    log.info("  - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
-                    log.info("  - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
+                    log.info("  {}", sk);
+                    log.info("    - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
+                    log.info("    - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
                 }
             }
         }
