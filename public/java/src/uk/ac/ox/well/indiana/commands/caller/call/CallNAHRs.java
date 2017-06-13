@@ -310,6 +310,11 @@ public class CallNAHRs extends Module {
                         }
                     }
 
+                    if (usedLoci.contains(aci)) {
+                        keepGoing = false;
+                        break;
+                    }
+
                     String aref = LOOKUPS.get(background).findKmer(aci);
 
                     CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
@@ -345,8 +350,6 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
-                        } else if (usedLoci.contains(aci)) {
-                            keepGoing = false;
                         } else {
                             keepGoing = false;
                         }
