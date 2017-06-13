@@ -76,6 +76,7 @@ public class CallNAHRs extends Module {
                 .header("Processing novel kmers")
                 .message("kmers processed")
                 .maxRecord(used.size())
+                .updateRecord(used.size())
                 .make(log);
 
         for (CortexKmer ck : used.keySet()) {
