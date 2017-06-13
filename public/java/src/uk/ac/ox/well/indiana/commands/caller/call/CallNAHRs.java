@@ -61,24 +61,41 @@ public class CallNAHRs extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
+        //String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
+
         Map<CortexKmer, Boolean> used = new HashMap<>();
         for (CortexRecord rr : ROI) {
             used.put(rr.getCortexKmer(), false);
         }
 
-        String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
+        for (CortexKmer ck : used.keySet()) {
+            if (!used.get(ck)) {
+                String sk = ck.getKmerAsString();
 
-        Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
-        Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
+                Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
+                Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
 
-        Map<String, Interval> aggregatedIntervals0 = aggregateIntervals(mergeIntervals(recon0));
-        Map<String, Interval> aggregatedIntervals1 = aggregateIntervals(mergeIntervals(recon1));
+                Map<String, Interval> aggregatedIntervals0 = aggregateIntervals(mergeIntervals(recon0));
+                Map<String, Interval> aggregatedIntervals1 = aggregateIntervals(mergeIntervals(recon1));
 
-        printReconstruction(recon0, aggregatedIntervals0, "ref");
-        printReconstruction(recon1, aggregatedIntervals1, "HB3");
+                //printReconstruction(recon0, aggregatedIntervals0, "ref");
+                //printReconstruction(recon1, aggregatedIntervals1, "HB3");
 
-        log.info("{}", aggregatedIntervals0);
-        log.info("{}", aggregatedIntervals1);
+                log.info("{}", sk);
+                log.info("  - {} {}", recon0.getFirst().size(), aggregatedIntervals0);
+                log.info("  - {} {}", recon1.getFirst().size(), aggregatedIntervals1);
+
+                for (String qk : recon0.getFirst()) {
+                    CortexKmer rk = new CortexKmer(qk);
+                    if (used.containsKey(rk)) { used.put(rk, true); }
+                }
+
+                for (String qk : recon1.getFirst()) {
+                    CortexKmer rk = new CortexKmer(qk);
+                    if (used.containsKey(rk)) { used.put(rk, true); }
+                }
+            }
+        }
     }
 
     private void printReconstruction(Pair<List<String>, List<Interval>> recon, Map<String, Interval> aggregatedIntervals, String background) {
