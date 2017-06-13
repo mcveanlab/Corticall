@@ -309,7 +309,7 @@ public class CallNAHRs extends Module {
                             Set<Interval> acis = LOOKUPS.get(background).findKmer(sk);
                             ci = acis.size() == 1 ? acis.iterator().next() : null;
 
-                            if (ci != null && !aci.getContig().equals(ci.getContig())) {
+                            if ((ci != null && !aci.getContig().equals(ci.getContig())) || acis.size() > 1) {
                                 keepGoing = false;
                             } else if (goForward) {
                                 vertices.add(sk);
