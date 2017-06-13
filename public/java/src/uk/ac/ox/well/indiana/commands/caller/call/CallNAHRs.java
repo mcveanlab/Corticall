@@ -112,9 +112,7 @@ public class CallNAHRs extends Module {
                     log.info("  {}", sk);
                     log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0, hasMultiChrBreakpoint(recon0, used));
 
-                    if (!hasMultiChrBreakpoint(recon0, used)) {
-                        printReconstruction(recon0, aggregatedIntervals0, "ref");
-                    }
+                    //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1) {
@@ -153,7 +151,7 @@ public class CallNAHRs extends Module {
 
                 log.info("b1 = {}; {}", b1, i);
 
-                if (b0 != null && b1 != null) {
+                if (b0 != null && b1 != null && !b0.getContig().equals(b1.getContig())) {
                     return true;
                 }
             }
