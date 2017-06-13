@@ -244,7 +244,9 @@ public class CallNAHRs extends Module {
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward, int limit) {
         List<String> vertices = new ArrayList<>();
         List<Interval> loci = new ArrayList<>();
+
         Set<String> usedNovelKmers = new HashSet<>();
+        Set<Interval> usedLoci = new HashSet<>();
 
         Interval ci = null;
         int distanceFromNovel = 0;
@@ -343,11 +345,17 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
+                        } else if (usedLoci.contains(aci)) {
+                            keepGoing = false;
                         } else {
                             keepGoing = false;
                         }
 
                         onRef = false;
+                    }
+
+                    if (!usedLoci.contains(aci)) {
+                        usedLoci.add(aci);
                     }
                 } while (onRef);
             }
