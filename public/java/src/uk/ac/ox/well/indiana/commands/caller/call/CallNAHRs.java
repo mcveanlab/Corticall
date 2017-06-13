@@ -85,10 +85,10 @@ public class CallNAHRs extends Module {
         Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
         Map<String, Integer> contigIndices = new HashMap<>();
 
-        int index = 0;
+        int index = aggregatedIntervals.size();
         for (String contig : aggregatedIntervals.keySet()) {
             contigIndices.put(contig, index);
-            index++;
+            index--;
         }
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
