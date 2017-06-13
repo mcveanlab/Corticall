@@ -84,7 +84,7 @@ public class CallNAHRs extends Module {
             if (locus == null) {
                 locus = it;
             } else {
-                if (locus.getIntersectionLength(it) > 0) {
+                if (it != null && locus.getIntersectionLength(it) > 0) {
                     int start = locus.getStart() < it.getStart() ? locus.getStart() : it.getStart();
                     int end   = locus.getEnd()   > it.getEnd()   ? locus.getEnd()   : it.getEnd();
 
