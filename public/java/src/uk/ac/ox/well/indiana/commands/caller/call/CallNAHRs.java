@@ -20,6 +20,8 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
@@ -68,6 +70,12 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing novel kmers")
+                .message("kmers processed")
+                .maxRecord(used.size())
+                .make(log);
+
         for (CortexKmer ck : used.keySet()) {
             if (!used.get(ck)) {
                 String sk = ck.getKmerAsString();
@@ -91,6 +99,10 @@ public class CallNAHRs extends Module {
                 for (String qk : recon1.getFirst()) {
                     CortexKmer rk = new CortexKmer(qk);
                     if (used.containsKey(rk)) { used.put(rk, true); novels1++; }
+                }
+
+                for (int i = 0; i < Math.max(novels0, novels1); i++) {
+                    pm.update();
                 }
 
                 log.info("{}", sk);
@@ -209,8 +221,8 @@ public class CallNAHRs extends Module {
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk) {
-        Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 5000);
-        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 5000);
+        Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 1000);
+        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 1000);
 
         List<String> allKmers = new ArrayList<>();
         List<Interval> allLoci = new ArrayList<>();
