@@ -138,7 +138,7 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("b0 = {}; {}", b0, i);
+                //log.info("b0 = {}; {}", b0, i);
 
                 Interval b1 = null;
                 for (int j = i + 1; j < recon.getFirst().size(); j++) {
@@ -149,7 +149,7 @@ public class CallNAHRs extends Module {
                     }
                 }
 
-                log.info("b1 = {}; {}", b1, i);
+                //log.info("b1 = {}; {}", b1, i);
 
                 if (b0 != null && b1 != null && !b0.getContig().equals(b1.getContig())) {
                     return true;
