@@ -84,15 +84,13 @@ public class CallNAHRs extends Module {
             if (locus == null) {
                 locus = it;
             } else {
-                if (it != null && locus.getIntersectionLength(it) > 0) {
+                if (it != null && locus.getContig().equals(it.getContig()) && locus.isPositiveStrand() == it.isPositiveStrand()) {
                     int start = locus.getStart() < it.getStart() ? locus.getStart() : it.getStart();
                     int end   = locus.getEnd()   > it.getEnd()   ? locus.getEnd()   : it.getEnd();
 
                     locus = new Interval(locus.getContig(), start, end, locus.isNegativeStrand(), null);
                 } else {
-                    if (locus != null) {
-                        mergedIntervals.add(locus);
-                    }
+                    mergedIntervals.add(locus);
 
                     locus = it;
                 }
