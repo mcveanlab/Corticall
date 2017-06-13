@@ -306,7 +306,6 @@ public class CallNAHRs extends Module {
                         if (achi.size() == 1) {
                             distanceFromNovel = 0;
                             sk = achi.iterator().next();
-                            ci = null;
 
                             if (goForward) {
                                 vertices.add(sk);
@@ -315,6 +314,8 @@ public class CallNAHRs extends Module {
                                 vertices.add(0, sk);
                                 loci.add(0, ci);
                             }
+
+                            ci = null;
                             //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
                             //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                         } else {
