@@ -76,6 +76,9 @@ public class CallNAHRs extends Module {
 
         printReconstruction(recon0, aggregatedIntervals0, "ref");
         printReconstruction(recon1, aggregatedIntervals1, "HB3");
+
+        log.info("{}", aggregatedIntervals0);
+        log.info("{}", aggregatedIntervals1);
     }
 
     private void printReconstruction(Pair<List<String>, List<Interval>> recon, Map<String, Interval> aggregatedIntervals, String background) {
