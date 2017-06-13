@@ -108,16 +108,16 @@ public class CallNAHRs extends Module {
                     pm.update();
                 }
 
-                if (novels0 >= 10 && aggregatedIntervals0.size() > 1) {
+                if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0, used)) {
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0, hasMultiChrBreakpoint(recon0, used));
+                    log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
 
                     //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
-                if (novels1 >= 10 && aggregatedIntervals1.size() > 1) {
+                if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1, hasMultiChrBreakpoint(recon1, used));
+                    log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
 
                     //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
