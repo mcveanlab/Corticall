@@ -92,9 +92,6 @@ public class CallNAHRs extends Module {
                 Map<String, Interval> aggregatedIntervals0 = aggregateIntervals(mergeIntervals(recon0));
                 Map<String, Interval> aggregatedIntervals1 = aggregateIntervals(mergeIntervals(recon1));
 
-                //printReconstruction(recon0, aggregatedIntervals0, "ref");
-                //printReconstruction(recon1, aggregatedIntervals1, "HB3");
-
                 int novels0 = 0;
                 for (String qk : recon0.getFirst()) {
                     CortexKmer rk = new CortexKmer(qk);
@@ -114,11 +111,15 @@ public class CallNAHRs extends Module {
                 if (novels0 >= 10 && aggregatedIntervals0.size() > 1) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
+
+                    printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
+
+                    printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
             }
         }
