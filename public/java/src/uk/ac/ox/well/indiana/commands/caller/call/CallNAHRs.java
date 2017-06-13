@@ -108,12 +108,14 @@ public class CallNAHRs extends Module {
             Interval interval = recon.getSecond().get(i);
             int contigIndex = interval == null ? -1 : contigIndices.get(interval.getContig());
 
+            log.info("{} {} {}", kmer, interval, LOOKUPS.get("ref").findKmer(kmer));
+
             if (contigIndex >= 0) {
-                log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
+                //log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
                 String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
                 out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
             } else {
-                log.info("{} NA {} {}", kmer, i, contigIndex);
+                //log.info("{} NA {} {}", kmer, i, contigIndex);
                 out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
             }
         }
