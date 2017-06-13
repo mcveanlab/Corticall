@@ -112,14 +112,14 @@ public class CallNAHRs extends Module {
                     log.info("  {}", sk);
                     log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0, hasMultiChrBreakpoint(recon0, used));
 
-                    printReconstruction(recon0, aggregatedIntervals0, "ref");
+                    //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1, hasMultiChrBreakpoint(recon1, used));
 
-                    printReconstruction(recon1, aggregatedIntervals1, "HB3");
+                    //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
             }
         }
@@ -129,14 +129,19 @@ public class CallNAHRs extends Module {
         for (int i = 1; i < recon.getFirst().size() - 1; i++) {
             CortexKmer ck = new CortexKmer(recon.getFirst().get(i));
 
-            if (recon.getSecond().get(i) == null && used.containsKey(ck)) {
+            if (recon.getSecond().get(i - 1) != null && recon.getSecond().get(i) == null && used.containsKey(ck)) {
                 Interval b0 = recon.getSecond().get(i - 1);
                 Interval b1 = null;
+
+                log.info("b0 = {}", b0);
 
                 int q = i;
                 for (int j = i + 1; j < recon.getFirst().size(); j++) {
                     if (recon.getSecond().get(j) != null) {
                         b1 = recon.getSecond().get(j);
+
+                        log.info("b1 = {}", b1);
+
                         i = j;
                         break;
                     }
