@@ -252,6 +252,8 @@ public class CallNAHRs extends Module {
         boolean positiveStrand = false;
         boolean keepGoing = true;
 
+        log.debug("start");
+
         while (distanceFromNovel < limit && keepGoing) {
             if (ci == null) {
                 log.debug("  {} {} {} {}", goForward, distanceFromNovel, sk, ci);
