@@ -66,9 +66,11 @@ public class CallNAHRs extends Module {
         //String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
 
         Map<CortexKmer, Boolean> used = new HashMap<>();
-        for (CortexRecord rr : ROI) {
-            used.put(rr.getCortexKmer(), false);
-        }
+        //for (CortexRecord rr : ROI) {
+        //    used.put(rr.getCortexKmer(), false);
+        //}
+
+        used.put(new CortexKmer("ATTATATCTAATAATATAATATATTATATATTATATCTAATAATATA"), false);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers")
