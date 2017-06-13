@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 
 import com.google.api.client.util.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTreeMap;
@@ -25,6 +26,7 @@ import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -78,8 +80,59 @@ public class CallNAHRs extends Module {
 
         Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
 
-        Set<Interval> mergedIntervals = mergeIntervals(recon);
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(sk, recon);
 
+        Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
+
+        List<ReferenceSequence> rseqs = new ArrayList<>();
+
+        for (String contig : aggregatedIntervals.keySet()) {
+            Interval it = aggregatedIntervals.get(contig);
+            ReferenceSequence rseq = LOOKUPS.get("ref").getReferenceSequence().getSubsequenceAt(it.getContig(), it.getStart(), it.getEnd());
+            ReferenceSequence nseq = new ReferenceSequence(rseq.getName(), rseq.getContigIndex(), it.isPositiveStrand() ? rseq.getBaseString().getBytes() : SequenceUtils.reverseComplement(rseq.getBaseString()).getBytes());
+
+            rseqs.add(nseq);
+        }
+
+        GraphVisualizer gv = new GraphVisualizer(9000);
+        gv.display(g, rseqs, "nahr1");
+    }
+
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> buildGraph(String sk, Pair<List<String>, List<Interval>> recon) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        for (int i = 0; i < recon.getFirst().size() - 1; i++) {
+            String s0 = recon.getFirst().get(i);
+            CortexRecord c0 = GRAPH.findRecord(new CortexKmer(s0));
+            Interval i0 = recon.getSecond().get(i);
+            CortexVertex v0 = new CortexVertex(s0, c0, i0);
+
+            String s1 = recon.getFirst().get(i + 1);
+            CortexRecord c1 = GRAPH.findRecord(new CortexKmer(s1));
+            Interval i1 = recon.getSecond().get(i + 1);
+            CortexVertex v1 = new CortexVertex(s1, c1, i1);
+
+            g.addVertex(v0);
+            g.addVertex(v1);
+
+            Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(c0, !sk.equals(c0.getKmerAsString()));
+            Set<String> pnk = aks.get(GRAPH.getColorForSampleName("ref"));
+            Set<String> cnk = aks.get(GRAPH.getColorForSampleName(CHILD));
+
+            if (pnk.contains(s1)) {
+                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName("ref"), 1.0));
+            }
+
+            if (cnk.contains(s1)) {
+                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(CHILD), 1.0));
+            }
+        }
+
+        return g;
+    }
+
+    @NotNull
+    private Map<String, Interval> aggregateIntervals(Set<Interval> mergedIntervals) {
         Map<String, Interval> aggregatedIntervals = new TreeMap<>();
         for (Interval it : mergedIntervals) {
             if (!aggregatedIntervals.containsKey(it.getContig())) {
@@ -95,11 +148,7 @@ public class CallNAHRs extends Module {
                 aggregatedIntervals.put(locus.getContig(), newlocus);
             }
         }
-
-        log.info("agg:");
-        for (String contig : aggregatedIntervals.keySet()) {
-            log.info("  {}", aggregatedIntervals.get(contig));
-        }
+        return aggregatedIntervals;
     }
 
     @NotNull
@@ -132,8 +181,6 @@ public class CallNAHRs extends Module {
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk) {
-        //DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
         Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 5000);
         Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 5000);
 
@@ -147,37 +194,6 @@ public class CallNAHRs extends Module {
         allLoci.addAll(rev.getSecond());
         allLoci.add(null);
         allLoci.addAll(fwd.getSecond());
-
-        /*
-        for (int i = 0; i < allKmers.size() - 1; i++) {
-            String s0 = allKmers.get(i);
-            CortexRecord c0 = GRAPH.findRecord(new CortexKmer(s0));
-            Interval i0 = allLoci.get(i);
-            CortexVertex v0 = new CortexVertex(s0, c0, i0);
-
-            String s1 = allKmers.get(i + 1);
-            CortexRecord c1 = GRAPH.findRecord(new CortexKmer(s1));
-            Interval i1 = allLoci.get(i + 1);
-            CortexVertex v1 = new CortexVertex(s1, c1, i1);
-
-            g.addVertex(v0);
-            g.addVertex(v1);
-
-            Map<Integer, Set<String>> aks = TraversalEngine.getAllNextKmers(c0, !sk.equals(c0.getKmerAsString()));
-            Set<String> pnk = aks.get(GRAPH.getColorForSampleName(background));
-            Set<String> cnk = aks.get(GRAPH.getColorForSampleName(CHILD));
-
-            if (pnk.contains(s1)) {
-                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(background), 1.0));
-            }
-
-            if (cnk.contains(s1)) {
-                g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(CHILD), 1.0));
-            }
-        }
-        */
-
-        //return g;
 
         return new Pair<>(allKmers, allLoci);
     }
