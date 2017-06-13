@@ -257,8 +257,8 @@ public class CallNAHRs extends Module {
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk) {
-        Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 1000);
-        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 1000);
+        Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 4000);
+        Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 4000);
 
         List<String> allKmers = new ArrayList<>();
         List<Interval> allLoci = new ArrayList<>();
