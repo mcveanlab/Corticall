@@ -107,7 +107,7 @@ public class CallNAHRs extends Module {
                     pm.update();
                 }
 
-                if (Math.max(novels0, novels1) >= 10) {
+                if (Math.max(novels0, novels1) >= 10 && (recon0.getFirst().size() > 1 || recon1.getFirst().size() > 1)) {
                     log.info("{}", sk);
                     log.info("  - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
                     log.info("  - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
