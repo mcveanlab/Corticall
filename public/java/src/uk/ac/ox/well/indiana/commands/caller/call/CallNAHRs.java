@@ -313,6 +313,8 @@ public class CallNAHRs extends Module {
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
+                        distanceFromNovel++;
+
                         sk = aref;
                         ci = aci;
 
