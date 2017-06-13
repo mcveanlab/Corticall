@@ -80,7 +80,7 @@ public class CallNAHRs extends Module {
 
         Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(sk, recon);
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(recon);
 
         Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
         Map<String, Integer> contigIndices = new HashMap<>();
@@ -124,7 +124,7 @@ public class CallNAHRs extends Module {
         gv.display(g, rseqs, "nahr1");
     }
 
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> buildGraph(String sk, Pair<List<String>, List<Interval>> recon) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> buildGraph(Pair<List<String>, List<Interval>> recon) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         for (int i = 0; i < recon.getFirst().size() - 1; i++) {
