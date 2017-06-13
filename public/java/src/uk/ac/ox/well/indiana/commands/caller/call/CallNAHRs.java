@@ -108,14 +108,14 @@ public class CallNAHRs extends Module {
                     pm.update();
                 }
 
-                if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0)) {
+                if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0, used)) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
 
                     printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
-                if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1)) {
+                if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
 
@@ -125,9 +125,11 @@ public class CallNAHRs extends Module {
         }
     }
 
-    private boolean hasMultiChrBreakpoint(Pair<List<String>, List<Interval>> recon) {
+    private boolean hasMultiChrBreakpoint(Pair<List<String>, List<Interval>> recon, Map<CortexKmer, Boolean> used) {
         for (int i = 1; i < recon.getFirst().size() - 1; i++) {
-            if (recon.getSecond().get(i) == null) {
+            CortexKmer ck = new CortexKmer(recon.getFirst().get(i));
+
+            if (recon.getSecond().get(i) == null && used.containsKey(ck)) {
                 Interval b0 = recon.getSecond().get(i - 1);
                 Interval b1 = null;
 
