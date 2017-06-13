@@ -75,16 +75,44 @@ public class CallNAHRs extends Module {
 
         String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
 
-        reconstruct("ref", sk);
+        Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
+
+        Set<Interval> mergedIntervals = new TreeSet<>();
+
+        Interval locus = null;
+        for (Interval it : recon.getSecond()) {
+            if (locus == null) {
+                locus = it;
+            } else {
+                if (locus.getIntersectionLength(it) > 0) {
+                    int start = locus.getStart() < it.getStart() ? locus.getStart() : it.getStart();
+                    int end   = locus.getEnd()   > it.getEnd()   ? locus.getEnd()   : it.getEnd();
+
+                    locus = new Interval(locus.getContig(), start, end, locus.isNegativeStrand(), null);
+                } else {
+                    if (locus != null) {
+                        mergedIntervals.add(locus);
+                    }
+
+                    locus = it;
+                }
+            }
+        }
+
+        if (locus != null) {
+            mergedIntervals.add(locus);
+        }
+
+        log.info("merged:");
+        for (Interval mergedInterval : mergedIntervals) {
+            log.info("  {}", mergedInterval);
+        }
     }
 
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> reconstruct(String background, String sk) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+    private Pair<List<String>, List<Interval>> reconstruct(String background, String sk) {
+        //DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
-        log.info("Rev:");
         Pair<List<String>, List<Interval>> rev = reconstruct(background, sk, false, 5000);
-
-        log.info("Fwd:");
         Pair<List<String>, List<Interval>> fwd = reconstruct(background, sk, true, 5000);
 
         List<String> allKmers = new ArrayList<>();
@@ -98,6 +126,7 @@ public class CallNAHRs extends Module {
         allLoci.add(null);
         allLoci.addAll(fwd.getSecond());
 
+        /*
         for (int i = 0; i < allKmers.size() - 1; i++) {
             String s0 = allKmers.get(i);
             CortexRecord c0 = GRAPH.findRecord(new CortexKmer(s0));
@@ -124,8 +153,11 @@ public class CallNAHRs extends Module {
                 g.addEdge(v0, v1, new CortexEdge(GRAPH.getColorForSampleName(CHILD), 1.0));
             }
         }
+        */
 
-        return g;
+        //return g;
+
+        return new Pair<>(allKmers, allLoci);
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk, boolean goForward, int limit) {
@@ -158,14 +190,14 @@ public class CallNAHRs extends Module {
                         vertices.add(0, sk);
                         loci.add(0, ci);
                     }
-                    log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
+                    //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
 
                     if (ci != null) {
                         onRef = true;
                         positiveStrand = ci.isPositiveStrand();
                     }
                 } else {
-                    log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
+                    //log.info("lastNovel onRef={} achi.size()={}", onRef, achi.size());
                     keepGoing = false;
                 }
             } else {
@@ -205,7 +237,7 @@ public class CallNAHRs extends Module {
                             loci.add(0, ci);
                         }
                         //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
-                        log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
+                        //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                     } else {
                         if (achi.size() == 1) {
                             distanceFromNovel = 0;
@@ -220,9 +252,9 @@ public class CallNAHRs extends Module {
                                 loci.add(0, ci);
                             }
                             //log.info("{} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0));
-                            log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
+                            //log.info("{} {} {} {} {}", vertices.get(vertices.size() - 1), loci.get(loci.size() - 1), vertices.get(0), loci.get(0), recordToString(cr, GRAPH.getColorForSampleName(CHILD), GRAPH.getColorsForSampleNames(PARENTS)));
                         } else {
-                            log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
+                            //log.info("firstNovel onRef={} achi.size()={}", onRef, achi.size());
                             keepGoing = false;
                         }
 
@@ -232,9 +264,9 @@ public class CallNAHRs extends Module {
             }
         }
 
-        log.info("  {}", vertices.size());
-        log.info("  {}", loci.size());
-        log.info("");
+        //log.info("  {}", vertices.size());
+        //log.info("  {}", loci.size());
+        //log.info("");
 
         return new Pair<>(vertices, loci);
     }
