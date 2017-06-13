@@ -112,14 +112,14 @@ public class CallNAHRs extends Module {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
 
-                    //printReconstruction(recon0, aggregatedIntervals0, "ref");
+                    printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1)) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
 
-                    //printReconstruction(recon1, aggregatedIntervals1, "HB3");
+                    printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
             }
         }
