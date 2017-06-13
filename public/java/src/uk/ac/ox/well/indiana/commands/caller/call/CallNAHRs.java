@@ -82,8 +82,6 @@ public class CallNAHRs extends Module {
             if (!used.get(ck)) {
                 String sk = ck.getKmerAsString();
 
-                log.info("{}", sk);
-
                 Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
                 Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
 
@@ -109,8 +107,11 @@ public class CallNAHRs extends Module {
                     pm.update();
                 }
 
-                log.info("  - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
-                log.info("  - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
+                if (Math.max(novels0, novels1) >= 10) {
+                    log.info("{}", sk);
+                    log.info("  - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
+                    log.info("  - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
+                }
             }
         }
     }
