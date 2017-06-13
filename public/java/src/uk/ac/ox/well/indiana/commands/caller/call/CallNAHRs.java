@@ -144,6 +144,8 @@ public class CallNAHRs extends Module {
                 sb.append(sk.substring(sk.length() - 1, sk.length()));
             }
         }
+
+        return sb.toString();
     }
 
     private boolean hasMultiChrBreakpoint(Pair<List<String>, List<Interval>> recon, Map<CortexKmer, Boolean> used) {
