@@ -83,6 +83,13 @@ public class CallNAHRs extends Module {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(sk, recon);
 
         Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
+        Map<String, Integer> contigIndices = new HashMap<>();
+
+        int index = 0;
+        for (String contig : aggregatedIntervals.keySet()) {
+            contigIndices.put(contig, index);
+            index++;
+        }
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
 
@@ -92,6 +99,14 @@ public class CallNAHRs extends Module {
             ReferenceSequence nseq = new ReferenceSequence(rseq.getName(), rseq.getContigIndex(), it.isPositiveStrand() ? rseq.getBaseString().getBytes() : SequenceUtils.reverseComplement(rseq.getBaseString()).getBytes());
 
             rseqs.add(nseq);
+        }
+
+        for (int i = 0; i < recon.getFirst().size(); i++) {
+            String kmer = recon.getFirst().get(i);
+            Interval interval = recon.getSecond().get(i);
+            int contigIndex = contigIndices.get(interval.getContig());
+
+            log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
         }
 
         GraphVisualizer gv = new GraphVisualizer(9000);
