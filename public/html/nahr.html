@@ -46,8 +46,8 @@ d3.json("listener", function(data) {
                 .text();
 
             d3.json("listener?name=" + graphName, function(graph) {
-                drawNahr(graph);
                 //drawGraph(graph);
+                drawNahr(graph);
             });
         });
 });
@@ -59,7 +59,41 @@ function setStatus(status) {
 }
 
 function drawNahr(graph) {
+    d3.select("#graphDisplay").selectAll("svg").remove();
 
+    //var svg = d3.select("#graphDisplay")
+    //            .append("svg")
+    //            .attr("width", window.innerWidth)
+    //            .attr("height", window.innerHeight);
+
+    //svg.append("rect")
+       //.attr("width", window.innerWidth)
+       //.attr("height", window.innerHeight)
+       //.style("fill", "none")
+       //.style("pointer-events", "all")
+       //.call(d3.zoom()
+       //        .scaleExtent([1 / 4, 4])
+       //        .on("zoom", zoomed));
+
+    //var g = svg.append("g");
+
+    var base = d3.select("#graphDisplay");
+
+    var chart = base.append("canvas")
+                    .attr("width", window.innerWidth)
+                    .attr("height", window.innerHeight);
+
+    var context = chart.node().getContext("2d");
+
+    var detachedContainer = document.createElement("custom");
+
+    var dataContainer = d3.select(detachedContainer);
+
+    Object.keys(graph.refs)
+          .sort()
+          .forEach(function(v, i) {
+              console.log(v, graph.refs[v]);
+          });
 }
 
 function drawGraph(graph) {
