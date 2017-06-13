@@ -109,7 +109,7 @@ public class CallNAHRs extends Module {
             if (contigIndex >= 0) {
                 log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
             } else {
-                log.info("{} {}:{}-{},{} {} {}", kmer, -1, 0, 0, "+", i, contigIndex);
+                log.info("{} NA {} {}", kmer, i, contigIndex);
             }
         }
 
