@@ -104,9 +104,13 @@ public class CallNAHRs extends Module {
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String kmer = recon.getFirst().get(i);
             Interval interval = recon.getSecond().get(i);
-            int contigIndex = contigIndices.get(interval.getContig());
+            int contigIndex = interval == null ? -1 : contigIndices.get(interval.getContig());
 
-            log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
+            if (contigIndex >= 0) {
+                log.info("{} {}:{}-{},{} {} {}", kmer, interval.getContig(), interval.getStart(), interval.getEnd(), interval.isPositiveStrand() ? "+" : "-", i, contigIndex);
+            } else {
+                log.info("{} {}:{}-{},{} {} {}", kmer, -1, 0, 0, "+", i, contigIndex);
+            }
         }
 
         GraphVisualizer gv = new GraphVisualizer(9000);
