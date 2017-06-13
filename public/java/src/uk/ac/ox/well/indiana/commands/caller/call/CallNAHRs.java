@@ -86,6 +86,9 @@ public class CallNAHRs extends Module {
                 Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
                 Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
 
+                Set<Interval> mergedIntervals0 = mergeIntervals(recon0);
+                Set<Interval> mergedIntervals1 = mergeIntervals(recon1);
+
                 Map<String, Interval> aggregatedIntervals0 = aggregateIntervals(mergeIntervals(recon0));
                 Map<String, Interval> aggregatedIntervals1 = aggregateIntervals(mergeIntervals(recon1));
 
@@ -110,8 +113,8 @@ public class CallNAHRs extends Module {
 
                 if (Math.max(novels0, novels1) >= 10 && (aggregatedIntervals0.size() > 1 || aggregatedIntervals1.size() > 1)) {
                     log.info("  {}", sk);
-                    log.info("    - {} {} {}", recon0.getFirst().size(), novels0, aggregatedIntervals0);
-                    log.info("    - {} {} {}", recon1.getFirst().size(), novels1, aggregatedIntervals1);
+                    log.info("    - {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
+                    log.info("    - {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
                 }
             }
         }
