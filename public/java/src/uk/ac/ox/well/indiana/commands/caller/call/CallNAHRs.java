@@ -111,9 +111,13 @@ public class CallNAHRs extends Module {
                     pm.update();
                 }
 
-                if (Math.max(novels0, novels1) >= 10 && (aggregatedIntervals0.size() > 1 || aggregatedIntervals1.size() > 1)) {
+                if (novels0 >= 10 && aggregatedIntervals0.size() > 1) {
                     log.info("  {}", sk);
                     log.info("    - {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
+                }
+
+                if (novels1 >= 10 && aggregatedIntervals1.size() > 1) {
+                    log.info("  {}", sk);
                     log.info("    - {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
                 }
             }
