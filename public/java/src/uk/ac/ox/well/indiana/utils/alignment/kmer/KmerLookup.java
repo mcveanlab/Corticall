@@ -65,6 +65,10 @@ public class KmerLookup {
         }
     }
 
+    public IndexedFastaSequenceFile getReferenceSequence() {
+        return ref;
+    }
+
     public String findKmer(Interval interval) {
         ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
 
