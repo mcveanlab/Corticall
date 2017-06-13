@@ -254,14 +254,13 @@ public class CallNAHRs extends Module {
 
         while (distanceFromNovel < limit && keepGoing) {
             if (ci == null) {
-                log.debug("  {} {} {}", goForward, sk, ci);
+                log.debug("  {} {} {} {}", goForward, distanceFromNovel, sk, ci);
 
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                 Map<Integer, Set<String>> aks = goForward ? TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString())) : TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
                 Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                 if (achi.size() == 1) {
-                    distanceFromNovel = 0;
                     sk = achi.iterator().next();
 
                     Set<Interval> acis = LOOKUPS.get(background).findKmer(sk);
@@ -279,6 +278,7 @@ public class CallNAHRs extends Module {
                         onRef = true;
                         positiveStrand = ci.isPositiveStrand();
                     } else if (!usedNovelKmers.contains(sk)) {
+                        distanceFromNovel = 0;
                         usedNovelKmers.add(sk);
                     } else {
                         keepGoing = false;
@@ -287,7 +287,7 @@ public class CallNAHRs extends Module {
                     keepGoing = false;
                 }
             } else {
-                log.debug("  {} {} {}", goForward, sk, ci);
+                log.debug("  {} {} {} {}", goForward, distanceFromNovel, sk, ci);
 
                 do {
                     Interval aci;
@@ -313,7 +313,6 @@ public class CallNAHRs extends Module {
                     Set<String> achi = aks.get(GRAPH.getColorForSampleName(CHILD));
 
                     if (achi.contains(aref)) {
-                        distanceFromNovel++;
                         sk = aref;
                         ci = aci;
 
