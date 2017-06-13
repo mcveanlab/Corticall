@@ -133,6 +133,7 @@ public class CallNAHRs extends Module {
                 Interval b0 = recon.getSecond().get(i - 1);
                 Interval b1 = null;
 
+                int q = i;
                 for (int j = i + 1; j < recon.getFirst().size(); j++) {
                     if (recon.getSecond().get(j) != null) {
                         b1 = recon.getSecond().get(j);
@@ -142,6 +143,8 @@ public class CallNAHRs extends Module {
                 }
 
                 if (b0 != null && b1 != null && !b0.getContig().equals(b1.getContig())) {
+                    log.info("{} {} {} {}", q, i, b0, b1);
+
                     return true;
                 }
             }
