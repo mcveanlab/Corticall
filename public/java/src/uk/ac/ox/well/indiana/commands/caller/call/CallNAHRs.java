@@ -131,27 +131,29 @@ public class CallNAHRs extends Module {
         for (int i = 1; i < recon.getFirst().size() - 1; i++) {
             CortexKmer ck = new CortexKmer(recon.getFirst().get(i));
 
-            if (recon.getSecond().get(i - 1) != null && recon.getSecond().get(i) == null && used.containsKey(ck)) {
-                Interval b0 = recon.getSecond().get(i - 1);
+            if (used.containsKey(ck)) {
+                Interval b0 = null;
+                for (int j = i - 1; j >= 0; j--) {
+                    if (recon.getSecond().get(j) != null) {
+                        b0 = recon.getSecond().get(j);
+                        break;
+                    }
+                }
+
+                log.info("b0 = {}; {}", b0, i);
+
                 Interval b1 = null;
-
-                log.info("b0 = {}", b0);
-
-                int q = i;
                 for (int j = i + 1; j < recon.getFirst().size(); j++) {
                     if (recon.getSecond().get(j) != null) {
                         b1 = recon.getSecond().get(j);
-
-                        log.info("b1 = {}", b1);
-
                         i = j;
                         break;
                     }
                 }
 
-                if (b0 != null && b1 != null && !b0.getContig().equals(b1.getContig())) {
-                    log.info("{} {} {} {}", q, i, b0, b1);
+                log.info("b1 = {}; {}", b1, i);
 
+                if (b0 != null && b1 != null) {
                     return true;
                 }
             }
