@@ -68,12 +68,17 @@ public class CallNAHRs extends Module {
 
         String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
 
-        Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
+        Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
+        Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
 
-        Map<String, Interval> aggregatedIntervals = aggregateIntervals(mergeIntervals(recon));
+        Map<String, Interval> aggregatedIntervals0 = aggregateIntervals(mergeIntervals(recon0));
+        Map<String, Interval> aggregatedIntervals1 = aggregateIntervals(mergeIntervals(recon1));
 
-        //DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = buildGraph(recon);
+        printReconstruction(recon0, aggregatedIntervals0, "ref");
+        printReconstruction(recon1, aggregatedIntervals1, "HB3");
+    }
 
+    private void printReconstruction(Pair<List<String>, List<Interval>> recon, Map<String, Interval> aggregatedIntervals, String background) {
         Map<String, Integer> contigIndices = new HashMap<>();
         int index = aggregatedIntervals.size();
         for (String contig : aggregatedIntervals.keySet()) {
@@ -88,7 +93,7 @@ public class CallNAHRs extends Module {
             Interval interval = recon.getSecond().get(i);
             int contigIndex = interval == null ? -1 : contigIndices.get(interval.getContig());
 
-            log.info("{} {} {} {}", kmer, interval, LOOKUPS.get("ref").findKmer(kmer), LOOKUPS.get("HB3").findKmer(kmer));
+            log.info("{} {} {} {}", i, kmer, interval, LOOKUPS.get(background).findKmer(kmer));
 
             if (contigIndex >= 0) {
                 String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
