@@ -7,6 +7,7 @@ import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -77,6 +78,32 @@ public class CallNAHRs extends Module {
 
         Pair<List<String>, List<Interval>> recon = reconstruct("ref", sk);
 
+        Set<Interval> mergedIntervals = mergeIntervals(recon);
+
+        Map<String, Interval> aggregatedIntervals = new TreeMap<>();
+        for (Interval it : mergedIntervals) {
+            if (!aggregatedIntervals.containsKey(it.getContig())) {
+                aggregatedIntervals.put(it.getContig(), it);
+            } else {
+                Interval locus = aggregatedIntervals.get(it.getContig());
+
+                int start = locus.getStart() < it.getStart() ? locus.getStart() : it.getStart();
+                int end   = locus.getEnd()   > it.getEnd()   ? locus.getEnd()   : it.getEnd();
+
+                Interval newlocus = new Interval(locus.getContig(), start, end, locus.isNegativeStrand(), null);
+
+                aggregatedIntervals.put(locus.getContig(), newlocus);
+            }
+        }
+
+        log.info("agg:");
+        for (String contig : aggregatedIntervals.keySet()) {
+            log.info("  {}", aggregatedIntervals.get(contig));
+        }
+    }
+
+    @NotNull
+    private Set<Interval> mergeIntervals(Pair<List<String>, List<Interval>> recon) {
         Set<Interval> mergedIntervals = new TreeSet<>();
 
         Interval locus = null;
@@ -101,10 +128,7 @@ public class CallNAHRs extends Module {
             mergedIntervals.add(locus);
         }
 
-        log.info("merged:");
-        for (Interval mergedInterval : mergedIntervals) {
-            log.info("  {}", mergedInterval);
-        }
+        return mergedIntervals;
     }
 
     private Pair<List<String>, List<Interval>> reconstruct(String background, String sk) {
