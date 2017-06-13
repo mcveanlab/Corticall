@@ -46,6 +46,7 @@ d3.json("listener", function(data) {
                 .text();
 
             d3.json("listener?name=" + graphName, function(graph) {
+                drawNahr(graph);
                 //drawGraph(graph);
             });
         });
@@ -55,6 +56,10 @@ d3.json("listener", function(data) {
 <script type="text/javascript">
 function setStatus(status) {
     d3.select("#status").text(status);
+}
+
+function drawNahr(graph) {
+
 }
 
 function drawGraph(graph) {
