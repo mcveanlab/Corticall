@@ -75,9 +75,21 @@ public class CallNAHRs extends Module {
                 .makeBAMWriter(sfh1, false, f1);
 
         Map<CortexKmer, Boolean> used = new HashMap<>();
+        /*
         for (CortexRecord rr : ROI) {
             used.put(rr.getCortexKmer(), false);
         }
+        */
+
+        used.put(new CortexKmer("GAAAAAGTAGAACCACGTTTTTCGGATACACTTGGTGGCCAGTGTAC"), false);
+        used.put(new CortexKmer("AGGATTCTCCTTCTCAAATATGTACTATGTTGGCACGAAGTTTTGCT"), false);
+        used.put(new CortexKmer("AAATATGTACTATGTTGGCACGAAGTTTTGCTGATATAGGAGATATC"), false);
+        used.put(new CortexKmer("TCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGACGAAAACGG"), false);
+        used.put(new CortexKmer("AGTATCTTCGCTGGTTCGAGGAATGGGCAGAAGACTTTTGTAGATTA"), false);
+        used.put(new CortexKmer("AAGACTTTTGTAGATTAAGGAAACATAAATTAAAAGATGCTAAAAAC"), false);
+        used.put(new CortexKmer("GTGGTAACACGAGTGACACCACTGGCAAAAGTGGTGATAAGGGTGCC"), false);
+        used.put(new CortexKmer("CAAACGCCCCCCTTATTTCCGTTACCTTGAAGAATGGGGTCAAAATT"), false);
+        used.put(new CortexKmer("TATTTCCGTTACCTTGAAGAATGGGGTCAAAATTTTTGTAAAAAACG"), false);
 
         Map<String, TreeSet<Interval>> loci = new TreeMap<>();
 
