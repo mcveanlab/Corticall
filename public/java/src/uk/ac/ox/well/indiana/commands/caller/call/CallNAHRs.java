@@ -181,7 +181,7 @@ public class CallNAHRs extends Module {
                     sr.setReadName("read_" + kmer);
                     if (it0.isNegativeStrand()) {
                         sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
-                        offset = numNovels;
+                        offset = numNovels + 1;
                     } else {
                         sr.setReadBases(sb.toString().getBytes());
                     }
@@ -212,7 +212,7 @@ public class CallNAHRs extends Module {
             sr.setReadName("read_" + kmer);
             if (it0.isNegativeStrand()) {
                 sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
-                offset = numNovels;
+                offset = numNovels + 1;
             } else {
                 sr.setReadBases(sb.toString().getBytes());
             }
