@@ -254,7 +254,7 @@ public class CallNAHRs extends Module {
             index--;
         }
 
-        out.println(Joiner.on('\t').join(Arrays.asList("kmer", "interval", "pos", "contigIndex")));
+        //out.println(Joiner.on('\t').join(Arrays.asList("kmer", "interval", "pos", "contigIndex")));
 
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String kmer = recon.getFirst().get(i);
@@ -265,9 +265,9 @@ public class CallNAHRs extends Module {
 
             if (contigIndex >= 0) {
                 String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
-                out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
+                //out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
             } else {
-                out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
+                //out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
             }
         }
     }
