@@ -70,13 +70,15 @@ public class KmerLookup {
     }
 
     public String findKmer(Interval interval) {
-        ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
+        if (interval.getStart() > 0 && interval.getEnd() < ref.getSequenceDictionary().getSequence(interval.getContig()).getSequenceLength()) {
+            ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
 
-        if (rseq != null) {
-            if (interval.isPositiveStrand()) {
-                return rseq.getBaseString();
-            } else {
-                return SequenceUtils.reverseComplement(rseq.getBaseString());
+            if (rseq != null) {
+                if (interval.isPositiveStrand()) {
+                    return rseq.getBaseString();
+                } else {
+                    return SequenceUtils.reverseComplement(rseq.getBaseString());
+                }
             }
         }
 
