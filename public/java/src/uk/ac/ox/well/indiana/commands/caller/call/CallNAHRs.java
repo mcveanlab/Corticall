@@ -86,6 +86,8 @@ public class CallNAHRs extends Module {
                 .updateRecord(used.size())
                 .make(log);
 
+        out.println(Joiner.on('\t').join(Arrays.asList("novelKmer", "background", "kmer", "interval", "pos", "contigIndex")));
+
         for (CortexKmer ck : used.keySet()) {
             if (!used.get(ck)) {
                 String sk = ck.getKmerAsString();
@@ -256,8 +258,6 @@ public class CallNAHRs extends Module {
             contigIndices.put(contig, index);
             index--;
         }
-
-        out.println(Joiner.on('\t').join(Arrays.asList("novelKmer", "background", "kmer", "interval", "pos", "contigIndex")));
 
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String kmer = recon.getFirst().get(i);
