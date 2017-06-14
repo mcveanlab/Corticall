@@ -166,12 +166,14 @@ public class CallNAHRs extends Module {
             String sk = recon.getFirst().get(i);
             Interval it1 = recon.getSecond().get(i);
 
-            sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
+            //sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
 
             if (it1 != null) {
                 if (it0 == null) {
+                    sb.append(sk);
                     it0 = it1;
                 } else if (it0.getIntersectionLength(it1) == GRAPH.getKmerSize() - 1) {
+                    sb.append(sk.substring(sk.length() - 1, sk.length()));
                     it0 = new Interval(it0.getContig(), it0.getStart() < it1.getStart() ? it0.getStart() : it1.getStart(), it0.getEnd() > it1.getEnd() ? it0.getEnd() : it1.getEnd(), it0.isNegativeStrand(), null);
                 } else {
                     List<CigarElement> ces = new ArrayList<>();
@@ -195,8 +197,8 @@ public class CallNAHRs extends Module {
                     sr.setHeader(sfh);
                     srs.add(sr);
 
-                    sb = new StringBuilder();
-                    it0 = null;
+                    sb = new StringBuilder(sk);
+                    //it0 = null;
                     numNovels = 0;
                 }
             } else {
