@@ -185,7 +185,9 @@ public class CallNAHRs extends Module {
                     sr.setReferenceName(it0.getContig());
                     sr.setAlignmentStart(it0.getStart());
                     sr.setCigar(cigar);
-                    sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+                    //sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+                    sr.setReadNegativeStrandFlag(false);
+                    sr.setMappingQuality(60);
                     sr.setHeader(sfh);
                     srs.add(sr);
 
@@ -211,7 +213,8 @@ public class CallNAHRs extends Module {
             sr.setReferenceName(it0.getContig());
             sr.setAlignmentStart(it0.getStart());
             sr.setCigar(cigar);
-            sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+            //sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+            sr.setReadNegativeStrandFlag(false);
             sr.setHeader(sfh);
             srs.add(sr);
         }
