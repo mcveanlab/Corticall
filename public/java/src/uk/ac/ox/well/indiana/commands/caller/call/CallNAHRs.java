@@ -124,26 +124,20 @@ public class CallNAHRs extends Module {
                 }
 
                 if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0, used)) {
-                    List<SAMRecord> contig0 = getContig(recon0, sfh0, sk);
-
-                    for (SAMRecord r : contig0) { sfw0.addAlignment(r); }
+                    for (SAMRecord r : getContig(recon0, sfh0, sk)) { sfw0.addAlignment(r); }
 
                     log.info("  {}", sk);
                     log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
-                    log.info("      {}", contig0);
-
+                    //log.info("      {}", contig0);
                     //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
-                    List<SAMRecord> contig1 = getContig(recon1, sfh1, sk);
-
-                    for (SAMRecord r : contig1) { sfw1.addAlignment(r); }
+                    for (SAMRecord r : getContig(recon1, sfh1, sk)) { sfw1.addAlignment(r); }
 
                     log.info("  {}", sk);
                     log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
-                    log.info("      {}", contig1);
-
+                    //log.info("      {}", contig1);
                     //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
             }
