@@ -204,10 +204,7 @@ public class CallNAHRs extends Module {
 
         if (it0 != null) {
             List<CigarElement> ces = new ArrayList<>();
-            ces.add(new CigarElement(sb.length() - numNovels, CigarOperator.M));
-            if (numNovels > 0) {
-                ces.add(new CigarElement(numNovels, CigarOperator.S));
-            }
+            ces.add(new CigarElement(sb.length(), CigarOperator.M));
             Cigar cigar = new Cigar(ces);
 
             SAMRecord sr = new SAMRecord(sfh);
