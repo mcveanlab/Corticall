@@ -202,6 +202,8 @@ public class CallNAHRs extends Module {
                     numNovels = 0;
                 }
             } else {
+                //sb.append(sk.substring(sk.length() - 1, sk.length()));
+                sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
                 numNovels++;
             }
         }
