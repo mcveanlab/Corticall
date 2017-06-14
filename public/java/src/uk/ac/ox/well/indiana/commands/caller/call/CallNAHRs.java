@@ -79,6 +79,8 @@ public class CallNAHRs extends Module {
             used.put(rr.getCortexKmer(), false);
         }
 
+        Map<String, TreeSet<Interval>> loci = new TreeMap<>();
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers")
                 .message("kmers processed")
@@ -128,6 +130,13 @@ public class CallNAHRs extends Module {
                     }
 
                     printReconstruction(recon0, aggregatedIntervals0, ck, p0);
+
+                    for (Interval it : mergedIntervals0) {
+                        if (!loci.containsKey(it.getContig())) {
+                            loci.put(it.getContig(), new TreeSet<>());
+                        }
+                        loci.get(it.getContig()).add(it);
+                    }
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
@@ -141,8 +150,20 @@ public class CallNAHRs extends Module {
                     }
 
                     printReconstruction(recon1, aggregatedIntervals1, ck, p1);
+
+                    for (Interval it : mergedIntervals1) {
+                        if (!loci.containsKey(it.getContig())) {
+                            loci.put(it.getContig(), new TreeSet<>());
+                        }
+                        loci.get(it.getContig()).add(it);
+                    }
                 }
             }
+        }
+
+        log.info("Used loci:");
+        for (String contig : loci.keySet()) {
+            log.info("  {} {}", contig, loci.get(contig));
         }
 
         sfw0.close();
