@@ -71,12 +71,16 @@ public class CallNAHRs extends Module {
         SAMFileHeader sfh0 = new SAMFileHeader();
         sfh0.setSequenceDictionary(LOOKUPS.get("ref").getReferenceSequence().getSequenceDictionary());
         sfh0.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-        SAMFileWriter sfw0 = new SAMFileWriterFactory().makeBAMWriter(sfh0, false, f0);
+        SAMFileWriter sfw0 = new SAMFileWriterFactory()
+                .setCreateIndex(true)
+                .makeBAMWriter(sfh0, false, f0);
 
         SAMFileHeader sfh1 = new SAMFileHeader();
         sfh1.setSequenceDictionary(LOOKUPS.get("HB3").getReferenceSequence().getSequenceDictionary());
         sfh1.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-        SAMFileWriter sfw1 = new SAMFileWriterFactory().makeBAMWriter(sfh1, false, f1);
+        SAMFileWriter sfw1 = new SAMFileWriterFactory()
+                .setCreateIndex(true)
+                .makeBAMWriter(sfh1, false, f1);
 
         Map<CortexKmer, Boolean> used = new HashMap<>();
         for (CortexRecord rr : ROI) {
