@@ -195,6 +195,7 @@ public class CallNAHRs extends Module {
 
                     sb = new StringBuilder();
                     it0 = null;
+                    numNovels = 0;
                 }
             } else {
                 numNovels++;
