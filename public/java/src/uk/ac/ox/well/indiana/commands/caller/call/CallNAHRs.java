@@ -127,7 +127,12 @@ public class CallNAHRs extends Module {
                     for (SAMRecord r : getContig(recon0, sfh0, sk)) { sfw0.addAlignment(r); }
 
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
+                    log.info("    - {} {} {}", recon0.getFirst().size(), novels0);
+
+                    for (Interval it : mergedIntervals0) {
+                        log.info("      {}", it);
+                    }
+
                     //log.info("      {}", contig0);
                     //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
@@ -136,7 +141,11 @@ public class CallNAHRs extends Module {
                     for (SAMRecord r : getContig(recon1, sfh1, sk)) { sfw1.addAlignment(r); }
 
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
+                    log.info("    - {} {} {}", recon1.getFirst().size(), novels1);
+
+                    for (Interval it : mergedIntervals1) {
+                        log.info("      {}", it);
+                    }
                     //log.info("      {}", contig1);
                     //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
