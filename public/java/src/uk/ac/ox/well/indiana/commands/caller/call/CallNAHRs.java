@@ -181,11 +181,14 @@ public class CallNAHRs extends Module {
 
                     SAMRecord sr = new SAMRecord(sfh);
                     sr.setReadName("read_" + kmer);
-                    sr.setReadBases(sb.toString().getBytes());
+                    if (it0.isNegativeStrand()) {
+                        sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
+                    } else {
+                        sr.setReadBases(sb.toString().getBytes());
+                    }
                     sr.setReferenceName(it0.getContig());
                     sr.setAlignmentStart(it0.getStart());
                     sr.setCigar(cigar);
-                    //sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
                     sr.setReadNegativeStrandFlag(false);
                     sr.setMappingQuality(60);
                     sr.setHeader(sfh);
@@ -209,11 +212,14 @@ public class CallNAHRs extends Module {
 
             SAMRecord sr = new SAMRecord(sfh);
             sr.setReadName("read_" + kmer);
-            sr.setReadBases(sb.toString().getBytes());
+            if (it0.isNegativeStrand()) {
+                sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
+            } else {
+                sr.setReadBases(sb.toString().getBytes());
+            }
             sr.setReferenceName(it0.getContig());
             sr.setAlignmentStart(it0.getStart());
             sr.setCigar(cigar);
-            //sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
             sr.setReadNegativeStrandFlag(false);
             sr.setHeader(sfh);
             srs.add(sr);
