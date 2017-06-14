@@ -1,6 +1,9 @@
 package uk.ac.ox.well.indiana.commands.utils;
 
+import com.google.common.base.Joiner;
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -10,6 +13,8 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class print extends Module {
     @Argument(fullName="graph", shortName="g", doc="Cortex graph")
@@ -20,6 +25,9 @@ public class print extends Module {
 
     @Argument(fullName="headerOnly", shortName="H", doc="Only print the file header", required=false)
     public Boolean HEADER_ONLY = false;
+
+    @Argument(fullName="lookup", shortName="l", doc="Reference lookup", required=false)
+    public KmerLookup LOOKUP;
 
     @Output
     public PrintStream out;
@@ -43,7 +51,20 @@ public class print extends Module {
             ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
         }
 
-        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed;
+        Set<String> lss = new TreeSet<>();
+        if (LOOKUP != null) {
+            Set<Interval> loci = LOOKUP.findKmer(kmer);
+
+            if (loci != null && loci.size() > 0) {
+                for (Interval locus : loci) {
+                    String ls = locus.getContig() + ":" + locus.getStart() + "-" + locus.getEnd() + ":" + (locus.isPositiveStrand() ? "+" : "-");
+                    lss.add(ls);
+                }
+            }
+        }
+        String lssCombined = Joiner.on(";").join(lss);
+
+        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed + " " + lssCombined;
     }
 
     @Override
