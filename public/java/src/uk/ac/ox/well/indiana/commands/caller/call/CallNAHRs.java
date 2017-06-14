@@ -2,41 +2,27 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 
 import com.google.api.client.util.Joiner;
 import htsjdk.samtools.*;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
-import htsjdk.samtools.util.IntervalTree;
-import htsjdk.samtools.util.IntervalTreeMap;
-import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
-import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
-
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 05/06/2017.
@@ -63,20 +49,26 @@ public class CallNAHRs extends Module {
     @Output(fullName="out1", shortName="o1", doc="Out 1")
     public File f1;
 
+    @Output
+    public PrintStream out;
+
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        //int childColor = GRAPH.getColorForSampleName(CHILD);
+        //List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+
+        String p0 = PARENTS.get(0);
+        String p1 = PARENTS.get(1);
 
         SAMFileHeader sfh0 = new SAMFileHeader();
-        sfh0.setSequenceDictionary(LOOKUPS.get("ref").getReferenceSequence().getSequenceDictionary());
+        sfh0.setSequenceDictionary(LOOKUPS.get(p0).getReferenceSequence().getSequenceDictionary());
         sfh0.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         SAMFileWriter sfw0 = new SAMFileWriterFactory()
                 .setCreateIndex(true)
                 .makeBAMWriter(sfh0, false, f0);
 
         SAMFileHeader sfh1 = new SAMFileHeader();
-        sfh1.setSequenceDictionary(LOOKUPS.get("HB3").getReferenceSequence().getSequenceDictionary());
+        sfh1.setSequenceDictionary(LOOKUPS.get(p1).getReferenceSequence().getSequenceDictionary());
         sfh1.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         SAMFileWriter sfw1 = new SAMFileWriterFactory()
                 .setCreateIndex(true)
@@ -98,8 +90,8 @@ public class CallNAHRs extends Module {
             if (!used.get(ck)) {
                 String sk = ck.getKmerAsString();
 
-                Pair<List<String>, List<Interval>> recon0 = reconstruct("ref", sk);
-                Pair<List<String>, List<Interval>> recon1 = reconstruct("HB3", sk);
+                Pair<List<String>, List<Interval>> recon0 = reconstruct(p0, sk);
+                Pair<List<String>, List<Interval>> recon1 = reconstruct(p1, sk);
 
                 Set<Interval> mergedIntervals0 = mergeIntervals(recon0);
                 Set<Interval> mergedIntervals1 = mergeIntervals(recon1);
@@ -133,8 +125,7 @@ public class CallNAHRs extends Module {
                         log.info("      {}", it);
                     }
 
-                    //log.info("      {}", contig0);
-                    //printReconstruction(recon0, aggregatedIntervals0, "ref");
+                    printReconstruction(recon0, aggregatedIntervals0, ck, p0);
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
@@ -146,8 +137,8 @@ public class CallNAHRs extends Module {
                     for (Interval it : mergedIntervals1) {
                         log.info("      {}", it);
                     }
-                    //log.info("      {}", contig1);
-                    //printReconstruction(recon1, aggregatedIntervals1, "HB3");
+
+                    printReconstruction(recon1, aggregatedIntervals1, ck, p1);
                 }
             }
         }
@@ -258,7 +249,7 @@ public class CallNAHRs extends Module {
         return false;
     }
 
-    private void printReconstruction(Pair<List<String>, List<Interval>> recon, Map<String, Interval> aggregatedIntervals, String background) {
+    private void printReconstruction(Pair<List<String>, List<Interval>> recon, Map<String, Interval> aggregatedIntervals, CortexKmer ck, String background) {
         Map<String, Integer> contigIndices = new HashMap<>();
         int index = aggregatedIntervals.size();
         for (String contig : aggregatedIntervals.keySet()) {
@@ -266,20 +257,20 @@ public class CallNAHRs extends Module {
             index--;
         }
 
-        //out.println(Joiner.on('\t').join(Arrays.asList("kmer", "interval", "pos", "contigIndex")));
+        out.println(Joiner.on('\t').join(Arrays.asList("novelKmer", "background", "kmer", "interval", "pos", "contigIndex")));
 
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String kmer = recon.getFirst().get(i);
             Interval interval = recon.getSecond().get(i);
             int contigIndex = interval == null ? -1 : contigIndices.get(interval.getContig());
 
-            log.info("{} {} {} {}", i, kmer, interval, LOOKUPS.get(background).findKmer(kmer));
+            //log.info("{} {} {} {}", i, kmer, interval, LOOKUPS.get(background).findKmer(kmer));
 
             if (contigIndex >= 0) {
                 String intervalString = interval.getContig() + ":" + interval.getStart() + "-" + interval.getEnd() + ":" + (interval.isPositiveStrand() ? "+" : "-");
-                //out.println(Joiner.on('\t').join(Arrays.asList(kmer, intervalString, i, contigIndex)));
+                out.println(Joiner.on('\t').join(Arrays.asList(ck, background, kmer, intervalString, i, contigIndex)));
             } else {
-                //out.println(Joiner.on('\t').join(Arrays.asList(kmer, "NA", i, contigIndex)));
+                out.println(Joiner.on('\t').join(Arrays.asList(ck, background, kmer, "NA",           i, contigIndex)));
             }
         }
     }
