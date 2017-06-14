@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import com.google.api.client.util.Joiner;
+import htsjdk.samtools.*;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
@@ -30,6 +31,7 @@ import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -55,22 +57,31 @@ public class CallNAHRs extends Module {
     @Argument(fullName="lookups", shortName="l", doc="Lookups")
     public HashMap<String, KmerLookup> LOOKUPS;
 
-    @Output
-    public PrintStream out;
+    @Output(fullName="out0", shortName="o0", doc="Out 0")
+    public File f0;
+
+    @Output(fullName="out1", shortName="o1", doc="Out 1")
+    public File f1;
 
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
-        //String sk = "ACATGTGGTTCAGGAGAATGGGCTAAAGACAAATGCCGCTGTAAGGA";
+        SAMFileHeader sfh0 = new SAMFileHeader();
+        sfh0.setSequenceDictionary(LOOKUPS.get("ref").getReferenceSequence().getSequenceDictionary());
+        sfh0.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+        SAMFileWriter sfw0 = new SAMFileWriterFactory().makeBAMWriter(sfh0, false, f0);
+
+        SAMFileHeader sfh1 = new SAMFileHeader();
+        sfh1.setSequenceDictionary(LOOKUPS.get("HB3").getReferenceSequence().getSequenceDictionary());
+        sfh1.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+        SAMFileWriter sfw1 = new SAMFileWriterFactory().makeBAMWriter(sfh1, false, f1);
 
         Map<CortexKmer, Boolean> used = new HashMap<>();
         for (CortexRecord rr : ROI) {
             used.put(rr.getCortexKmer(), false);
         }
-
-        //used.put(new CortexKmer("AACCCTGAACCCGGAACCCTAAACCCTGAACCCTAAACCTAAACCCT"), false);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers")
@@ -109,43 +120,99 @@ public class CallNAHRs extends Module {
                 }
 
                 if (novels0 >= 10 && aggregatedIntervals0.size() > 1 && hasMultiChrBreakpoint(recon0, used)) {
-                    String contig0 = getContig(recon0);
+                    List<SAMRecord> contig0 = getContig(recon0, sfh0, sk);
+
+                    for (SAMRecord r : contig0) { sfw0.addAlignment(r); }
 
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {} {}", recon0.getFirst().size(), contig0.length(), novels0, mergedIntervals0);
-
+                    log.info("    - {} {} {} {}", recon0.getFirst().size(), novels0, mergedIntervals0);
                     log.info("      {}", contig0);
 
                     //printReconstruction(recon0, aggregatedIntervals0, "ref");
                 }
 
                 if (novels1 >= 10 && aggregatedIntervals1.size() > 1 && hasMultiChrBreakpoint(recon1, used)) {
-                    String contig1 = getContig(recon1);
+                    List<SAMRecord> contig1 = getContig(recon1, sfh1, sk);
+
+                    for (SAMRecord r : contig1) { sfw1.addAlignment(r); }
 
                     log.info("  {}", sk);
-                    log.info("    - {} {} {} {} {}", recon1.getFirst().size(), contig1.length(), novels1, mergedIntervals1);
-
+                    log.info("    - {} {} {} {}", recon1.getFirst().size(), novels1, mergedIntervals1);
                     log.info("      {}", contig1);
 
                     //printReconstruction(recon1, aggregatedIntervals1, "HB3");
                 }
             }
         }
+
+        sfw0.close();
+        sfw1.close();
     }
 
-    private String getContig(Pair<List<String>, List<Interval>> recon) {
+    private List<SAMRecord> getContig(Pair<List<String>, List<Interval>> recon, SAMFileHeader sfh, String kmer) {
+        List<SAMRecord> srs = new ArrayList<>();
+
         StringBuilder sb = new StringBuilder();
+        Interval it0 = null;
+        int numNovels = 0;
 
         for (int i = 0; i < recon.getFirst().size(); i++) {
             String sk = recon.getFirst().get(i);
-            if (i == 0) {
-                sb.append(sk);
+            Interval it1 = recon.getSecond().get(i);
+
+            sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
+
+            if (it1 != null) {
+                if (it0 == null) {
+                    it0 = it1;
+                } else if (it0.getIntersectionLength(it1) == GRAPH.getKmerSize() - 1) {
+                    it0 = new Interval(it0.getContig(), it0.getStart() < it1.getStart() ? it0.getStart() : it1.getStart(), it0.getEnd() > it1.getEnd() ? it0.getEnd() : it1.getEnd(), it0.isNegativeStrand(), null);
+                } else {
+                    List<CigarElement> ces = new ArrayList<>();
+                    ces.add(new CigarElement(sb.length() - numNovels, CigarOperator.M));
+                    if (numNovels > 0) {
+                        ces.add(new CigarElement(numNovels, CigarOperator.S));
+                    }
+                    Cigar cigar = new Cigar(ces);
+
+                    SAMRecord sr = new SAMRecord(sfh);
+                    sr.setReadName("read_" + kmer);
+                    sr.setReadBases(sb.toString().getBytes());
+                    sr.setReferenceName(it0.getContig());
+                    sr.setAlignmentStart(it0.getStart());
+                    sr.setCigar(cigar);
+                    sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+                    sr.setHeader(sfh);
+                    srs.add(sr);
+
+                    sb = new StringBuilder();
+                    it0 = null;
+                }
             } else {
-                sb.append(sk.substring(sk.length() - 1, sk.length()));
+                numNovels++;
             }
         }
 
-        return sb.toString();
+        if (it0 != null) {
+            List<CigarElement> ces = new ArrayList<>();
+            ces.add(new CigarElement(sb.length() - numNovels, CigarOperator.M));
+            if (numNovels > 0) {
+                ces.add(new CigarElement(numNovels, CigarOperator.S));
+            }
+            Cigar cigar = new Cigar(ces);
+
+            SAMRecord sr = new SAMRecord(sfh);
+            sr.setReadName("read_" + kmer);
+            sr.setReadBases(sb.toString().getBytes());
+            sr.setReferenceName(it0.getContig());
+            sr.setAlignmentStart(it0.getStart());
+            sr.setCigar(cigar);
+            sr.setReadNegativeStrandFlag(it0.isNegativeStrand());
+            sr.setHeader(sfh);
+            srs.add(sr);
+        }
+
+        return srs;
     }
 
     private boolean hasMultiChrBreakpoint(Pair<List<String>, List<Interval>> recon, Map<CortexKmer, Boolean> used) {
