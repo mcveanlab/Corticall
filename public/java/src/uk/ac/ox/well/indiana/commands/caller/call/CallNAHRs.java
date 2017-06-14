@@ -175,16 +175,18 @@ public class CallNAHRs extends Module {
                     List<CigarElement> ces = new ArrayList<>();
                     ces.add(new CigarElement(sb.length(), CigarOperator.M));
                     Cigar cigar = new Cigar(ces);
+                    int offset = 0;
 
                     SAMRecord sr = new SAMRecord(sfh);
                     sr.setReadName("read_" + kmer);
                     if (it0.isNegativeStrand()) {
                         sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
+                        offset = numNovels;
                     } else {
                         sr.setReadBases(sb.toString().getBytes());
                     }
                     sr.setReferenceName(it0.getContig());
-                    sr.setAlignmentStart(it0.getStart());
+                    sr.setAlignmentStart(it0.getStart() - offset);
                     sr.setCigar(cigar);
                     sr.setReadNegativeStrandFlag(false);
                     sr.setMappingQuality(60);
@@ -203,16 +205,18 @@ public class CallNAHRs extends Module {
             List<CigarElement> ces = new ArrayList<>();
             ces.add(new CigarElement(sb.length(), CigarOperator.M));
             Cigar cigar = new Cigar(ces);
+            int offset = 0;
 
             SAMRecord sr = new SAMRecord(sfh);
             sr.setReadName("read_" + kmer);
             if (it0.isNegativeStrand()) {
                 sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
+                offset = numNovels;
             } else {
                 sr.setReadBases(sb.toString().getBytes());
             }
             sr.setReferenceName(it0.getContig());
-            sr.setAlignmentStart(it0.getStart());
+            sr.setAlignmentStart(it0.getStart() - offset);
             sr.setCigar(cigar);
             sr.setReadNegativeStrandFlag(false);
             sr.setHeader(sfh);
