@@ -153,6 +153,8 @@ public class CallNAHRs extends Module {
         sfw1.close();
     }
 
+    // Read name = read_GCGTACGATATCTCCTATATCAGCAAAACTTCGTGCCAACATAGTAC
+
     private List<SAMRecord> getContig(Pair<List<String>, List<Interval>> recon, SAMFileHeader sfh, String kmer) {
         List<SAMRecord> srs = new ArrayList<>();
 
