@@ -190,7 +190,8 @@ public class CallNAHRs extends Module {
                         sr.setReadBases(sb.toString().getBytes());
                     }
                     sr.setReferenceName(it0.getContig());
-                    sr.setAlignmentStart(it0.getStart() - offset);
+                    //sr.setAlignmentStart(it0.getStart() - offset);
+                    sr.setAlignmentStart(it0.getStart());
                     sr.setCigar(cigar);
                     sr.setReadNegativeStrandFlag(false);
                     sr.setMappingQuality(60);
@@ -203,8 +204,8 @@ public class CallNAHRs extends Module {
                 }
             } else {
                 //sb.append(sk.substring(sk.length() - 1, sk.length()));
-                sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
-                numNovels++;
+                //sb.append(sb.length() == 0 ? sk : sk.substring(sk.length() - 1, sk.length()));
+                //numNovels++;
             }
         }
 
@@ -218,14 +219,16 @@ public class CallNAHRs extends Module {
             sr.setReadName("read_" + kmer);
             if (it0.isNegativeStrand()) {
                 sr.setReadBases(SequenceUtils.reverseComplement(sb.toString()).getBytes());
-                offset = numNovels + 1;
+                offset = numNovels;
             } else {
                 sr.setReadBases(sb.toString().getBytes());
             }
             sr.setReferenceName(it0.getContig());
-            sr.setAlignmentStart(it0.getStart() - offset);
+            //sr.setAlignmentStart(it0.getStart() - offset);
+            sr.setAlignmentStart(it0.getStart());
             sr.setCigar(cigar);
             sr.setReadNegativeStrandFlag(false);
+            sr.setMappingQuality(60);
             sr.setHeader(sfh);
             srs.add(sr);
         }
