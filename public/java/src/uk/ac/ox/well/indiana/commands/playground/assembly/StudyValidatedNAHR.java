@@ -11,6 +11,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -42,9 +43,12 @@ public class StudyValidatedNAHR extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+
         Set<Integer> colors = new HashSet<>();
-        colors.add(GRAPH.getColorForSampleName(CHILD));
-        colors.addAll(GRAPH.getColorsForSampleNames(PARENTS));
+        colors.add(childColor);
+        colors.addAll(parentColors);
 
         String seq = SEQUENCE.nextSequence().getBaseString();
 
@@ -53,7 +57,10 @@ public class StudyValidatedNAHR extends Module {
             CortexKmer ck = new CortexKmer(sk);
             CortexRecord cr = GRAPH.findRecord(ck);
 
-            log.info("{}", recordToString(sk, cr, colors));
+            Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+
+            log.info("{} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), recordToString(sk, cr, colors));
         }
     }
 
