@@ -97,6 +97,6 @@ public class StudyValidatedNAHR extends Module {
         }
         String lssCombined = Joiner.on(";").join(lss);
 
-        return cr.getKmerAsString() + ": " + kmer + " " + cov + " " + ed + " " + lssCombined;
+        return kmer + " " + cov + " " + ed + " " + lssCombined;
     }
 }
