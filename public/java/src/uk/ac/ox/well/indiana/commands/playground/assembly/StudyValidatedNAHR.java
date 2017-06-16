@@ -56,11 +56,12 @@ public class StudyValidatedNAHR extends Module {
             String sk = seq.substring(i, i + GRAPH.getKmerSize());
             CortexKmer ck = new CortexKmer(sk);
             CortexRecord cr = GRAPH.findRecord(ck);
+            CortexRecord rr = ROI.findRecord(ck);
 
             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
 
-            log.info("{} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), recordToString(sk, cr, colors));
+            log.info("{} {} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), rr != null, recordToString(sk, cr, colors));
         }
     }
 
