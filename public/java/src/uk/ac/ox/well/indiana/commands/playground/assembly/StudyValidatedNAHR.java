@@ -58,10 +58,14 @@ public class StudyValidatedNAHR extends Module {
             CortexRecord cr = GRAPH.findRecord(ck);
             CortexRecord rr = ROI.findRecord(ck);
 
-            Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+            if (cr != null) {
+                Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
 
-            log.info("{} {} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), rr != null, recordToString(sk, cr, colors));
+                log.info("{} {} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), rr != null, recordToString(sk, cr, colors));
+            } else {
+                log.info("{} {} {} {}", 0, 0, rr != null, null);
+            }
         }
     }
 
