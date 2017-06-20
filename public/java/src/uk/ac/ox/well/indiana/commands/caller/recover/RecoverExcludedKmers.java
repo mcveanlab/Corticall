@@ -33,6 +33,7 @@ public class RecoverExcludedKmers extends Module {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing records")
                 .updateRecord(GRAPH.getNumRecords() / 10)
+                .maxRecord(GRAPH.getNumRecords())
                 .message("records processed")
                 .make(log);
 
