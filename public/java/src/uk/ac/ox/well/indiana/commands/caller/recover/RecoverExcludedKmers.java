@@ -63,17 +63,21 @@ public class RecoverExcludedKmers extends Module {
                     CortexRecord dr = DIRTY.findRecord(cr.getCortexKmer());
 
                     if (dr != null && dr.getCoverage(0) > 0) {
-                        long[] binaryKmer = cr.getBinaryKmer();
-                        int[] coverages = cr.getCoverages();
-                        byte[] edges = cr.getEdges();
-                        int kmerSize = cr.getKmerSize();
-                        int kmerBits = cr.getKmerBits();
+                        long[] binaryKmer = new long[cr.getBinaryKmer().length];
+                        int[] coverages = new int[cr.getCoverages().length];
+                        byte[] edges = new byte[cr.getEdges().length];
+
+                        System.arraycopy(cr.getBinaryKmer(), 0, binaryKmer, 0, binaryKmer.length);
+                        System.arraycopy(cr.getCoverages(), 0, coverages, 0, coverages.length);
+                        System.arraycopy(cr.getEdges(), 0, edges, 0, edges.length);
 
                         coverages[childColor] = dr.getCoverage(0);
                         edges[childColor] = dr.getEdges()[0];
 
-                        CortexRecord nr = new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
+                        int kmerSize = cr.getKmerSize();
+                        int kmerBits = cr.getKmerBits();
 
+                        CortexRecord nr = new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
                         cgw.addRecord(nr);
 
                         log.debug("old: {}", cr);
