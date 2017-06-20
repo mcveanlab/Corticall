@@ -45,6 +45,8 @@ public class RecoverExcludedKmers extends Module {
             if (cr.getCoverage(COLOR) > 0) {
                 cgw.addRecord(cr);
             } else {
+                log.debug("{}", cr);
+
                 int otherSamplesWithCoverage = 0;
 
                 for (int c = 0; c < cr.getNumColors(); c++) {
