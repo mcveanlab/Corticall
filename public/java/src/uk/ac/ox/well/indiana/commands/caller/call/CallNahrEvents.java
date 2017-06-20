@@ -60,8 +60,8 @@ public class CallNahrEvents extends Module {
         TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
         //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
 
-        for (CortexKmer rr : usedRois.keySet()) {
-            if (!usedRois.get(rr)) {
+        for (CortexRecord rr : ROI) {
+            if (!usedRois.get(rr.getCortexKmer())) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
                 CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr));
 
