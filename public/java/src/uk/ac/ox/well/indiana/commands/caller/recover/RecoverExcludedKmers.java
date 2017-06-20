@@ -72,7 +72,7 @@ public class RecoverExcludedKmers extends Module {
                         System.arraycopy(cr.getEdges(), 0, edges, 0, edges.length);
 
                         coverages[childColor] = dr.getCoverage(0);
-                        edges[childColor] = dr.getEdges()[0];
+                        //edges[childColor] = dr.getEdges()[0];
 
                         int kmerSize = cr.getKmerSize();
                         int kmerBits = cr.getKmerBits();
