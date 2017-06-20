@@ -45,15 +45,15 @@ public class RecoverExcludedKmers extends Module {
             if (cr.getCoverage(COLOR) > 0) {
                 cgw.addRecord(cr);
             } else {
-                log.debug("{}", cr);
-
                 int otherSamplesWithCoverage = 0;
 
                 for (int c = 0; c < cr.getNumColors(); c++) {
-                    if (c != COLOR && cr.getCoverage(COLOR) > 0) {
+                    if (c != COLOR && cr.getCoverage(c) > 0) {
                         otherSamplesWithCoverage++;
                     }
                 }
+
+                //log.debug("{} {}", cr, otherSamplesWithCoverage);
 
                 if (otherSamplesWithCoverage > 0) {
                     CortexRecord dr = DIRTY.findRecord(cr.getCortexKmer());
