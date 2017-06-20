@@ -46,9 +46,14 @@ public class StudyValidatedNAHR extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
-        Set<Integer> colors = new HashSet<>();
+        Set<Integer> colors = new TreeSet<>();
         colors.add(childColor);
         colors.addAll(parentColors);
+
+        log.info("Colors:");
+        for (int c : colors) {
+            log.info("  {} ({})", c, GRAPH.getSampleName(c));
+        }
 
         String seq = SEQUENCE.nextSequence().getBaseString();
 
