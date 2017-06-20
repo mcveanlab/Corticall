@@ -77,6 +77,10 @@ public class StudyValidatedNAHR extends Module {
             } else {
                 log.info("{} {} {} {} {}", 0, 0, rr != null, clr != null, null);
             }
+
+            if (clr != null) {
+                log.info("{}", clr);
+            }
         }
     }
 
