@@ -6,6 +6,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.math.MoreMathUtils;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
@@ -25,14 +26,15 @@ public class join extends Module {
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
-                .message("records processed")
-                .updateRecord(GRAPHS.getGraph(0).getNumRecords() / 100)
+                .message("records processed (estimated)")
+                .updateRecord(GRAPHS.getGraph(0).getNumRecords() / 10)
+                .maxRecord(GRAPHS.getGraph(0).getNumRecords())
                 .make(log);
 
         for (CortexRecord cr : GRAPHS) {
             cgw.addRecord(cr);
 
-            pm.update("records processed");
+            pm.update();
         }
     }
 }
