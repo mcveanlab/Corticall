@@ -44,7 +44,7 @@ public class CallNahrEvents extends Module {
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
-    @Argument(fullName="lookups", shortName="l", doc="Lookups")
+    @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<String, KmerLookup> LOOKUPS;
 
     @Override
