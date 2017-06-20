@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.commands.caller.recover;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexHeader;
@@ -16,20 +17,24 @@ import java.io.File;
  * Created by kiran on 20/06/2017.
  */
 public class RecoverExcludedKmers extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
+    @Argument(fullName="graph", shortName="g", doc="Pedigree graph")
     public CortexGraph GRAPH;
 
     @Argument(fullName="dirty", shortName="d", doc="Dirty graph")
     public CortexGraph DIRTY;
-
-    @Argument(fullName="color", shortName="c", doc="Color")
-    public Integer COLOR = 0;
 
     @Output
     public File out;
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(DIRTY.getSampleName(0));
+        if (childColor < 0) {
+            throw new IndianaException("Sample '" + DIRTY.getSampleName(0) + "' not found in pedigree graph");
+        }
+
+        log.info("Recovering removed kmers for color {} ({})", childColor, GRAPH.getSampleName(childColor));
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing records")
                 .updateRecord(GRAPH.getNumRecords() / 10)
@@ -40,21 +45,19 @@ public class RecoverExcludedKmers extends Module {
         int numRecordsRecovered = 0;
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
-        cgw.setHeader(makeHeader(GRAPH.getHeader(), COLOR));
+        cgw.setHeader(makeHeader(GRAPH.getHeader(), childColor));
 
         for (CortexRecord cr : GRAPH) {
-            if (cr.getCoverage(COLOR) > 0) {
+            if (cr.getCoverage(childColor) > 0) {
                 cgw.addRecord(cr);
             } else {
                 int otherSamplesWithCoverage = 0;
 
                 for (int c = 0; c < cr.getNumColors(); c++) {
-                    if (c != COLOR && cr.getCoverage(c) > 0) {
+                    if (c != childColor && cr.getCoverage(c) > 0) {
                         otherSamplesWithCoverage++;
                     }
                 }
-
-                //log.debug("{} {}", cr, otherSamplesWithCoverage);
 
                 if (otherSamplesWithCoverage > 0) {
                     CortexRecord dr = DIRTY.findRecord(cr.getCortexKmer());
@@ -66,8 +69,8 @@ public class RecoverExcludedKmers extends Module {
                         int kmerSize = cr.getKmerSize();
                         int kmerBits = cr.getKmerBits();
 
-                        coverages[COLOR] = dr.getCoverage(0);
-                        edges[COLOR] = dr.getEdges()[0];
+                        coverages[childColor] = dr.getCoverage(0);
+                        edges[childColor] = dr.getEdges()[0];
 
                         CortexRecord nr = new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
 
