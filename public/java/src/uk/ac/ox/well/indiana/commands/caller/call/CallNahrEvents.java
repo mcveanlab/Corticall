@@ -107,6 +107,7 @@ public class CallNahrEvents extends Module {
             .rois(ROI)
             .connectAllNeighbors(true)
             .stopper(stoppingRule)
+            .graph(GRAPH)
             .make();
 
         return e;
