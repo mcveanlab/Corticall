@@ -10,6 +10,8 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 
@@ -38,6 +40,9 @@ public class StudyValidatedNAHR extends Module {
     @Argument(fullName="sequence", shortName="s", doc="Sequence")
     public FastaSequenceFile SEQUENCE;
 
+    @Argument(fullName="links", shortName="l", doc="Links")
+    public CortexLinksMap LINKS;
+
     @Output
     public PrintStream out;
 
@@ -62,14 +67,15 @@ public class StudyValidatedNAHR extends Module {
             CortexKmer ck = new CortexKmer(sk);
             CortexRecord cr = GRAPH.findRecord(ck);
             CortexRecord rr = ROI.findRecord(ck);
+            CortexLinksRecord clr = LINKS.containsKey(ck) ? LINKS.get(ck) : null;
 
             if (cr != null) {
                 Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
                 Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
 
-                log.info("{} {} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), rr != null, recordToString(sk, cr, colors));
+                log.info("{} {} {} {} {}", pks.get(childColor).size(), nks.get(childColor).size(), rr != null, clr != null, recordToString(sk, cr, colors));
             } else {
-                log.info("{} {} {} {}", 0, 0, rr != null, null);
+                log.info("{} {} {} {} {}", 0, 0, rr != null, clr != null, null);
             }
         }
     }
