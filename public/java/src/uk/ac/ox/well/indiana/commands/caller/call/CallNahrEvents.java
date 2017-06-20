@@ -56,9 +56,12 @@ public class CallNahrEvents extends Module {
         logColorAssignments(childColor, parentColors, recruitColors);
 
         Map<CortexKmer, Boolean> usedRois = loadRois();
+        for (CortexKmer rk : usedRois.keySet()) {
+            log.info("rk: {}", rk);
+        }
 
         TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
-        TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
+        //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
 
         for (CortexKmer rr : usedRois.keySet()) {
             if (!usedRois.get(rr)) {
