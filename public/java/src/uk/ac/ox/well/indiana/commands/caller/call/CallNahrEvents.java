@@ -63,7 +63,7 @@ public class CallNahrEvents extends Module {
         for (CortexRecord rr : ROI) {
             if (!usedRois.get(rr.getCortexKmer())) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
-                CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr));
+                CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr.getCortexKmer()));
 
                 for (String key : LOOKUPS.keySet()) {
                     KmerLookup kl = LOOKUPS.get(key);
