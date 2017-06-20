@@ -76,6 +76,10 @@ public class RecoverExcludedKmers extends Module {
 
                         cgw.addRecord(nr);
 
+                        log.debug("old: {}", cr);
+                        log.debug("new: {}", nr);
+                        log.debug("---");
+
                         numRecordsRecovered++;
                     }
                 }
