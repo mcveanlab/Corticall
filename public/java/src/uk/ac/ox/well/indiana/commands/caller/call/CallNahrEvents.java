@@ -56,9 +56,6 @@ public class CallNahrEvents extends Module {
         logColorAssignments(childColor, parentColors, recruitColors);
 
         Map<CortexKmer, Boolean> usedRois = loadRois();
-        for (CortexKmer rk : usedRois.keySet()) {
-            log.info("rk: {}", rk);
-        }
 
         TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
         //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
@@ -77,8 +74,12 @@ public class CallNahrEvents extends Module {
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     Map<String, Integer> rContigCount = getContigCounts(kl, dfsr);
 
-                    log.info("fContigCount: {}", fContigCount);
-                    log.info("rContigCount: {}", rContigCount);
+                    log.info("fContigCount: {} {}", key, fContigCount);
+                    log.info("rContigCount: {} {}", key, rContigCount);
+                }
+
+                for (CortexVertex cv : cg.vertexSet()) {
+                    usedRois.put(cv.getCk(), true);
                 }
             }
         }
