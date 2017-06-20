@@ -40,7 +40,7 @@ public class StudyValidatedNAHR extends Module {
     @Argument(fullName="sequence", shortName="s", doc="Sequence")
     public FastaSequenceFile SEQUENCE;
 
-    @Argument(fullName="links", shortName="l", doc="Links")
+    @Argument(fullName="links", shortName="links", doc="Links")
     public CortexLinksMap LINKS;
 
     @Output
