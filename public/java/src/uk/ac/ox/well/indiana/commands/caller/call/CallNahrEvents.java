@@ -91,12 +91,16 @@ public class CallNahrEvents extends Module {
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
                     String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding, false);
+                    String fContigCountE = getContigCounts(kl, dfsf, usedRois, contigEncoding, true);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding, false);
+                    String rContigCountE = getContigCounts(kl, dfsr, usedRois, contigEncoding, true);
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
+                    log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCountE);
+                    log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCountE);
                     log.info("");
                 }
 
