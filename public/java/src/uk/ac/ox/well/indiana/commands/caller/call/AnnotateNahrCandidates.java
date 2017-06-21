@@ -97,8 +97,9 @@ public class AnnotateNahrCandidates extends Module {
             for (int i = 0; i <= seq.length() - ROI.getKmerSize(); i++) {
                 String sk = seq.substring(i, i + ROI.getKmerSize());
                 CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
 
-                log.info("  {} {}", sk, contigAssignments.containsKey(ck) ? contigAssignments.get(ck) : null);
+                log.info("  {} {} {}", sk, contigAssignments.containsKey(ck) ? contigAssignments.get(ck) : null, recordToString(sk, cr, colors));
 
             }
         }
