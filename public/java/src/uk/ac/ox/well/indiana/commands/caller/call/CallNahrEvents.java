@@ -90,10 +90,10 @@ public class CallNahrEvents extends Module {
                     KmerLookup kl = LOOKUPS.get(key);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
-                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
+                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding, false);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
-                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
+                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding, false);
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
@@ -107,20 +107,24 @@ public class CallNahrEvents extends Module {
         }
     }
 
-    private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding) {
+    private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding, boolean expand) {
         StringBuilder sb = new StringBuilder();
 
         while (dfs.hasNext()) {
             CortexVertex cv = dfs.next();
             Set<Interval> loci = kl.findKmer(cv.getSk());
             if (usedRois.containsKey(cv.getCk())) {
-                sb.append(".");
+                if (expand) {
+                    sb.append(".");
+                }
             } else if (loci.size() == 1) {
                 for (Interval locus : loci) {
                     sb.append(contigEncoding.get(locus.getContig()));
                 }
             } else {
-                sb.append("_");
+                if (expand) {
+                    sb.append("_");
+                }
             }
         }
 
