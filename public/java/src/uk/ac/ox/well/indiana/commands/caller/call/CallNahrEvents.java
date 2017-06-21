@@ -80,7 +80,7 @@ public class CallNahrEvents extends Module {
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding NAHR candidates")
-                .message("novel kmers promised")
+                .message("novel kmers processed")
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
