@@ -10,27 +10,42 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by kiran on 21/06/2017.
  */
 public class AnnotateNahrCandidates extends Module {
+    @Argument(fullName="graph", shortName="g", doc="Graph")
+    public CortexGraph GRAPH;
+
     @Argument(fullName="sequences", shortName="s", doc="Sequences")
     public FastaSequenceFile SEQUENCES;
 
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
+    @Argument(fullName="child", shortName="c", doc="Child")
+    public String CHILD;
+
+    @Argument(fullName="parents", shortName="p", doc="Parents")
+    public ArrayList<String> PARENTS;
+
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<String, KmerLookup> LOOKUPS;
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
+
+        Set<Integer> colors = new TreeSet<>();
+        colors.add(childColor);
+        colors.addAll(parentColors);
+
         List<String> backgrounds = new ArrayList<>(LOOKUPS.keySet());
 
         ReferenceSequence rseq;
@@ -56,10 +71,58 @@ public class AnnotateNahrCandidates extends Module {
                     }
                 }
 
-                CortexRecord cr = ROI.findRecord(new CortexKmer(sk));
+                CortexRecord rr = ROI.findRecord(new CortexKmer(sk));
+                CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
-                log.info("  {} {} {} {}", i, sk, cr != null, Joiner.on("\t").join(intervals));
+                log.info("  {} {} {} {} {}", i, sk, rr != null, Joiner.on("\t").join(intervals), recordToString(sk, cr, colors));
             }
         }
+    }
+
+    private String recordToString(String sk, CortexRecord cr, Set<Integer> colors) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
+        int color = 0;
+        for (int coverage : cr.getCoverages()) {
+            if (colors.contains(color)) {
+                cov += " " + coverage;
+            }
+            color++;
+        }
+
+        color = 0;
+        for (String edge : cr.getEdgeAsStrings()) {
+            if (colors.contains(color)) {
+                ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+            }
+            color++;
+        }
+
+        /*
+        Set<String> lss = new TreeSet<>();
+        if (LOOKUPS != null) {
+            Set<Interval> loci = LOOKUP.findKmer(kmer);
+
+            if (loci != null && loci.size() > 0) {
+                for (Interval locus : loci) {
+                    String ls = locus.getContig() + ":" + locus.getStart() + "-" + locus.getEnd() + ":" + (locus.isPositiveStrand() ? "+" : "-");
+                    lss.add(ls);
+                }
+            }
+        }
+        String lssCombined = Joiner.on(";").join(lss);
+
+        return kmer + " " + cov + " " + ed + " " + lssCombined;
+        */
+
+        return kmer + " " + cov + " " + ed;
     }
 }
