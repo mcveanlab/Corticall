@@ -74,8 +74,8 @@ public class CallNahrEvents extends Module {
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     Map<String, Integer> rContigCount = getContigCounts(kl, dfsr);
 
-                    log.info("fContigCount: {} {}", key, fContigCount);
-                    log.info("rContigCount: {} {}", key, rContigCount);
+                    log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
+                    log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
                 }
 
                 for (CortexVertex cv : cg.vertexSet()) {
