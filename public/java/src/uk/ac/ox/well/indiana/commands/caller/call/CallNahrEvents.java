@@ -109,11 +109,11 @@ public class CallNahrEvents extends Module {
                         log.info("    - fContigCount: .={} {}={} {}", fMatcher.group(1).length(), fMatcher.group(3), fMatcher.group(2).length(), fContigCount);
 
                         candidates.add(rr.getCortexKmer());
-                    }
-                }
 
-                for (CortexVertex cv : cg.vertexSet()) {
-                    usedRois.put(cv.getCk(), true);
+                        for (CortexVertex cv : cg.vertexSet()) {
+                            usedRois.put(cv.getCk(), true);
+                        }
+                    }
                 }
             }
 
