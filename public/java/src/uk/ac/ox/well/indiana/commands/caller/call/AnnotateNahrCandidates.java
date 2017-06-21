@@ -7,6 +7,7 @@ import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -36,6 +37,9 @@ public class AnnotateNahrCandidates extends Module {
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<String, KmerLookup> LOOKUPS;
 
+    @Argument(fullName="nahr", shortName="n", doc="NAHR")
+    public FastaSequenceFile NAHR;
+
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -46,6 +50,8 @@ public class AnnotateNahrCandidates extends Module {
         colors.add(childColor);
         colors.addAll(parentColors);
 
+        Map<CortexKmer, Set<String>> contigAssignments = new HashMap<>();
+
         List<String> backgrounds = new ArrayList<>(LOOKUPS.keySet());
 
         ReferenceSequence rseq;
@@ -54,8 +60,13 @@ public class AnnotateNahrCandidates extends Module {
 
             log.info("{}", rseq.getName());
 
+            String[] rname = rseq.getName().split("\\s+");
+            String name = rname[0];
+
             for (int i = 0; i <= seq.length() - ROI.getKmerSize(); i++) {
                 String sk = seq.substring(i, i + ROI.getKmerSize());
+
+                ContainerUtils.add(contigAssignments, new CortexKmer(sk), name);
 
                 List<String> intervals = new ArrayList<>();
 
@@ -75,6 +86,20 @@ public class AnnotateNahrCandidates extends Module {
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
                 log.info("  {} {} {} {} {}", i, sk, rr != null, Joiner.on("\t").join(intervals), recordToString(sk, cr, colors));
+            }
+        }
+
+        log.info("NAHR:");
+
+        while ((rseq = NAHR.nextSequence()) != null) {
+            String seq = rseq.getBaseString();
+
+            for (int i = 0; i <= seq.length() - ROI.getKmerSize(); i++) {
+                String sk = seq.substring(i, i + ROI.getKmerSize());
+                CortexKmer ck = new CortexKmer(sk);
+
+                log.info("  {} {}", sk, contigAssignments.containsKey(ck) ? contigAssignments.get(ck) : null);
+
             }
         }
     }
