@@ -93,8 +93,12 @@ public class CallNahrEvents extends Module {
                     List<Interval> fContigCount = getContigCounts(kl, dfsf, usedRois);
                     StringBuilder fsb = new StringBuilder();
                     for (Interval interval : fContigCount) {
-                        String c = contigEncoding.get(interval.getContig());
-                        fsb.append(c);
+                        if (interval == null) {
+                            fsb.append(" ");
+                        } else {
+                            String c = contigEncoding.get(interval.getContig());
+                            fsb.append(c);
+                        }
                     }
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
