@@ -12,6 +12,8 @@ import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SequenceUtilsTest {
     @Test
@@ -158,6 +160,23 @@ public class SequenceUtilsTest {
             }
         } catch (FileNotFoundException e) {
             throw new IndianaException("Error in opening test file '" + fastaFile.getAbsolutePath() + "'", e);
+        }
+    }
+
+    @Test
+    public void testRegex() {
+        String template = "...99999999999999999999999999999999999999999999999999_____________";
+
+        String pattern = "\\.+_*(\\w)\\1+.+";
+        Pattern p = Pattern.compile(pattern);
+        Matcher m = p.matcher(template);
+
+        System.out.println(template);
+        System.out.println(m);
+        System.out.println(m.matches());
+        System.out.println(m.groupCount());
+        for (int i = 0; i <= m.groupCount(); i++) {
+            System.out.println("  group=" + m.group(i));
         }
     }
 }

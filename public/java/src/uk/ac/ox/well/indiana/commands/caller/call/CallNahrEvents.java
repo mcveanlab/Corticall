@@ -84,7 +84,7 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        String pattern = ".+_*(\\w+)\\1+.*";
+        String pattern = "\\.+_*(\\w)\\1+.+";
         Pattern motif = Pattern.compile(pattern);
 
         for (CortexRecord rr : ROI) {
@@ -105,10 +105,10 @@ public class CallNahrEvents extends Module {
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
 
                     Matcher rMatcher = motif.matcher(rContigCount);
-                    log.info("{} {} {}", rMatcher, rMatcher.groupCount(), rMatcher.groupCount() >= 2 ? rMatcher.group(1) : null);
+                    log.info("{} {} {} {}", rMatcher, rMatcher.matches(), rMatcher.groupCount(), rMatcher.groupCount() >= 2 ? rMatcher.group(1) : null);
 
                     Matcher fMatcher = motif.matcher(fContigCount);
-                    log.info("{} {} {}", fMatcher, fMatcher.groupCount(), fMatcher.groupCount() >= 2 ? fMatcher.group(1) : null);
+                    log.info("{} {} {} {}", fMatcher, fMatcher.matches(), fMatcher.groupCount(), fMatcher.groupCount() >= 2 ? fMatcher.group(1) : null);
 
                     rContigCount = SequenceUtils.reverse(rContigCount);
                     String contig = rContigCount + fContigCount;
