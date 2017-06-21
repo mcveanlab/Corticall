@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.util.Interval;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.graph.EdgeReversedGraph;
@@ -60,6 +61,23 @@ public class CallNahrEvents extends Module {
         TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
         //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
 
+        Map<String, String> contigEncoding = new HashMap<>();
+        Set<String> usedCodes = new HashSet<>();
+        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        Random r = new Random();
+        for (String key : LOOKUPS.keySet()) {
+            for (SAMSequenceRecord ssr : LOOKUPS.get(key).getReferenceSequence().getSequenceDictionary().getSequences()) {
+                String sn = ssr.getSequenceName();
+                String c;
+                do {
+                    c = String.valueOf(alphabet.charAt(r.nextInt(alphabet.length())));
+                } while(usedCodes.contains(c));
+
+                contigEncoding.put(sn, c);
+                usedCodes.add(c);
+            }
+        }
+
         for (CortexRecord rr : ROI) {
             if (!usedRois.get(rr.getCortexKmer())) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
@@ -69,13 +87,25 @@ public class CallNahrEvents extends Module {
                     KmerLookup kl = LOOKUPS.get(key);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
-                    Map<String, Integer> fContigCount = getContigCounts(kl, dfsf);
+                    List<Interval> fContigCount = getContigCounts(kl, dfsf, usedRois);
+                    StringBuilder fsb = new StringBuilder();
+                    for (Interval interval : fContigCount) {
+                        String c = contigEncoding.get(interval.getContig());
+                        fsb.append(c);
+                    }
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
-                    Map<String, Integer> rContigCount = getContigCounts(kl, dfsr);
+                    List<Interval> rContigCount = getContigCounts(kl, dfsr, usedRois);
+                    StringBuilder rsb = new StringBuilder();
+                    for (Interval interval : rContigCount) {
+                        String c = contigEncoding.get(interval.getContig());
+                        rsb.append(c);
+                    }
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
+                    log.info("{}", fsb);
+                    log.info("{}", rsb);
                     log.info("");
                 }
 
@@ -86,19 +116,24 @@ public class CallNahrEvents extends Module {
         }
     }
 
-    private Map<String, Integer> getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs) {
-        Map<String, Integer> contigCounts = new HashMap<>();
+    private List<Interval> getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois) {
+        List<Interval> intervals = new ArrayList<>();
+
         while (dfs.hasNext()) {
             CortexVertex cv = dfs.next();
             Set<Interval> loci = kl.findKmer(cv.getSk());
-            if (loci.size() == 1) {
-                for (Interval locus : loci) {
-                    ContainerUtils.increment(contigCounts, locus.getContig());
+            if (!usedRois.containsKey(cv.getCk())) {
+                if (loci.size() == 1) {
+                    for (Interval locus : loci) {
+                        intervals.add(locus);
+                    }
+                } else {
+                    intervals.add(null);
                 }
             }
         }
 
-        return contigCounts;
+        return intervals;
     }
 
     private TraversalEngine initializeTraversalEngine(int childColor, List<Integer> parentColors, List<Integer> recruitColors, Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) {
