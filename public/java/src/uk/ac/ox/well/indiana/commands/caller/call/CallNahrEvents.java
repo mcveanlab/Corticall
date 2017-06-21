@@ -84,8 +84,10 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        String pattern = "\\.+_*(([A-Za-z0-9])\\2+).*";
+        String pattern = "^\\.+_*(([A-Za-z0-9])\\2+).*";
         Pattern motif = Pattern.compile(pattern);
+
+        Set<CortexKmer> candidates = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
             if (!usedRois.get(rr.getCortexKmer())) {
@@ -96,11 +98,11 @@ public class CallNahrEvents extends Module {
                     KmerLookup kl = LOOKUPS.get(key);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
-                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding, true);
+                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
                     Matcher fMatcher = motif.matcher(fContigCount);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
-                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding, true);
+                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
                     Matcher rMatcher = motif.matcher(rContigCount);
 
                     if (rMatcher.matches() && fMatcher.matches() && !rMatcher.group(2).equals(fMatcher.group(2)) && rMatcher.group(1).length() >= 5 && fMatcher.group(1).length() >= 5) {
@@ -114,28 +116,26 @@ public class CallNahrEvents extends Module {
                 for (CortexVertex cv : cg.vertexSet()) {
                     usedRois.put(cv.getCk(), true);
                 }
+
+                candidates.add(rr.getCortexKmer());
             }
         }
     }
 
-    private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding, boolean expand) {
+    private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding) {
         StringBuilder sb = new StringBuilder();
 
         while (dfs.hasNext()) {
             CortexVertex cv = dfs.next();
             Set<Interval> loci = kl.findKmer(cv.getSk());
             if (usedRois.containsKey(cv.getCk())) {
-                if (expand) {
-                    sb.append(".");
-                }
+                sb.append(".");
             } else if (loci.size() == 1) {
                 for (Interval locus : loci) {
                     sb.append(contigEncoding.get(locus.getContig()));
                 }
             } else {
-                if (expand) {
-                    sb.append("_");
-                }
+                sb.append("_");
             }
         }
 
