@@ -90,33 +90,13 @@ public class CallNahrEvents extends Module {
                     KmerLookup kl = LOOKUPS.get(key);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
-                    List<Interval> fContigCount = getContigCounts(kl, dfsf, usedRois);
-                    StringBuilder fsb = new StringBuilder();
-                    for (Interval interval : fContigCount) {
-                        if (interval == null) {
-                            fsb.append(" ");
-                        } else {
-                            String c = contigEncoding.get(interval.getContig());
-                            fsb.append(c);
-                        }
-                    }
+                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
-                    List<Interval> rContigCount = getContigCounts(kl, dfsr, usedRois);
-                    StringBuilder rsb = new StringBuilder();
-                    for (Interval interval : rContigCount) {
-                        if (interval == null) {
-                            rsb.append(" ");
-                        } else {
-                            String c = contigEncoding.get(interval.getContig());
-                            rsb.append(c);
-                        }
-                    }
+                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
-                    log.info("{}", fsb);
-                    log.info("{}", rsb);
                     log.info("");
                 }
 
@@ -127,24 +107,24 @@ public class CallNahrEvents extends Module {
         }
     }
 
-    private List<Interval> getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois) {
-        List<Interval> intervals = new ArrayList<>();
+    private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding) {
+        StringBuilder sb = new StringBuilder();
 
         while (dfs.hasNext()) {
             CortexVertex cv = dfs.next();
             Set<Interval> loci = kl.findKmer(cv.getSk());
-            if (!usedRois.containsKey(cv.getCk())) {
-                if (loci.size() == 1) {
-                    for (Interval locus : loci) {
-                        intervals.add(locus);
-                    }
-                } else {
-                    intervals.add(null);
+            if (usedRois.containsKey(cv.getCk())) {
+                sb.append(".");
+            } else if (loci.size() == 1) {
+                for (Interval locus : loci) {
+                    sb.append(contigEncoding.get(locus.getContig()));
                 }
+            } else {
+                sb.append("_");
             }
         }
 
-        return intervals;
+        return sb.toString();
     }
 
     private TraversalEngine initializeTraversalEngine(int childColor, List<Integer> parentColors, List<Integer> recruitColors, Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) {
