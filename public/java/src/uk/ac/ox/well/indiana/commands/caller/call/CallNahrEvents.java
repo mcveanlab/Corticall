@@ -62,19 +62,22 @@ public class CallNahrEvents extends Module {
         //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
 
         Map<String, String> contigEncoding = new HashMap<>();
-        Set<String> usedCodes = new HashSet<>();
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         Random r = new Random();
         for (String key : LOOKUPS.keySet()) {
+            Set<String> usedCodes = new HashSet<>();
+
             for (SAMSequenceRecord ssr : LOOKUPS.get(key).getReferenceSequence().getSequenceDictionary().getSequences()) {
                 String sn = ssr.getSequenceName();
                 String c;
                 do {
                     c = String.valueOf(alphabet.charAt(r.nextInt(alphabet.length())));
-                } while(usedCodes.contains(c));
+                } while(usedCodes.contains(c) && usedCodes.size() < alphabet.length());
 
-                contigEncoding.put(sn, c);
-                usedCodes.add(c);
+                if (!usedCodes.contains(c)) {
+                    contigEncoding.put(sn, c);
+                    usedCodes.add(c);
+                }
             }
         }
 
