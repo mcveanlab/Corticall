@@ -58,7 +58,7 @@ public class AnnotateNahrCandidates extends Module {
         while ((rseq = SEQUENCES.nextSequence()) != null) {
             String seq = rseq.getBaseString();
 
-            log.info("{}", rseq.getName());
+            //log.info("{}", rseq.getName());
 
             String[] rname = rseq.getName().split("\\s+");
             String name = rname[0];
@@ -68,6 +68,7 @@ public class AnnotateNahrCandidates extends Module {
 
                 ContainerUtils.add(contigAssignments, new CortexKmer(sk), name);
 
+                /*
                 List<String> intervals = new ArrayList<>();
 
                 for (String background : backgrounds) {
@@ -86,6 +87,7 @@ public class AnnotateNahrCandidates extends Module {
                 CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
 
                 log.info("  {} {} {} {} {}", i, sk, rr != null, Joiner.on("\t").join(intervals), recordToString(sk, cr, colors));
+                */
             }
         }
 
