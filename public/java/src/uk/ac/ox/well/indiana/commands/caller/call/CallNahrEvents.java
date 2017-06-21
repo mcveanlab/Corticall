@@ -84,7 +84,8 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        Pattern motif = Pattern.compile("\\.+_*(\\w)\\1+");
+        //Pattern motif = Pattern.compile("\\.+_*(\\w)\\1+");
+        Pattern motif = Pattern.compile("\\.+_*(\\w)\1+");
 
         for (CortexRecord rr : ROI) {
             if (!usedRois.get(rr.getCortexKmer())) {
