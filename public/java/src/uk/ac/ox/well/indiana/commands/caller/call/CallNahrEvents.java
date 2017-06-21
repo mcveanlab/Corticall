@@ -93,6 +93,8 @@ public class CallNahrEvents extends Module {
                     List<Interval> fContigCount = getContigCounts(kl, dfsf, usedRois);
                     StringBuilder fsb = new StringBuilder();
                     for (Interval interval : fContigCount) {
+                        log.info("{}", interval);
+
                         if (interval == null) {
                             fsb.append(" ");
                         } else {
