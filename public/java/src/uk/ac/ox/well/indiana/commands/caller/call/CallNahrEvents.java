@@ -93,8 +93,6 @@ public class CallNahrEvents extends Module {
                     List<Interval> fContigCount = getContigCounts(kl, dfsf, usedRois);
                     StringBuilder fsb = new StringBuilder();
                     for (Interval interval : fContigCount) {
-                        log.info("{}", interval);
-
                         if (interval == null) {
                             fsb.append(" ");
                         } else {
@@ -107,8 +105,12 @@ public class CallNahrEvents extends Module {
                     List<Interval> rContigCount = getContigCounts(kl, dfsr, usedRois);
                     StringBuilder rsb = new StringBuilder();
                     for (Interval interval : rContigCount) {
-                        String c = contigEncoding.get(interval.getContig());
-                        rsb.append(c);
+                        if (interval == null) {
+                            rsb.append(" ");
+                        } else {
+                            String c = contigEncoding.get(interval.getContig());
+                            rsb.append(c);
+                        }
                     }
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
