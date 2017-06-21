@@ -23,6 +23,8 @@ import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
@@ -82,6 +84,8 @@ public class CallNahrEvents extends Module {
             }
         }
 
+        Pattern motif = Pattern.compile("\\.+_*(\\w)\\1+");
+
         for (CortexRecord rr : ROI) {
             if (!usedRois.get(rr.getCortexKmer())) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
@@ -98,6 +102,12 @@ public class CallNahrEvents extends Module {
 
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
+
+                    Matcher rMatcher = motif.matcher(rContigCount);
+                    log.info("{}", rMatcher);
+
+                    Matcher fMatcher = motif.matcher(fContigCount);
+                    log.info("{}", fMatcher);
 
                     rContigCount = SequenceUtils.reverse(rContigCount);
                     String contig = rContigCount + fContigCount;
