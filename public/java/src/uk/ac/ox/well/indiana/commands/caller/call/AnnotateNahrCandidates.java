@@ -49,6 +49,8 @@ public class AnnotateNahrCandidates extends Module {
                     if (its.size() == 1) {
                         Interval it = its.iterator().next();
                         intervals.add(background + ":" + it.getContig() + ":" + it.getStart() + "-" + it.getEnd() + ":" + (it.isPositiveStrand() ? "+" : "-"));
+                    } else if (its.size() > 1) {
+                        intervals.add(background + ":many");
                     } else {
                         intervals.add(background + ":none");
                     }
