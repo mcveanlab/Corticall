@@ -97,28 +97,18 @@ public class CallNahrEvents extends Module {
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
                     String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding, true);
+                    Matcher fMatcher = motif.matcher(fContigCount);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding, true);
-
-                    log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
-                    log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
-
                     Matcher rMatcher = motif.matcher(rContigCount);
-                    if (rMatcher.matches()) {
-                        log.info("{} {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.group(2), rMatcher.group(1));
-                    }
 
-                    Matcher fMatcher = motif.matcher(fContigCount);
-                    if (fMatcher.matches()) {
+                    if (rMatcher.matches() && fMatcher.matches() && !rMatcher.group(2).equals(fMatcher.group(2)) && rMatcher.group(1).length() >= 5 && fMatcher.group(1).length() >= 5) {
+                        log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
+                        log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
+                        log.info("{} {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.group(2), rMatcher.group(1));
                         log.info("{} {} {} {}", fMatcher.matches(), fMatcher.groupCount(), fMatcher.group(2), fMatcher.group(1));
                     }
-
-                    rContigCount = SequenceUtils.reverse(rContigCount);
-                    String contig = rContigCount + fContigCount;
-                    log.info("{}       contig: {} {}", rr.getCortexKmer(), key, contig);
-
-                    log.info("");
                 }
 
                 for (CortexVertex cv : cg.vertexSet()) {
