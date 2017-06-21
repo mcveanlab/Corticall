@@ -76,6 +76,7 @@ public class CallNahrEvents extends Module {
 
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
+                    log.info("");
                 }
 
                 for (CortexVertex cv : cg.vertexSet()) {
@@ -90,8 +91,10 @@ public class CallNahrEvents extends Module {
         while (dfs.hasNext()) {
             CortexVertex cv = dfs.next();
             Set<Interval> loci = kl.findKmer(cv.getSk());
-            for (Interval locus : loci) {
-                ContainerUtils.increment(contigCounts, locus.getContig());
+            if (loci.size() == 1) {
+                for (Interval locus : loci) {
+                    ContainerUtils.increment(contigCounts, locus.getContig());
+                }
             }
         }
 
