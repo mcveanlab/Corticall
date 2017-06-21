@@ -84,7 +84,7 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        String pattern = ".+_*(\\w+)\1+.*";
+        String pattern = ".+_*(\\w+)\\1+.*";
         Pattern motif = Pattern.compile(pattern);
 
         for (CortexRecord rr : ROI) {
