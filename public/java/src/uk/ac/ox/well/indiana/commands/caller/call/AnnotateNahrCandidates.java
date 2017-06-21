@@ -8,6 +8,8 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,7 +54,9 @@ public class AnnotateNahrCandidates extends Module {
                     }
                 }
 
-                log.info("  {} {} {}", i, sk, Joiner.on("\t").join(intervals));
+                CortexRecord cr = ROI.findRecord(new CortexKmer(sk));
+
+                log.info("  {} {} {} {}", i, sk, cr != null, Joiner.on("\t").join(intervals));
             }
         }
     }
