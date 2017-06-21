@@ -84,7 +84,7 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        String pattern = "^\\.+_*(([A-Za-z0-9])\\2+).*";
+        String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
         Pattern motif = Pattern.compile(pattern);
 
         Set<CortexKmer> candidates = new HashSet<>();
@@ -105,7 +105,9 @@ public class CallNahrEvents extends Module {
                     String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
                     Matcher rMatcher = motif.matcher(rContigCount);
 
-                    if (rMatcher.matches() && fMatcher.matches() && !rMatcher.group(2).equals(fMatcher.group(2)) && rMatcher.group(1).length() >= 5 && fMatcher.group(1).length() >= 5) {
+                    if (rMatcher.matches() && fMatcher.matches() &&
+                        !rMatcher.group(3).equals(fMatcher.group(3)) && rMatcher.group(2).length() >= 5 && fMatcher.group(2).length() >= 5 &&
+                        rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
                         log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
                         log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                         log.info("{} {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.group(2), rMatcher.group(1));
