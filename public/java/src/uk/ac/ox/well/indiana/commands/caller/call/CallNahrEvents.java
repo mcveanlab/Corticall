@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.cram.structure.Container;
 import htsjdk.samtools.util.Interval;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
@@ -9,11 +10,13 @@ import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -25,6 +28,7 @@ import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
+import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,8 +43,8 @@ public class CallNahrEvents extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="links", shortName="l", doc="Links")
-    public CortexLinksMap LINKS;
+    //@Argument(fullName="links", shortName="l", doc="Links")
+    //public ArrayList<CortexLinksMap> LINKS;
 
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
@@ -54,6 +58,9 @@ public class CallNahrEvents extends Module {
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<String, KmerLookup> LOOKUPS;
 
+    @Output
+    public PrintStream out;
+
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -62,21 +69,88 @@ public class CallNahrEvents extends Module {
 
         logColorAssignments(childColor, parentColors, recruitColors);
 
-        TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
-        //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
+        Map<CortexKmer, String> candidates = findNahrCandidates(childColor, parentColors, recruitColors);
 
-        Map<String, String> contigEncoding = createContigEncoding();
+        int i = 0;
+        for (CortexKmer ck : candidates.keySet()) {
+            out.println(">kmer_" + i + "_" + candidates.get(ck));
+            out.println(ck.getKmerAsString());
 
-        Map<CortexKmer, Boolean> usedRois = loadRois();
+            i++;
+        }
 
-        Set<CortexKmer> candidates = findNahrCandidates(ce, contigEncoding, usedRois);
+        /*
+        TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
+        Set<CortexKmer> usedCandidates = new HashSet<>();
+
+        for (CortexKmer ck : candidates.keySet()) {
+            if (!usedCandidates.contains(ck)) {
+                // Initialize
+                String background = candidates.get(ck);
+
+                String startSeq = ck.getKmerAsString();
+                CortexKmer startKmer = new CortexKmer(startSeq);
+                CortexRecord startRecord = GRAPH.findRecord(ck);
+                Set<Interval> startLoci = LOOKUPS.get(background).findKmer(startSeq);
+                Interval startLocus = startLoci.size() == 1 ? startLoci.iterator().next() : null;
+
+                CortexVertex startVertex = new CortexVertex(startSeq, startRecord, startLocus);
+
+                // Search forward
+                List<CortexVertex> fwd = new ArrayList<>();
+
+                Map<CortexLinksRecord, Integer> linkAges = new HashMap<>();
+                Map<CortexLinksRecord, Integer> linkUtilization = new HashMap<>();
+                updateLinkAges(ck, linkAges);
+
+                String currentSeq = startSeq;
+
+                do {
+                    CortexKmer currentKmer = new CortexKmer(startSeq);
+                    CortexRecord currentRecord = GRAPH.findRecord(currentKmer);
+                    //Set<Interval> currentLoci = LOOKUPS.get(background).findKmer(currentSeq);
+                    //Interval currentLocus = currentLoci.size() == 1 ? currentLoci.iterator().next() : null;
+
+                    Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(currentRecord, currentKmer.isFlipped());
+                    String nk = null;
+                    if (nks.get(childColor).size() == 1) {
+                        nk = nks.get(childColor).iterator().next();
+                    } else {
+
+                    }
+
+                } while (currentSeq != null);
+            }
+        }
+        */
     }
 
-    private Set<CortexKmer> findNahrCandidates(TraversalEngine ce, Map<String, String> contigEncoding, Map<CortexKmer, Boolean> usedRois) {
-        Set<CortexKmer> candidates = new HashSet<>();
+    /*
+    private void updateLinkAges(CortexKmer ck, Map<CortexLinksRecord, Integer> linkAges) {
+        for (CortexLinksMap clm : LINKS) {
+            if (clm.containsKey(ck)) {
+                CortexLinksRecord clr = clm.get(ck);
+
+                linkAges.put(clr, 0);
+            }
+        }
+
+        for (CortexLinksRecord clr : linkAges.keySet()) {
+            ContainerUtils.increment(linkAges, clr);
+        }
+    }
+    */
+
+    private Map<CortexKmer, String> findNahrCandidates(int childColor, List<Integer> parentColors, List<Integer> recruitColors) {
+        Map<CortexKmer, String> candidates = new HashMap<>();
 
         String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
         Pattern motif = Pattern.compile(pattern);
+
+        Map<String, String> contigEncoding = createContigEncoding();
+        Map<CortexKmer, Boolean> usedRois = loadRois();
+
+        TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Finding NAHR candidates")
@@ -108,12 +182,12 @@ public class CallNahrEvents extends Module {
                         log.info("    - rContigCount: .={} {}={} {}", rMatcher.group(1).length(), rMatcher.group(3), rMatcher.group(2).length(), rContigCount);
                         log.info("    - fContigCount: .={} {}={} {}", fMatcher.group(1).length(), fMatcher.group(3), fMatcher.group(2).length(), fContigCount);
 
-                        candidates.add(rr.getCortexKmer());
-
-                        for (CortexVertex cv : cg.vertexSet()) {
-                            usedRois.put(cv.getCk(), true);
-                        }
+                        candidates.put(rr.getCortexKmer(), key);
                     }
+                }
+
+                for (CortexVertex cv : cg.vertexSet()) {
+                    usedRois.put(cv.getCk(), true);
                 }
             }
 

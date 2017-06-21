@@ -15,6 +15,14 @@ public class ContainerUtils {
         }
     }
 
+    public static <K> void increment(Map<K, Integer> map, K key) {
+        if (!map.containsKey(key)) {
+            map.put(key, 1);
+        } else {
+            map.put(key, map.get(key) + 1);
+        }
+    }
+
     public static <K, V> void add(Map<K, Set<V>> map, K key, V value) {
         if (!map.containsKey(key)) {
             map.put(key, new HashSet<>());
