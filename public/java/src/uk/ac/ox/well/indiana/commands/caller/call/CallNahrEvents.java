@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.util.Interval;
+import org.jetbrains.annotations.NotNull;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
@@ -13,6 +14,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
@@ -59,11 +62,69 @@ public class CallNahrEvents extends Module {
 
         logColorAssignments(childColor, parentColors, recruitColors);
 
-        Map<CortexKmer, Boolean> usedRois = loadRois();
-
         TraversalEngine ce = initializeTraversalEngine(childColor, parentColors, recruitColors, ContigStopper.class);
         //TraversalEngine ne = initializeTraversalEngine(childColor, parentColors, recruitColors, NahrStopper.class);
 
+        Map<String, String> contigEncoding = createContigEncoding();
+
+        Map<CortexKmer, Boolean> usedRois = loadRois();
+
+        Set<CortexKmer> candidates = findNahrCandidates(ce, contigEncoding, usedRois);
+    }
+
+    private Set<CortexKmer> findNahrCandidates(TraversalEngine ce, Map<String, String> contigEncoding, Map<CortexKmer, Boolean> usedRois) {
+        Set<CortexKmer> candidates = new HashSet<>();
+
+        String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
+        Pattern motif = Pattern.compile(pattern);
+
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Finding NAHR candidates")
+                .message("novel kmers promised")
+                .maxRecord(ROI.getNumRecords())
+                .make(log);
+
+        for (CortexRecord rr : ROI) {
+            if (!usedRois.get(rr.getCortexKmer())) {
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
+                CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr.getCortexKmer()));
+
+                for (String key : LOOKUPS.keySet()) {
+                    KmerLookup kl = LOOKUPS.get(key);
+
+                    DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
+                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
+                    Matcher fMatcher = motif.matcher(fContigCount);
+
+                    DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
+                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
+                    Matcher rMatcher = motif.matcher(rContigCount);
+
+                    if (rMatcher.matches() && fMatcher.matches() &&
+                        !rMatcher.group(3).equals(fMatcher.group(3)) &&
+                        rMatcher.group(2).length() >= 5 && fMatcher.group(2).length() >= 5 &&
+                        rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
+                        log.info("    candidate: {} {}", rr.getCortexKmer(), key);
+                        log.info("    - rContigCount: {} {} {}", rMatcher.group(2), rMatcher.group(1), rContigCount);
+                        log.info("    - fContigCount: {} {} {}", fMatcher.group(2), fMatcher.group(1), fContigCount);
+
+                        candidates.add(rr.getCortexKmer());
+                    }
+                }
+
+                for (CortexVertex cv : cg.vertexSet()) {
+                    usedRois.put(cv.getCk(), true);
+                }
+            }
+
+            pm.update();
+        }
+
+        return candidates;
+    }
+
+    @NotNull
+    private Map<String, String> createContigEncoding() {
         Map<String, String> contigEncoding = new HashMap<>();
         String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         Random r = new Random();
@@ -83,45 +144,7 @@ public class CallNahrEvents extends Module {
                 }
             }
         }
-
-        String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
-        Pattern motif = Pattern.compile(pattern);
-
-        Set<CortexKmer> candidates = new HashSet<>();
-
-        for (CortexRecord rr : ROI) {
-            if (!usedRois.get(rr.getCortexKmer())) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
-                CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr.getCortexKmer()));
-
-                for (String key : LOOKUPS.keySet()) {
-                    KmerLookup kl = LOOKUPS.get(key);
-
-                    DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
-                    String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
-                    Matcher fMatcher = motif.matcher(fContigCount);
-
-                    DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
-                    String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
-                    Matcher rMatcher = motif.matcher(rContigCount);
-
-                    if (rMatcher.matches() && fMatcher.matches() &&
-                        !rMatcher.group(3).equals(fMatcher.group(3)) && rMatcher.group(2).length() >= 5 && fMatcher.group(2).length() >= 5 &&
-                        rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
-                        log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
-                        log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
-                        log.info("{} {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.group(2), rMatcher.group(1));
-                        log.info("{} {} {} {}", fMatcher.matches(), fMatcher.groupCount(), fMatcher.group(2), fMatcher.group(1));
-                    }
-                }
-
-                for (CortexVertex cv : cg.vertexSet()) {
-                    usedRois.put(cv.getCk(), true);
-                }
-
-                candidates.add(rr.getCortexKmer());
-            }
-        }
+        return contigEncoding;
     }
 
     private String getContigCounts(KmerLookup kl, DepthFirstIterator<CortexVertex, CortexEdge> dfs, Map<CortexKmer, Boolean> usedRois, Map<String, String> contigEncoding) {
