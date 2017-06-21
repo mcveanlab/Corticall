@@ -84,7 +84,7 @@ public class CallNahrEvents extends Module {
             }
         }
 
-        String pattern = "\\.+_*([A-Za-z0-9])\\1+.+";
+        String pattern = "\\.+_*(([A-Za-z0-9])\\2+).*";
         Pattern motif = Pattern.compile(pattern);
 
         for (CortexRecord rr : ROI) {
@@ -106,12 +106,12 @@ public class CallNahrEvents extends Module {
 
                     Matcher rMatcher = motif.matcher(rContigCount);
                     if (rMatcher.matches()) {
-                        log.info("{} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.groupCount() >= 1 ? rMatcher.group(1) : null);
+                        log.info("{} {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rMatcher.group(2), rMatcher.group(1));
                     }
 
                     Matcher fMatcher = motif.matcher(fContigCount);
                     if (fMatcher.matches()) {
-                        log.info("{} {} {}", fMatcher.matches(), fMatcher.groupCount(), fMatcher.groupCount() >= 1 ? fMatcher.group(1) : null);
+                        log.info("{} {} {} {}", fMatcher.matches(), fMatcher.groupCount(), fMatcher.group(2), fMatcher.group(1));
                     }
 
                     rContigCount = SequenceUtils.reverse(rContigCount);

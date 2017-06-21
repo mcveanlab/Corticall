@@ -167,7 +167,7 @@ public class SequenceUtilsTest {
     public void testRegex() {
         String template = "...99999999999999999999999999999999999999999999999999_____________";
 
-        String pattern = "\\.+_*([A-Za-z0-9])\\1+.+";
+        String pattern = "\\.+_*(([A-Za-z0-9])\\2+).*";
         Pattern p = Pattern.compile(pattern);
         Matcher m = p.matcher(template);
 
