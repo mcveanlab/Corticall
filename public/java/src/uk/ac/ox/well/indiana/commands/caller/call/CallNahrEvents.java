@@ -105,8 +105,8 @@ public class CallNahrEvents extends Module {
                         rMatcher.group(2).length() >= 5 && fMatcher.group(2).length() >= 5 &&
                         rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
                         log.info("    candidate: {} {}", rr.getCortexKmer(), key);
-                        log.info("    - rContigCount: {} {} {}", rMatcher.group(2), rMatcher.group(1), rContigCount);
-                        log.info("    - fContigCount: {} {} {}", fMatcher.group(2), fMatcher.group(1), fContigCount);
+                        log.info("    - rContigCount: {} {} {}", rMatcher.group(3), rMatcher.group(2).length(), rContigCount);
+                        log.info("    - fContigCount: {} {} {}", fMatcher.group(3), fMatcher.group(2).length(), fContigCount);
 
                         candidates.add(rr.getCortexKmer());
                     }
