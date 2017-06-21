@@ -13,6 +13,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.NahrStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
@@ -95,8 +96,13 @@ public class CallNahrEvents extends Module {
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding, true);
 
-                    log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
                     log.info("{} rContigCount: {} {}", rr.getCortexKmer(), key, rContigCount);
+                    log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
+
+                    rContigCount = SequenceUtils.reverse(rContigCount);
+                    String contig = rContigCount + fContigCount;
+                    log.info("{}       contig: {} {}", rr.getCortexKmer(), key, contig);
+
                     log.info("");
                 }
 
