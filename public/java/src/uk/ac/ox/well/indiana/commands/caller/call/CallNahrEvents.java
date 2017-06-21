@@ -104,10 +104,10 @@ public class CallNahrEvents extends Module {
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
 
                     Matcher rMatcher = motif.matcher(rContigCount);
-                    log.info("{} {}", rMatcher, rMatcher.group(1));
+                    log.info("{} {}", rMatcher, rMatcher.group(0));
 
                     Matcher fMatcher = motif.matcher(fContigCount);
-                    log.info("{} {}", fMatcher, fMatcher.group(1));
+                    log.info("{} {}", fMatcher, fMatcher.group(0));
 
                     rContigCount = SequenceUtils.reverse(rContigCount);
                     String contig = rContigCount + fContigCount;
