@@ -105,10 +105,14 @@ public class CallNahrEvents extends Module {
                     log.info("{} fContigCount: {} {}", rr.getCortexKmer(), key, fContigCount);
 
                     Matcher rMatcher = motif.matcher(rContigCount);
-                    log.info("{} {} {} {}", rMatcher, rMatcher.matches(), rMatcher.groupCount(), rMatcher.groupCount() >= 1 ? rMatcher.group(1) : null);
+                    if (rMatcher.matches()) {
+                        log.info("{} {} {} {}", rMatcher, rMatcher.matches(), rMatcher.groupCount(), rMatcher.groupCount() >= 1 ? rMatcher.group(1) : null);
+                    }
 
                     Matcher fMatcher = motif.matcher(fContigCount);
-                    log.info("{} {} {} {}", fMatcher, fMatcher.matches(), fMatcher.groupCount(), fMatcher.groupCount() >= 1 ? fMatcher.group(1) : null);
+                    if (fMatcher.matches()) {
+                        log.info("{} {} {} {}", fMatcher, fMatcher.matches(), fMatcher.groupCount(), fMatcher.groupCount() >= 1 ? fMatcher.group(1) : null);
+                    }
 
                     rContigCount = SequenceUtils.reverse(rContigCount);
                     String contig = rContigCount + fContigCount;
