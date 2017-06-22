@@ -106,7 +106,8 @@ public class FindNahrCandidates extends Module {
     private Map<CortexKmer, String> findNahrCandidates(int childColor, List<Integer> parentColors, List<Integer> recruitColors, Map<CortexKmer, Boolean> roisThatShouldBeFound) {
         Map<CortexKmer, String> candidates = new HashMap<>();
 
-        String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
+        //String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
+        String pattern = "^(\\.+)[\\._]*(([A-Za-z0-9])\\3+).*";
         Pattern motif = Pattern.compile(pattern);
 
         Map<String, String> contigEncoding = createContigEncoding();
