@@ -85,7 +85,8 @@ public class IdentifyNahrEvents extends Module {
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
-        String flankingNovelPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
+        //String flankingNovelPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
+        String flankingNovelPattern = "_*(\\.+)_*";
         Pattern flankingNovelMotif = Pattern.compile(flankingNovelPattern);
 
         String novelPattern = "(\\.+)";
@@ -101,6 +102,7 @@ public class IdentifyNahrEvents extends Module {
 
             for (String background : LOOKUPS.keySet()) {
                 String anntig = annotateContig(LOOKUPS.get(background), contig, enc);
+                log.info("anntig {} {}", background, anntig);
 
                 Matcher flankingNovelMatcher = flankingNovelMotif.matcher(anntig);
                 int numRecombs = 0;
@@ -122,7 +124,6 @@ public class IdentifyNahrEvents extends Module {
                 }
 
                 if (numRecombs > 0 && numNovelRuns > 1) {
-                    log.info("anntig {} {}", background, anntig);
                     log.info("numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
                 }
             }
