@@ -118,6 +118,7 @@ public class IdentifyNahrEvents extends Module {
 
                 if (numRecombs > 0 && numNovelRuns > 1) {
                     log.info("anntig {} {}", background, anntig);
+                    log.info("numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
                 }
             }
         }
