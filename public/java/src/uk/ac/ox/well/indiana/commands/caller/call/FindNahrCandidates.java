@@ -106,9 +106,11 @@ public class FindNahrCandidates extends Module {
     private Map<CortexKmer, String> findNahrCandidates(int childColor, List<Integer> parentColors, List<Integer> recruitColors, Map<CortexKmer, Boolean> roisThatShouldBeFound) {
         Map<CortexKmer, String> candidates = new HashMap<>();
 
-        //String pattern = "^(\\.+)_*(([A-Za-z0-9])\\3+).*";
-        String pattern = "^(\\.+)[\\._]*(([A-Za-z0-9])\\3+).*";
-        Pattern motif = Pattern.compile(pattern);
+        String recombPattern = "^(\\.+)[\\._]*(([A-Za-z0-9])\\3+).*";
+        Pattern recombMotif = Pattern.compile(recombPattern);
+
+        String multiNovelPattern = "^(\\.+)[A-Za-z0-9_]+(\\.+).*";
+        Pattern multiNovelMotif = Pattern.compile(multiNovelPattern);
 
         Map<String, String> contigEncoding = createContigEncoding();
         Map<CortexKmer, Boolean> usedRois = loadRois();
@@ -133,11 +135,13 @@ public class FindNahrCandidates extends Module {
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsf = new DepthFirstIterator<>(cg, rv);
                     String fContigCount = getContigCounts(kl, dfsf, usedRois, contigEncoding);
-                    Matcher fMatcher = motif.matcher(fContigCount);
+                    Matcher fMatcher = recombMotif.matcher(fContigCount);
+                    Matcher fmMatcher = multiNovelMotif.matcher(fContigCount);
 
                     DepthFirstIterator<CortexVertex, CortexEdge> dfsr = new DepthFirstIterator<>(new EdgeReversedGraph<>(cg), rv);
                     String rContigCount = getContigCounts(kl, dfsr, usedRois, contigEncoding);
-                    Matcher rMatcher = motif.matcher(rContigCount);
+                    Matcher rMatcher = recombMotif.matcher(rContigCount);
+                    Matcher rmMatcher = multiNovelMotif.matcher(rContigCount);
 
                     boolean hasOneOfThoseKmers = false;
                     for (CortexVertex cv : cg.vertexSet()) {
@@ -150,11 +154,22 @@ public class FindNahrCandidates extends Module {
                         !rMatcher.group(3).equals(fMatcher.group(3)) &&
                         rMatcher.group(2).length() >= 1 && fMatcher.group(2).length() >= 1 &&
                         rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
-                        log.info("    candidate: {} {}", rr.getCortexKmer(), key);
+                        log.info("    recomb candidate: {} {}", rr.getCortexKmer(), key);
                         log.info("    - rContigCount: .={} {}={} {}", rMatcher.group(1).length(), rMatcher.group(3), rMatcher.group(2).length(), rContigCount);
                         log.info("    - fContigCount: .={} {}={} {}", fMatcher.group(1).length(), fMatcher.group(3), fMatcher.group(2).length(), fContigCount);
 
-                        //candidates.put(rr.getCortexKmer(), key);
+                        for (CortexVertex cv : cg.vertexSet()) {
+                            if (usedRois.containsKey(cv.getCk())) {
+                                candidates.put(cv.getCk(), key);
+                            }
+                        }
+
+                        found = true;
+                    } else if (rmMatcher.matches() || rmMatcher.matches()) {
+                        log.info("    multi candidate: {} {}", rr.getCortexKmer(), key);
+                        log.info("    - rContigCount: {} {} {}", rmMatcher.matches(), rMatcher.groupCount(), rContigCount);
+                        log.info("    - fContigCount: {} {} {}", fmMatcher.matches(), fMatcher.groupCount(), fContigCount);
+
                         for (CortexVertex cv : cg.vertexSet()) {
                             if (usedRois.containsKey(cv.getCk())) {
                                 candidates.put(cv.getCk(), key);
@@ -163,7 +178,7 @@ public class FindNahrCandidates extends Module {
 
                         found = true;
                     } else if (hasOneOfThoseKmers && !found) {
-                        log.info("    candidate: {} {}", rr.getCortexKmer(), key);
+                        log.info("    missed candidate: {} {}", rr.getCortexKmer(), key);
                         log.info("    - rContigCount: {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rContigCount);
                         log.info("    - fContigCount: {} {} {}", fMatcher.matches(), fMatcher.groupCount(), fContigCount);
                     }
