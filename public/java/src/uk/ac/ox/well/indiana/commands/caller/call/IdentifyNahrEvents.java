@@ -81,7 +81,7 @@ public class IdentifyNahrEvents extends Module {
 
         Set<String> cnames = new HashSet<>();
         for (CortexKmer ck : expectedNovelKmers.keySet()) {
-            log.info("ck={} rseqs={}", ck, expectedNovelKmers.get(ck));
+            //log.info("ck={} rseqs={}", ck, expectedNovelKmers.get(ck));
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
@@ -105,8 +105,10 @@ public class IdentifyNahrEvents extends Module {
 
                 Matcher recombMatcher = recombMotif.matcher(anntig);
                 log.info("  - {} {}", recombMatcher.matches(), recombMatcher.groupCount());
-                for (int i = 0; i <= recombMatcher.groupCount(); i++) {
-                    log.info("    {} {}", i, recombMatcher.group(i));
+                if (recombMatcher.matches()) {
+                    for (int i = 0; i <= recombMatcher.groupCount(); i++) {
+                        log.info("    {} {}", i, recombMatcher.group(i));
+                    }
                 }
             }
         }
