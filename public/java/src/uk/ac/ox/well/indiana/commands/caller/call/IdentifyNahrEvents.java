@@ -44,7 +44,7 @@ public class IdentifyNahrEvents extends Module {
 
     @Override
     public void execute() {
-        Map<CortexKmer, Set<ReferenceSequence>> expectedNovelKmers = new HashMap<>();
+        Map<CortexKmer, Set<String>> expectedNovelKmers = new HashMap<>();
         ReferenceSequence rseq;
         while ((rseq = NAHR.nextSequence()) != null) {
             String seq = rseq.getBaseString();
@@ -64,7 +64,8 @@ public class IdentifyNahrEvents extends Module {
                 CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
 
                 if (expectedNovelKmers.containsKey(ck)) {
-                    ContainerUtils.add(expectedNovelKmers, ck, rseq);
+                    String[] name = rseq.getName().split("\\s+");
+                    ContainerUtils.add(expectedNovelKmers, ck, name[0]);
                 }
             }
         }
