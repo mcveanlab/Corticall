@@ -108,9 +108,11 @@ public class IdentifyNahrEvents extends Module {
                 Matcher recombMatcher = recombMotif.matcher(anntig);
                 log.info("  - recom {} {}", recombMatcher.matches(), recombMatcher.groupCount());
                 //if (recombMatcher.find() && !recombMatcher.group(2).equals(recombMatcher.group(5))) {
-                if (recombMatcher.find()) {
-                    for (int i = 0; i <= recombMatcher.groupCount(); i++) {
-                        log.info("    {} {}", i, recombMatcher.group(i));
+                while (recombMatcher.find()) {
+                    if (!recombMatcher.group(2).equals(recombMatcher.group(5))) {
+                        for (int i = 0; i <= recombMatcher.groupCount(); i++) {
+                            log.info("    {} {}", i, recombMatcher.group(i));
+                        }
                     }
                 }
 
