@@ -53,7 +53,7 @@ public class IdentifyNahrEvents extends Module {
                 CortexRecord rr = ROI.findRecord(ck);
 
                 if (rr != null) {
-                    expectedNovelKmers.put(rr.getCortexKmer(), new HashSet<>());
+                    expectedNovelKmers.put(rr.getCortexKmer(), new TreeSet<>());
                 }
             }
         }
