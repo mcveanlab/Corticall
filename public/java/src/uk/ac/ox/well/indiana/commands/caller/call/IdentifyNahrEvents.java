@@ -107,14 +107,14 @@ public class IdentifyNahrEvents extends Module {
                 Matcher flankingNovelMatcher = flankingNovelMotif.matcher(anntig);
                 int numRecombs = 0;
                 while (flankingNovelMatcher.find()) {
-                    if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
+                    //if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
                         numRecombs++;
 
                         log.info("recomb:");
                         for (int i = 0; i <= flankingNovelMatcher.groupCount(); i++) {
                             log.info("  {} {}", i, flankingNovelMatcher.group(i));
                         }
-                    }
+                    //}
                 }
 
                 Matcher novelMatcher = novelMotif.matcher(anntig);
