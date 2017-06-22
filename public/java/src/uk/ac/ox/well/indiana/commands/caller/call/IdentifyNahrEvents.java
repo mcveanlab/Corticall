@@ -88,8 +88,8 @@ public class IdentifyNahrEvents extends Module {
         String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
         Pattern recombMotif = Pattern.compile(recombPattern);
 
-        String multiNovelPattern = "(\\.+)[A-Za-z0-9_]+(\\.+)";
-        Pattern multiNovelMotif = Pattern.compile(multiNovelPattern);
+        String novelPattern = "(\\.+)";
+        Pattern novelMotif = Pattern.compile(novelPattern);
 
         Map<String, String> enc = createContigEncoding();
 
@@ -104,10 +104,18 @@ public class IdentifyNahrEvents extends Module {
                 log.info("anntig {} {}", background, anntig);
 
                 Matcher recombMatcher = recombMotif.matcher(anntig);
-                log.info("  - {} {}", recombMatcher.matches(), recombMatcher.groupCount());
+                log.info("  - recom {} {}", recombMatcher.matches(), recombMatcher.groupCount());
                 if (recombMatcher.matches()) {
                     for (int i = 0; i <= recombMatcher.groupCount(); i++) {
                         log.info("    {} {}", i, recombMatcher.group(i));
+                    }
+                }
+
+                Matcher novelMatcher = novelMotif.matcher(anntig);
+                log.info("  - novel {} {}", novelMatcher.matches(), novelMatcher.groupCount());
+                if (novelMatcher.matches()) {
+                    for (int i = 0; i <= novelMatcher.groupCount(); i++) {
+                        log.info("    {} {}", i, novelMatcher.group(i));
                     }
                 }
             }
