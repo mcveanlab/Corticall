@@ -159,8 +159,8 @@ public class FindNahrCandidates extends Module {
                         }
                     } else if (hasOneOfThoseKmers) {
                         log.info("    candidate: {} {}", rr.getCortexKmer(), key);
-                        log.info("    - rContigCount: {}", rContigCount);
-                        log.info("    - fContigCount: {}", fContigCount);
+                        log.info("    - rContigCount: {} {}", rMatcher, rContigCount);
+                        log.info("    - fContigCount: {} {}", fMatcher, fContigCount);
                     }
                 }
 
