@@ -88,6 +88,7 @@ public class IdentifyNahrEvents extends Module {
         for (String cname : cnames) {
             String contig = contigs.get(cname);
 
+            log.info("length {}", contig.length());
             log.info("contig     {}", contig);
 
             for (String background : LOOKUPS.keySet()) {
