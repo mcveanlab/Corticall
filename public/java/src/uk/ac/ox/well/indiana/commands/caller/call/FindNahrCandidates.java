@@ -146,7 +146,7 @@ public class FindNahrCandidates extends Module {
 
                     if (rMatcher.matches() && fMatcher.matches() &&
                         !rMatcher.group(3).equals(fMatcher.group(3)) &&
-                        rMatcher.group(2).length() >= 5 && fMatcher.group(2).length() >= 5 &&
+                        rMatcher.group(2).length() >= 1 && fMatcher.group(2).length() >= 1 &&
                         rMatcher.group(1).length() >= 2 && fMatcher.group(1).length() >= 2) {
                         log.info("    candidate: {} {}", rr.getCortexKmer(), key);
                         log.info("    - rContigCount: .={} {}={} {}", rMatcher.group(1).length(), rMatcher.group(3), rMatcher.group(2).length(), rContigCount);
