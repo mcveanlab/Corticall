@@ -65,7 +65,7 @@ public class FindNahrCandidates extends Module {
 
         logColorAssignments(childColor, parentColors, recruitColors);
 
-        Set<CortexKmer> roisThatShouldBeFound = new HashSet<>();
+        Map<CortexKmer, Boolean> roisThatShouldBeFound = new HashMap<>();
 
         ReferenceSequence rseq;
         while ((rseq = NAHR.nextSequence()) != null) {
@@ -77,7 +77,7 @@ public class FindNahrCandidates extends Module {
                 CortexRecord rr = ROI.findRecord(ck);
 
                 if (rr != null) {
-                    roisThatShouldBeFound.add(ck);
+                    roisThatShouldBeFound.put(ck, false);
                 }
             }
         }
@@ -85,11 +85,13 @@ public class FindNahrCandidates extends Module {
         Map<CortexKmer, String> candidates = findNahrCandidates(childColor, parentColors, recruitColors);
 
         for (CortexKmer ck : candidates.keySet()) {
-            if (roisThatShouldBeFound.contains(ck)) {
-                log.info("novel ck={} present", ck);
-            } else {
-                log.info("novel ck={} absent", ck);
+            if (roisThatShouldBeFound.containsKey(ck)) {
+                roisThatShouldBeFound.put(ck, true);
             }
+        }
+
+        for (CortexKmer ck : roisThatShouldBeFound.keySet()) {
+            log.info("novelty ck={} {}", ck, roisThatShouldBeFound.get(ck));
         }
 
         int i = 0;
