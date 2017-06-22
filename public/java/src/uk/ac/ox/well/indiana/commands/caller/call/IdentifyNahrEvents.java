@@ -88,7 +88,7 @@ public class IdentifyNahrEvents extends Module {
         String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
         Pattern recombMotif = Pattern.compile(recombPattern);
 
-        String novelPattern = "(\\.+)";
+        String novelPattern = ".*(\\.+).*";
         Pattern novelMotif = Pattern.compile(novelPattern);
 
         Map<String, String> enc = createContigEncoding();
