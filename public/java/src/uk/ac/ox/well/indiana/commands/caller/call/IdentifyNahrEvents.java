@@ -87,7 +87,7 @@ public class IdentifyNahrEvents extends Module {
 
         //String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
         //ZZZZZZ.......____TTT
-        String recombPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
+        String recombPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9&&[^\\2]])\\5+)";
         Pattern recombMotif = Pattern.compile(recombPattern);
 
         String novelPattern = "(\\.+)";
