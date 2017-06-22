@@ -16,6 +16,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.PrintStream;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by kiran on 22/06/2017.
@@ -83,6 +85,12 @@ public class IdentifyNahrEvents extends Module {
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
+        String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
+        Pattern recombMotif = Pattern.compile(recombPattern);
+
+        String multiNovelPattern = "(\\.+)[A-Za-z0-9_]+(\\.+)";
+        Pattern multiNovelMotif = Pattern.compile(multiNovelPattern);
+
         Map<String, String> enc = createContigEncoding();
 
         for (String cname : cnames) {
@@ -94,6 +102,12 @@ public class IdentifyNahrEvents extends Module {
             for (String background : LOOKUPS.keySet()) {
                 String anntig = annotateContig(LOOKUPS.get(background), contig, enc);
                 log.info("anntig {} {}", background, anntig);
+
+                Matcher recombMatcher = recombMotif.matcher(anntig);
+                log.info("  - {} {}", recombMatcher.matches(), recombMatcher.groupCount());
+                for (int i = 0; i <= recombMatcher.groupCount(); i++) {
+                    log.info("    {} {}", i, recombMatcher.group(i));
+                }
             }
         }
     }
