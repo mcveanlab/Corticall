@@ -1,6 +1,8 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
@@ -49,6 +51,9 @@ public class FindNahrCandidates extends Module {
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<String, KmerLookup> LOOKUPS;
 
+    @Argument(fullName="nahr", shortName="n", doc="NAHR")
+    public FastaSequenceFile NAHR;
+
     @Output
     public PrintStream out;
 
@@ -60,7 +65,32 @@ public class FindNahrCandidates extends Module {
 
         logColorAssignments(childColor, parentColors, recruitColors);
 
+        Set<CortexKmer> roisThatShouldBeFound = new HashSet<>();
+
+        ReferenceSequence rseq;
+        while ((rseq = NAHR.nextSequence()) != null) {
+            String seq = rseq.getBaseString();
+
+            for (int i = 0; i <= seq.length() - ROI.getKmerSize(); i++) {
+                String sk = seq.substring(i, i + ROI.getKmerSize());
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord rr = ROI.findRecord(ck);
+
+                if (rr != null) {
+                    roisThatShouldBeFound.add(ck);
+                }
+            }
+        }
+
         Map<CortexKmer, String> candidates = findNahrCandidates(childColor, parentColors, recruitColors);
+
+        for (CortexKmer ck : candidates.keySet()) {
+            if (roisThatShouldBeFound.contains(ck)) {
+                log.info("novel ck={} present", ck);
+            } else {
+                log.info("novel ck={} absent", ck);
+            }
+        }
 
         int i = 0;
         for (CortexKmer ck : candidates.keySet()) {
