@@ -126,6 +126,8 @@ public class FindNahrCandidates extends Module {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> cg = ce.dfs(rr.getKmerAsString());
                 CortexVertex rv = new CortexVertex(rr.getKmerAsString(), GRAPH.findRecord(rr.getCortexKmer()));
 
+                boolean found = false;
+
                 for (String key : LOOKUPS.keySet()) {
                     KmerLookup kl = LOOKUPS.get(key);
 
@@ -158,7 +160,9 @@ public class FindNahrCandidates extends Module {
                                 candidates.put(cv.getCk(), key);
                             }
                         }
-                    } else if (hasOneOfThoseKmers) {
+
+                        found = true;
+                    } else if (hasOneOfThoseKmers && !found) {
                         log.info("    candidate: {} {}", rr.getCortexKmer(), key);
                         log.info("    - rContigCount: {} {} {}", rMatcher.matches(), rMatcher.groupCount(), rContigCount);
                         log.info("    - fContigCount: {} {} {}", fMatcher.matches(), fMatcher.groupCount(), fContigCount);
