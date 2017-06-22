@@ -107,6 +107,11 @@ public class IdentifyNahrEvents extends Module {
                 while (flankingNovelMatcher.find()) {
                     if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
                         numRecombs++;
+
+                        log.info("recomb:");
+                        for (int i = 0; i <= flankingNovelMatcher.groupCount(); i++) {
+                            log.info("  {} {}", i, flankingNovelMatcher.group(i));
+                        }
                     }
                 }
 
@@ -150,7 +155,7 @@ public class IdentifyNahrEvents extends Module {
     private Map<String, String> createContigEncoding() {
         Map<String, String> contigEncoding = new HashMap<>();
         String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Random r = new Random();
+        Random r = new Random(0);
         for (String key : LOOKUPS.keySet()) {
             Set<String> usedCodes = new HashSet<>();
 
