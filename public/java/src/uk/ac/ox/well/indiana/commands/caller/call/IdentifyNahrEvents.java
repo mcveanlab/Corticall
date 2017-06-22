@@ -85,7 +85,9 @@ public class IdentifyNahrEvents extends Module {
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
-        String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
+        //String recombPattern = "(\\.+)[\\._]*(([A-Za-z0-9])\\3+)";
+        //ZZZZZZ.......____TTT
+        String recombPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
         Pattern recombMotif = Pattern.compile(recombPattern);
 
         String novelPattern = "(\\.+)";
@@ -105,7 +107,7 @@ public class IdentifyNahrEvents extends Module {
 
                 Matcher recombMatcher = recombMotif.matcher(anntig);
                 log.info("  - recom {} {}", recombMatcher.matches(), recombMatcher.groupCount());
-                if (recombMatcher.matches()) {
+                if (recombMatcher.find()) {
                     for (int i = 0; i <= recombMatcher.groupCount(); i++) {
                         log.info("    {} {}", i, recombMatcher.group(i));
                     }
@@ -113,10 +115,9 @@ public class IdentifyNahrEvents extends Module {
 
                 Matcher novelMatcher = novelMotif.matcher(anntig);
                 log.info("  - novel {} {}", novelMatcher.matches(), novelMatcher.groupCount());
+                int numNovelRuns = 0;
                 while (novelMatcher.find()) {
-                    for (int i = 0; i <= novelMatcher.groupCount(); i++) {
-                        log.info("    {} {}", i, novelMatcher.group(i));
-                    }
+                    numNovelRuns++;
                 }
             }
         }
