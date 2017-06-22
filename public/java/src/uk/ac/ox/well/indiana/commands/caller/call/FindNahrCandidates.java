@@ -144,7 +144,12 @@ public class FindNahrCandidates extends Module {
                         log.info("    - rContigCount: .={} {}={} {}", rMatcher.group(1).length(), rMatcher.group(3), rMatcher.group(2).length(), rContigCount);
                         log.info("    - fContigCount: .={} {}={} {}", fMatcher.group(1).length(), fMatcher.group(3), fMatcher.group(2).length(), fContigCount);
 
-                        candidates.put(rr.getCortexKmer(), key);
+                        //candidates.put(rr.getCortexKmer(), key);
+                        for (CortexVertex cv : cg.vertexSet()) {
+                            if (usedRois.containsKey(cv.getCk())) {
+                                candidates.put(cv.getCk(), key);
+                            }
+                        }
                     }
                 }
 
