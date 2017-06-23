@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -274,7 +275,19 @@ public class IdentifyNahrEvents extends Module {
                         String sk = nahrseq.substring(i, i + GRAPH.getKmerSize());
                         CortexKmer ck = new CortexKmer(sk);
 
-                        log.info("nahr: {} {} {}", candidate.name, sk, cks.contains(ck));
+                        Set<Interval> intervals = new TreeSet<>();
+                        for (String background : LOOKUPS.keySet()) {
+                            intervals.addAll(LOOKUPS.get(background).findKmer(sk));
+                        }
+
+                        List<String> strIntervals = new ArrayList<>();
+                        for (Interval it1 : intervals) {
+                            strIntervals.add(it1.getContig() + ":" + it1.getStart() + "-" + it1.getEnd() + ":" + (it1.isPositiveStrand() ? "+" : "-"));
+                        }
+
+                        log.info("nahr: {} {} {} {}", candidate.name, sk, cks.contains(ck), Joiner.on(",").join(strIntervals));
+
+                        //out.println(Joiner.on(""))
                     }
                 }
             }
