@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.caller.postfilter;
+package uk.ac.ox.well.indiana.commands.caller.verify;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
