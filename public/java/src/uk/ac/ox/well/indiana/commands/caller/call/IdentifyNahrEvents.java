@@ -14,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -94,14 +95,216 @@ public class IdentifyNahrEvents extends Module {
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
+        Map<String, String> enc = createContigEncoding();
+
+        Set<ContigInfo> candidates = findCandidateNAHRs(contigs, colors, enc);
+        Map<CortexKmer, ContigInfo> cEnds = new HashMap<>();
+
+        for (ContigInfo ci : candidates) {
+            cEnds.put(ci.crFirst.getCortexKmer(), ci);
+            cEnds.put(ci.crLast.getCortexKmer(), ci);
+        }
+
+        Set<String> usedCandidates = new HashSet<>();
+
+        String firstChrPattern = "([^_\\.])";
+        Pattern firstChrMotif = Pattern.compile(firstChrPattern);
+
+        String lastChrPattern = "([^_\\.])[_\\.]*$";
+        Pattern lastChrMotif = Pattern.compile(lastChrPattern);
+
+        for (ContigInfo candidate : candidates) {
+            if (!usedCandidates.contains(candidate.name)) {
+                usedCandidates.add(candidate.name);
+
+                Matcher firstChrMatcher = firstChrMotif.matcher(candidate.anntig);
+
+                List<String> bridgeBack = new ArrayList<>();
+                if (firstChrMatcher.find()) {
+                    String encchr = firstChrMatcher.group(1);
+                    String chrName = null;
+                    for (String n : enc.keySet()) {
+                        if (enc.get(n).equals(encchr)) {
+                            chrName = n;
+                        }
+                    }
+
+                    if (chrName != null) {
+                        String sk = candidate.skFirst;
+                        do {
+                            CortexRecord cr = GRAPH.findRecord(sk);
+                            Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
+                            String pk = null;
+                            for (String p : pks.get(childColor)) {
+                                for (String background : LOOKUPS.keySet()) {
+                                    if (LOOKUPS.get(background).getReferenceSequence().getSequenceDictionary().getSequence(chrName) != null) {
+                                        Set<Interval> its = LOOKUPS.get(background).findKmer(p);
+
+                                        if (its.size() == 1) {
+                                            Interval it = its.iterator().next();
+                                            if (it.getContig().equals(chrName)) {
+                                                pk = p;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            sk = null;
+
+                            if (pk != null) {
+                                CortexKmer ck = new CortexKmer(pk);
+                                if (cEnds.containsKey(ck)) {
+                                    ContigInfo cci = cEnds.get(ck);
+
+                                    if (pk.equals(cci.skLast)) {
+                                        bridgeBack.add(0, cci.contig);
+                                    } else if (pk.equals(SequenceUtils.reverseComplement(cci.skFirst))) {
+                                        bridgeBack.add(0, SequenceUtils.reverseComplement(cci.contig));
+                                    }
+
+                                    usedCandidates.add(cci.name);
+                                } else {
+                                    bridgeBack.add(0, pk);
+
+                                    sk = pk;
+                                }
+                            }
+                        } while (sk != null);
+                    }
+                }
+
+                Matcher lastChrMatcher = lastChrMotif.matcher(candidate.anntig);
+                List<String> bridgeFwd = new ArrayList<>();
+                if (lastChrMatcher.find()) {
+                    String encchr = lastChrMatcher.group(1);
+                    String chrName = null;
+                    for (String n : enc.keySet()) {
+                        if (enc.get(n).equals(encchr)) {
+                            chrName = n;
+                        }
+                    }
+
+                    if (chrName != null) {
+                        String sk = candidate.skLast;
+                        do {
+                            CortexRecord cr = GRAPH.findRecord(sk);
+                            Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
+                            String nk = null;
+                            for (String n : nks.get(childColor)) {
+                                for (String background : LOOKUPS.keySet()) {
+                                    if (LOOKUPS.get(background).getReferenceSequence().getSequenceDictionary().getSequence(chrName) != null) {
+                                        Set<Interval> its = LOOKUPS.get(background).findKmer(n);
+
+                                        if (its.size() == 1) {
+                                            Interval it = its.iterator().next();
+                                            if (it.getContig().equals(chrName)) {
+                                                nk = n;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            sk = null;
+
+                            if (nk != null) {
+                                CortexKmer ck = new CortexKmer(nk);
+                                if (cEnds.containsKey(ck)) {
+                                    ContigInfo cci = cEnds.get(ck);
+
+                                    if (nk.equals(cci.skFirst)) {
+                                        bridgeFwd.add(cci.contig);
+                                    } else if (nk.equals(SequenceUtils.reverseComplement(cci.skLast))) {
+                                        bridgeFwd.add(SequenceUtils.reverseComplement(cci.contig));
+                                    }
+
+                                    usedCandidates.add(cci.name);
+                                } else {
+                                    bridgeBack.add(nk);
+
+                                    sk = nk;
+                                }
+                            }
+                        } while (sk != null);
+                    }
+                }
+
+                if (bridgeBack.size() > 0 || bridgeFwd.size() > 0) {
+                    StringBuilder newContig = new StringBuilder(candidate.contig);
+                    StringBuilder prev = new StringBuilder();
+                    for (String p : bridgeBack) {
+                        if (prev.length() == 0) {
+                            prev.append(p);
+                        } else {
+                            prev.append(p.substring(p.length() - 1, p.length()));
+                        }
+                    }
+
+                    StringBuilder next = new StringBuilder();
+                    for (int i = 0; i < bridgeFwd.size(); i++) {
+                        String n = bridgeFwd.get(i);
+                        if (i < bridgeFwd.size() - 1) {
+                            next.append(n.substring(0, 1));
+                        } else {
+                            next.append(n);
+                        }
+                    }
+
+                    newContig.insert(0, prev.toString());
+                    newContig.append(next.toString());
+
+                    log.info("joined: {} {}", candidate.contig.length(), newContig.length());
+                }
+            }
+        }
+    }
+
+    private class ContigInfo {
+        public String name;
+        public String contig;
+        public String anntig;
+        public String skFirst;
+        public String skLast;
+        public CortexRecord crFirst;
+        public CortexRecord crLast;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ContigInfo that = (ContigInfo) o;
+
+            if (name != null ? !name.equals(that.name) : that.name != null) return false;
+            if (contig != null ? !contig.equals(that.contig) : that.contig != null) return false;
+            if (anntig != null ? !anntig.equals(that.anntig) : that.anntig != null) return false;
+            if (crFirst != null ? !crFirst.equals(that.crFirst) : that.crFirst != null) return false;
+            return crLast != null ? crLast.equals(that.crLast) : that.crLast == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (contig != null ? contig.hashCode() : 0);
+            result = 31 * result + (anntig != null ? anntig.hashCode() : 0);
+            result = 31 * result + (crFirst != null ? crFirst.hashCode() : 0);
+            result = 31 * result + (crLast != null ? crLast.hashCode() : 0);
+            return result;
+        }
+    }
+
+    private Set<ContigInfo> findCandidateNAHRs(Map<String, String> contigs, Set<Integer> colors, Map<String, String> enc) {
         String flankingNovelPattern = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
         Pattern flankingNovelMotif = Pattern.compile(flankingNovelPattern);
 
         String novelPattern = "(\\.+)";
         Pattern novelMotif = Pattern.compile(novelPattern);
 
-        Map<String, String> enc = createContigEncoding();
-
+        Set<ContigInfo> candidates = new TreeSet<>();
         for (String cname : contigs.keySet()) {
             String contig = contigs.get(cname);
 
@@ -141,9 +344,21 @@ public class IdentifyNahrEvents extends Module {
                     log.info("    skLast  {}", skLast);
                     log.info("    crFirst {}", recordToString(skFirst, crFirst, colors));
                     log.info("    crLast  {}", recordToString(skLast, crLast, colors));
+
+                    ContigInfo ci = new ContigInfo();
+                    ci.name = cname;
+                    ci.contig = contig;
+                    ci.anntig = anntig;
+                    ci.skFirst = skFirst;
+                    ci.skLast = skLast;
+                    ci.crFirst = crFirst;
+                    ci.crLast = crLast;
+                    candidates.add(ci);
                 }
             }
         }
+
+        return candidates;
     }
 
     private String annotateContig(KmerLookup kl, String contig, Map<String, String> contigEncoding) {
