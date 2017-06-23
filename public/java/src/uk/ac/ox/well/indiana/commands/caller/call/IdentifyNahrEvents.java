@@ -81,11 +81,9 @@ public class IdentifyNahrEvents extends Module {
 
         Set<String> cnames = new HashSet<>();
         for (CortexKmer ck : expectedNovelKmers.keySet()) {
-            //log.info("ck={} rseqs={}", ck, expectedNovelKmers.get(ck));
             cnames.addAll(expectedNovelKmers.get(ck));
         }
 
-        //String flankingNovelPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
         String flankingNovelPattern = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
         Pattern flankingNovelMotif = Pattern.compile(flankingNovelPattern);
 
@@ -94,7 +92,7 @@ public class IdentifyNahrEvents extends Module {
 
         Map<String, String> enc = createContigEncoding();
 
-        for (String cname : cnames) {
+        for (String cname : contigs.keySet()) {
             String contig = contigs.get(cname);
 
             log.info("name {} length {}", cname, contig.length());
@@ -110,10 +108,10 @@ public class IdentifyNahrEvents extends Module {
                     do {
                         if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
                             numRecombs++;
-                            log.info("recomb:");
-                            for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
-                                log.info("  {} {}", i, flankingNovelMatcher.group(i));
-                            }
+//                            log.info("recomb:");
+//                            for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
+//                                log.info("  {} {}", i, flankingNovelMatcher.group(i));
+//                            }
                         }
                     } while (flankingNovelMatcher.find(flankingNovelMatcher.start(3)));
                 }
