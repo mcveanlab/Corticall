@@ -304,7 +304,7 @@ public class IdentifyNahrEvents extends Module {
         String novelPattern = "(\\.+)";
         Pattern novelMotif = Pattern.compile(novelPattern);
 
-        Set<ContigInfo> candidates = new TreeSet<>();
+        Set<ContigInfo> candidates = new HashSet<>();
         for (String cname : contigs.keySet()) {
             String contig = contigs.get(cname);
 
