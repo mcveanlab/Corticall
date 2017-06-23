@@ -97,7 +97,7 @@ public class IdentifyNahrEvents extends Module {
         for (String cname : cnames) {
             String contig = contigs.get(cname);
 
-            log.info("length {}", contig.length());
+            log.info("name {} length {}", cname, contig.length());
             log.info("contig     {}", contig);
 
             for (String background : LOOKUPS.keySet()) {
@@ -110,11 +110,10 @@ public class IdentifyNahrEvents extends Module {
                     do {
                         if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
                             numRecombs++;
-                        }
-
-                        log.info("recomb:");
-                        for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
-                            log.info("  {} {}", i, flankingNovelMatcher.group(i));
+                            log.info("recomb:");
+                            for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
+                                log.info("  {} {}", i, flankingNovelMatcher.group(i));
+                            }
                         }
                     } while (flankingNovelMatcher.find(flankingNovelMatcher.start(3)));
                 }
