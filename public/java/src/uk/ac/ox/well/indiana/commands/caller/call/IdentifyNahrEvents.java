@@ -89,6 +89,9 @@ public class IdentifyNahrEvents extends Module {
         String flankingNovelPattern = "_*(\\.+)_*";
         Pattern flankingNovelMotif = Pattern.compile(flankingNovelPattern);
 
+        String testPattern = "([^_\\\\.]+)_*(\\.+)_*([^_\\\\.]+)";
+        Pattern testMotif = Pattern.compile(testPattern);
+
         String novelPattern = "(\\.+)";
         Pattern novelMotif = Pattern.compile(novelPattern);
 
@@ -111,10 +114,18 @@ public class IdentifyNahrEvents extends Module {
                         numRecombs++;
 
                         log.info("recomb:");
-                        for (int i = 0; i <= flankingNovelMatcher.groupCount(); i++) {
+                        for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
                             log.info("  {} {}", i, flankingNovelMatcher.group(i));
                         }
                     //}
+                }
+
+                Matcher testMatcher = testMotif.matcher(anntig);
+                while (testMatcher.find()) {
+                    log.info("test:");
+                    for (int i = 1; i <= testMatcher.groupCount(); i++) {
+                        log.info("  {} {}", i, testMatcher.group(i));
+                    }
                 }
 
                 Matcher novelMatcher = novelMotif.matcher(anntig);
