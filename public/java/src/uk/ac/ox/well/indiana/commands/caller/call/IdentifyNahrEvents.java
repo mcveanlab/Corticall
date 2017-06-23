@@ -64,6 +64,7 @@ public class IdentifyNahrEvents extends Module {
         Map<CortexKmer, Set<String>> expectedNovelKmers = new HashMap<>();
         ReferenceSequence rseq;
         String nahrseq = "";
+        Set<CortexKmer> nahrKmers = new HashSet<>();
         while ((rseq = NAHR.nextSequence()) != null) {
             nahrseq = rseq.getBaseString();
             for (int i = 0; i <= nahrseq.length() - GRAPH.getKmerSize(); i++) {
@@ -73,6 +74,8 @@ public class IdentifyNahrEvents extends Module {
                 if (rr != null) {
                     expectedNovelKmers.put(rr.getCortexKmer(), new TreeSet<>());
                 }
+
+                nahrKmers.add(ck);
             }
         }
 
@@ -265,14 +268,8 @@ public class IdentifyNahrEvents extends Module {
 
                     log.info("joined: {} {} {} {} {}", candidate.contig.length(), newContig.length(), candidate.name, bridgeBackName, bridgeFwdName);
 
-                    Set<CortexKmer> cks = new HashSet<>();
                     for (int i = 0; i <= finalContig.length() - GRAPH.getKmerSize(); i++) {
-                        CortexKmer ck = new CortexKmer(finalContig.substring(i, i + GRAPH.getKmerSize()));
-                        cks.add(ck);
-                    }
-
-                    for (int i = 0; i <= nahrseq.length() - GRAPH.getKmerSize(); i++) {
-                        String sk = nahrseq.substring(i, i + GRAPH.getKmerSize());
+                        String sk = finalContig.substring(i, i + GRAPH.getKmerSize());
                         CortexKmer ck = new CortexKmer(sk);
 
                         Set<Interval> intervals = new TreeSet<>();
@@ -285,7 +282,8 @@ public class IdentifyNahrEvents extends Module {
                             strIntervals.add(it1.getContig() + ":" + it1.getStart() + "-" + it1.getEnd() + ":" + (it1.isPositiveStrand() ? "+" : "-"));
                         }
 
-                        log.info("nahr: {}/{} {} {} {} {}", i, nahrseq.length(), candidate.name, sk, cks.contains(ck), Joiner.on(",").join(strIntervals));
+                        //log.info("nahr: {}/{} {} {} {} {}", i, nahrseq.length(), candidate.name, sk, cks.contains(ck), Joiner.on(",").join(strIntervals));
+                        log.info("nahr {}: {}/{} {} {} {}", candidate.name, i, finalContig.length() - GRAPH.getKmerSize(), sk, nahrKmers.contains(ck), Joiner.on(",").join(strIntervals));
 
                         //out.println(Joiner.on(""))
                     }
