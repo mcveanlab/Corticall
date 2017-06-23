@@ -120,7 +120,7 @@ public class IdentifyNahrEvents extends Module {
                 Matcher firstChrMatcher = firstChrMotif.matcher(candidate.anntig);
 
                 List<String> bridgeBack = new ArrayList<>();
-                String bridgeBackName;
+                String bridgeBackName = "";
                 if (firstChrMatcher.find()) {
                     String encchr = firstChrMatcher.group(1);
                     String chrName = null;
@@ -179,7 +179,7 @@ public class IdentifyNahrEvents extends Module {
 
                 Matcher lastChrMatcher = lastChrMotif.matcher(candidate.anntig);
                 List<String> bridgeFwd = new ArrayList<>();
-                String bridgeFwdName;
+                String bridgeFwdName = "";
                 if (lastChrMatcher.find()) {
                     String encchr = lastChrMatcher.group(1);
                     String chrName = null;
