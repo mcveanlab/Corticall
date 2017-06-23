@@ -62,10 +62,11 @@ public class IdentifyNahrEvents extends Module {
 
         Map<CortexKmer, Set<String>> expectedNovelKmers = new HashMap<>();
         ReferenceSequence rseq;
+        String nahrseq = "";
         while ((rseq = NAHR.nextSequence()) != null) {
-            String seq = rseq.getBaseString();
-            for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                CortexKmer ck = new CortexKmer(seq.substring(i, i + GRAPH.getKmerSize()));
+            nahrseq = rseq.getBaseString();
+            for (int i = 0; i <= nahrseq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(nahrseq.substring(i, i + GRAPH.getKmerSize()));
                 CortexRecord rr = ROI.findRecord(ck);
 
                 if (rr != null) {
@@ -259,8 +260,22 @@ public class IdentifyNahrEvents extends Module {
 
                     newContig.insert(0, prev.toString());
                     newContig.append(next.toString());
+                    String finalContig = newContig.toString();
 
-                    log.info("joined: {} {} {} {}", candidate.contig.length(), newContig.length(), bridgeBackName, bridgeFwdName);
+                    log.info("joined: {} {} {} {} {}", candidate.contig.length(), newContig.length(), candidate.name, bridgeBackName, bridgeFwdName);
+
+                    Set<CortexKmer> cks = new HashSet<>();
+                    for (int i = 0; i <= finalContig.length() - GRAPH.getKmerSize(); i++) {
+                        CortexKmer ck = new CortexKmer(finalContig.substring(i, i + GRAPH.getKmerSize()));
+                        cks.add(ck);
+                    }
+
+                    for (int i = 0; i <= nahrseq.length() - GRAPH.getKmerSize(); i++) {
+                        String sk = nahrseq.substring(i, i + GRAPH.getKmerSize());
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        log.info("nahr: {} {} {}", candidate.name, sk, cks.contains(ck));
+                    }
                 }
             }
         }
