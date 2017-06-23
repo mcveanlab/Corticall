@@ -95,12 +95,8 @@ public class IdentifyNahrEvents extends Module {
         for (String cname : contigs.keySet()) {
             String contig = contigs.get(cname);
 
-            log.info("name {} length {}", cname, contig.length());
-            log.info("contig     {}", contig);
-
             for (String background : LOOKUPS.keySet()) {
                 String anntig = annotateContig(LOOKUPS.get(background), contig, enc);
-                log.info("anntig {} {}", background, anntig);
 
                 Matcher flankingNovelMatcher = flankingNovelMotif.matcher(anntig);
                 int numRecombs = 0;
@@ -123,7 +119,10 @@ public class IdentifyNahrEvents extends Module {
                 }
 
                 if (numRecombs > 0 && numNovelRuns > 1) {
+                    log.info("name {} length {}", cname, contig.length());
                     log.info("numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
+                    log.info("contig     {}", contig);
+                    log.info("anntig {} {}", background, anntig);
                 }
             }
         }
