@@ -104,10 +104,6 @@ public class IdentifyNahrEvents extends Module {
                     do {
                         if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
                             numRecombs++;
-//                            log.info("recomb:");
-//                            for (int i = 1; i <= flankingNovelMatcher.groupCount(); i++) {
-//                                log.info("  {} {}", i, flankingNovelMatcher.group(i));
-//                            }
                         }
                     } while (flankingNovelMatcher.find(flankingNovelMatcher.start(3)));
                 }
@@ -119,10 +115,15 @@ public class IdentifyNahrEvents extends Module {
                 }
 
                 if (numRecombs > 0 && numNovelRuns > 1) {
+                    String skFirst = contig.substring(0, GRAPH.getKmerSize());
+                    String skLast = contig.substring(contig.length() - GRAPH.getKmerSize(), contig.length());
+
                     log.info("name {} length {}", cname, contig.length());
-                    log.info("numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
-                    log.info("contig     {}", contig);
-                    log.info("anntig {} {}", background, anntig);
+                    log.info("  numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
+                    log.info("  contig     {}", contig);
+                    log.info("  anntig {} {}", background, anntig);
+                    log.info("  skFirst {}", skFirst);
+                    log.info("  skLast  {}", skLast);
                 }
             }
         }
