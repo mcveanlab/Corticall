@@ -13,6 +13,7 @@ import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -49,6 +50,15 @@ public class IdentifyNahrEvents extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
+
+        Set<Integer> colors = new TreeSet<>();
+        colors.add(childColor);
+        colors.addAll(parentColors);
+        colors.addAll(recruitColors);
+
         Map<CortexKmer, Set<String>> expectedNovelKmers = new HashMap<>();
         ReferenceSequence rseq;
         while ((rseq = NAHR.nextSequence()) != null) {
@@ -116,14 +126,21 @@ public class IdentifyNahrEvents extends Module {
 
                 if (numRecombs > 0 && numNovelRuns > 1) {
                     String skFirst = contig.substring(0, GRAPH.getKmerSize());
+                    CortexKmer ckFirst = new CortexKmer(skFirst);
+                    CortexRecord crFirst = GRAPH.findRecord(ckFirst);
+
                     String skLast = contig.substring(contig.length() - GRAPH.getKmerSize(), contig.length());
+                    CortexKmer ckLast = new CortexKmer(skLast);
+                    CortexRecord crLast = GRAPH.findRecord(ckLast);
 
                     log.info("name {} length {}", cname, contig.length());
-                    log.info("  numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
-                    log.info("  contig     {}", contig);
-                    log.info("  anntig {} {}", background, anntig);
-                    log.info("  skFirst {}", skFirst);
-                    log.info("  skLast  {}", skLast);
+                    log.info("    numRecombs={} numNovelRuns={}", numRecombs, numNovelRuns);
+                    log.info("    contig     {}", contig);
+                    log.info("    anntig {} {}", background, anntig);
+                    log.info("    skFirst {}", skFirst);
+                    log.info("    skLast  {}", skLast);
+                    log.info("    crFirst {}", recordToString(skFirst, crFirst, colors));
+                    log.info("    crLast  {}", recordToString(skLast, crLast, colors));
                 }
             }
         }
@@ -173,5 +190,52 @@ public class IdentifyNahrEvents extends Module {
             }
         }
         return contigEncoding;
+    }
+
+    private String recordToString(String sk, CortexRecord cr, Set<Integer> colors) {
+        String kmer = cr.getKmerAsString();
+        String cov = "";
+        String ed = "";
+
+        boolean fw = sk.equals(kmer);
+
+        if (!fw) {
+            kmer = SequenceUtils.reverseComplement(kmer);
+        }
+
+        int color = 0;
+        for (int coverage : cr.getCoverages()) {
+            if (colors.contains(color)) {
+                cov += " " + coverage;
+            }
+            color++;
+        }
+
+        color = 0;
+        for (String edge : cr.getEdgeAsStrings()) {
+            if (colors.contains(color)) {
+                ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
+            }
+            color++;
+        }
+
+        /*
+        Set<String> lss = new TreeSet<>();
+        if (LOOKUPS != null) {
+            Set<Interval> loci = LOOKUP.findKmer(kmer);
+
+            if (loci != null && loci.size() > 0) {
+                for (Interval locus : loci) {
+                    String ls = locus.getContig() + ":" + locus.getStart() + "-" + locus.getEnd() + ":" + (locus.isPositiveStrand() ? "+" : "-");
+                    lss.add(ls);
+                }
+            }
+        }
+        String lssCombined = Joiner.on(";").join(lss);
+
+        return kmer + " " + cov + " " + ed + " " + lssCombined;
+        */
+
+        return kmer + " " + cov + " " + ed;
     }
 }
