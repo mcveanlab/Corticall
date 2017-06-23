@@ -120,6 +120,7 @@ public class IdentifyNahrEvents extends Module {
                 Matcher firstChrMatcher = firstChrMotif.matcher(candidate.anntig);
 
                 List<String> bridgeBack = new ArrayList<>();
+                String bridgeBackName;
                 if (firstChrMatcher.find()) {
                     String encchr = firstChrMatcher.group(1);
                     String chrName = null;
@@ -165,6 +166,7 @@ public class IdentifyNahrEvents extends Module {
                                     }
 
                                     usedCandidates.add(cci.name);
+                                    bridgeBackName = cci.name;
                                 } else {
                                     bridgeBack.add(0, pk);
 
@@ -177,6 +179,7 @@ public class IdentifyNahrEvents extends Module {
 
                 Matcher lastChrMatcher = lastChrMotif.matcher(candidate.anntig);
                 List<String> bridgeFwd = new ArrayList<>();
+                String bridgeFwdName;
                 if (lastChrMatcher.find()) {
                     String encchr = lastChrMatcher.group(1);
                     String chrName = null;
@@ -222,6 +225,7 @@ public class IdentifyNahrEvents extends Module {
                                     }
 
                                     usedCandidates.add(cci.name);
+                                    bridgeFwdName = cci.name;
                                 } else {
                                     bridgeBack.add(nk);
 
@@ -256,7 +260,7 @@ public class IdentifyNahrEvents extends Module {
                     newContig.insert(0, prev.toString());
                     newContig.append(next.toString());
 
-                    log.info("joined: {} {}", candidate.contig.length(), newContig.length());
+                    log.info("joined: {} {} {} {}", candidate.contig.length(), newContig.length(), bridgeBackName, bridgeFwdName);
                 }
             }
         }
