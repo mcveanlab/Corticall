@@ -132,7 +132,7 @@ public class IdentifyNahrEvents extends Module {
                     if (chrName != null) {
                         String sk = candidate.skFirst;
                         do {
-                            CortexRecord cr = GRAPH.findRecord(sk);
+                            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                             Map<Integer, Set<String>> pks = TraversalEngine.getAllPrevKmers(cr, !sk.equals(cr.getKmerAsString()));
                             String pk = null;
                             for (String p : pks.get(childColor)) {
@@ -189,7 +189,7 @@ public class IdentifyNahrEvents extends Module {
                     if (chrName != null) {
                         String sk = candidate.skLast;
                         do {
-                            CortexRecord cr = GRAPH.findRecord(sk);
+                            CortexRecord cr = GRAPH.findRecord(new CortexKmer(sk));
                             Map<Integer, Set<String>> nks = TraversalEngine.getAllNextKmers(cr, !sk.equals(cr.getKmerAsString()));
                             String nk = null;
                             for (String n : nks.get(childColor)) {
