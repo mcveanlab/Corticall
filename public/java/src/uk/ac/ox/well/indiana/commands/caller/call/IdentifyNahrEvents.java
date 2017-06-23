@@ -86,7 +86,7 @@ public class IdentifyNahrEvents extends Module {
         }
 
         //String flankingNovelPattern = "(([A-Za-z0-9])\\2+)_*(\\.+)_*(([A-Za-z0-9])\\5+)";
-        String flankingNovelPattern = "([^_\\.]+)_*(\\.+)_*([^_\\.]+)";
+        String flankingNovelPattern = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
         Pattern flankingNovelMotif = Pattern.compile(flankingNovelPattern);
 
         String testPattern = "_*(\\.+)_*";
