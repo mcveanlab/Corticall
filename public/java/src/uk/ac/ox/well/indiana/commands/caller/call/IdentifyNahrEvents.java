@@ -285,7 +285,7 @@ public class IdentifyNahrEvents extends Module {
                             strIntervals.add(it1.getContig() + ":" + it1.getStart() + "-" + it1.getEnd() + ":" + (it1.isPositiveStrand() ? "+" : "-"));
                         }
 
-                        log.info("nahr: {} {} {} {}", candidate.name, sk, cks.contains(ck), Joiner.on(",").join(strIntervals));
+                        log.info("nahr: {}/{} {} {} {} {}", i, nahrseq.length(), candidate.name, sk, cks.contains(ck), Joiner.on(",").join(strIntervals));
 
                         //out.println(Joiner.on(""))
                     }
