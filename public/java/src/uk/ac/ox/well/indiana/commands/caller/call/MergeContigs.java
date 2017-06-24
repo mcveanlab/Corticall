@@ -81,7 +81,9 @@ public class MergeContigs extends Module {
 
         log.info("Mergeable:");
         for (ReferenceSequence rseq : mergeable.keySet()) {
-            log.info("  {} {}", mergeable.get(rseq), rseq);
+            if (mergeable.get(rseq) > 20) {
+                log.info("  {} {}", mergeable.get(rseq), rseq);
+            }
         }
         log.info("");
 
