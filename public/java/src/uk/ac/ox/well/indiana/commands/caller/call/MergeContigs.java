@@ -55,14 +55,19 @@ public class MergeContigs extends Module {
 
         log.info("Processing contigs:");
 
+        Set<ReferenceSequence> toRemove = new HashSet<>();
         for (ReferenceSequence rseq : g.vertexSet()) {
             if (rseq.getContigIndex() > -1) {
-                log.info("  {}", rseq);
+                //log.info("  {}", rseq);
 
                 extend(e, g, rseq, false);
                 extend(e, g, rseq, true);
+            } else {
+                toRemove.add(rseq);
             }
         }
+
+        g.removeAllVertices(toRemove);
 
         TopologicalOrderIterator<ReferenceSequence, String> toi = new TopologicalOrderIterator<ReferenceSequence, String>(g);
         while (toi.hasNext()) {
