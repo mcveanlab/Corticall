@@ -53,8 +53,12 @@ public class MergeContigs extends Module {
         //DirectedGraph<ReferenceSequence, String> q = loadContigs();
         DirectedGraph<ReferenceSequence, String> g = loadContigs();
 
+        log.info("Processing contigs:");
+
         for (ReferenceSequence rseq : g.vertexSet()) {
             if (rseq.getContigIndex() > -1) {
+                log.info("  {}", rseq);
+
                 extend(e, g, rseq, false);
                 extend(e, g, rseq, true);
             }
