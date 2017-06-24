@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Interval;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
@@ -64,7 +65,7 @@ public class MergeContigs extends Module {
             }
         }
 
-        DirectedGraph<ReferenceSequence, String> g = loadContigs();
+        DirectedGraph<ReferenceSequence, LabeledEdge> g = loadContigs();
         Map<ReferenceSequence, Integer> mergeable = new HashMap<>();
 
         for (ReferenceSequence rseq : g.vertexSet()) {
@@ -108,7 +109,7 @@ public class MergeContigs extends Module {
         //log.info("Final");
     }
 
-    private void extend(TraversalEngine e, DirectedGraph<ReferenceSequence, String> g, ReferenceSequence rseq, boolean goForward) {
+    private void extend(TraversalEngine e, DirectedGraph<ReferenceSequence, LabeledEdge> g, ReferenceSequence rseq, boolean goForward) {
         Map<String, Interval> mostRecentConfidentInterval = new HashMap<>();
         Set<String> acceptableContigs = new HashSet<>();
 
@@ -193,13 +194,13 @@ public class MergeContigs extends Module {
                             ReferenceSequence aseq = arseqs2.get(0);
 
                             if (!goForward) {
-                                g.addEdge(aseq, rseq, sb.toString());
+                                g.addEdge(aseq, rseq, new LabeledEdge(sb.toString()));
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
-                                g.addEdge(rseq, aseq, sb.toString());
+                                g.addEdge(rseq, aseq, new LabeledEdge(sb.toString()));
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
@@ -220,8 +221,18 @@ public class MergeContigs extends Module {
         }
     }
 
-    private DirectedGraph<ReferenceSequence, String> loadContigs() {
-        DirectedGraph<ReferenceSequence, String> g = new DefaultDirectedGraph<>(String.class);
+    private class LabeledEdge extends DefaultEdge {
+        private String label;
+
+        public LabeledEdge() {}
+        public LabeledEdge(String label) { this.label = label; }
+
+        public void setLabel(String label) { this.label = label; }
+        public String getLabel() { return label; }
+    }
+
+    private DirectedGraph<ReferenceSequence, LabeledEdge> loadContigs() {
+        DirectedGraph<ReferenceSequence, LabeledEdge> g = new DefaultDirectedGraph<>(LabeledEdge.class);
 
         ReferenceSequence fwseq;
         while ((fwseq = CONTIGS.nextSequence()) != null) {
