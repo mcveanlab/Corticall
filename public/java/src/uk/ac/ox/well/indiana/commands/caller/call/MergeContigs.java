@@ -71,11 +71,11 @@ public class MergeContigs extends Module {
         Set<String> acceptableContigs = new HashSet<>();
 
         int start = !goForward ? 0 : rseq.length() - GRAPH.getKmerSize();
-        int end   = !goForward ? rseq.length() - GRAPH.getKmerSize() + 1 : -1;
+        int end   = !goForward ? rseq.length() - GRAPH.getKmerSize() : 0;
         int inc   = !goForward ? -1 : 1;
 
         //for (int i = rseq.length() - GRAPH.getKmerSize(); i >= 0; i--) {
-        for (int i = start; i != end; i += inc) {
+        for (int i = start; !goForward ? i <= end : i >= end; i += inc) {
             String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
 
             for (String background : LOOKUPS.keySet()) {
