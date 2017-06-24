@@ -69,9 +69,10 @@ public class MergeContigs extends Module {
 
         g.removeAllVertices(toRemove);
 
+        log.info("Final");
         TopologicalOrderIterator<ReferenceSequence, String> toi = new TopologicalOrderIterator<ReferenceSequence, String>(g);
         while (toi.hasNext()) {
-            log.info("{}", toi.next());
+            log.info("  {}", toi.next());
         }
     }
 
