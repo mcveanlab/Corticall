@@ -149,11 +149,32 @@ public class MergeContigs extends Module {
                                 }
                             }
 
-                            g.addEdge(rseq, boundary, sb.toString());
+                            //g.addEdge(rseq, boundary, sb.toString());
+
+                            List<ReferenceSequence> arseqs2 = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
+                            ReferenceSequence aseq = arseqs2.get(0);
+
+                            if (!goForward) {
+                                g.addEdge(aseq, rseq, sb.toString());
+
+                                log.info("  joined");
+                                log.info("    {}", aseq.getName());
+                                log.info("    {}", rseq.getName());
+                            } else {
+                                g.addEdge(rseq, aseq, sb.toString());
+
+                                log.info("  joined");
+                                log.info("    {}", rseq.getName());
+                                log.info("    {}", aseq.getName());
+                            }
 
                             sk = null;
                         } else {
-                            gap.add(sk);
+                            if (!goForward) {
+                                gap.add(0, sk);
+                            } else {
+                                gap.add(sk);
+                            }
                         }
                     }
                 } while (sk != null);
