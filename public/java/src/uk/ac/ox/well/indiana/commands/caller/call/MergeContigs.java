@@ -11,6 +11,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
@@ -37,6 +38,9 @@ public class MergeContigs extends Module {
     @Argument(fullName="drafts", shortName="d", doc="Drafts")
     public HashMap<String, KmerLookup> LOOKUPS;
 
+    @Argument(fullName="verify", shortName="v", doc="Verify")
+    public FastaSequenceFile VERIFY;
+
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -50,8 +54,32 @@ public class MergeContigs extends Module {
                 .graph(GRAPH)
                 .make();
 
-        //DirectedGraph<ReferenceSequence, String> q = loadContigs();
+        ReferenceSequence vseq;
+        Set<CortexKmer> validatedKmers = new HashSet<>();
+        while ((vseq = VERIFY.nextSequence()) != null) {
+            for (int i = 0; i <= vseq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(vseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                validatedKmers.add(ck);
+            }
+        }
+
         DirectedGraph<ReferenceSequence, String> g = loadContigs();
+        Set<ReferenceSequence> mergeable = new HashSet<>();
+
+        for (ReferenceSequence rseq : g.vertexSet()) {
+            for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
+                CortexKmer ck = new CortexKmer(rseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                if (validatedKmers.contains(ck)) {
+                    mergeable.add(rseq);
+                    break;
+                }
+            }
+        }
+
+        log.info("Mergeable:");
+        for (ReferenceSequence rseq : mergeable) {
+            log.info("  {}", rseq);
+        }
 
         log.info("Processing contigs:");
 
@@ -69,11 +97,7 @@ public class MergeContigs extends Module {
 
         g.removeAllVertices(toRemove);
 
-        log.info("Final");
-        TopologicalOrderIterator<ReferenceSequence, String> toi = new TopologicalOrderIterator<ReferenceSequence, String>(g);
-        while (toi.hasNext()) {
-            log.info("  {}", toi.next());
-        }
+        //log.info("Final");
     }
 
     private void extend(TraversalEngine e, DirectedGraph<ReferenceSequence, String> g, ReferenceSequence rseq, boolean goForward) {
