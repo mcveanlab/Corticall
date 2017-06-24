@@ -72,13 +72,13 @@ public class MergeContigs extends Module {
 
         int start = !goForward ? 0 : rseq.length() - GRAPH.getKmerSize();
         int end   = !goForward ? rseq.length() - GRAPH.getKmerSize() : 0;
-        int inc   = !goForward ? -1 : 1;
+        int inc   = !goForward ? 1 : -1;
 
-        log.info("{} {} {} {}", goForward, start, end, inc);
+        //log.info("{} {} {} {}", goForward, start, end, inc);
 
         //for (int i = rseq.length() - GRAPH.getKmerSize(); i >= 0; i--) {
         for (int i = start; !goForward ? i <= end : i >= end; i += inc) {
-            log.info("  {} {}", i, i + GRAPH.getKmerSize());
+            //log.info("  {} {}", i, i + GRAPH.getKmerSize());
 
             String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
 
