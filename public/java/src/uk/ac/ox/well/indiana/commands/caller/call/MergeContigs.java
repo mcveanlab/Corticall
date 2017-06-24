@@ -92,7 +92,9 @@ public class MergeContigs extends Module {
         Set<ReferenceSequence> toRemove = new HashSet<>();
         for (ReferenceSequence rseq : g.vertexSet()) {
             if (rseq.getContigIndex() > -1) {
-                //log.info("  {}", rseq);
+                if (rseq.getName().contains("contig32") || rseq.getName().contains("contig97")) {
+                    log.info("  {}", rseq);
+                }
 
                 extend(e, g, rseq, false);
                 extend(e, g, rseq, true);
