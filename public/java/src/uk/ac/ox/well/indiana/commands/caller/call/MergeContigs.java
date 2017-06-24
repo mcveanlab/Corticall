@@ -10,6 +10,7 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
@@ -64,23 +65,23 @@ public class MergeContigs extends Module {
         }
 
         DirectedGraph<ReferenceSequence, String> g = loadContigs();
-        Set<ReferenceSequence> mergeable = new HashSet<>();
+        Map<ReferenceSequence, Integer> mergeable = new HashMap<>();
 
         for (ReferenceSequence rseq : g.vertexSet()) {
             if (!rseq.getName().contains("boundary")) {
                 for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
                     CortexKmer ck = new CortexKmer(rseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
                     if (validatedKmers.contains(ck)) {
-                        mergeable.add(rseq);
-                        break;
+                        //mergeable.add(rseq);
+                        ContainerUtils.increment(mergeable, rseq);
                     }
                 }
             }
         }
 
         log.info("Mergeable:");
-        for (ReferenceSequence rseq : mergeable) {
-            log.info("  {}", rseq);
+        for (ReferenceSequence rseq : mergeable.keySet()) {
+            log.info("  {} {}", mergeable.get(rseq), rseq);
         }
         log.info("");
 
