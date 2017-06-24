@@ -2,16 +2,21 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by kiran on 23/06/2017.
@@ -34,21 +39,148 @@ public class MergeContigs extends Module {
 
     @Override
     public void execute() {
-        Map<CortexKmer, String> contigs = new HashMap<>();
-        ReferenceSequence fw;
-        while ((fw = CONTIGS.nextSequence()) != null) {
-            ReferenceSequence rc = new ReferenceSequence(fw.getName(), fw.getContigIndex(), SequenceUtils.reverseComplement(fw.getBases()));
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
-            String fwFirst = fw.getBaseString().substring(0, GRAPH.getKmerSize());
-            String fwLast = fw.getBaseString().substring(fw.length() - GRAPH.getKmerSize(), fw.length());
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(childColor)
+                .joiningColors(parentColors)
+                .recruitmentColors(recruitColors)
+                .graph(GRAPH)
+                .make();
 
-            String rcFirst = rc.getBaseString().substring(0, GRAPH.getKmerSize());
-            String rcLast = rc.getBaseString().substring(rc.length() - GRAPH.getKmerSize(), rc.length());
+        //DirectedGraph<ReferenceSequence, String> q = loadContigs();
+        DirectedGraph<ReferenceSequence, String> g = loadContigs();
 
-            log.info("{}", fwFirst);
-            log.info("{}", fwLast);
-            log.info("{}", rcFirst);
-            log.info("{}", rcLast);
+        for (ReferenceSequence rseq : g.vertexSet()) {
+            if (rseq.getContigIndex() > -1) {
+                extend(e, g, rseq, false);
+                extend(e, g, rseq, true);
+            }
         }
+
+        TopologicalOrderIterator<ReferenceSequence, String> toi = new TopologicalOrderIterator<ReferenceSequence, String>(g);
+        while (toi.hasNext()) {
+            log.info("{}", toi.next());
+        }
+    }
+
+    private void extend(TraversalEngine e, DirectedGraph<ReferenceSequence, String> g, ReferenceSequence rseq, boolean goForward) {
+        Map<String, Interval> mostRecentConfidentInterval = new HashMap<>();
+        Set<String> acceptableContigs = new HashSet<>();
+
+        int start = !goForward ? 0 : rseq.length() - GRAPH.getKmerSize();
+        int end   = !goForward ? rseq.length() - GRAPH.getKmerSize() + 1 : -1;
+        int inc   = !goForward ? -1 : 1;
+
+        //for (int i = rseq.length() - GRAPH.getKmerSize(); i >= 0; i--) {
+        for (int i = start; i != end; i += inc) {
+            String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
+
+            for (String background : LOOKUPS.keySet()) {
+                Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+
+                if (intervals.size() == 1 && !mostRecentConfidentInterval.containsKey(background)) {
+                    Interval it = intervals.iterator().next();
+                    mostRecentConfidentInterval.put(background, it);
+                    acceptableContigs.add(it.getContig());
+                }
+
+                if (mostRecentConfidentInterval.size() == LOOKUPS.size()) {
+                    break;
+                }
+            }
+        }
+
+        if (mostRecentConfidentInterval.size() > 0) {
+            List<ReferenceSequence> arseqs = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
+
+            if (arseqs.size() == 1) {
+                ReferenceSequence arseq = arseqs.get(0);
+
+                if ((!goForward && Graphs.vertexHasPredecessors(g, rseq)) || (goForward && Graphs.vertexHasSuccessors(g, rseq))) {
+                    return;
+                }
+
+                String sk = arseq.getBaseString();
+                List<String> gap = new ArrayList<>();
+
+                do {
+                    Set<CortexVertex> avs = !goForward ? e.getPrevVertices(sk) : e.getNextVertices(sk);
+
+                    sk = null;
+
+                    if (avs.size() == 1) {
+                        CortexVertex av = avs.iterator().next();
+                        sk = av.getSk();
+                    } else if (avs.size() > 1) {
+                        for (CortexVertex av : avs) {
+                            for (String background : LOOKUPS.keySet()) {
+                                Set<Interval> its = LOOKUPS.get(background).findKmer(av.getSk());
+
+                                if (its.size() == 1) {
+                                    Interval it = its.iterator().next();
+                                    if (acceptableContigs.contains(it.getContig())) {
+                                        sk = av.getSk();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (sk != null) {
+                        ReferenceSequence boundary = new ReferenceSequence("boundary", -1, sk.getBytes());
+                        if (g.containsVertex(boundary)) {
+                            StringBuilder sb = new StringBuilder();
+                            for (String s : gap) {
+                                if (sb.length() == 0) {
+                                    sb.append(s.toLowerCase());
+                                } else {
+                                    sb.append(s.substring(s.length() - 1, s.length()).toLowerCase());
+                                }
+                            }
+
+                            g.addEdge(rseq, boundary, sb.toString());
+
+                            sk = null;
+                        } else {
+                            gap.add(sk);
+                        }
+                    }
+                } while (sk != null);
+            }
+        }
+    }
+
+    private DirectedGraph<ReferenceSequence, String> loadContigs() {
+        DirectedGraph<ReferenceSequence, String> g = new DefaultDirectedGraph<>(String.class);
+
+        ReferenceSequence fwseq;
+        while ((fwseq = CONTIGS.nextSequence()) != null) {
+            String fw = fwseq.getBaseString();
+            String rc = SequenceUtils.reverseComplement(fw);
+
+            ReferenceSequence fwFirst = new ReferenceSequence("boundary", -1, fwseq.getBaseString().substring(0, GRAPH.getKmerSize()).getBytes());
+            ReferenceSequence fwLast  = new ReferenceSequence("boundary", -1, fwseq.getBaseString().substring(fwseq.length() - GRAPH.getKmerSize(), fwseq.length()).getBytes());
+
+            ReferenceSequence rcseq   = new ReferenceSequence(fwseq.getName(), fwseq.getContigIndex(), rc.getBytes());
+            ReferenceSequence rcFirst = new ReferenceSequence("boundary", -1, rcseq.getBaseString().substring(0, GRAPH.getKmerSize()).getBytes());
+            ReferenceSequence rcLast  = new ReferenceSequence("boundary", -1, rcseq.getBaseString().substring(rcseq.length() - GRAPH.getKmerSize(), rcseq.length()).getBytes());
+
+            g.addVertex(fwFirst);
+            g.addVertex(fwseq);
+            g.addVertex(fwLast);
+            g.addEdge(fwFirst, fwseq);
+            g.addEdge(fwseq, fwLast);
+
+            g.addVertex(rcFirst);
+            g.addVertex(rcseq);
+            g.addVertex(rcLast);
+            g.addEdge(rcFirst, rcseq);
+            g.addEdge(rcseq, rcLast);
+        }
+
+        return g;
     }
 }
