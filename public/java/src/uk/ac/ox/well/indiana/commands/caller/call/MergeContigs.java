@@ -67,11 +67,13 @@ public class MergeContigs extends Module {
         Set<ReferenceSequence> mergeable = new HashSet<>();
 
         for (ReferenceSequence rseq : g.vertexSet()) {
-            for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
-                CortexKmer ck = new CortexKmer(rseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
-                if (validatedKmers.contains(ck)) {
-                    mergeable.add(rseq);
-                    break;
+            if (!rseq.getName().contains("boundary")) {
+                for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
+                    CortexKmer ck = new CortexKmer(rseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                    if (validatedKmers.contains(ck)) {
+                        mergeable.add(rseq);
+                        break;
+                    }
                 }
             }
         }
@@ -80,6 +82,7 @@ public class MergeContigs extends Module {
         for (ReferenceSequence rseq : mergeable) {
             log.info("  {}", rseq);
         }
+        log.info("");
 
         log.info("Processing contigs:");
 
