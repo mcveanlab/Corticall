@@ -188,7 +188,7 @@ public class MergeContigs extends Module {
                     }
 
                     if (sk != null) {
-                        ReferenceSequence boundary = new ReferenceSequence("boundary", -1, sk.getBytes());
+                        ReferenceSequence boundary = new ReferenceSequence(sk, -1, sk.getBytes());
                         if (g.containsVertex(boundary)) {
                             StringBuilder sb = new StringBuilder();
                             for (String s : gap) {
