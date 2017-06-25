@@ -100,7 +100,7 @@ public class MergeContigs extends Module {
                         String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
                         CortexKmer ck = new CortexKmer(sk);
 
-                        log.info("    - {} {}", sk, validatedKmers.contains(ck));
+                        log.info("    - {}/{} {} {}", i, rseq.length() - GRAPH.getKmerSize(), sk, validatedKmers.contains(ck));
                     }
                 }
 
