@@ -137,12 +137,12 @@ public class MergeContigs extends Module {
 
             if (arseqs.size() > 1) {
                 for (Contig arseq : arseqs) {
-                    if (arseq.getIndex() > 0 && !goForward && Graphs.vertexHasPredecessors(g, arseq)) {
-                        return Graphs.predecessorListOf(g, arseq).get(0).getName();
+                    if (arseq.getIndex() > -1 && !goForward && Graphs.vertexHasPredecessors(g, arseq)) {
+                        return arseq.getName();
                     }
 
-                    if (arseq.getIndex() > 0 && goForward && Graphs.vertexHasSuccessors(g, arseq)) {
-                        return Graphs.successorListOf(g, arseq).get(0).getName();
+                    if (arseq.getIndex() > -1 && goForward && Graphs.vertexHasSuccessors(g, arseq)) {
+                        return arseq.getName();
                     }
                 }
             } else if (arseqs.size() == 1) {
