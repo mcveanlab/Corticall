@@ -95,6 +95,13 @@ public class MergeContigs extends Module {
             if (rseq.getContigIndex() > -1) {
                 if (rseq.getName().contains("contig32") || rseq.getName().contains("contig97")) {
                     log.info("  {}", rseq);
+
+                    for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
+                        String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
+                        CortexKmer ck = new CortexKmer(sk);
+
+                        log.info("    - {} {}", sk, validatedKmers.contains(ck));
+                    }
                 }
 
                 String adjRev = extend(e, g, rseq, false);
