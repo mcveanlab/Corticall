@@ -162,6 +162,7 @@ public class MergeContigs extends Module {
                         CortexVertex av = avs.iterator().next();
                         sk = av.getSk();
                     } else if (avs.size() > 1) {
+                        Set<String> adj = new HashSet<>();
                         for (CortexVertex av : avs) {
                             for (String background : LOOKUPS.keySet()) {
                                 Set<Interval> its = LOOKUPS.get(background).findKmer(av.getSk());
@@ -169,10 +170,14 @@ public class MergeContigs extends Module {
                                 if (its.size() == 1) {
                                     Interval it = its.iterator().next();
                                     if (acceptableContigs.contains(it.getContig())) {
-                                        sk = av.getSk();
+                                        adj.add(av.getSk());
                                     }
                                 }
                             }
+                        }
+
+                        if (adj.size() == 1) {
+                            sk = adj.iterator().next();
                         }
                     }
 
@@ -187,8 +192,6 @@ public class MergeContigs extends Module {
                                     sb.append(s.substring(s.length() - 1, s.length()).toLowerCase());
                                 }
                             }
-
-                            //g.addEdge(rseq, boundary, sb.toString());
 
                             List<ReferenceSequence> arseqs2 = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
                             ReferenceSequence aseq = arseqs2.get(0);
