@@ -72,7 +72,6 @@ public class MergeContigs extends Module {
                 for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
                     CortexKmer ck = new CortexKmer(rseq.getSequence().substring(i, i + GRAPH.getKmerSize()));
                     if (validatedKmers.contains(ck)) {
-                        //mergeable.add(rseq);
                         ContainerUtils.increment(mergeable, rseq);
                     }
                 }
@@ -93,10 +92,6 @@ public class MergeContigs extends Module {
         for (Contig rseq : g.vertexSet()) {
             if (rseq.getIndex() > -1) {
                 log.info("  {}", rseq.getName());
-
-                if (rseq.getName().contains("contig97")) {
-                    log.info("Hi!");
-                }
 
                 String adjRev = extend(e, g, rseq, false);
                 String adjFwd = extend(e, g, rseq, true);
@@ -140,7 +135,17 @@ public class MergeContigs extends Module {
         if (mostRecentConfidentInterval.size() > 0) {
             List<Contig> arseqs = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
 
-            if (arseqs.size() == 1) {
+            if (arseqs.size() > 1) {
+                for (Contig arseq : arseqs) {
+                    if (arseq.getIndex() > 0 && !goForward && Graphs.vertexHasPredecessors(g, arseq)) {
+                        return Graphs.predecessorListOf(g, arseq).get(0).getName();
+                    }
+
+                    if (arseq.getIndex() > 0 && goForward && Graphs.vertexHasSuccessors(g, arseq)) {
+                        return Graphs.successorListOf(g, arseq).get(0).getName();
+                    }
+                }
+            } else if (arseqs.size() == 1) {
                 Contig arseq = arseqs.get(0);
 
                 if (!goForward && Graphs.vertexHasPredecessors(g, arseq)) {
