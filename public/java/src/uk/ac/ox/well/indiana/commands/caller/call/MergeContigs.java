@@ -92,6 +92,7 @@ public class MergeContigs extends Module {
         Set<Contig> toRemove = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
             if (rseq.getIndex() > -1) {
+                /*
                 if (rseq.getName().contains("contig32") || rseq.getName().contains("contig97")) {
                     log.info("  {}", rseq);
 
@@ -104,6 +105,7 @@ public class MergeContigs extends Module {
                         }
                     }
                 }
+                */
 
                 String adjRev = extend(e, g, rseq, false);
                 String adjFwd = extend(e, g, rseq, true);
@@ -151,8 +153,12 @@ public class MergeContigs extends Module {
             if (arseqs.size() == 1) {
                 Contig arseq = arseqs.get(0);
 
-                if ((!goForward && Graphs.vertexHasPredecessors(g, arseq)) || (goForward && Graphs.vertexHasSuccessors(g, arseq))) {
-                    return null;
+                if (!goForward && Graphs.vertexHasPredecessors(g, arseq)) {
+                    return Graphs.predecessorListOf(g, arseq).get(0).getName();
+                }
+
+                if (goForward && Graphs.vertexHasSuccessors(g, arseq)) {
+                    return Graphs.successorListOf(g, arseq).get(0).getName();
                 }
 
                 String sk = arseq.getSequence();
