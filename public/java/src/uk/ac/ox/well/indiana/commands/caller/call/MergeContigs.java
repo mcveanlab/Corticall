@@ -97,19 +97,21 @@ public class MergeContigs extends Module {
                     log.info("  {}", rseq);
                 }
 
-                extend(e, g, rseq, false);
-                extend(e, g, rseq, true);
+                String adjRev = extend(e, g, rseq, false);
+                String adjFwd = extend(e, g, rseq, true);
+
+                log.info("  {}", rseq.getName());
+                log.info("    - {}", adjRev);
+                log.info("    - {}", adjFwd);
             } else {
                 toRemove.add(rseq);
             }
         }
 
         g.removeAllVertices(toRemove);
-
-        //log.info("Final");
     }
 
-    private void extend(TraversalEngine e, DirectedGraph<ReferenceSequence, LabeledEdge> g, ReferenceSequence rseq, boolean goForward) {
+    private String extend(TraversalEngine e, DirectedGraph<ReferenceSequence, LabeledEdge> g, ReferenceSequence rseq, boolean goForward) {
         Map<String, Interval> mostRecentConfidentInterval = new HashMap<>();
         Set<String> acceptableContigs = new HashSet<>();
 
@@ -117,12 +119,7 @@ public class MergeContigs extends Module {
         int end   = !goForward ? rseq.length() - GRAPH.getKmerSize() : 0;
         int inc   = !goForward ? 1 : -1;
 
-        //log.info("{} {} {} {}", goForward, start, end, inc);
-
-        //for (int i = rseq.length() - GRAPH.getKmerSize(); i >= 0; i--) {
         for (int i = start; !goForward ? i <= end : i >= end; i += inc) {
-            //log.info("  {} {}", i, i + GRAPH.getKmerSize());
-
             String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
 
             for (String background : LOOKUPS.keySet()) {
@@ -147,7 +144,7 @@ public class MergeContigs extends Module {
                 ReferenceSequence arseq = arseqs.get(0);
 
                 if ((!goForward && Graphs.vertexHasPredecessors(g, arseq)) || (goForward && Graphs.vertexHasSuccessors(g, arseq))) {
-                    return;
+                    return null;
                 }
 
                 String sk = arseq.getBaseString();
@@ -210,7 +207,7 @@ public class MergeContigs extends Module {
                                 log.info("    {}", aseq.getName());
                             }
 
-                            sk = null;
+                            return aseq.getName();
                         } else {
                             if (!goForward) {
                                 gap.add(0, sk);
@@ -222,6 +219,8 @@ public class MergeContigs extends Module {
                 } while (sk != null);
             }
         }
+
+        return null;
     }
 
     private class LabeledEdge extends DefaultEdge {
