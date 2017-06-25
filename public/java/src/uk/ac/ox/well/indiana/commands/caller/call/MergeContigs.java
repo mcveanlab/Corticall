@@ -10,6 +10,7 @@ import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
@@ -18,6 +19,7 @@ import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -41,6 +43,9 @@ public class MergeContigs extends Module {
 
     @Argument(fullName="verify", shortName="v", doc="Verify")
     public FastaSequenceFile VERIFY;
+
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -104,6 +109,50 @@ public class MergeContigs extends Module {
         }
 
         g.removeAllVertices(toRemove);
+
+        Set<Contig> seen = new HashSet<>();
+        for (Contig rseq : g.vertexSet()) {
+            if (!seen.contains(rseq)) {
+                List<Contig> scaffold = new ArrayList<>();
+                scaffold.add(rseq);
+
+                Contig cur = rseq;
+                while (Graphs.vertexHasPredecessors(g, cur)) {
+                    Contig pre = Graphs.predecessorListOf(g, cur).get(0);
+                    Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
+
+                    scaffold.add(0, gap);
+                    scaffold.add(0, pre);
+
+                    cur = pre;
+                }
+
+                cur = rseq;
+                while (Graphs.vertexHasSuccessors(g, cur)) {
+                    Contig nxt = Graphs.successorListOf(g, cur).get(0);
+                    Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
+
+                    scaffold.add(gap);
+                    scaffold.add(nxt);
+
+                    cur = nxt;
+                }
+
+                StringBuilder sb = new StringBuilder();
+                StringBuilder name = new StringBuilder();
+                for (Contig c : scaffold) {
+                    String[] pieces = c.getName().split("\\s+");
+                    name.append(pieces[0]);
+
+                    sb.append(c.getSequence());
+                }
+
+                out.println(">" + name);
+                out.println(sb);
+
+                seen.addAll(scaffold);
+            }
+        }
     }
 
     private String extend(TraversalEngine e, DirectedGraph<Contig, LabeledEdge> g, Contig rseq, boolean goForward) {
