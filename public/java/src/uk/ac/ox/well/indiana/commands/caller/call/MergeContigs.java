@@ -249,14 +249,14 @@ public class MergeContigs extends Module {
             g.addVertex(fwFirst);
             g.addVertex(fwseq);
             g.addVertex(fwLast);
-            g.addEdge(fwFirst, fwseq);
-            g.addEdge(fwseq, fwLast);
+            g.addEdge(fwFirst, fwseq, new LabeledEdge());
+            g.addEdge(fwseq, fwLast, new LabeledEdge());
 
             g.addVertex(rcFirst);
             g.addVertex(rcseq);
             g.addVertex(rcLast);
-            g.addEdge(rcFirst, rcseq);
-            g.addEdge(rcseq, rcLast);
+            g.addEdge(rcFirst, rcseq, new LabeledEdge());
+            g.addEdge(rcseq, rcLast, new LabeledEdge());
         }
 
         return g;
