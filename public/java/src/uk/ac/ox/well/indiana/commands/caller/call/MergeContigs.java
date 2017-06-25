@@ -198,7 +198,7 @@ public class MergeContigs extends Module {
                                 }
                             }
 
-                            List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
+                            List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, boundary) : Graphs.successorListOf(g, boundary);
                             Contig aseq = arseqs2.get(0);
 
                             if (!goForward) {
@@ -263,7 +263,7 @@ public class MergeContigs extends Module {
         public String toString() {
             return "Contig{" +
                     "name='" + name + '\'' +
-                    ", sequence='" + sequence + '\'' +
+                    ", sequence='" + (sequence.length() > 100 ? sequence.substring(0, 100) : sequence) + '\'' +
                     ", index=" + index +
                     '}';
         }
