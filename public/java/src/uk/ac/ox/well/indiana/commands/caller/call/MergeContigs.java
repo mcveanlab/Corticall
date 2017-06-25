@@ -7,7 +7,6 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.traverse.TopologicalOrderIterator;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -65,13 +64,13 @@ public class MergeContigs extends Module {
             }
         }
 
-        DirectedGraph<ReferenceSequence, LabeledEdge> g = loadContigs();
-        Map<ReferenceSequence, Integer> mergeable = new HashMap<>();
+        DirectedGraph<Contig, LabeledEdge> g = loadContigs();
+        Map<Contig, Integer> mergeable = new HashMap<>();
 
-        for (ReferenceSequence rseq : g.vertexSet()) {
+        for (Contig rseq : g.vertexSet()) {
             if (!rseq.getName().contains("boundary")) {
                 for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(rseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                    CortexKmer ck = new CortexKmer(rseq.getSequence().substring(i, i + GRAPH.getKmerSize()));
                     if (validatedKmers.contains(ck)) {
                         //mergeable.add(rseq);
                         ContainerUtils.increment(mergeable, rseq);
@@ -81,7 +80,7 @@ public class MergeContigs extends Module {
         }
 
         log.info("Mergeable:");
-        for (ReferenceSequence rseq : mergeable.keySet()) {
+        for (Contig rseq : mergeable.keySet()) {
             if (mergeable.get(rseq) > 20) {
                 log.info("  {} {}", mergeable.get(rseq), rseq);
             }
@@ -90,14 +89,14 @@ public class MergeContigs extends Module {
 
         log.info("Processing contigs:");
 
-        Set<ReferenceSequence> toRemove = new HashSet<>();
-        for (ReferenceSequence rseq : g.vertexSet()) {
-            if (rseq.getContigIndex() > -1) {
+        Set<Contig> toRemove = new HashSet<>();
+        for (Contig rseq : g.vertexSet()) {
+            if (rseq.getIndex() > -1) {
                 if (rseq.getName().contains("contig32") || rseq.getName().contains("contig97")) {
                     log.info("  {}", rseq);
 
                     for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
-                        String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
+                        String sk = rseq.getSequence().substring(i, i + GRAPH.getKmerSize());
                         CortexKmer ck = new CortexKmer(sk);
 
                         if (validatedKmers.contains(ck)) {
@@ -120,7 +119,7 @@ public class MergeContigs extends Module {
         g.removeAllVertices(toRemove);
     }
 
-    private String extend(TraversalEngine e, DirectedGraph<ReferenceSequence, LabeledEdge> g, ReferenceSequence rseq, boolean goForward) {
+    private String extend(TraversalEngine e, DirectedGraph<Contig, LabeledEdge> g, Contig rseq, boolean goForward) {
         Map<String, Interval> mostRecentConfidentInterval = new HashMap<>();
         Set<String> acceptableContigs = new HashSet<>();
 
@@ -129,7 +128,7 @@ public class MergeContigs extends Module {
         int inc   = !goForward ? 1 : -1;
 
         for (int i = start; !goForward ? i <= end : i >= end; i += inc) {
-            String sk = rseq.getBaseString().substring(i, i + GRAPH.getKmerSize());
+            String sk = rseq.getSequence().substring(i, i + GRAPH.getKmerSize());
 
             for (String background : LOOKUPS.keySet()) {
                 Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
@@ -147,16 +146,16 @@ public class MergeContigs extends Module {
         }
 
         if (mostRecentConfidentInterval.size() > 0) {
-            List<ReferenceSequence> arseqs = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
+            List<Contig> arseqs = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
 
             if (arseqs.size() == 1) {
-                ReferenceSequence arseq = arseqs.get(0);
+                Contig arseq = arseqs.get(0);
 
                 if ((!goForward && Graphs.vertexHasPredecessors(g, arseq)) || (goForward && Graphs.vertexHasSuccessors(g, arseq))) {
                     return null;
                 }
 
-                String sk = arseq.getBaseString();
+                String sk = arseq.getSequence();
                 List<String> gap = new ArrayList<>();
 
                 do {
@@ -188,7 +187,7 @@ public class MergeContigs extends Module {
                     }
 
                     if (sk != null) {
-                        ReferenceSequence boundary = new ReferenceSequence(sk, -1, sk.getBytes());
+                        Contig boundary = new Contig(sk);
                         if (g.containsVertex(boundary)) {
                             StringBuilder sb = new StringBuilder();
                             for (String s : gap) {
@@ -199,8 +198,8 @@ public class MergeContigs extends Module {
                                 }
                             }
 
-                            List<ReferenceSequence> arseqs2 = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
-                            ReferenceSequence aseq = arseqs2.get(0);
+                            List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, rseq) : Graphs.successorListOf(g, rseq);
+                            Contig aseq = arseqs2.get(0);
 
                             if (!goForward) {
                                 g.addEdge(aseq, rseq, new LabeledEdge(sb.toString()));
@@ -232,6 +231,65 @@ public class MergeContigs extends Module {
         return null;
     }
 
+    private class Contig {
+        private String name;
+        private String sequence;
+        private int index;
+
+        public Contig(ReferenceSequence rseq) {
+            name = rseq.getName();
+            sequence = rseq.getBaseString();
+            index = rseq.getContigIndex();
+        }
+
+        public Contig(String seq) {
+            name = seq;
+            sequence = seq;
+            index = -1;
+        }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public String getSequence() { return sequence; }
+        public void setSequence(String sequence) { this.sequence = sequence; }
+
+        public int getIndex() { return index; }
+        public void setIndex(int index) { this.index = index; }
+
+        public int length() { return sequence.length(); }
+
+        @Override
+        public String toString() {
+            return "Contig{" +
+                    "name='" + name + '\'' +
+                    ", sequence='" + sequence + '\'' +
+                    ", index=" + index +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Contig contig = (Contig) o;
+
+            if (index != contig.index) return false;
+            if (name != null ? !name.equals(contig.name) : contig.name != null) return false;
+            return sequence != null ? sequence.equals(contig.sequence) : contig.sequence == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (sequence != null ? sequence.hashCode() : 0);
+            result = 31 * result + index;
+            return result;
+        }
+    }
+
     private class LabeledEdge extends DefaultEdge {
         private String label;
 
@@ -242,24 +300,19 @@ public class MergeContigs extends Module {
         public String getLabel() { return label; }
     }
 
-    private DirectedGraph<ReferenceSequence, LabeledEdge> loadContigs() {
-        DirectedGraph<ReferenceSequence, LabeledEdge> g = new DefaultDirectedGraph<>(LabeledEdge.class);
+    private DirectedGraph<Contig, LabeledEdge> loadContigs() {
+        DirectedGraph<Contig, LabeledEdge> g = new DefaultDirectedGraph<>(LabeledEdge.class);
 
-        ReferenceSequence fwseq;
-        while ((fwseq = CONTIGS.nextSequence()) != null) {
-            String fw = fwseq.getBaseString();
-            String rc = SequenceUtils.reverseComplement(fw);
-            ReferenceSequence rcseq   = new ReferenceSequence(fwseq.getName(), fwseq.getContigIndex(), rc.getBytes());
+        ReferenceSequence seq;
+        while ((seq = CONTIGS.nextSequence()) != null) {
+            Contig fwseq = new Contig(seq);
+            Contig rcseq = new Contig(new ReferenceSequence(seq.getName(), seq.getContigIndex(), SequenceUtils.reverseComplement(seq.getBases())));
 
-            String fwFirstKmer = fwseq.getBaseString().substring(0, GRAPH.getKmerSize());
-            ReferenceSequence fwFirst = new ReferenceSequence(fwFirstKmer, -1, fwFirstKmer.getBytes());
-            String fwLastKmer = fwseq.getBaseString().substring(fwseq.length() - GRAPH.getKmerSize(), fwseq.length());
-            ReferenceSequence fwLast  = new ReferenceSequence(fwLastKmer, -1, fwLastKmer.getBytes());
+            Contig fwFirst = new Contig(fwseq.getSequence().substring(0, GRAPH.getKmerSize()));
+            Contig fwLast  = new Contig(fwseq.getSequence().substring(fwseq.length() - GRAPH.getKmerSize(), fwseq.length()));
 
-            String rcFirstKmer = rcseq.getBaseString().substring(0, GRAPH.getKmerSize());
-            ReferenceSequence rcFirst = new ReferenceSequence(rcFirstKmer, -1, rcFirstKmer.getBytes());
-            String rcLastKmer = rcseq.getBaseString().substring(rcseq.length() - GRAPH.getKmerSize(), rcseq.length());
-            ReferenceSequence rcLast  = new ReferenceSequence(rcLastKmer, -1, rcLastKmer.getBytes());
+            Contig rcFirst = new Contig(rcseq.getSequence().substring(0, GRAPH.getKmerSize()));
+            Contig rcLast  = new Contig(rcseq.getSequence().substring(rcseq.length() - GRAPH.getKmerSize(), rcseq.length()));
 
             g.addVertex(fwFirst);
             g.addVertex(fwseq);
