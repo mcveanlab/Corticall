@@ -146,7 +146,7 @@ public class MergeContigs extends Module {
             if (arseqs.size() == 1) {
                 ReferenceSequence arseq = arseqs.get(0);
 
-                if ((!goForward && Graphs.vertexHasPredecessors(g, rseq)) || (goForward && Graphs.vertexHasSuccessors(g, rseq))) {
+                if ((!goForward && Graphs.vertexHasPredecessors(g, arseq)) || (goForward && Graphs.vertexHasSuccessors(g, arseq))) {
                     return;
                 }
 
