@@ -249,13 +249,17 @@ public class MergeContigs extends Module {
         while ((fwseq = CONTIGS.nextSequence()) != null) {
             String fw = fwseq.getBaseString();
             String rc = SequenceUtils.reverseComplement(fw);
-
-            ReferenceSequence fwFirst = new ReferenceSequence("boundary", -1, fwseq.getBaseString().substring(0, GRAPH.getKmerSize()).getBytes());
-            ReferenceSequence fwLast  = new ReferenceSequence("boundary", -1, fwseq.getBaseString().substring(fwseq.length() - GRAPH.getKmerSize(), fwseq.length()).getBytes());
-
             ReferenceSequence rcseq   = new ReferenceSequence(fwseq.getName(), fwseq.getContigIndex(), rc.getBytes());
-            ReferenceSequence rcFirst = new ReferenceSequence("boundary", -1, rcseq.getBaseString().substring(0, GRAPH.getKmerSize()).getBytes());
-            ReferenceSequence rcLast  = new ReferenceSequence("boundary", -1, rcseq.getBaseString().substring(rcseq.length() - GRAPH.getKmerSize(), rcseq.length()).getBytes());
+
+            String fwFirstKmer = fwseq.getBaseString().substring(0, GRAPH.getKmerSize());
+            ReferenceSequence fwFirst = new ReferenceSequence(fwFirstKmer, -1, fwFirstKmer.getBytes());
+            String fwLastKmer = fwseq.getBaseString().substring(fwseq.length() - GRAPH.getKmerSize(), fwseq.length());
+            ReferenceSequence fwLast  = new ReferenceSequence(fwLastKmer, -1, fwLastKmer.getBytes());
+
+            String rcFirstKmer = rcseq.getBaseString().substring(0, GRAPH.getKmerSize());
+            ReferenceSequence rcFirst = new ReferenceSequence(rcFirstKmer, -1, rcFirstKmer.getBytes());
+            String rcLastKmer = rcseq.getBaseString().substring(rcseq.length() - GRAPH.getKmerSize(), rcseq.length());
+            ReferenceSequence rcLast  = new ReferenceSequence(rcLastKmer, -1, rcLastKmer.getBytes());
 
             g.addVertex(fwFirst);
             g.addVertex(fwseq);
