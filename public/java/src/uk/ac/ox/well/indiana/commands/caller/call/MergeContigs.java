@@ -110,9 +110,9 @@ public class MergeContigs extends Module {
 
         g.removeAllVertices(toRemove);
 
-        Set<Contig> seen = new HashSet<>();
+        Set<String> seen = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
-            if (!seen.contains(rseq)) {
+            if (!seen.contains(rseq.getName())) {
                 List<Contig> scaffold = new ArrayList<>();
                 scaffold.add(rseq);
 
@@ -150,7 +150,9 @@ public class MergeContigs extends Module {
                 out.println(">" + name);
                 out.println(sb);
 
-                seen.addAll(scaffold);
+                for (Contig c : scaffold) {
+                    seen.add(c.getName());
+                }
             }
         }
     }
