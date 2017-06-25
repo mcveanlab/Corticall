@@ -41,9 +41,6 @@ public class MergeContigs extends Module {
     @Argument(fullName="drafts", shortName="d", doc="Drafts")
     public HashMap<String, KmerLookup> LOOKUPS;
 
-    @Argument(fullName="verify", shortName="v", doc="Verify")
-    public FastaSequenceFile VERIFY;
-
     @Output
     public PrintStream out;
 
@@ -60,56 +57,38 @@ public class MergeContigs extends Module {
                 .graph(GRAPH)
                 .make();
 
-        ReferenceSequence vseq;
-        Set<CortexKmer> validatedKmers = new HashSet<>();
-        while ((vseq = VERIFY.nextSequence()) != null) {
-            for (int i = 0; i <= vseq.length() - GRAPH.getKmerSize(); i++) {
-                CortexKmer ck = new CortexKmer(vseq.getBaseString().substring(i, i + GRAPH.getKmerSize()));
-                validatedKmers.add(ck);
-            }
-        }
-
         DirectedGraph<Contig, LabeledEdge> g = loadContigs();
-        Map<Contig, Integer> mergeable = new HashMap<>();
 
-        for (Contig rseq : g.vertexSet()) {
-            if (!rseq.getName().contains("boundary")) {
-                for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
-                    CortexKmer ck = new CortexKmer(rseq.getSequence().substring(i, i + GRAPH.getKmerSize()));
-                    if (validatedKmers.contains(ck)) {
-                        ContainerUtils.increment(mergeable, rseq);
-                    }
-                }
-            }
-        }
+        mergeContigs(e, g);
 
-        log.info("Mergeable:");
-        for (Contig rseq : mergeable.keySet()) {
-            if (mergeable.get(rseq) > 20) {
-                log.info("  {} {}", mergeable.get(rseq), rseq);
-            }
-        }
-        log.info("");
+        emitContigs(g);
+    }
 
+    private void mergeContigs(TraversalEngine e, DirectedGraph<Contig, LabeledEdge> g) {
         log.info("Processing contigs:");
 
         Set<Contig> toRemove = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
             if (rseq.getIndex() > -1) {
-                log.info("  {}", rseq.getName());
+                log.info("  {}", rseq.getName().split("\\s+")[0]);
 
                 String adjRev = extend(e, g, rseq, false);
-                String adjFwd = extend(e, g, rseq, true);
+                if (adjRev != null) {
+                    log.info("    - joined prev {}", adjRev);
+                }
 
-                log.info("    - {}", adjRev);
-                log.info("    - {}", adjFwd);
+                String adjFwd = extend(e, g, rseq, true);
+                if (adjFwd != null) {
+                    log.info("    - joined next {}", adjFwd);
+                }
             } else {
                 toRemove.add(rseq);
             }
         }
-
         g.removeAllVertices(toRemove);
+    }
 
+    private void emitContigs(DirectedGraph<Contig, LabeledEdge> g) {
         Set<String> seen = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
             if (!seen.contains(rseq.getName())) {
