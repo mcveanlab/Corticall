@@ -148,12 +148,8 @@ public class MergeContigs extends Module {
             } else if (arseqs.size() == 1) {
                 Contig arseq = arseqs.get(0);
 
-                if (!goForward && Graphs.vertexHasPredecessors(g, arseq)) {
-                    return Graphs.predecessorListOf(g, arseq).get(0).getName();
-                }
-
-                if (goForward && Graphs.vertexHasSuccessors(g, arseq)) {
-                    return Graphs.successorListOf(g, arseq).get(0).getName();
+                if ((!goForward && Graphs.vertexHasPredecessors(g, arseq)) || (goForward && Graphs.vertexHasSuccessors(g, arseq))) {
+                    return null;
                 }
 
                 String sk = arseq.getSequence();
