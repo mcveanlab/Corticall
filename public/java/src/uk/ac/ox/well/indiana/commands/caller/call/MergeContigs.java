@@ -92,25 +92,15 @@ public class MergeContigs extends Module {
         Set<Contig> toRemove = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
             if (rseq.getIndex() > -1) {
-                /*
-                if (rseq.getName().contains("contig32") || rseq.getName().contains("contig97")) {
-                    log.info("  {}", rseq);
+                log.info("  {}", rseq.getName());
 
-                    for (int i = 0; i <= rseq.length() - GRAPH.getKmerSize(); i++) {
-                        String sk = rseq.getSequence().substring(i, i + GRAPH.getKmerSize());
-                        CortexKmer ck = new CortexKmer(sk);
-
-                        if (validatedKmers.contains(ck)) {
-                            log.info("    - {}/{} {} {}", i, rseq.length() - GRAPH.getKmerSize(), sk, validatedKmers.contains(ck));
-                        }
-                    }
+                if (rseq.getName().contains("contig97")) {
+                    log.info("Hi!");
                 }
-                */
 
                 String adjRev = extend(e, g, rseq, false);
                 String adjFwd = extend(e, g, rseq, true);
 
-                log.info("  {}", rseq.getName());
                 log.info("    - {}", adjRev);
                 log.info("    - {}", adjFwd);
             } else {
