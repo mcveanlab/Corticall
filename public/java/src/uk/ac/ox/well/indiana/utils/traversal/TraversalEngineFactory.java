@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
@@ -49,5 +50,10 @@ public class TraversalEngineFactory {
         return this;
     }
 
-    public TraversalEngine make() { return new TraversalEngine(configuration); }
+    public TraversalEngine make() {
+        configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new IndianaException("Joining colors must be greater than 0 (provided " + c + ")"); });
+        configuration.getRecruitmentColors().forEach(c -> { if (c < 0) throw new IndianaException("Recruitment colors must be greater than 0 (provided " + c + ")"); });
+
+        return new TraversalEngine(configuration);
+    }
 }
