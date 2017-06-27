@@ -100,8 +100,13 @@ public class MergeContigs extends Module {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
 
-                    scaffold.add(0, gap);
-                    scaffold.add(0, pre);
+                    int overlap = g.getEdge(pre, cur).getOverlap();
+                    if (overlap > 0) {
+                        pre = new Contig(pre.getName(), pre.getSequence().substring(0, pre.length() - overlap), pre.getIndex());
+                    }
+
+                    //scaffold.add(0, gap);
+                    //scaffold.add(0, pre);
 
                     cur = pre;
                 }
@@ -111,8 +116,13 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
-                    scaffold.add(gap);
-                    scaffold.add(nxt);
+                    int overlap = g.getEdge(cur, nxt).getOverlap();
+                    if (overlap > 0) {
+                        nxt = new Contig(nxt.getName(), nxt.getSequence().substring(overlap, nxt.length()), nxt.getIndex());
+                    }
+
+                    //scaffold.add(gap);
+                    //scaffold.add(nxt);
 
                     cur = nxt;
                 }
@@ -225,20 +235,36 @@ public class MergeContigs extends Module {
                                 }
                             }
 
+                            int intersectionLength = -1;
+                            for (String background : LOOKUPS.keySet()) {
+                                Set<Interval> its = LOOKUPS.get(background).findKmer(sk);
+                                if (its.size() == 1 && mostRecentConfidentInterval.containsKey(background)) {
+                                    Interval it1 = mostRecentConfidentInterval.get(background);
+                                    Interval it2 = its.iterator().next();
+                                    int newIntersectionLength = it1.getIntersectionLength(it2);
+
+                                    if (intersectionLength == -1 || newIntersectionLength > 0) {
+                                        intersectionLength = newIntersectionLength;
+                                    }
+                                }
+                            }
+
+                            log.info("Intersection: {}", intersectionLength);
+
                             List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, boundary) : Graphs.successorListOf(g, boundary);
                             Contig aseq = arseqs2.get(0);
-                            String gapString = sb.toString();
+                            //String gapString = sb.toString();
 
                             if (!goForward) {
                                 //g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
-                                g.addEdge(aseq, rseq, new LabeledEdge(""));
+                                g.addEdge(aseq, rseq, new LabeledEdge(intersectionLength));
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
                                 //g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
-                                g.addEdge(rseq, aseq, new LabeledEdge(""));
+                                g.addEdge(rseq, aseq, new LabeledEdge(intersectionLength));
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
@@ -276,6 +302,12 @@ public class MergeContigs extends Module {
             name = seq;
             sequence = seq;
             index = -1;
+        }
+
+        public Contig(String name, String seq, int index) {
+            this.name = name;
+            this.sequence = seq;
+            this.index = index;
         }
 
         public String getName() { return name; }
@@ -321,13 +353,19 @@ public class MergeContigs extends Module {
     }
 
     private class LabeledEdge extends DefaultEdge {
-        private String label;
+        private String label = "";
+        private int overlap = 0;
 
         public LabeledEdge() {}
         public LabeledEdge(String label) { this.label = label; }
+        public LabeledEdge(int overlap) { this.overlap = overlap; }
+        public LabeledEdge(String label, int overlap) { this.label = label; this.overlap = overlap; }
 
         public void setLabel(String label) { this.label = label; }
         public String getLabel() { return label; }
+
+        public void setOverlap(int overlap) { this.overlap = overlap; }
+        public int getOverlap() { return overlap; }
     }
 
     private DirectedGraph<Contig, LabeledEdge> loadContigs() {
