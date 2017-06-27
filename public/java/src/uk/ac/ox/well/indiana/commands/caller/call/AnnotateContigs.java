@@ -99,7 +99,7 @@ public class AnnotateContigs extends Module {
                 CortexRecord rr = ROI.findRecord(ck);
 
                 boolean isNovel = rr != null;
-                boolean isFilledGap = cr != null && cr.getCoverage(childColor) == 0;
+                boolean isFilledGap = cr == null || cr.getCoverage(childColor) == 0;
                 boolean isRecovered = cr != null && cr.getCoverage(childColor) < GRAPH.getColor(childColor).getLowCovSupernodesThreshold();
 
                 out.println(Joiner.on("\t").join(pieces[0], i, sk, ck, Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
