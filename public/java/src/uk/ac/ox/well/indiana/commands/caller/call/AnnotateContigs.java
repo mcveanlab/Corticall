@@ -15,6 +15,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -51,7 +52,7 @@ public class AnnotateContigs extends Module {
         List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
         int refColor = GRAPH.getColorForSampleName("ref");
 
-        out.println(Joiner.on("\t").join("name", "index", "sk", "ck", "cov_" + CHILD, "cov_" + Joiner.on("\tcov_").join(PARENTS), "cov_" + Joiner.on("\tcov_").join(LOOKUPS.keySet()), "cov_ref", "is_novel", "is_filled_gap", "is_recovered_kmer", Joiner.on("\t").join(LOOKUPS.keySet())));
+        out.println(Joiner.on("\t").join("name", "index", "sk", "ck", "in", "out", "cov_" + CHILD, "cov_" + Joiner.on("\tcov_").join(PARENTS), "cov_" + Joiner.on("\tcov_").join(LOOKUPS.keySet()), "cov_ref", "is_novel", "is_filled_gap", "is_recovered_kmer", Joiner.on("\t").join(LOOKUPS.keySet())));
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence aseq;
@@ -98,11 +99,13 @@ public class AnnotateContigs extends Module {
 
                 CortexRecord rr = ROI.findRecord(ck);
 
+                int incomingEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped()).get(childColor).size();
+                int outgoingEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped()).get(childColor).size();
                 boolean isNovel = rr != null;
                 boolean isFilledGap = cr == null || cr.getCoverage(childColor) == 0;
                 boolean isRecovered = cr != null && cr.getCoverage(childColor) < GRAPH.getColor(childColor).getLowCovSupernodesThreshold();
 
-                out.println(Joiner.on("\t").join(pieces[0], i, sk, ck, Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
+                out.println(Joiner.on("\t").join(pieces[0], i, sk, ck, incomingEdges, outgoingEdges, Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
             }
 
             pm.update();
