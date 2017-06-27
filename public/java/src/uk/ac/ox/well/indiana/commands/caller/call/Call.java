@@ -61,18 +61,18 @@ public class Call extends Module {
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background);
 
-            if (isNAHR(annotatedContig)) {
-                log.info("nahr: {} {}", contigName, annotatedContig);
+            int numTemplateSwitches = numTemplateSwitches(annotatedContig);
+            int numNovelRuns = numNovelRuns(annotatedContig);
+
+            if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
+                log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
             }
         }
     }
 
-    private boolean isNAHR(String annotatedContig) {
+    private int numTemplateSwitches(String annotatedContig) {
         final String flankingNovelRegex = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
         Pattern flankingNovelPattern = Pattern.compile(flankingNovelRegex);
-
-        final String novelRegex = "(\\.+)";
-        Pattern novelPattern = Pattern.compile(novelRegex);
 
         Matcher flankingNovelMatcher = flankingNovelPattern.matcher(annotatedContig);
         int numSwitches = 0;
@@ -84,17 +84,20 @@ public class Call extends Module {
             } while (flankingNovelMatcher.find(flankingNovelMatcher.start(3)));
         }
 
+        return numSwitches;
+    }
+
+    private int numNovelRuns(String annotatedContig) {
+        final String novelRegex = "(\\.+)";
+        Pattern novelPattern = Pattern.compile(novelRegex);
+
         Matcher novelMatcher = novelPattern.matcher(annotatedContig);
         int numNovelRuns = 0;
         while (novelMatcher.find()) {
             numNovelRuns++;
         }
 
-        if (numSwitches > 0 && numNovelRuns > 1) {
-            log.info("{} {}", numSwitches, numNovelRuns);
-        }
-
-        return (numSwitches > 0 && numNovelRuns > 1);
+        return numNovelRuns;
     }
 
     private String annotateContig(List<Map<String, String>> annotations, String background) {
