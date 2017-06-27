@@ -57,7 +57,7 @@ public class AnnotateContigs extends Module {
             String seq = rseq.getBaseString();
 
             for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
-                String sk = seq.substring(i + i + GRAPH.getKmerSize());
+                String sk = seq.substring(i, i + GRAPH.getKmerSize());
                 CortexKmer ck = new CortexKmer(sk);
                 CortexRecord cr = GRAPH.findRecord(ck);
 
