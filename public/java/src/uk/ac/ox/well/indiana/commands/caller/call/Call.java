@@ -90,6 +90,10 @@ public class Call extends Module {
             numNovelRuns++;
         }
 
+        if (numSwitches > 0 && numNovelRuns > 1) {
+            log.info("{} {}", numSwitches, numNovelRuns);
+        }
+
         return (numSwitches > 0 && numNovelRuns > 1);
     }
 
