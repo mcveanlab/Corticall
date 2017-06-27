@@ -97,12 +97,14 @@ public class MergeContigs extends Module {
                 List<String> scaffold = new ArrayList<>();
                 scaffold.add(rseq.getSequence());
 
+                names.add(rseq.getName().split("\\s+")[0]);
+
                 Contig cur = rseq;
                 while (Graphs.vertexHasPredecessors(g, cur)) {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
                     //Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
 
-                    names.add(pre.getName());
+                    names.add(pre.getName().split("\\s+")[0]);
 
                     int overlap = g.getEdge(pre, cur).getOverlap();
                     if (overlap > 0) {
@@ -124,7 +126,7 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
-                    names.add(nxt.getName());
+                    names.add(nxt.getName().split("\\s+")[0]);
 
                     int overlap = g.getEdge(cur, nxt).getOverlap();
                     if (overlap > 0) {
@@ -142,7 +144,7 @@ public class MergeContigs extends Module {
                 }
 
                 StringBuilder sb = new StringBuilder();
-                String name = Joiner.on("").join(names);
+                String name = Joiner.on("_").join(names);
                 for (String c : scaffold) {
                     //String[] pieces = c.getName().split("\\s+");
                     //name.append(pieces[0]);
