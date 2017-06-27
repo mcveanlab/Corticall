@@ -108,9 +108,9 @@ public class MergeContigs extends Module {
                     if (overlap > 0) {
                         //pre = new Contig(pre.getName(), pre.getSequence().substring(0, pre.length() - overlap), pre.getIndex());
 
-                        scaffold.add(pre.getSequence().substring(0, pre.length() - overlap));
+                        scaffold.add(0, pre.getSequence().substring(0, pre.length() - overlap));
                     } else {
-                        scaffold.add(pre.getSequence());
+                        scaffold.add(0, pre.getSequence());
                     }
 
                     //scaffold.add(0, gap);
