@@ -100,7 +100,7 @@ public class MergeContigs extends Module {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
 
-                    //scaffold.add(0, gap);
+                    scaffold.add(0, gap);
                     scaffold.add(0, pre);
 
                     cur = pre;
@@ -111,7 +111,7 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
-                    //scaffold.add(gap);
+                    scaffold.add(gap);
                     scaffold.add(nxt);
 
                     cur = nxt;
@@ -231,14 +231,14 @@ public class MergeContigs extends Module {
 
                             if (!goForward) {
                                 //g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
-                                g.addEdge(aseq, rseq, new LabeledEdge());
+                                g.addEdge(aseq, rseq, new LabeledEdge(""));
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
                                 //g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
-                                g.addEdge(rseq, aseq, new LabeledEdge());
+                                g.addEdge(rseq, aseq, new LabeledEdge(""));
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
