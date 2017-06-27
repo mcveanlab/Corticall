@@ -117,29 +117,29 @@ public class Call extends Module {
 
                 traversalSeeds.addAll(incomingKmers.get(c));
                 traversalSeeds.addAll(outgoingKmers.get(c));
-
-                log.info("traversal seeds: {}", traversalSeeds.size());
-
-                TraversalEngine e = new TraversalEngineFactory()
-                        .combinationOperator(OR)
-                        .traversalDirection(BOTH)
-                        .traversalColor(c)
-                        .joiningColors(childColor)
-                        .previousTraversal(childContig)
-                        .stopper(BubbleClosingStopper.class)
-                        .graph(GRAPH)
-                        .make();
-
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gAll = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                for (String seed : traversalSeeds) {
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(seed);
-                    if (g != null && g.vertexSet().size() > 0) {
-                        Graphs.addGraph(gAll, g);
-                    }
-                }
-
-                log.info("gAll: {}", gAll);
             }
+
+            log.info("traversal seeds: {}", traversalSeeds.size());
+
+            TraversalEngine e = new TraversalEngineFactory()
+                    .combinationOperator(OR)
+                    .traversalDirection(BOTH)
+                    .traversalColor(c)
+                    .joiningColors(childColor)
+                    .previousTraversal(childContig)
+                    .stopper(BubbleClosingStopper.class)
+                    .graph(GRAPH)
+                    .make();
+
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gAll = new DirectedWeightedPseudograph<>(CortexEdge.class);
+            for (String seed : traversalSeeds) {
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(seed);
+                if (g != null && g.vertexSet().size() > 0) {
+                    Graphs.addGraph(gAll, g);
+                }
+            }
+
+            log.info("gAll: {}", gAll);
         }
     }
 
