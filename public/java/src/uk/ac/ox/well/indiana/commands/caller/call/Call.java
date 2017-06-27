@@ -90,7 +90,7 @@ public class Call extends Module {
         Map<String, String> contigEncoding = new HashMap<>();
 
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Random r = new Random(0);
+        Random r = new Random();
         Set<String> usedCodes = new HashSet<>();
 
         for (Map<String, String> m : annotations) {
