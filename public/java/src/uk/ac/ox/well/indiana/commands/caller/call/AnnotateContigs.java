@@ -13,6 +13,8 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -49,10 +51,21 @@ public class AnnotateContigs extends Module {
         List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
         int refColor = GRAPH.getColorForSampleName("ref");
 
-        out.println(Joiner.on("\t").join("name", "sk", "ck", "cov_" + CHILD, "cov_" + Joiner.on("cov_").join(PARENTS), "cov_" + Joiner.on("cov_").join(LOOKUPS.keySet()), "cov_ref", "isNovel", "isGapFill", "isRecovered", LOOKUPS.keySet()));
+        out.println(Joiner.on("\t").join("name", "sk", "ck", "cov_" + CHILD, "cov_" + Joiner.on("\tcov_").join(PARENTS), "cov_" + Joiner.on("\tcov_").join(LOOKUPS.keySet()), "cov_ref", "is_novel", "is_filled_gap", "is_recovered_kmer", LOOKUPS.keySet()));
 
-        ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
+        List<ReferenceSequence> rseqs = new ArrayList<>();
+        ReferenceSequence aseq;
+        while ((aseq = CONTIGS.nextSequence()) != null) {
+            rseqs.add(aseq);
+        }
+
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Annotating contigs")
+                .maxRecord(rseqs.size())
+                .message("contigs annotated")
+                .make(log);
+
+        for (ReferenceSequence rseq : rseqs) {
             String[] pieces = rseq.getName().split("\\s+");
             String seq = rseq.getBaseString();
 
@@ -71,8 +84,13 @@ public class AnnotateContigs extends Module {
                 for (String background : LOOKUPS.keySet()) {
                     Set<Interval> its = new TreeSet<>(LOOKUPS.get(background).findKmer(sk));
                     List<String> intervalStrings = new ArrayList<>();
-                    for (Interval it : its) {
-                        intervalStrings.add(it.getContig() + ":" + it.getStart() + "-" + it.getEnd() + ":" + (it.isPositiveStrand() ? "+" : "-"));
+
+                    if (its.size() > 0) {
+                        for (Interval it : its) {
+                            intervalStrings.add(it.getContig() + ":" + it.getStart() + "-" + it.getEnd() + ":" + (it.isPositiveStrand() ? "+" : "-"));
+                        }
+                    } else {
+                        intervalStrings.add("NA");
                     }
 
                     allIntervals.add(Joiner.on(";").join(intervalStrings));
@@ -80,11 +98,14 @@ public class AnnotateContigs extends Module {
 
                 CortexRecord rr = ROI.findRecord(ck);
 
-                boolean isGapFill = cr != null && cr.getCoverage(childColor) == 0;
+                boolean isNovel = rr != null;
+                boolean isFilledGap = cr != null && cr.getCoverage(childColor) == 0;
                 boolean isRecovered = cr != null && cr.getCoverage(childColor) < GRAPH.getColor(childColor).getLowCovSupernodesThreshold();
 
-                out.println(Joiner.on("\t").join(pieces[0], sk, ck, coverages, rr != null, isGapFill, isRecovered, allIntervals));
+                out.println(Joiner.on("\t").join(pieces[0], sk, ck, Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
             }
+
+            pm.update();
         }
     }
 }
