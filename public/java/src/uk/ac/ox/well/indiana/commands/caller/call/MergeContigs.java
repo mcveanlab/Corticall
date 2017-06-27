@@ -227,15 +227,16 @@ public class MergeContigs extends Module {
 
                             List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, boundary) : Graphs.successorListOf(g, boundary);
                             Contig aseq = arseqs2.get(0);
+                            String gapString = sb.toString();
 
                             if (!goForward) {
-                                g.addEdge(aseq, rseq, new LabeledEdge(sb.toString()));
+                                g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() - 1)));
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
-                                g.addEdge(rseq, aseq, new LabeledEdge(sb.toString()));
+                                g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
