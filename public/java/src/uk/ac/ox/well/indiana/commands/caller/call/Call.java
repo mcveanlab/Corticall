@@ -79,6 +79,8 @@ public class Call extends Module {
             int numTemplateSwitches = numTemplateSwitches(annotatedContig);
             int numNovelRuns = numNovelRuns(annotatedContig);
 
+            numSimpleBubbles(annotatedContig, annotations);
+
             if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
                 log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
             }
