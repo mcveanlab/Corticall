@@ -33,6 +33,9 @@ public class Call extends Module {
     @Argument(fullName="drafts", shortName="d", doc="Drafts")
     public HashMap<String, KmerLookup> LOOKUPS;
 
+    @Argument(fullName="reference", shortName="R", doc="Reference")
+    public KmerLookup REFERENCE;
+
     @Argument(fullName="annotations", shortName="a", doc="Annotated contigs")
     public File ANNOTATIONS;
 
