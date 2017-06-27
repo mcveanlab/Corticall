@@ -118,6 +118,8 @@ public class Call extends Module {
                 traversalSeeds.addAll(incomingKmers.get(c));
                 traversalSeeds.addAll(outgoingKmers.get(c));
 
+                log.info("traversal seeds: {}", traversalSeeds.size());
+
                 TraversalEngine e = new TraversalEngineFactory()
                         .combinationOperator(OR)
                         .traversalDirection(BOTH)
