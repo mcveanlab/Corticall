@@ -25,7 +25,7 @@ public class Call extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="roi", shortName="rng", doc="ROI")
+    @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
     @Argument(fullName="drafts", shortName="d", doc="Drafts")
