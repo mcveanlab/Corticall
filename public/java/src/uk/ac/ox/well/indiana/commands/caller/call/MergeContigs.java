@@ -102,7 +102,7 @@ public class MergeContigs extends Module {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
                     //Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
 
-                    names.add(pre.getName().split("\\s+")[0]);
+                    names.add(pre.getName());
 
                     int overlap = g.getEdge(pre, cur).getOverlap();
                     if (overlap > 0) {
@@ -124,7 +124,7 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
-                    names.add(nxt.getName().split("\\s+")[0]);
+                    names.add(nxt.getName());
 
                     int overlap = g.getEdge(cur, nxt).getOverlap();
                     if (overlap > 0) {
