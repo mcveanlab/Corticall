@@ -11,6 +11,8 @@ import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by kiran on 23/06/2017.
@@ -57,10 +59,38 @@ public class Call extends Module {
 
     private void callVariants(String contigName, List<Map<String, String>> annotations) {
         for (String background : LOOKUPS.keySet()) {
-            String annotation = annotateContig(annotations, background);
+            String annotatedContig = annotateContig(annotations, background);
 
-            log.info("{}\t{}\t{}", contigName, background, annotation);
+            if (isNAHR(annotatedContig)) {
+                log.info("nahr: {} {}", contigName, annotatedContig);
+            }
         }
+    }
+
+    private boolean isNAHR(String annotatedContig) {
+        final String flankingNovelRegex = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
+        Pattern flankingNovelPattern = Pattern.compile(flankingNovelRegex);
+
+        final String novelRegex = "(\\.+)";
+        Pattern novelPattern = Pattern.compile(novelRegex);
+
+        Matcher flankingNovelMatcher = flankingNovelPattern.matcher(annotatedContig);
+        int numSwitches = 0;
+        if (flankingNovelMatcher.find()) {
+            do {
+                if (!flankingNovelMatcher.group(2).equals(flankingNovelMatcher.group(5))) {
+                    numSwitches++;
+                }
+            } while (flankingNovelMatcher.find(flankingNovelMatcher.start(3)));
+        }
+
+        Matcher novelMatcher = novelPattern.matcher(annotatedContig);
+        int numNovelRuns = 0;
+        while (novelMatcher.find()) {
+            numNovelRuns++;
+        }
+
+        return (numSwitches > 0 && numNovelRuns > 1);
     }
 
     private String annotateContig(List<Map<String, String>> annotations, String background) {
