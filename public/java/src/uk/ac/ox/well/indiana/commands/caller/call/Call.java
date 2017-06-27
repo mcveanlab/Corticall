@@ -74,6 +74,8 @@ public class Call extends Module {
 
     private void callVariants(String contigName, List<Map<String, String>> annotations) {
         for (String background : LOOKUPS.keySet()) {
+            log.info("{} {}", contigName, background);
+
             String annotatedContig = annotateContig(annotations, background);
 
             int numTemplateSwitches = numTemplateSwitches(annotatedContig);
@@ -119,7 +121,7 @@ public class Call extends Module {
                 traversalSeeds.addAll(outgoingKmers.get(c));
             }
 
-            log.info("traversal seeds: {}", traversalSeeds.size());
+            log.info("{} {} traversal seeds: {}", annotatedContig, c, traversalSeeds.size());
 
             TraversalEngine e = new TraversalEngineFactory()
                     .combinationOperator(OR)
