@@ -1,17 +1,15 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -27,7 +25,7 @@ public class Call extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="roi", shortName="r", doc="ROI")
+    @Argument(fullName="roi", shortName="rng", doc="ROI")
     public CortexGraph ROI;
 
     @Argument(fullName="drafts", shortName="d", doc="Drafts")
@@ -38,6 +36,11 @@ public class Call extends Module {
 
     @Argument(fullName="annotations", shortName="a", doc="Annotated contigs")
     public File ANNOTATIONS;
+
+    @Output
+    public PrintStream out;
+
+    private Random rng = new Random();
 
     @Override
     public void execute() {
@@ -56,7 +59,7 @@ public class Call extends Module {
         for (String background : LOOKUPS.keySet()) {
             String annotation = annotateContig(annotations, background);
 
-            log.info("{} {} {}", contigName, background, annotation);
+            log.info("{}\t{}\t{}", contigName, background, annotation);
         }
     }
 
@@ -90,7 +93,6 @@ public class Call extends Module {
         Map<String, String> contigEncoding = new HashMap<>();
 
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Random r = new Random();
         Set<String> usedCodes = new HashSet<>();
 
         for (Map<String, String> m : annotations) {
@@ -103,7 +105,7 @@ public class Call extends Module {
                 if (!contigEncoding.containsKey(contig)) {
                     String c;
                     do {
-                        c = String.valueOf(alphabet.charAt(r.nextInt(alphabet.length())));
+                        c = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
                     } while(usedCodes.contains(c) && usedCodes.size() < alphabet.length());
 
                     contigEncoding.put(contig, c);
