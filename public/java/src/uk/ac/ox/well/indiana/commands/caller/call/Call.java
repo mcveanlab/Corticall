@@ -68,13 +68,15 @@ public class Call extends Module {
         Map<String, List<Map<String, String>>> contigs = loadAnnotations();
 
         for (String contigName : contigs.keySet()) {
+            log.info("Processing contig {}", contigName);
+
             callVariants(contigName, contigs.get(contigName));
         }
     }
 
     private void callVariants(String contigName, List<Map<String, String>> annotations) {
         for (String background : LOOKUPS.keySet()) {
-            log.info("{} {}", contigName, background);
+            log.info("  background {}", background);
 
             String annotatedContig = annotateContig(annotations, background);
 
@@ -94,6 +96,8 @@ public class Call extends Module {
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
         for (int c : parentColors) {
+            log.info("    parent: {}", c);
+
             DirectedGraph<CortexVertex, CortexEdge> childContig = new DefaultDirectedGraph<>(CortexEdge.class);
 
             Set<String> traversalSeeds = new HashSet<>();
@@ -121,7 +125,7 @@ public class Call extends Module {
                 traversalSeeds.addAll(outgoingKmers.get(c));
             }
 
-            log.info("{} {} traversal seeds: {}", annotatedContig, c, traversalSeeds.size());
+            log.info("      num seeds: {}", traversalSeeds.size());
 
             TraversalEngine e = new TraversalEngineFactory()
                     .combinationOperator(OR)
@@ -140,8 +144,6 @@ public class Call extends Module {
                     Graphs.addGraph(gAll, g);
                 }
             }
-
-            log.info("gAll: {}", gAll);
         }
     }
 
