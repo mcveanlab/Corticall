@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
@@ -92,17 +93,24 @@ public class MergeContigs extends Module {
         Set<String> seen = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
             if (!seen.contains(rseq.getName())) {
-                List<Contig> scaffold = new ArrayList<>();
-                scaffold.add(rseq);
+                Set<String> names = new TreeSet<>();
+                List<String> scaffold = new ArrayList<>();
+                scaffold.add(rseq.getSequence());
 
                 Contig cur = rseq;
                 while (Graphs.vertexHasPredecessors(g, cur)) {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
-                    Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
+                    //Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
+
+                    names.add(pre.getName().split("\\s+")[0]);
 
                     int overlap = g.getEdge(pre, cur).getOverlap();
                     if (overlap > 0) {
-                        pre = new Contig(pre.getName(), pre.getSequence().substring(0, pre.length() - overlap), pre.getIndex());
+                        //pre = new Contig(pre.getName(), pre.getSequence().substring(0, pre.length() - overlap), pre.getIndex());
+
+                        scaffold.add(pre.getSequence().substring(0, pre.length() - overlap));
+                    } else {
+                        scaffold.add(pre.getSequence());
                     }
 
                     //scaffold.add(0, gap);
@@ -116,9 +124,15 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
+                    names.add(nxt.getName().split("\\s+")[0]);
+
                     int overlap = g.getEdge(cur, nxt).getOverlap();
                     if (overlap > 0) {
-                        nxt = new Contig(nxt.getName(), nxt.getSequence().substring(overlap, nxt.length()), nxt.getIndex());
+                        //nxt = new Contig(nxt.getName(), nxt.getSequence().substring(overlap, nxt.length()), nxt.getIndex());
+
+                        scaffold.add(nxt.getSequence().substring(overlap, nxt.length()));
+                    } else {
+                        scaffold.add(nxt.getSequence());
                     }
 
                     //scaffold.add(gap);
@@ -128,19 +142,19 @@ public class MergeContigs extends Module {
                 }
 
                 StringBuilder sb = new StringBuilder();
-                StringBuilder name = new StringBuilder();
-                for (Contig c : scaffold) {
-                    String[] pieces = c.getName().split("\\s+");
-                    name.append(pieces[0]);
+                String name = Joiner.on("").join(names);
+                for (String c : scaffold) {
+                    //String[] pieces = c.getName().split("\\s+");
+                    //name.append(pieces[0]);
 
-                    sb.append(c.getSequence());
+                    sb.append(c);
                 }
 
                 out.println(">" + name);
                 out.println(sb);
 
-                for (Contig c : scaffold) {
-                    seen.add(c.getName());
+                for (String n : names) {
+                    seen.add(n);
                 }
             }
         }
