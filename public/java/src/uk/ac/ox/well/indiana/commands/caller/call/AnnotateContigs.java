@@ -99,13 +99,21 @@ public class AnnotateContigs extends Module {
 
                 CortexRecord rr = ROI.findRecord(ck);
 
-                int incomingEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped()).get(childColor).size();
-                int outgoingEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped()).get(childColor).size();
+                Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+
+                Set<String> childIncomingEdges = incomingKmers.get(childColor);
+                Set<String> childOutgoingEdges = outgoingKmers.get(childColor);
+                for (int c : parentColors) {
+                    childIncomingEdges.removeAll(incomingKmers.get(c));
+                    childOutgoingEdges.removeAll(outgoingKmers.get(c));
+                }
+
                 boolean isNovel = rr != null;
                 boolean isFilledGap = cr == null || cr.getCoverage(childColor) == 0;
                 boolean isRecovered = cr != null && cr.getCoverage(childColor) < GRAPH.getColor(childColor).getLowCovSupernodesThreshold();
 
-                out.println(Joiner.on("\t").join(pieces[0], i, sk, ck, incomingEdges, outgoingEdges, Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
+                out.println(Joiner.on("\t").join(pieces[0], i, sk, ck, childIncomingEdges.size(), childOutgoingEdges.size(), Joiner.on("\t").join(coverages), isNovel, isFilledGap, isRecovered, Joiner.on("\t").join(allIntervals)));
             }
 
             pm.update();
