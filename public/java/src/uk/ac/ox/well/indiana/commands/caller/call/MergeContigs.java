@@ -231,14 +231,14 @@ public class MergeContigs extends Module {
 
                             if (!goForward) {
                                 //g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
-                                g.addEdge(aseq, rseq);
+                                g.addEdge(aseq, rseq, new LabeledEdge());
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
                                 //g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
-                                g.addEdge(rseq, aseq);
+                                g.addEdge(rseq, aseq, new LabeledEdge());
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
