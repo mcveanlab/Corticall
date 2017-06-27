@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -8,6 +9,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by kiran on 23/06/2017.
@@ -33,6 +35,13 @@ public class Call extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
+        ReferenceSequence rseq;
+        while ((rseq = CONTIGS.nextSequence()) != null) {
+            String seq = rseq.getBaseString();
+        }
     }
 }
