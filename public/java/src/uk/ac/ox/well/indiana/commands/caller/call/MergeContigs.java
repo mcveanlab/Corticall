@@ -100,7 +100,7 @@ public class MergeContigs extends Module {
                     Contig pre = Graphs.predecessorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(pre, cur).getLabel());
 
-                    scaffold.add(0, gap);
+                    //scaffold.add(0, gap);
                     scaffold.add(0, pre);
 
                     cur = pre;
@@ -111,7 +111,7 @@ public class MergeContigs extends Module {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
                     Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
-                    scaffold.add(gap);
+                    //scaffold.add(gap);
                     scaffold.add(nxt);
 
                     cur = nxt;
