@@ -92,7 +92,7 @@ public class MergeContigs extends Module {
     private void emitContigs(DirectedGraph<Contig, LabeledEdge> g) {
         Set<String> seen = new HashSet<>();
         for (Contig rseq : g.vertexSet()) {
-            if (!seen.contains(rseq.getName())) {
+            if (!seen.contains(rseq.getName().split("\\s+")[0])) {
                 Set<String> names = new TreeSet<>();
                 List<String> scaffold = new ArrayList<>();
                 scaffold.add(rseq.getSequence());
@@ -124,7 +124,7 @@ public class MergeContigs extends Module {
                 cur = rseq;
                 while (Graphs.vertexHasSuccessors(g, cur)) {
                     Contig nxt = Graphs.successorListOf(g, cur).get(0);
-                    Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
+                    //Contig gap = new Contig(g.getEdge(cur, nxt).getLabel());
 
                     names.add(nxt.getName().split("\\s+")[0]);
 
