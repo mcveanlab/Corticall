@@ -230,13 +230,15 @@ public class MergeContigs extends Module {
                             String gapString = sb.toString();
 
                             if (!goForward) {
-                                g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
+                                //g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
+                                g.addEdge(aseq, rseq);
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
-                                g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
+                                //g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
+                                g.addEdge(rseq, aseq);
 
                                 log.info("  joined");
                                 log.info("    {}", rseq.getName());
