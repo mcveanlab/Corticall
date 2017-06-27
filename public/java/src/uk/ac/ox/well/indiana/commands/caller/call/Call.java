@@ -1,18 +1,33 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import org.jetbrains.annotations.NotNull;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
+import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 23/06/2017.
@@ -46,9 +61,9 @@ public class Call extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
-        List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
+        //int childColor = GRAPH.getColorForSampleName(CHILD);
+        //List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        //List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
         Map<String, List<Map<String, String>>> contigs = loadAnnotations();
 
@@ -66,6 +81,60 @@ public class Call extends Module {
 
             if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
                 log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
+            }
+        }
+    }
+
+    private void numSimpleBubbles(String annotatedContig, List<Map<String, String>> annotations) {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+
+        for (int c : parentColors) {
+            DirectedGraph<CortexVertex, CortexEdge> childContig = new DefaultDirectedGraph<>(CortexEdge.class);
+
+            Set<String> traversalSeeds = new HashSet<>();
+
+            CortexVertex cvl = null;
+            for (Map<String, String> ma : annotations) {
+                String sk = ma.get("sk");
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                CortexVertex cv = new CortexVertex(sk, cr);
+                childContig.addVertex(cv);
+                if (cvl != null) {
+                    childContig.addEdge(cvl, cv, new CortexEdge(childColor, 1.0));
+                }
+                cvl = cv;
+
+                Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+
+                incomingKmers.get(c).removeAll(incomingKmers.get(childColor));
+                outgoingKmers.get(c).removeAll(outgoingKmers.get(childColor));
+
+                traversalSeeds.addAll(incomingKmers.get(c));
+                traversalSeeds.addAll(outgoingKmers.get(c));
+
+                TraversalEngine e = new TraversalEngineFactory()
+                        .combinationOperator(OR)
+                        .traversalDirection(BOTH)
+                        .traversalColor(c)
+                        .joiningColors(childColor)
+                        .previousTraversal(childContig)
+                        .stopper(BubbleClosingStopper.class)
+                        .graph(GRAPH)
+                        .make();
+
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gAll = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                for (String seed : traversalSeeds) {
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(seed);
+                    if (g != null && g.vertexSet().size() > 0) {
+                        Graphs.addGraph(gAll, g);
+                    }
+                }
+
+                log.info("gAll: {}", gAll);
             }
         }
     }
