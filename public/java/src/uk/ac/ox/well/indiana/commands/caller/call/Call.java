@@ -122,7 +122,7 @@ public class Call extends Module {
                 }
                 cvl = cv;
 
-                log.info("before {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size());
+                log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
 
                 if (ma.get("is_novel").equals("false")) {
                     if (inNovelRun) {
