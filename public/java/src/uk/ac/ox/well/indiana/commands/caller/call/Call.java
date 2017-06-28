@@ -103,7 +103,14 @@ public class Call extends Module {
             Set<String> traversalSeeds = new HashSet<>();
 
             CortexVertex cvl = null;
-            for (Map<String, String> ma : annotations) {
+            //for (Map<String, String> ma : annotations) {
+
+            String mostRecentNonNovelKmer = annotations.get(0).get("sk");
+            boolean inNovelRun = false;
+
+            for (int i = 0; i < annotations.size(); i++) {
+                Map<String, String> ma = annotations.get(i);
+
                 String sk = ma.get("sk");
                 CortexKmer ck = new CortexKmer(sk);
                 CortexRecord cr = GRAPH.findRecord(ck);
@@ -115,6 +122,26 @@ public class Call extends Module {
                 }
                 cvl = cv;
 
+                log.info("before {} {} {}", i, inNovelRun, mostRecentNonNovelKmer);
+
+                if (ma.get("is_novel").equals("false")) {
+                    if (inNovelRun) {
+                        traversalSeeds.add(sk);
+                    }
+
+                    mostRecentNonNovelKmer = sk;
+                    inNovelRun = false;
+                } else if (ma.get("is_novel").equals("true")) {
+                    if (!inNovelRun) {
+                        traversalSeeds.add(sk);
+                    }
+
+                    inNovelRun = true;
+                }
+
+                log.info("after {} {} {}", i, inNovelRun, mostRecentNonNovelKmer);
+
+                /*
                 Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
                 Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
 
@@ -123,6 +150,7 @@ public class Call extends Module {
 
                 traversalSeeds.addAll(incomingKmers.get(c));
                 traversalSeeds.addAll(outgoingKmers.get(c));
+                */
             }
 
             log.info("      num seeds: {}", traversalSeeds.size());
