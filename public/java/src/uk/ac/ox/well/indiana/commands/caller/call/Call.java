@@ -86,7 +86,7 @@ public class Call extends Module {
             int numTemplateSwitches = numTemplateSwitches(annotatedContig);
             int numNovelRuns = numNovelRuns(annotatedContig);
 
-            numSimpleBubbles(annotatedContig, annotations);
+            //numSimpleBubbles(annotatedContig, annotations);
 
             if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
                 log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
@@ -157,11 +157,14 @@ public class Call extends Module {
                     .graph(GRAPH)
                     .make();
 
+            DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
+            for (CortexVertex seed : traversalSeeds) {
+                sg.addVertex(seed);
+            }
+
             for (CortexVertex source : traversalSeeds) {
                 for (CortexVertex sink : traversalSeeds) {
                     if (!source.equals(sink)) {
-                        DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
-                        sg.addVertex(sink);
                         e.getConfiguration().setPreviousTraversal(sg);
 
                         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
