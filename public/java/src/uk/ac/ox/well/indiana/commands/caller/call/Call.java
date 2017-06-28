@@ -128,8 +128,8 @@ public class Call extends Module {
                     if (inNovelRun) {
                         traversalSeeds.add(sk);
 
-                        log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
-                        log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
+                        //log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
+                        //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
                     }
 
                     mostRecentNonNovelKmer = sk;
@@ -138,8 +138,8 @@ public class Call extends Module {
                     if (!inNovelRun) {
                         traversalSeeds.add(mostRecentNonNovelKmer);
 
-                        log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
-                        log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
+                        //log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
+                        //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
                     }
 
                     inNovelRun = true;
