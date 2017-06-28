@@ -33,7 +33,8 @@ public class BubbleClosingStopper extends AbstractTraversalStopper<CortexVertex,
             hasJoined |= (cv.getCr().getCoverage(c) > 0);
         }
 
-        return (hasJoined && previousGraph.containsVertex(cv));
+        //return (hasJoined && previousGraph.containsVertex(cv));
+        return previousGraph.containsVertex(cv);
     }
 
     @Override
