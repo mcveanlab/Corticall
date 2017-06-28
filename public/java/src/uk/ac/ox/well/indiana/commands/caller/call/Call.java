@@ -122,7 +122,7 @@ public class Call extends Module {
                 }
                 cvl = cv;
 
-                log.info("before {} {} {}", i, inNovelRun, mostRecentNonNovelKmer);
+                log.info("before {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size());
 
                 if (ma.get("is_novel").equals("false")) {
                     if (inNovelRun) {
@@ -139,7 +139,7 @@ public class Call extends Module {
                     inNovelRun = true;
                 }
 
-                log.info("after {} {} {}", i, inNovelRun, mostRecentNonNovelKmer);
+                log.info(" after {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size());
 
                 /*
                 Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
