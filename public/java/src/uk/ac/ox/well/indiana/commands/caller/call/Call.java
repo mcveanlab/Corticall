@@ -171,7 +171,9 @@ public class Call extends Module {
                             if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
                                 GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
 
-                                log.info("{} {} {} {} {}", source, sink, p.getLength(), p.getStartVertex(), p.getEndVertex());
+                                if (p != null) {
+                                    log.info("{} {} {} {} {}", source, sink, p.getLength(), p.getStartVertex(), p.getEndVertex());
+                                }
                             }
                         }
                     }
