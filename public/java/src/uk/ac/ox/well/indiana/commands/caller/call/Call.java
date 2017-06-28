@@ -1,10 +1,8 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
-import com.google.common.base.Joiner;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
-import org.jgrapht.Graphs;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
@@ -28,7 +26,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
@@ -71,30 +68,32 @@ public class Call extends Module {
         Map<String, List<Map<String, String>>> contigs = loadAnnotations();
 
         for (String contigName : contigs.keySet()) {
-            log.info("Processing contig {}", contigName);
-
-            callVariants(contigName, contigs.get(contigName));
+            if (isNahrEvent(contigName, contigs.get(contigName))) {
+                out.println(contigName);
+            }
         }
     }
 
-    private void callVariants(String contigName, List<Map<String, String>> annotations) {
+    private boolean isNahrEvent(String contigName, List<Map<String, String>> annotations) {
         for (String background : LOOKUPS.keySet()) {
-            log.info("  background {}", background);
-
             String annotatedContig = annotateContig(annotations, background);
 
             int numTemplateSwitches = numTemplateSwitches(annotatedContig);
             int numNovelRuns = numNovelRuns(annotatedContig);
 
-            //numSimpleBubbles(annotatedContig, annotations);
+            //numBubbles(annotatedContig, annotations);
 
             if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
                 log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
+
+                return true;
             }
         }
+
+        return false;
     }
 
-    private void numSimpleBubbles(String annotatedContig, List<Map<String, String>> annotations) {
+    private void numBubbles(String annotatedContig, List<Map<String, String>> annotations) {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
 
