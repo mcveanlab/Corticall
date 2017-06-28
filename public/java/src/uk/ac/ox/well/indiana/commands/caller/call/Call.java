@@ -159,18 +159,20 @@ public class Call extends Module {
 
             for (CortexVertex source : traversalSeeds) {
                 for (CortexVertex sink : traversalSeeds) {
-                    DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
-                    sg.addVertex(sink);
-                    e.getConfiguration().setPreviousTraversal(sg);
+                    if (!source.equals(sink)) {
+                        DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
+                        sg.addVertex(sink);
+                        e.getConfiguration().setPreviousTraversal(sg);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
-                    if (g != null && g.vertexSet().size() > 0) {
-                        DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
+                        if (g != null && g.vertexSet().size() > 0) {
+                            DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
 
-                        if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
-                            GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
+                            if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
+                                GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
 
-                            log.info("{} {} {}", source, sink, p);
+                                log.info("{} {} {} {} {}", source, sink, p.getLength(), p.getStartVertex(), p.getEndVertex());
+                            }
                         }
                     }
                 }
