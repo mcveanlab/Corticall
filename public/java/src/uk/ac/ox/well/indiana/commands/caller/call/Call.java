@@ -123,24 +123,29 @@ public class Call extends Module {
                 }
                 cvl = cv;
 
-                log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
 
                 if (ma.get("is_novel").equals("false")) {
                     if (inNovelRun) {
                         traversalSeeds.add(sk);
+
+                        log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
+                        log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
                     }
 
                     mostRecentNonNovelKmer = sk;
                     inNovelRun = false;
                 } else if (ma.get("is_novel").equals("true")) {
                     if (!inNovelRun) {
-                        traversalSeeds.add(sk);
+                        traversalSeeds.add(mostRecentNonNovelKmer);
+
+                        log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
+                        log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
                     }
 
                     inNovelRun = true;
                 }
 
-                log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
+                //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
 
                 /*
                 Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
