@@ -139,7 +139,7 @@ public class Call extends Module {
                     inNovelRun = true;
                 }
 
-                log.info(" after {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size());
+                log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
 
                 /*
                 Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
