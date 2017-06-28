@@ -152,17 +152,21 @@ public class Call extends Module {
                     .traversalDirection(BOTH)
                     .traversalColor(c)
                     .joiningColors(childColor)
-                    .previousTraversal(childContig)
+                    //.previousTraversal(childContig)
                     .stopper(BubbleClosingStopper.class)
                     .graph(GRAPH)
                     .make();
 
             for (CortexVertex source : traversalSeeds) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
-                if (g != null && g.vertexSet().size() > 0) {
-                    DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
+                for (CortexVertex sink : traversalSeeds) {
+                    DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
+                    sg.addVertex(sink);
+                    e.getConfiguration().setPreviousTraversal(sg);
 
-                    for (CortexVertex sink : traversalSeeds) {
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
+                    if (g != null && g.vertexSet().size() > 0) {
+                        DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
+
                         if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
                             GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
 
