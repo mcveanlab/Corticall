@@ -3,7 +3,9 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 import com.google.common.base.Joiner;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -101,12 +103,12 @@ public class Call extends Module {
 
             DirectedGraph<CortexVertex, CortexEdge> childContig = new DefaultDirectedGraph<>(CortexEdge.class);
 
-            Set<String> traversalSeeds = new HashSet<>();
+            Set<CortexVertex> traversalSeeds = new HashSet<>();
 
             CortexVertex cvl = null;
             //for (Map<String, String> ma : annotations) {
 
-            String mostRecentNonNovelKmer = annotations.get(0).get("sk");
+            CortexVertex mostRecentNonNovelKmer = null;
             boolean inNovelRun = false;
 
             for (int i = 0; i < annotations.size(); i++) {
@@ -123,40 +125,24 @@ public class Call extends Module {
                 }
                 cvl = cv;
 
+                if (mostRecentNonNovelKmer == null) {
+                    mostRecentNonNovelKmer = cv;
+                }
 
                 if (ma.get("is_novel").equals("false")) {
                     if (inNovelRun) {
-                        traversalSeeds.add(sk);
-
-                        //log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
-                        //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
+                        traversalSeeds.add(cv);
                     }
 
-                    mostRecentNonNovelKmer = sk;
+                    mostRecentNonNovelKmer = cv;
                     inNovelRun = false;
                 } else if (ma.get("is_novel").equals("true")) {
                     if (!inNovelRun) {
                         traversalSeeds.add(mostRecentNonNovelKmer);
-
-                        //log.info("before {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), ma);
-                        //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
                     }
 
                     inNovelRun = true;
                 }
-
-                //log.info(" after {} {} {} {} {}", i, inNovelRun, mostRecentNonNovelKmer, traversalSeeds.size(), Joiner.on(",").join(traversalSeeds));
-
-                /*
-                Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-                Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
-
-                incomingKmers.get(c).removeAll(incomingKmers.get(childColor));
-                outgoingKmers.get(c).removeAll(outgoingKmers.get(childColor));
-
-                traversalSeeds.addAll(incomingKmers.get(c));
-                traversalSeeds.addAll(outgoingKmers.get(c));
-                */
             }
 
             log.info("      num seeds: {}", traversalSeeds.size());
@@ -171,11 +157,18 @@ public class Call extends Module {
                     .graph(GRAPH)
                     .make();
 
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gAll = new DirectedWeightedPseudograph<>(CortexEdge.class);
-            for (String seed : traversalSeeds) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(seed);
+            for (CortexVertex source : traversalSeeds) {
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
                 if (g != null && g.vertexSet().size() > 0) {
-                    Graphs.addGraph(gAll, g);
+                    DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
+
+                    for (CortexVertex sink : traversalSeeds) {
+                        if (!source.equals(sink)) {
+                            GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
+
+                            log.info("{} {} {}", source, sink, p);
+                        }
+                    }
                 }
             }
         }
