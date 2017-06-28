@@ -69,7 +69,7 @@ public class Call extends Module {
 
         for (String contigName : contigs.keySet()) {
             if (isNahrEvent(contigName, contigs.get(contigName))) {
-                out.println(contigName);
+                //out.println(contigName);
             }
         }
     }
@@ -85,6 +85,8 @@ public class Call extends Module {
 
             if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
                 log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
+
+                out.println(contigName + "\t" + background + "\t" + annotatedContig);
 
                 return true;
             }
