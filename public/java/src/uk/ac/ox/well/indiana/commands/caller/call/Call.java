@@ -163,7 +163,7 @@ public class Call extends Module {
                     DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
 
                     for (CortexVertex sink : traversalSeeds) {
-                        if (!source.equals(sink)) {
+                        if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
                             GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
 
                             log.info("{} {} {}", source, sink, p);
