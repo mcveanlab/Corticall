@@ -148,7 +148,11 @@ public class TableReader implements Iterable<Map<String, String>>, Iterator<Map<
             Map<String, String> entry = new LinkedHashMap<>();
 
             for (int i = 0; i < header.length; i++) {
-                entry.put(header[i], fields[i]);
+                if (i >= fields.length) {
+                    entry.put(header[i], "");
+                } else {
+                    entry.put(header[i], fields[i]);
+                }
             }
 
             return entry;

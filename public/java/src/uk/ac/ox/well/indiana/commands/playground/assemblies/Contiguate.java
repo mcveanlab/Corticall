@@ -25,10 +25,10 @@ public class Contiguate extends Module {
     public File ALIGNMENTS;
 
     @Argument(fullName="patternFind", shortName="pf", doc="Find pattern for contig names")
-    public String FIND_PATTERN;
+    public List<String> FIND_PATTERNS;
 
     @Argument(fullName="patternReplace", shortName="pr", doc="Replacement pattern for contig names")
-    public String REPLACEMENT_PATTERN;
+    public List<String> REPLACEMENT_PATTERNS;
 
     @Output
     public PrintStream out;
@@ -64,10 +64,13 @@ public class Contiguate extends Module {
             Map<String, String> m = tr.next();
 
             String rname = m.get("CONR");
-            String nname = rname.replaceAll(FIND_PATTERN, REPLACEMENT_PATTERN);
+            String nname = rname;
+            for (int i = 0; i < FIND_PATTERNS.size(); i++) {
+                nname = nname.replaceAll(FIND_PATTERNS.get(i), REPLACEMENT_PATTERNS.get(i));
+            }
 
             if (rname.equals(nname) || nname.isEmpty()) {
-                throw new IndianaException("Regex for chromosome name transformation didn't work (find='" + FIND_PATTERN + "', replace='" + REPLACEMENT_PATTERN + "')");
+                throw new IndianaException("Regex for chromosome name transformation didn't work (find='" + FIND_PATTERNS + "', replace='" + REPLACEMENT_PATTERNS + "')");
             }
 
             log.info("  transform {} -> {}", rname, nname);
