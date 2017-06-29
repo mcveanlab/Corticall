@@ -25,10 +25,10 @@ public class Contiguate extends Module {
     public File ALIGNMENTS;
 
     @Argument(fullName="patternFind", shortName="pf", doc="Find pattern for contig names")
-    public List<String> FIND_PATTERNS;
+    public ArrayList<String> FIND_PATTERNS;
 
     @Argument(fullName="patternReplace", shortName="pr", doc="Replacement pattern for contig names")
-    public List<String> REPLACEMENT_PATTERNS;
+    public ArrayList<String> REPLACEMENT_PATTERNS;
 
     @Output
     public PrintStream out;
