@@ -241,7 +241,7 @@ public class MergeContigs extends Module {
 
                     if (sk != null) {
                         Contig boundary = new Contig(sk);
-                        if (g.containsVertex(boundary)) {
+                        if (g.containsVertex(boundary) && ((!goForward && Graphs.vertexHasPredecessors(g, boundary)) || (goForward && Graphs.vertexHasSuccessors(g, boundary)))) {
                             StringBuilder sb = new StringBuilder();
                             for (String s : gap) {
                                 if (sb.length() == 0) {
@@ -265,7 +265,7 @@ public class MergeContigs extends Module {
                                 }
                             }
 
-                            // Testing
+                            /*
                             if (rseq.getName().contains("contig58")) {
                                 Contig aseq = Graphs.successorListOf(g, boundary).get(0);
 
@@ -290,7 +290,7 @@ public class MergeContigs extends Module {
                                     log.info("{} {} {} {} {}", i, skr, ska, isr, isa);
                                 }
                             }
-                            // Testing
+                            */
 
                             log.info("Intersection: {}", intersectionLength);
 
