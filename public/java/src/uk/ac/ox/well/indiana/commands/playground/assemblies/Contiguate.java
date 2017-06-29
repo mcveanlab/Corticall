@@ -70,7 +70,7 @@ public class Contiguate extends Module {
             }
 
             if (rname.equals(nname) || nname.isEmpty()) {
-                throw new IndianaException("Regex for chromosome name transformation didn't work (find='" + FIND_PATTERNS + "', replace='" + REPLACEMENT_PATTERNS + "')");
+                throw new IndianaException("Regex for chromosome name transformation didn't work (chr='" + nname + "' find='" + FIND_PATTERNS + "', replace='" + REPLACEMENT_PATTERNS + "')");
             }
 
             log.info("  transform {} -> {}", rname, nname);
