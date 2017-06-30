@@ -54,7 +54,7 @@ public class DetermineAssemblyLayout extends Module {
             String id = sr.getReadName();
             srrecs.put(id, sr);
 
-            if (grrecs.containsKey(id) && isHighQualityPlacement(sr.getCigar())) {
+            if (grrecs.containsKey(id) && isHighQualityPlacement(sr)) {
                 if (!freq.containsKey(sr.getReferenceName())) {
                     freq.put(sr.getReferenceName(), new HashMap<>());
                     strands.put(sr.getReferenceName(), new HashMap<>());
@@ -148,16 +148,16 @@ public class DetermineAssemblyLayout extends Module {
         }
     }
 
-    private static boolean isHighQualityPlacement(Cigar cigar) {
+    private static boolean isHighQualityPlacement(SAMRecord sr) {
         int numClips = 0;
 
-        for (CigarElement ce : cigar.getCigarElements()) {
+        for (CigarElement ce : sr.getCigar().getCigarElements()) {
             if (ce.getOperator().isClipping()) {
                 numClips++;
             }
         }
 
-        return numClips == 0;
+        return !sr.getReadUnmappedFlag() && numClips == 0;
     }
 
     private static <K,V extends Comparable<? super V>> SortedSet<Map.Entry<K,V>> entriesSortedByValues(Map<K,V> map) {
