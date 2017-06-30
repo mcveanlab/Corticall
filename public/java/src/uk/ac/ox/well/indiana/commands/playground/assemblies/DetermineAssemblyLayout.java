@@ -6,6 +6,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
@@ -68,6 +69,7 @@ public class DetermineAssemblyLayout extends Module {
             }
         }
 
+        Map<String, Set<ContigInfo>> layout = new TreeMap<>();
         for (String contigName : freq.keySet()) {
             Map.Entry<String, Integer> chrNameAndCount = entriesSortedByValues(freq.get(contigName)).iterator().next();
 
@@ -80,6 +82,7 @@ public class DetermineAssemblyLayout extends Module {
                 if (gr.getEnd() > highestPos) { highestPos = gr.getEnd(); }
             }
 
+            /*
             log.info("{} {} {} {} {}",
                     contigName,
                     chrNameAndCount,
@@ -87,6 +90,51 @@ public class DetermineAssemblyLayout extends Module {
                     highestPos,
                     strandBases
             );
+            */
+
+            if (!layout.containsKey(chrNameAndCount.getKey())) {
+                layout.put(chrNameAndCount.getKey(), new TreeSet<>());
+            }
+
+            ContainerUtils.add(layout, chrNameAndCount.getKey(), new ContigInfo(contigName, lowestPos, highestPos, strandBases >= 0));
+        }
+
+        for (String chr : layout.keySet()) {
+            log.info("chr: {}", chr);
+
+            for (ContigInfo ci : layout.get(chr)) {
+                log.info("     {}", ci);
+            }
+        }
+    }
+
+    private class ContigInfo implements Comparable<ContigInfo> {
+        public String contigName;
+        public int start;
+        public int end;
+        public boolean isForward;
+
+        public ContigInfo(String contigName, int start, int end, boolean isForward) {
+            this.contigName = contigName;
+            this.start = start;
+            this.end = end;
+            this.isForward = isForward;
+        }
+
+        @Override
+        public int compareTo(@NotNull ContigInfo o) {
+            if (start == o.start) return 0;
+            return start < o.start ? -1 : 1;
+        }
+
+        @Override
+        public String toString() {
+            return "ContigInfo{" +
+                    "contigName='" + contigName + '\'' +
+                    ", start=" + start +
+                    ", end=" + end +
+                    ", isForward=" + isForward +
+                    '}';
         }
     }
 
