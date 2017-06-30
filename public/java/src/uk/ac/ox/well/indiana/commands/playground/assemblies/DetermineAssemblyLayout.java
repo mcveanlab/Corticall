@@ -48,14 +48,17 @@ public class DetermineAssemblyLayout extends Module {
             if (grrecs.containsKey(id) && isHighQualityPlacement(sr.getCigar())) {
                 if (!freq.containsKey(sr.getReferenceName())) {
                     freq.put(sr.getReferenceName(), new HashMap<>());
+                    exonPlacements.put(sr.getReferenceName(), new HashMap<>());
                 }
 
                 if (!freq.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
                     freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), 0);
+                    exonPlacements.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), new HashSet<>());
                 }
 
                 freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), freq.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + sr.getReadLength());
 
+                /*
                 if (!exonPlacements.containsKey(sr.getReferenceName())) {
                     exonPlacements.put(sr.getReferenceName(), new HashMap<>());
                 }
@@ -63,6 +66,7 @@ public class DetermineAssemblyLayout extends Module {
                 if (!exonPlacements.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
                     exonPlacements.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), new HashSet<>());
                 }
+                */
 
                 ContainerUtils.add(exonPlacements.get(sr.getReferenceName()), grrecs.get(id).getSeqid(), grrecs.get(id));
             }
