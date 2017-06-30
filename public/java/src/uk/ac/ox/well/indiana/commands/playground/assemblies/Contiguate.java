@@ -63,10 +63,14 @@ public class Contiguate extends Module {
         Map<String, Set<ReferenceSequence>> alignments = new LinkedHashMap<>();
         Set<String> usedQuerySequences = new HashSet<>();
 
+        List<Map<String, String>> alignmentEntries = new ArrayList<>();
+
         TableReader tr = new TableReader(ALIGNMENTS, "S1", "E1", "S2", "E2", "LEN1", "LEN2", "IDY", "LENR", "LENQ", "COVR", "COVQ", "STRANDR", "STRANDQ", "CONR", "CONQ", "REST");
         while (tr.hasNext()) {
             Map<String, String> m = tr.next();
+        }
 
+        for (Map<String, String> m : alignmentEntries) {
             String rname = m.get("CONR");
             String nname;
             if (nameMapping.containsKey(rname)) {
