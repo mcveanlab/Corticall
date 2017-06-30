@@ -79,9 +79,9 @@ public class DetermineAssemblyLayout extends Module {
                 if (gr.getStart() < lowestPos) { lowestPos = gr.getStart(); }
                 if (gr.getEnd() > highestPos) { highestPos = gr.getEnd(); }
                 if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
-                    numPos++;
+                    numPos += gr.getEnd() - gr.getStart();
                 } else {
-                    numNeg++;
+                    numNeg += gr.getEnd() - gr.getStart();
                 }
             }
 
