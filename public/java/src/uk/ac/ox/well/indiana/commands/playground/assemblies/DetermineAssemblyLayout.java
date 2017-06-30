@@ -6,6 +6,7 @@ import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
@@ -36,15 +37,27 @@ public class DetermineAssemblyLayout extends Module {
             }
         }
 
+        Map<String, Map<String, Integer>> freq = new HashMap<>();
+
         for (SAMRecord sr : EXONS) {
             String id = sr.getReadName();
             srrecs.put(id, sr);
 
             if (grrecs.containsKey(id) && sr.getCigar().numCigarElements() == 1) {
-                log.info("gff: {}", grrecs.get(id));
-                log.info("sam: {}", srrecs.get(id).getSAMString());
-                log.info("--");
+                //log.info("gff: {}", grrecs.get(id));
+                //log.info("sam: {}", srrecs.get(id).getSAMString());
+                //log.info("--");
+
+                if (!freq.containsKey(sr.getReferenceName())) {
+                    freq.put(sr.getReferenceName(), new HashMap<>());
+                }
+
+                ContainerUtils.increment(freq.get(sr.getReferenceName()), grrecs.get(id).getSeqid());
             }
+        }
+
+        for (String contigName : freq.keySet()) {
+            log.info("{} {}", contigName, freq.get(contigName));
         }
     }
 }
