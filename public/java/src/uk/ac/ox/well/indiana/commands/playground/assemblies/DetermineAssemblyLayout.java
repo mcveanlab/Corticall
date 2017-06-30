@@ -40,7 +40,7 @@ public class DetermineAssemblyLayout extends Module {
             String id = sr.getReadName();
             srrecs.put(id, sr);
 
-            if (grrecs.containsKey(id)) {
+            if (grrecs.containsKey(id) && sr.getCigar().numCigarElements() == 1) {
                 log.info("gff: {}", grrecs.get(id));
                 log.info("sam: {}", srrecs.get(id).getSAMString());
                 log.info("--");
