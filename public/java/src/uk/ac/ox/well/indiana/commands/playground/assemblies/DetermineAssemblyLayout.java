@@ -39,6 +39,7 @@ public class DetermineAssemblyLayout extends Module {
         }
 
         Map<String, Map<String, Integer>> freq = new HashMap<>();
+        Map<String, Map<String, Set<GFF3Record>>> exonPlacements = new HashMap<>();
 
         for (SAMRecord sr : EXONS) {
             String id = sr.getReadName();
@@ -53,13 +54,28 @@ public class DetermineAssemblyLayout extends Module {
                     freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), 0);
                 }
 
-                freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(),
-                        freq.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + sr.getReadLength());
+                freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), freq.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + sr.getReadLength());
+
+                if (!exonPlacements.containsKey(sr.getReferenceName())) {
+                    exonPlacements.put(sr.getReferenceName(), new HashMap<>());
+                }
+
+                if (!exonPlacements.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
+                    exonPlacements.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), new HashSet<>());
+                }
+
+                ContainerUtils.add(exonPlacements.get(sr.getReferenceName()), grrecs.get(id).getSeqid(), grrecs.get(id));
             }
         }
 
         for (String contigName : freq.keySet()) {
-            log.info("{} {}", contigName, entriesSortedByValues(freq.get(contigName)).iterator().next());
+            Map.Entry<String, Integer> chrNameAndCount = entriesSortedByValues(freq.get(contigName)).iterator().next();
+
+            log.info("{} {} {}",
+                    contigName,
+                    chrNameAndCount,
+                    exonPlacements.get(contigName).get(chrNameAndCount.getKey())
+            );
         }
     }
 
