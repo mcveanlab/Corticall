@@ -43,7 +43,7 @@ public class DetermineAssemblyLayout extends Module {
         for (String id : grrecs.keySet()) {
             if (srrecs.containsKey(id)) {
                 log.info("gff: {}", grrecs.get(id));
-                log.info("sam: {}", srrecs.get(id));
+                log.info("sam: {}", srrecs.get(id).getSAMString());
                 log.info("--");
             }
         }
