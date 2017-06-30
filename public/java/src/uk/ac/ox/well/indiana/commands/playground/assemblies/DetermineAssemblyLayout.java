@@ -51,7 +51,12 @@ public class DetermineAssemblyLayout extends Module {
                     freq.put(sr.getReferenceName(), new HashMap<>());
                 }
 
-                ContainerUtils.increment(freq.get(sr.getReferenceName()), grrecs.get(id).getSeqid());
+                if (!freq.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
+                    freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), 0);
+                }
+
+                freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(),
+                        freq.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + sr.getReadLength());
             }
         }
 
