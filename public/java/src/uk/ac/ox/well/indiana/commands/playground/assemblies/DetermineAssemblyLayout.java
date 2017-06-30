@@ -44,7 +44,7 @@ public class DetermineAssemblyLayout extends Module {
     public void execute() {
         Map<String, String> refSeqs = new HashMap<>();
         ReferenceSequence rseq;
-        while ((rseq = DRAFT.nextSequence()) != null) {
+        while ((rseq = REFERENCE.nextSequence()) != null) {
             refSeqs.put(rseq.getName().split("\\s+")[0], rseq.getBaseString());
         }
 
