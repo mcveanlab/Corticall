@@ -37,11 +37,10 @@ public class DetermineAssemblyLayout extends Module {
         }
 
         for (SAMRecord sr : EXONS) {
-            srrecs.put(sr.getReadName(), sr);
-        }
+            String id = sr.getReadName();
+            srrecs.put(id, sr);
 
-        for (String id : grrecs.keySet()) {
-            if (srrecs.containsKey(id)) {
+            if (grrecs.containsKey(id)) {
                 log.info("gff: {}", grrecs.get(id));
                 log.info("sam: {}", srrecs.get(id).getSAMString());
                 log.info("--");
