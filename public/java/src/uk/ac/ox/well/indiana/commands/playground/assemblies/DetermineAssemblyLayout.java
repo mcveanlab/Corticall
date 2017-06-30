@@ -71,10 +71,27 @@ public class DetermineAssemblyLayout extends Module {
         for (String contigName : freq.keySet()) {
             Map.Entry<String, Integer> chrNameAndCount = entriesSortedByValues(freq.get(contigName)).iterator().next();
 
-            log.info("{} {} {}",
+            int lowestPos = Integer.MAX_VALUE;
+            int highestPos = 0;
+            int numPos = 0, numNeg = 0;
+
+            for (GFF3Record gr : exonPlacements.get(contigName).get(chrNameAndCount.getKey())) {
+                if (gr.getStart() < lowestPos) { lowestPos = gr.getStart(); }
+                if (gr.getEnd() > highestPos) { highestPos = gr.getEnd(); }
+                if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
+                    numPos++;
+                } else {
+                    numNeg++;
+                }
+            }
+
+            log.info("{} {} {} {} {} {}",
                     contigName,
                     chrNameAndCount,
-                    exonPlacements.get(contigName).get(chrNameAndCount.getKey())
+                    lowestPos,
+                    highestPos,
+                    numPos,
+                    numNeg
             );
         }
     }
