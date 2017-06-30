@@ -30,6 +30,9 @@ public class Contiguate extends Module {
     @Argument(fullName="patternReplace", shortName="pr", doc="Replacement pattern for contig names")
     public ArrayList<String> REPLACEMENT_PATTERNS;
 
+    @Argument(fullName="unplacedLabel", shortName="u", doc="Label for unplaced contigs")
+    public String UNPLACED_LABEL;
+
     @Output
     public PrintStream out;
 
@@ -58,7 +61,7 @@ public class Contiguate extends Module {
         log.info("Loading alignments...");
         Map<String, String> nameMapping = new HashMap<>();
         Map<String, Set<ReferenceSequence>> alignments = new LinkedHashMap<>();
-        Set<String> used = new HashSet<>();
+        Set<String> usedQuerySequences = new HashSet<>();
 
         TableReader tr = new TableReader(ALIGNMENTS, "S1", "E1", "S2", "E2", "LEN1", "LEN2", "IDY", "LENR", "LENQ", "COVR", "COVQ", "STRANDR", "STRANDQ", "CONR", "CONQ", "REST");
         while (tr.hasNext()) {
@@ -87,13 +90,22 @@ public class Contiguate extends Module {
             boolean positiveStrand = m.get("STRANDQ").equals("1");
             ReferenceSequence seq = positiveStrand ? seqsFwd.get(qname) : seqsRev.get(qname);
 
-            if (!used.contains(qname)) {
+            if (!usedQuerySequences.contains(qname)) {
                 if (!alignments.containsKey(nname)) {
                     alignments.put(nname, new LinkedHashSet<>());
                 }
                 alignments.get(nname).add(seq);
 
-                used.add(qname);
+                usedQuerySequences.add(qname);
+            }
+        }
+
+        for (String qname : seqsFwd.keySet()) {
+            if (!usedQuerySequences.contains(qname)) {
+                if (!alignments.containsKey(UNPLACED_LABEL)) {
+                    alignments.put(UNPLACED_LABEL, new LinkedHashSet<>());
+                }
+                alignments.get(UNPLACED_LABEL).add(seqsFwd.get(qname));
             }
         }
 
@@ -101,15 +113,10 @@ public class Contiguate extends Module {
 
         aout.println("##agp-version\t2.0");
 
-        String curname = null;
-        int curoffset = 1;
-        int curindex = 1;
+        int curoffset, curindex;
         for (String nname : alignments.keySet()) {
-            if (curname == null) {
-                curname = nname;
-                curoffset = 1;
-                curindex = 1;
-            }
+            curoffset = 1;
+            curindex = 1;
 
             StringBuilder sb = new StringBuilder();
             for (ReferenceSequence rseq : alignments.get(nname)) {
