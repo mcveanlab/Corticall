@@ -10,16 +10,21 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
+import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
  * Created by kiran on 30/06/2017.
  */
 public class DetermineAssemblyLayout extends Module {
+    @Argument(fullName="reference", shortName="r", doc="Reference")
+    public FastaSequenceFile REFERENCE;
+
     @Argument(fullName="draft", shortName="d", doc="Reference")
     public FastaSequenceFile DRAFT;
 
@@ -29,10 +34,21 @@ public class DetermineAssemblyLayout extends Module {
     @Argument(fullName="exons", shortName="e", doc="Aligned exons")
     public SamReader EXONS;
 
+    @Output
+    public PrintStream out;
+
+    @Output(fullName="agpout", shortName="ao", doc="AGP out")
+    public PrintStream aout;
+
     @Override
     public void execute() {
-        Map<String, String> contigSeqs = new HashMap<>();
+        Map<String, String> refSeqs = new HashMap<>();
         ReferenceSequence rseq;
+        while ((rseq = DRAFT.nextSequence()) != null) {
+            refSeqs.put(rseq.getName().split("\\s+")[0], rseq.getBaseString());
+        }
+
+        Map<String, String> contigSeqs = new HashMap<>();
         while ((rseq = DRAFT.nextSequence()) != null) {
             contigSeqs.put(rseq.getName().split("\\s+")[0], rseq.getBaseString());
         }
@@ -89,16 +105,6 @@ public class DetermineAssemblyLayout extends Module {
                 if (gr.getEnd() > highestPos) { highestPos = gr.getEnd(); }
             }
 
-            /*
-            log.info("{} {} {} {} {}",
-                    contigName,
-                    chrNameAndCount,
-                    lowestPos,
-                    highestPos,
-                    strandBases
-            );
-            */
-
             if (!layout.containsKey(chrNameAndCount.getKey())) {
                 layout.put(chrNameAndCount.getKey(), new TreeSet<>());
             }
@@ -106,8 +112,10 @@ public class DetermineAssemblyLayout extends Module {
             ContainerUtils.add(layout, chrNameAndCount.getKey(), new ContigInfo(contigName, contigSeqs.get(contigName), lowestPos, highestPos, strandBases >= 0));
         }
 
+        //aout.println("##agp-version\t2.0");
+
         for (String chr : layout.keySet()) {
-            log.info("chr: {}", chr);
+            log.info("chr: {} {}", chr, refSeqs.get(chr).length());
 
             for (ContigInfo ci : layout.get(chr)) {
                 log.info("     {}", ci);
