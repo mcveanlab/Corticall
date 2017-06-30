@@ -29,7 +29,7 @@ public class ExtractExons extends Module {
         for (GFF3Record gr : GFF) {
             if (gr.getType().equals("exon")) {
                 String id = gr.getAttribute("ID");
-                String seq = REFERENCE.getSubsequenceAt(gr.getSource(), gr.getStart(), gr.getEnd()).getBaseString();
+                String seq = REFERENCE.getSubsequenceAt(gr.getSeqid(), gr.getStart(), gr.getEnd()).getBaseString();
                 if (gr.getStrand().equals(GFF3Record.Strand.NEGATIVE)) {
                     seq = SequenceUtils.reverseComplement(seq);
                 }
