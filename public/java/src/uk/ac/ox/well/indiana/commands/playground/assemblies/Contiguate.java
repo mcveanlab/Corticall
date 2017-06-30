@@ -56,6 +56,7 @@ public class Contiguate extends Module {
         log.info("  {} contigs loaded", seqsFwd.size());
 
         log.info("Loading alignments...");
+        Map<String, String> nameMapping = new HashMap<>();
         Map<String, Set<ReferenceSequence>> alignments = new LinkedHashMap<>();
         Set<String> used = new HashSet<>();
 
@@ -64,16 +65,23 @@ public class Contiguate extends Module {
             Map<String, String> m = tr.next();
 
             String rname = m.get("CONR");
-            String nname = rname;
-            for (int i = 0; i < FIND_PATTERNS.size(); i++) {
-                nname = nname.replaceAll(FIND_PATTERNS.get(i), REPLACEMENT_PATTERNS.get(i));
-            }
+            String nname;
+            if (nameMapping.containsKey(rname)) {
+                nname = nameMapping.get(rname);
+            } else {
+                nname = rname;
+                for (int i = 0; i < FIND_PATTERNS.size(); i++) {
+                    nname = nname.replaceAll(FIND_PATTERNS.get(i), REPLACEMENT_PATTERNS.get(i));
+                }
 
-            if (rname.equals(nname) || nname.isEmpty()) {
-                throw new IndianaException("Regex for chromosome name transformation didn't work (rname='" + rname + "' nname='" + nname + "' find='" + FIND_PATTERNS + "', replace='" + REPLACEMENT_PATTERNS + "')");
-            }
+                if (rname.equals(nname) || nname.isEmpty()) {
+                    throw new IndianaException("Regex for chromosome name transformation didn't work (rname='" + rname + "' nname='" + nname + "' find='" + FIND_PATTERNS + "', replace='" + REPLACEMENT_PATTERNS + "')");
+                }
 
-            log.info("  transform {} -> {}", rname, nname);
+                log.info("  transform {} -> {}", rname, nname);
+
+                nameMapping.put(rname, nname);
+            }
 
             String qname = m.get("CONQ");
             boolean positiveStrand = m.get("STRANDQ").equals("1");
