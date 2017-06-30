@@ -39,6 +39,7 @@ public class DetermineAssemblyLayout extends Module {
         }
 
         Map<String, Map<String, Integer>> freq = new HashMap<>();
+        Map<String, Map<String, Integer>> strands = new HashMap<>();
         Map<String, Map<String, Set<GFF3Record>>> exonPlacements = new HashMap<>();
 
         for (SAMRecord sr : EXONS) {
@@ -48,25 +49,20 @@ public class DetermineAssemblyLayout extends Module {
             if (grrecs.containsKey(id) && isHighQualityPlacement(sr.getCigar())) {
                 if (!freq.containsKey(sr.getReferenceName())) {
                     freq.put(sr.getReferenceName(), new HashMap<>());
+                    strands.put(sr.getReferenceName(), new HashMap<>());
                     exonPlacements.put(sr.getReferenceName(), new HashMap<>());
                 }
 
                 if (!freq.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
                     freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), 0);
+                    strands.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), 0);
                     exonPlacements.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), new HashSet<>());
                 }
 
                 freq.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), freq.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + sr.getReadLength());
 
-                /*
-                if (!exonPlacements.containsKey(sr.getReferenceName())) {
-                    exonPlacements.put(sr.getReferenceName(), new HashMap<>());
-                }
-
-                if (!exonPlacements.get(sr.getReferenceName()).containsKey(grrecs.get(id).getSeqid())) {
-                    exonPlacements.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), new HashSet<>());
-                }
-                */
+                int mult = sr.getReadNegativeStrandFlag() ? -1 : 1;
+                strands.get(sr.getReferenceName()).put(grrecs.get(id).getSeqid(), strands.get(sr.getReferenceName()).get(grrecs.get(id).getSeqid()) + mult*sr.getReadLength());
 
                 ContainerUtils.add(exonPlacements.get(sr.getReferenceName()), grrecs.get(id).getSeqid(), grrecs.get(id));
             }
@@ -75,27 +71,21 @@ public class DetermineAssemblyLayout extends Module {
         for (String contigName : freq.keySet()) {
             Map.Entry<String, Integer> chrNameAndCount = entriesSortedByValues(freq.get(contigName)).iterator().next();
 
+            int strandBases = strands.get(contigName).get(chrNameAndCount.getKey());
             int lowestPos = Integer.MAX_VALUE;
             int highestPos = 0;
-            int numPos = 0, numNeg = 0;
 
             for (GFF3Record gr : exonPlacements.get(contigName).get(chrNameAndCount.getKey())) {
                 if (gr.getStart() < lowestPos) { lowestPos = gr.getStart(); }
                 if (gr.getEnd() > highestPos) { highestPos = gr.getEnd(); }
-                if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
-                    numPos += gr.getEnd() - gr.getStart();
-                } else {
-                    numNeg += gr.getEnd() - gr.getStart();
-                }
             }
 
-            log.info("{} {} {} {} {} {}",
+            log.info("{} {} {} {} {}",
                     contigName,
                     chrNameAndCount,
                     lowestPos,
                     highestPos,
-                    numPos,
-                    numNeg
+                    strandBases
             );
         }
     }
