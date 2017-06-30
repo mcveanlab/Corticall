@@ -6,6 +6,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -30,6 +31,12 @@ public class DetermineAssemblyLayout extends Module {
 
     @Override
     public void execute() {
+        Map<String, String> contigSeqs = new HashMap<>();
+        ReferenceSequence rseq;
+        while ((rseq = DRAFT.nextSequence()) != null) {
+            contigSeqs.put(rseq.getName().split("\\s+")[0], rseq.getBaseString());
+        }
+
         Map<String, GFF3Record> grrecs = new HashMap<>();
         Map<String, SAMRecord> srrecs = new HashMap<>();
 
@@ -96,7 +103,7 @@ public class DetermineAssemblyLayout extends Module {
                 layout.put(chrNameAndCount.getKey(), new TreeSet<>());
             }
 
-            ContainerUtils.add(layout, chrNameAndCount.getKey(), new ContigInfo(contigName, lowestPos, highestPos, strandBases >= 0));
+            ContainerUtils.add(layout, chrNameAndCount.getKey(), new ContigInfo(contigName, contigSeqs.get(contigName), lowestPos, highestPos, strandBases >= 0));
         }
 
         for (String chr : layout.keySet()) {
@@ -110,12 +117,14 @@ public class DetermineAssemblyLayout extends Module {
 
     private class ContigInfo implements Comparable<ContigInfo> {
         public String contigName;
+        public String contigSeq;
         public int start;
         public int end;
         public boolean isForward;
 
-        public ContigInfo(String contigName, int start, int end, boolean isForward) {
+        public ContigInfo(String contigName, String contigSeq, int start, int end, boolean isForward) {
             this.contigName = contigName;
+            this.contigSeq = contigSeq;
             this.start = start;
             this.end = end;
             this.isForward = isForward;
@@ -131,6 +140,7 @@ public class DetermineAssemblyLayout extends Module {
         public String toString() {
             return "ContigInfo{" +
                     "contigName='" + contigName + '\'' +
+                    ", length=" + contigSeq.length() +
                     ", start=" + start +
                     ", end=" + end +
                     ", isForward=" + isForward +
