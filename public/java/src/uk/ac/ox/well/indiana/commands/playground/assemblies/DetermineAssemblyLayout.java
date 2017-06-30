@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.commands.playground.assemblies;
 
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.reference.FastaSequenceFile;
@@ -42,11 +44,7 @@ public class DetermineAssemblyLayout extends Module {
             String id = sr.getReadName();
             srrecs.put(id, sr);
 
-            if (grrecs.containsKey(id) && sr.getCigar().numCigarElements() == 1) {
-                //log.info("gff: {}", grrecs.get(id));
-                //log.info("sam: {}", srrecs.get(id).getSAMString());
-                //log.info("--");
-
+            if (grrecs.containsKey(id) && isHighQualityPlacement(sr.getCigar())) {
                 if (!freq.containsKey(sr.getReferenceName())) {
                     freq.put(sr.getReferenceName(), new HashMap<>());
                 }
@@ -61,11 +59,23 @@ public class DetermineAssemblyLayout extends Module {
         }
 
         for (String contigName : freq.keySet()) {
-            log.info("{} {}", contigName, entriesSortedByValues(freq.get(contigName)));
+            log.info("{} {}", contigName, entriesSortedByValues(freq.get(contigName)).iterator().next());
         }
     }
 
-    static <K,V extends Comparable<? super V>> SortedSet<Map.Entry<K,V>> entriesSortedByValues(Map<K,V> map) {
+    private static boolean isHighQualityPlacement(Cigar cigar) {
+        int numClips = 0;
+
+        for (CigarElement ce : cigar.getCigarElements()) {
+            if (ce.getOperator().isClipping()) {
+                numClips++;
+            }
+        }
+
+        return numClips == 0;
+    }
+
+    private static <K,V extends Comparable<? super V>> SortedSet<Map.Entry<K,V>> entriesSortedByValues(Map<K,V> map) {
         SortedSet<Map.Entry<K,V>> sortedEntries = new TreeSet<>(
                 new Comparator<Map.Entry<K,V>>() {
                     @Override public int compare(Map.Entry<K,V> e1, Map.Entry<K,V> e2) {
