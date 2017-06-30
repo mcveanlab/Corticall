@@ -140,7 +140,7 @@ public class DetermineAssemblyLayout extends Module {
         public String toString() {
             return "ContigInfo{" +
                     "contigName='" + contigName + '\'' +
-                    ", length=" + contigSeq.length() +
+                    ", length=" + (contigSeq == null ? 0 : contigSeq.length()) +
                     ", start=" + start +
                     ", end=" + end +
                     ", isForward=" + isForward +
