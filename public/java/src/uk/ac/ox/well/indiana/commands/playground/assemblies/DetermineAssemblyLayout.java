@@ -14,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -114,11 +115,16 @@ public class DetermineAssemblyLayout extends Module {
 
         //aout.println("##agp-version\t2.0");
 
+        Map<String, List<String>> chrContigs = new TreeMap<>();
+
         for (String chr : layout.keySet()) {
             log.info("chr: {} {}", chr, refSeqs.get(chr).length());
+            chrContigs.put(chr, new ArrayList<>());
 
             for (ContigInfo ci : layout.get(chr)) {
                 log.info("     {}", ci);
+
+                chrContigs.get(chr).add(ci.isForward ? ci.contigSeq : SequenceUtils.reverseComplement(ci.contigSeq));
             }
         }
     }

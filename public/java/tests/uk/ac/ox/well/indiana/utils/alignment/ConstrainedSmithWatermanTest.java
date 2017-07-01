@@ -5,13 +5,17 @@ import uk.ac.ox.well.indiana.utils.alignment.sw.ConstrainedSmithWaterman;
 import uk.ac.ox.well.indiana.utils.alignment.sw.SmithWaterman;
 
 public class ConstrainedSmithWatermanTest {
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testAlignment() {
-        String ref = "ACACACTA";
-        String query = "AGCACACA";
+        String ref   = "TTTTCAGTACTAGTTCTAGTCATTATAAAACTGTCATG";
+        String query = "GTCATTATAAAACTGTCATGTTTCATATATGTCATGGGGGCTAG";
 
         System.out.println(ref);
         System.out.println(query);
+
+        /*
+        String ref   = "ACACACTA";
+        String query = "AGCACACA";
 
         ConstrainedSmithWaterman csw = new ConstrainedSmithWaterman(ref, query, 2, -1, -1);
         int[][] scoreTable = csw.getScoreTable();
@@ -25,6 +29,7 @@ public class ConstrainedSmithWatermanTest {
 
         String[] alignment = csw.getAlignment();
         System.out.println(alignment[0] + " " + alignment[1]);
+        */
 
         SmithWaterman sw = new SmithWaterman(ref, query, 2, -1, -1);
         int[][] scoreTable2 = sw.getScoreTable();
