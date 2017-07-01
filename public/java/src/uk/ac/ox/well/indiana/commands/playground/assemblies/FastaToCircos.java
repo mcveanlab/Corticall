@@ -23,7 +23,7 @@ public class FastaToCircos extends Module {
     public String REPLACE_PATTERN;
 
     @Argument(fullName="breakAtNs", shortName="b", doc="Break at Ns")
-    public Boolean BREAK_AT_NS;
+    public Boolean BREAK_AT_NS = false;
 
     @Output
     public PrintStream out;
