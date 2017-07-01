@@ -26,7 +26,7 @@ public class FastaToCircos extends Module {
     public Boolean BREAK_AT_NS = false;
 
     @Argument(fullName="keepNames", shortName="k", doc="Keep contig names")
-    public Boolean MODIFY_NAMES = false;
+    public Boolean KEEP_NAMES = false;
 
     @Output
     public PrintStream out;
@@ -36,7 +36,7 @@ public class FastaToCircos extends Module {
         ReferenceSequence rseq;
         while ((rseq = SEQUENCE.nextSequence()) != null) {
             String draftName = rseq.getName().split("\\s+")[0];
-            String newName = MODIFY_NAMES ? draftName.replaceAll(FIND_PATTERN, REPLACE_PATTERN) : draftName;
+            String newName = KEEP_NAMES ? draftName : draftName.replaceAll(FIND_PATTERN, REPLACE_PATTERN);
 
             String[] fragments = new String[] { rseq.getBaseString() };
             if (BREAK_AT_NS) {
