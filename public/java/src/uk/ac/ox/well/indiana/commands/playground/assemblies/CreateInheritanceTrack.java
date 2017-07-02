@@ -91,8 +91,31 @@ public class CreateInheritanceTrack extends Module {
         log.info("  {} useful records found", kmerInheritance.size());
 
         log.info("Writing...");
+
+        int lastInheritance = -1;
+        String lastContig = null;
+        int lastStart = -1;
+        int lastEnd = -1;
         for (Interval it : kmerInheritance.keySet()) {
-            out.println(Joiner.on(" ").join(it.getContig(), it.getStart(), it.getEnd(), colorToIndexMap.get(kmerInheritance.get(it))));
+            if (lastInheritance == -1) {
+                lastInheritance = kmerInheritance.get(it);
+                lastContig = it.getContig();
+                lastStart = it.getStart();
+                lastEnd = it.getEnd();
+            }
+
+            if (lastInheritance == kmerInheritance.get(it) && lastContig.equals(it.getContig())) {
+                lastEnd = it.getEnd();
+            } else {
+                out.println(Joiner.on(" ").join(lastContig, lastStart, lastEnd, colorToIndexMap.get(lastInheritance)));
+
+                lastInheritance = kmerInheritance.get(it);
+                lastContig = it.getContig();
+                lastStart = it.getStart();
+                lastEnd = it.getEnd();
+            }
         }
+
+        out.println(Joiner.on(" ").join(lastContig, lastStart, lastEnd, colorToIndexMap.get(lastInheritance)));
     }
 }
