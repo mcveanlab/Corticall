@@ -48,7 +48,7 @@ public class FastaToCircos extends Module {
                 String fragment = fragments[i];
                 out.println(Joiner.on(" ").join(newName, pos, pos + fragment.length(), draftName + (fragments.length == 1 ? "" : "_" + i)));
 
-                pos += fragment.length();
+                pos += fragment.length() + 1;
             }
         }
     }
