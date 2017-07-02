@@ -475,7 +475,7 @@ public class IdentifyNahrEvents extends Module {
         /*
         Set<String> lss = new TreeSet<>();
         if (LOOKUPS != null) {
-            Set<Interval> loci = LOOKUP.findKmer(kmer);
+            Set<Interval> loci = LOOKUPS.findKmer(kmer);
 
             if (loci != null && loci.size() > 0) {
                 for (Interval locus : loci) {
