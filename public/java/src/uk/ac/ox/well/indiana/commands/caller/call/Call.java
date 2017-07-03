@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
+import com.google.common.base.Joiner;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
@@ -10,6 +11,7 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -75,8 +77,14 @@ public class Call extends Module {
     }
 
     private boolean isNahrEvent(String contigName, List<Map<String, String>> annotations) {
+        String finalAnnotatedContig = annotateContig(annotations);
+
+        log.info("best: {}", finalAnnotatedContig);
+
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background);
+
+            log.info(" {}: {}", background, annotatedContig);
 
             int numTemplateSwitches = numTemplateSwitches(annotatedContig);
             int numNovelRuns = numNovelRuns(annotatedContig);
@@ -214,6 +222,48 @@ public class Call extends Module {
         }
 
         return numNovelRuns;
+    }
+
+    private String annotateContig(List<Map<String, String>> annotations) {
+        List<List<String>> annotatedContigs = new ArrayList<>();
+
+        for (String background : LOOKUPS.keySet()) {
+            String annotatedContig = annotateContig(annotations, background);
+
+            String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
+
+            annotatedContigs.add(Arrays.asList(pieces));
+        }
+
+        List<String> finalPieces = new ArrayList<>();
+        for (int fragmentIndex = 0; fragmentIndex < annotatedContigs.get(0).size(); fragmentIndex++) {
+            int bestBackgroundIndex = 0;
+            int numKmersUniquelyPlaced = 0;
+
+            for (int backgroundIndex = 0; backgroundIndex < annotatedContigs.size(); backgroundIndex++) {
+                Map<String, Integer> codeUsageMap = new HashMap<>();
+
+                for (int codeIndex = 0; codeIndex < annotatedContigs.get(backgroundIndex).get(fragmentIndex).length(); codeIndex++) {
+                    char code = annotatedContigs.get(backgroundIndex).get(fragmentIndex).charAt(codeIndex);
+
+                    if (code != '.' && code != '_') {
+                        ContainerUtils.increment(codeUsageMap, String.valueOf(code));
+                    }
+                }
+
+                String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
+                int codeCount = codeUsageMap.get(mostCommonCode);
+
+                if (codeCount > numKmersUniquelyPlaced) {
+                    bestBackgroundIndex = backgroundIndex;
+                    numKmersUniquelyPlaced = codeCount;
+                }
+            }
+
+            finalPieces.add(annotatedContigs.get(bestBackgroundIndex).get(fragmentIndex));
+        }
+
+        return Joiner.on("").join(finalPieces);
     }
 
     private String annotateContig(List<Map<String, String>> annotations, String background) {
