@@ -210,8 +210,11 @@ public class MergeContigs extends Module {
 
                 String sk = arseq.getSequence();
                 List<String> gap = new ArrayList<>();
+                Set<String> seen = new HashSet<>();
 
                 do {
+                    seen.add(sk);
+
                     Set<CortexVertex> avs = !goForward ? e.getPrevVertices(sk) : e.getNextVertices(sk);
 
                     sk = null;
@@ -265,48 +268,16 @@ public class MergeContigs extends Module {
                                 }
                             }
 
-                            /*
-                            if (rseq.getName().contains("contig58")) {
-                                Contig aseq = Graphs.successorListOf(g, boundary).get(0);
-
-                                for (int i = 0; i < Math.max(rseq.length(), aseq.length()) - GRAPH.getKmerSize(); i++) {
-                                    String skr = (i + GRAPH.getKmerSize() <= rseq.length()) ? rseq.getSequence().substring(i, i + GRAPH.getKmerSize()) : null;
-                                    String ska = (i + GRAPH.getKmerSize() <= aseq.length()) ? aseq.getSequence().substring(i, i + GRAPH.getKmerSize()) : null;
-
-                                    Set<Interval> isr = new TreeSet<>();
-                                    if (skr != null) {
-                                        for (String background : LOOKUPS.keySet()) {
-                                            isr.addAll(LOOKUPS.get(background).findKmer(skr));
-                                        }
-                                    }
-
-                                    Set<Interval> isa = new TreeSet<>();
-                                    if (ska != null) {
-                                        for (String background : LOOKUPS.keySet()) {
-                                            isa.addAll(LOOKUPS.get(background).findKmer(ska));
-                                        }
-                                    }
-
-                                    log.info("{} {} {} {} {}", i, skr, ska, isr, isa);
-                                }
-                            }
-                            */
-
-                            log.info("Intersection: {}", intersectionLength);
-
                             List<Contig> arseqs2 = !goForward ? Graphs.predecessorListOf(g, boundary) : Graphs.successorListOf(g, boundary);
                             Contig aseq = arseqs2.get(0);
-                            //String gapString = sb.toString();
 
                             if (!goForward) {
-                                //g.addEdge(aseq, rseq, new LabeledEdge(gapString.substring(GRAPH.getKmerSize() - 1, gapString.length())));
                                 g.addEdge(aseq, rseq, new LabeledEdge(intersectionLength));
 
                                 log.info("  joined");
                                 log.info("    {}", aseq.getName());
                                 log.info("    {}", rseq.getName());
                             } else {
-                                //g.addEdge(rseq, aseq, new LabeledEdge(gapString.substring(0, gapString.length() - GRAPH.getKmerSize() + 1)));
                                 g.addEdge(rseq, aseq, new LabeledEdge(intersectionLength));
 
                                 log.info("  joined");
@@ -323,7 +294,7 @@ public class MergeContigs extends Module {
                             }
                         }
                     }
-                } while (sk != null);
+                } while (sk != null && !seen.contains(sk));
             }
         }
 
