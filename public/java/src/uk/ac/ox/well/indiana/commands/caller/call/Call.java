@@ -237,30 +237,36 @@ public class Call extends Module {
 
         List<String> finalPieces = new ArrayList<>();
         for (int fragmentIndex = 0; fragmentIndex < annotatedContigs.get(0).size(); fragmentIndex++) {
-            int bestBackgroundIndex = 0;
-            int numKmersUniquelyPlaced = 0;
+            log.info("{} {} {}", fragmentIndex, annotatedContigs.get(0).get(fragmentIndex), annotatedContigs.get(1).get(fragmentIndex));
 
-            for (int backgroundIndex = 0; backgroundIndex < annotatedContigs.size(); backgroundIndex++) {
-                Map<String, Integer> codeUsageMap = new HashMap<>();
+            if (annotatedContigs.get(0).get(fragmentIndex).contains(".")) {
+                finalPieces.add(annotatedContigs.get(0).get(fragmentIndex));
+            } else {
+                int bestBackgroundIndex = 0;
+                int numKmersUniquelyPlaced = 0;
 
-                for (int codeIndex = 0; codeIndex < annotatedContigs.get(backgroundIndex).get(fragmentIndex).length(); codeIndex++) {
-                    char code = annotatedContigs.get(backgroundIndex).get(fragmentIndex).charAt(codeIndex);
+                for (int backgroundIndex = 0; backgroundIndex < annotatedContigs.size(); backgroundIndex++) {
+                    Map<String, Integer> codeUsageMap = new HashMap<>();
 
-                    if (code != '.' && code != '_') {
-                        ContainerUtils.increment(codeUsageMap, String.valueOf(code));
+                    for (int codeIndex = 0; codeIndex < annotatedContigs.get(backgroundIndex).get(fragmentIndex).length(); codeIndex++) {
+                        char code = annotatedContigs.get(backgroundIndex).get(fragmentIndex).charAt(codeIndex);
+
+                        if (code != '.' && code != '_') {
+                            ContainerUtils.increment(codeUsageMap, String.valueOf(code));
+                        }
+                    }
+
+                    String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
+                    int codeCount = codeUsageMap.get(mostCommonCode);
+
+                    if (codeCount > numKmersUniquelyPlaced) {
+                        bestBackgroundIndex = backgroundIndex;
+                        numKmersUniquelyPlaced = codeCount;
                     }
                 }
 
-                String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
-                int codeCount = codeUsageMap.get(mostCommonCode);
-
-                if (codeCount > numKmersUniquelyPlaced) {
-                    bestBackgroundIndex = backgroundIndex;
-                    numKmersUniquelyPlaced = codeCount;
-                }
+                finalPieces.add(annotatedContigs.get(bestBackgroundIndex).get(fragmentIndex));
             }
-
-            finalPieces.add(annotatedContigs.get(bestBackgroundIndex).get(fragmentIndex));
         }
 
         return Joiner.on("").join(finalPieces);
