@@ -99,14 +99,19 @@ public class AnnotateContigs extends Module {
 
                 CortexRecord rr = ROI.findRecord(ck);
 
-                Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-                Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+                Set<String> childIncomingEdges = new HashSet<>();
+                Set<String> childOutgoingEdges = new HashSet<>();
 
-                Set<String> childIncomingEdges = incomingKmers != null ? incomingKmers.get(childColor) : new HashSet<>();
-                Set<String> childOutgoingEdges = outgoingKmers != null ? outgoingKmers.get(childColor) : new HashSet<>();
-                for (int c : parentColors) {
-                    childIncomingEdges.removeAll(incomingKmers.get(c));
-                    childOutgoingEdges.removeAll(outgoingKmers.get(c));
+                if (cr != null) {
+                    Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                    Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+
+                    childIncomingEdges = incomingKmers.get(childColor);
+                    childOutgoingEdges = outgoingKmers.get(childColor);
+                    for (int c : parentColors) {
+                        childIncomingEdges.removeAll(incomingKmers.get(c));
+                        childOutgoingEdges.removeAll(outgoingKmers.get(c));
+                    }
                 }
 
                 boolean isNovel = rr != null;
