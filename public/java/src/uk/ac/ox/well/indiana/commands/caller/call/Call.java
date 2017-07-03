@@ -238,13 +238,14 @@ public class Call extends Module {
         }
 
         List<String> finalPieces = new ArrayList<>();
-        int bestBackgroundIndex = 0;
+        int lastBestBackgroundIndex = 0;
         for (int fragmentIndex = 0; fragmentIndex < annotatedContigs.get(0).size(); fragmentIndex++) {
             log.info("{} {} {}", fragmentIndex, annotatedContigs.get(0).get(fragmentIndex), annotatedContigs.get(1).get(fragmentIndex));
 
             if (annotatedContigs.get(0).get(fragmentIndex).contains(".")) {
                 finalPieces.add(annotatedContigs.get(0).get(fragmentIndex));
             } else {
+                int bestBackgroundIndex = 0;
                 int numKmersUniquelyPlaced = 0;
 
                 for (int backgroundIndex = 0; backgroundIndex < annotatedContigs.size(); backgroundIndex++) {
@@ -261,8 +262,11 @@ public class Call extends Module {
                     String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
                     int codeCount = codeUsageMap.get(mostCommonCode);
 
-                    if (codeCount > numKmersUniquelyPlaced) {
+                    if (codeCount == numKmersUniquelyPlaced) {
+                        bestBackgroundIndex = lastBestBackgroundIndex;
+                    } else if (codeCount > numKmersUniquelyPlaced) {
                         bestBackgroundIndex = backgroundIndex;
+                        lastBestBackgroundIndex = backgroundIndex;
                         numKmersUniquelyPlaced = codeCount;
                     }
                 }
