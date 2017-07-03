@@ -71,7 +71,7 @@ public class CreateInheritanceTrack extends Module {
             int parentColorWithCoverage = -1;
 
             for (int c : parentColors) {
-                if (cr.getCoverage(c) > 0) {
+                if (cr.getCoverage(c) > 30) {
                     numParentsWithCoverage++;
                     parentColorWithCoverage = c;
                 }
