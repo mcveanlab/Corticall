@@ -232,6 +232,8 @@ public class Call extends Module {
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
+            log.info("{} {} {}", background, annotatedContig, pieces);
+
             annotatedContigs.add(Arrays.asList(pieces));
         }
 
