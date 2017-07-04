@@ -77,27 +77,21 @@ public class Call extends Module {
     }
 
     private boolean isNahrEvent(String contigName, List<Map<String, String>> annotations) {
-        String finalAnnotatedContig = annotateContig(annotations);
+        String annotatedContig = annotateContig(annotations);
 
-        log.info("best: {}", finalAnnotatedContig);
+        int numTemplateSwitches = numTemplateSwitches(annotatedContig);
+        int numNovelRuns = numNovelRuns(annotatedContig);
 
-        for (String background : LOOKUPS.keySet()) {
-            String annotatedContig = annotateContig(annotations, background);
+        //numBubbles(annotatedContig, annotations);
 
-            log.info(" {}: {}", background, annotatedContig);
+        log.info("{} {} {}", numTemplateSwitches, numNovelRuns, annotatedContig);
 
-            int numTemplateSwitches = numTemplateSwitches(annotatedContig);
-            int numNovelRuns = numNovelRuns(annotatedContig);
+        if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
+            log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
 
-            //numBubbles(annotatedContig, annotations);
+            out.println(contigName + "\t" + annotatedContig);
 
-            if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
-                log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
-
-                out.println(contigName + "\t" + background + "\t" + annotatedContig);
-
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -232,16 +226,12 @@ public class Call extends Module {
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
-            log.info("{} {} {}", background, annotatedContig, pieces);
-
             annotatedContigs.add(Arrays.asList(pieces));
         }
 
         List<String> finalPieces = new ArrayList<>();
         int lastBestBackgroundIndex = 0;
         for (int fragmentIndex = 0; fragmentIndex < annotatedContigs.get(0).size(); fragmentIndex++) {
-            log.info("{} {} {}", fragmentIndex, annotatedContigs.get(0).get(fragmentIndex), annotatedContigs.get(1).get(fragmentIndex));
-
             if (annotatedContigs.get(0).get(fragmentIndex).contains(".")) {
                 finalPieces.add(annotatedContigs.get(0).get(fragmentIndex));
             } else {
