@@ -282,6 +282,8 @@ public class Call extends Module {
     private String annotateContig(List<Map<String, String>> annotations, String background, Map<String, String> chrCodes) {
         StringBuilder ab = new StringBuilder();
 
+        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
         for (Map<String, String> m : annotations) {
             String[] lociStrings = m.get(background).split(";");
 
@@ -293,7 +295,11 @@ public class Call extends Module {
                 String[] pieces = lociStrings[0].split(":");
                 String contig = pieces[0];
 
-                code = chrCodes.get(contig);
+                if (contig.equals("NA")) {
+                    code = String.valueOf(rng.nextInt(alphabet.length()));
+                } else {
+                    code = chrCodes.get(contig);
+                }
             }
 
             ab.append(code);
