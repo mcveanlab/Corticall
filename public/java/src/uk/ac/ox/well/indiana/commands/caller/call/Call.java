@@ -249,6 +249,8 @@ public class Call extends Module {
                         }
                     }
 
+                    log.info("{} {} '{}'", fragmentIndex, backgroundIndex, annotatedContigs.get(backgroundIndex).get(fragmentIndex));
+
                     String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
                     int codeCount = codeUsageMap.get(mostCommonCode);
 
