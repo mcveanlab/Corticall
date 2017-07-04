@@ -84,7 +84,6 @@ public class Call extends Module {
 
         //numBubbles(annotatedContig, annotations);
 
-        log.debug("{}", annotatedContig);
         log.info("{} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig.length());
 
         if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
@@ -222,13 +221,9 @@ public class Call extends Module {
     private String annotateContig(List<Map<String, String>> annotations) {
         Map<String, String> chrCodes = createContigEncoding(annotations, LOOKUPS.keySet());
 
-        log.info("ce: {}", chrCodes);
-
         List<List<String>> annotatedContigs = new ArrayList<>();
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background, chrCodes);
-
-            log.debug("{}", annotatedContig);
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
