@@ -266,12 +266,12 @@ public class Call extends Module {
                         bestBackgroundIndex = lastBestBackgroundIndex;
                     } else if (codeCount > numKmersUniquelyPlaced) {
                         bestBackgroundIndex = backgroundIndex;
-                        lastBestBackgroundIndex = backgroundIndex;
                         numKmersUniquelyPlaced = codeCount;
                     }
                 }
 
                 finalPieces.add(annotatedContigs.get(bestBackgroundIndex).get(fragmentIndex));
+                lastBestBackgroundIndex = bestBackgroundIndex;
             }
         }
 
