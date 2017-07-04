@@ -220,9 +220,11 @@ public class Call extends Module {
     }
 
     private String annotateContig(List<Map<String, String>> annotations) {
-        List<List<String>> annotatedContigs = new ArrayList<>();
         Map<String, String> chrCodes = createContigEncoding(annotations, LOOKUPS.keySet());
 
+        log.info("ce: {}", chrCodes);
+
+        List<List<String>> annotatedContigs = new ArrayList<>();
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background, chrCodes);
 
