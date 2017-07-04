@@ -84,7 +84,7 @@ public class Call extends Module {
 
         //numBubbles(annotatedContig, annotations);
 
-        log.info("{} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
+        log.info("{} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
 
         if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
             log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
@@ -220,9 +220,10 @@ public class Call extends Module {
 
     private String annotateContig(List<Map<String, String>> annotations) {
         List<List<String>> annotatedContigs = new ArrayList<>();
+        Map<String, String> chrCodes = createContigEncoding(annotations, LOOKUPS.keySet());
 
         for (String background : LOOKUPS.keySet()) {
-            String annotatedContig = annotateContig(annotations, background);
+            String annotatedContig = annotateContig(annotations, background, chrCodes);
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
@@ -249,8 +250,6 @@ public class Call extends Module {
                         }
                     }
 
-                    log.info("{} {} '{}'", fragmentIndex, backgroundIndex, annotatedContigs.get(backgroundIndex).get(fragmentIndex));
-
                     String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
                     if (mostCommonCode != null) {
                         int codeCount = codeUsageMap.get(mostCommonCode);
@@ -275,9 +274,7 @@ public class Call extends Module {
         return Joiner.on("").join(finalPieces);
     }
 
-    private String annotateContig(List<Map<String, String>> annotations, String background) {
-        Map<String, String> chrCodes = createContigEncoding(annotations, background);
-
+    private String annotateContig(List<Map<String, String>> annotations, String background, Map<String, String> chrCodes) {
         StringBuilder ab = new StringBuilder();
 
         for (Map<String, String> m : annotations) {
@@ -301,27 +298,29 @@ public class Call extends Module {
     }
 
     @NotNull
-    private Map<String, String> createContigEncoding(List<Map<String, String>> annotations, String background) {
+    private Map<String, String> createContigEncoding(List<Map<String, String>> annotations, Set<String> backgrounds) {
         Map<String, String> contigEncoding = new HashMap<>();
 
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         Set<String> usedCodes = new HashSet<>();
 
         for (Map<String, String> m : annotations) {
-            String[] lociStrings = m.get(background).split(";");
+            for (String background : backgrounds) {
+                String[] lociStrings = m.get(background).split(";");
 
-            if (lociStrings.length == 1) {
-                String[] pieces = lociStrings[0].split(":");
-                String contig = pieces[0];
+                if (lociStrings.length == 1) {
+                    String[] pieces = lociStrings[0].split(":");
+                    String contig = pieces[0];
 
-                if (!contigEncoding.containsKey(contig)) {
-                    String c;
-                    do {
-                        c = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
-                    } while(usedCodes.contains(c) && usedCodes.size() < alphabet.length());
+                    if (!contigEncoding.containsKey(contig)) {
+                        String c;
+                        do {
+                            c = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
+                        } while (usedCodes.contains(c) && usedCodes.size() < alphabet.length());
 
-                    contigEncoding.put(contig, c);
-                    usedCodes.add(c);
+                        contigEncoding.put(contig, c);
+                        usedCodes.add(c);
+                    }
                 }
             }
         }
