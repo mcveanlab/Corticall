@@ -31,6 +31,10 @@ public class ContainerUtils {
     }
 
     public static String mostCommonKey(Map<String, Integer> map) {
+        if (map.isEmpty()) {
+            return null;
+        }
+
         String commonKey = map.keySet().iterator().next();
         int count = map.get(commonKey);
 
