@@ -252,13 +252,18 @@ public class Call extends Module {
                     log.info("{} {} '{}'", fragmentIndex, backgroundIndex, annotatedContigs.get(backgroundIndex).get(fragmentIndex));
 
                     String mostCommonCode = ContainerUtils.mostCommonKey(codeUsageMap);
-                    int codeCount = codeUsageMap.get(mostCommonCode);
+                    if (mostCommonCode != null) {
+                        int codeCount = codeUsageMap.get(mostCommonCode);
 
-                    if (codeCount == numKmersUniquelyPlaced) {
-                        bestBackgroundIndex = lastBestBackgroundIndex;
-                    } else if (codeCount > numKmersUniquelyPlaced) {
-                        bestBackgroundIndex = backgroundIndex;
-                        numKmersUniquelyPlaced = codeCount;
+                        if (codeCount == numKmersUniquelyPlaced) {
+                            bestBackgroundIndex = lastBestBackgroundIndex;
+                        } else if (codeCount > numKmersUniquelyPlaced) {
+                            bestBackgroundIndex = backgroundIndex;
+                            numKmersUniquelyPlaced = codeCount;
+                        }
+                    } else {
+                        // TODO: this is basically saying that within a single fragment, we weren't able to find any useful location information.  But other fragments may hold it.  Stopping here without looking ahead is dumb.  Fix this.
+                        bestBackgroundIndex = 0;
                     }
                 }
 
