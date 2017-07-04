@@ -296,7 +296,7 @@ public class Call extends Module {
                 String contig = pieces[0];
 
                 if (contig.equals("NA")) {
-                    code = String.valueOf(rng.nextInt(alphabet.length()));
+                    code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
                 } else {
                     code = chrCodes.get(contig);
                 }
