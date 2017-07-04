@@ -84,7 +84,7 @@ public class Call extends Module {
 
         //numBubbles(annotatedContig, annotations);
 
-        log.info("{} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
+        log.info("{} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig.length());
 
         if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
             log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
@@ -224,6 +224,8 @@ public class Call extends Module {
 
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background, chrCodes);
+
+            log.debug("{}", annotatedContig);
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
