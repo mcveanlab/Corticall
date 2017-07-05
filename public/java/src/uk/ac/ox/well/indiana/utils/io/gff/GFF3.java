@@ -54,7 +54,7 @@ public class GFF3 implements Iterable<GFF3Record>, Iterator<GFF3Record> {
 
             String line;
             while ((line = lr.getNextRecord()) != null) {
-                if (line.startsWith("##")) {
+                if (line.startsWith("##") && !line.equals("###")) {
                     String[] fields = line.replaceFirst("##", "").split("\\s+");
 
                     if (fields[0].equalsIgnoreCase("sequence-region")) {
