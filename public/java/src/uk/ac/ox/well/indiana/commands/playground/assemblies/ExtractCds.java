@@ -51,7 +51,7 @@ public class ExtractCds extends Module {
                 }
 
                 if (exons.size() > 0) {
-                    out.println(">" + gr.getAttribute("ID"));
+                    out.println(">" + gr.getAttribute("ID") + ":" + (gr.getStrand().equals(GFF3Record.Strand.POSITIVE) ? ":" : "-"));
                     out.println(Joiner.on("").join(exons));
                 }
             }
