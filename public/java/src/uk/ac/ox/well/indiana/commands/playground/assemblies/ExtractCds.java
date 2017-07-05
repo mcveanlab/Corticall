@@ -49,7 +49,7 @@ public class ExtractCds extends Module {
                 String cds = Joiner.on("").join(exons);
 
                 if (exons.size() > 0) {
-                    out.println(">" + gr.getAttribute("ID") + ":" + (gr.getStrand().equals(GFF3Record.Strand.POSITIVE) ? "+" : "-"));
+                    out.println(">" + gr.getAttribute("ID"));
                     out.println(cds);
                 }
             }
