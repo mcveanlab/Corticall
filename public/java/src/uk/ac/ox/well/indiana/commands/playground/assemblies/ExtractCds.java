@@ -38,7 +38,7 @@ public class ExtractCds extends Module {
 
                 List<String> exons = new ArrayList<>();
 
-                for (GFF3Record grcds : GFF3.getType("CDS", GFF.getChildren(gr))) {
+                for (GFF3Record grcds : GFF3.getType("CDS", GFF.getContained(gr))) {
                     log.info("  {}", grcds);
 
                     ReferenceSequence rseq = REF.getSubsequenceAt(grcds.getSeqid(), grcds.getStart(), grcds.getEnd());
