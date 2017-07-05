@@ -34,9 +34,13 @@ public class ExtractCds extends Module {
     public void execute() {
         for (GFF3Record gr : GFF) {
             if (gr.getType().equals("gene")) {
+                log.info("{}", gr);
+
                 List<String> exons = new ArrayList<>();
 
                 for (GFF3Record grcds : GFF3.getType("CDS", GFF.getChildren(gr))) {
+                    log.info("  {}", grcds);
+
                     ReferenceSequence rseq = REF.getSubsequenceAt(grcds.getSeqid(), grcds.getStart(), grcds.getEnd());
 
                     if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
