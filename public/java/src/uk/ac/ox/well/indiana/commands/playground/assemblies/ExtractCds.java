@@ -50,8 +50,10 @@ public class ExtractCds extends Module {
                     }
                 }
 
-                out.println(">" + gr.getAttribute("ID"));
-                out.println(Joiner.on("").join(exons));
+                if (exons.size() > 0) {
+                    out.println(">" + gr.getAttribute("ID"));
+                    out.println(Joiner.on("").join(exons));
+                }
             }
         }
     }
