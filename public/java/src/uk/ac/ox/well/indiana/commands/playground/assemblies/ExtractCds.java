@@ -47,7 +47,7 @@ public class ExtractCds extends Module {
                 }
 
                 String cds = Joiner.on("").join(exons);
-                if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
+                if (gr.getStrand().equals(GFF3Record.Strand.NEGATIVE)) {
                     cds = SequenceUtils.reverseComplement(cds);
                 }
 
