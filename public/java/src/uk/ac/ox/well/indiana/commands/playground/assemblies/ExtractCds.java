@@ -10,6 +10,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -42,17 +43,17 @@ public class ExtractCds extends Module {
                     //log.info("  {}", grcds);
 
                     ReferenceSequence rseq = REF.getSubsequenceAt(grcds.getSeqid(), grcds.getStart(), grcds.getEnd());
+                    exons.add(rseq.getBaseString());
+                }
 
-                    if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
-                        exons.add(rseq.getBaseString());
-                    } else {
-                        exons.add(0, rseq.getBaseString());
-                    }
+                String cds = Joiner.on("").join(exons);
+                if (gr.getStrand().equals(GFF3Record.Strand.POSITIVE)) {
+                    cds = SequenceUtils.reverseComplement(cds);
                 }
 
                 if (exons.size() > 0) {
-                    out.println(">" + gr.getAttribute("ID") + ":" + (gr.getStrand().equals(GFF3Record.Strand.POSITIVE) ? ":" : "-"));
-                    out.println(Joiner.on("").join(exons));
+                    out.println(">" + gr.getAttribute("ID") + ":" + (gr.getStrand().equals(GFF3Record.Strand.POSITIVE) ? "+" : "-"));
+                    out.println(cds);
                 }
             }
         }
