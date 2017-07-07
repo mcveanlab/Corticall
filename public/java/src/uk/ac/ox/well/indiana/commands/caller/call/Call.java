@@ -80,19 +80,18 @@ public class Call extends Module {
     }
 
     private boolean isNahrEvent(String contigName, List<Map<String, String>> annotations) {
+        String contig = getContig(annotations);
         String annotatedContig = annotateContig(annotations);
 
         int numTemplateSwitches = numTemplateSwitches(annotatedContig);
         int numNovelRuns = numNovelRuns(annotatedContig);
-
-        //numBubbles(annotatedContig, annotations);
 
         log.info("{} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig.length());
 
         if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
             log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
 
-            out.println(contigName + "\t" + annotatedContig);
+            out.println(contigName + "\t" + annotatedContig + "\t" + contig);
 
             return true;
         }
@@ -112,7 +111,6 @@ public class Call extends Module {
             Set<CortexVertex> traversalSeeds = new HashSet<>();
 
             CortexVertex cvl = null;
-            //for (Map<String, String> ma : annotations) {
 
             CortexVertex mostRecentNonNovelKmer = null;
             boolean inNovelRun = false;
@@ -158,7 +156,6 @@ public class Call extends Module {
                     .traversalDirection(BOTH)
                     .traversalColor(c)
                     .joiningColors(childColor)
-                    //.previousTraversal(childContig)
                     .stopper(BubbleClosingStopper.class)
                     .graph(GRAPH)
                     .make();
@@ -221,9 +218,21 @@ public class Call extends Module {
         return numNovelRuns;
     }
 
-    private String annotateContig(List<Map<String, String>> annotations) {
-        Map<String, String> chrCodes = createContigEncoding(annotations, LOOKUPS.keySet());
+    private String getContig(List<Map<String, String>> annotations) {
+        StringBuilder sb = new StringBuilder();
 
+        for (Map<String, String> m : annotations) {
+            if (sb.length() == 0) {
+                sb.append(m.get("sk"));
+            } else {
+                sb.append(m.get("sk").substring(GRAPH.getKmerSize() - 1, GRAPH.getKmerSize()));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private String annotateContig(List<Map<String, String>> annotations) {
         List<List<String>> annotatedContigs = new ArrayList<>();
         Set<String> usedAlphabet = new HashSet<>();
         for (String background : LOOKUPS.keySet()) {
@@ -317,8 +326,6 @@ public class Call extends Module {
                     }
 
                     itm.put(it, code);
-
-                    //code = chrCodes.get(contig);
                 }
             }
 
@@ -326,37 +333,6 @@ public class Call extends Module {
         }
 
         return ab.toString();
-    }
-
-    @NotNull
-    private Map<String, String> createContigEncoding(List<Map<String, String>> annotations, Set<String> backgrounds) {
-        Map<String, String> contigEncoding = new HashMap<>();
-
-        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Set<String> usedCodes = new HashSet<>();
-
-        for (Map<String, String> m : annotations) {
-            for (String background : backgrounds) {
-                String[] lociStrings = m.get(background).split(";");
-
-                if (lociStrings.length == 1) {
-                    String[] pieces = lociStrings[0].split(":");
-                    String contig = pieces[0];
-
-                    if (!contigEncoding.containsKey(contig)) {
-                        String c;
-                        do {
-                            c = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
-                        } while (usedCodes.contains(c) && usedCodes.size() < alphabet.length());
-
-                        contigEncoding.put(contig, c);
-                        usedCodes.add(c);
-                    }
-                }
-            }
-        }
-
-        return contigEncoding;
     }
 
     private Map<String, List<Map<String, String>>> loadAnnotations() {
