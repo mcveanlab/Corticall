@@ -308,7 +308,7 @@ public class Call extends Module {
                     } else {
                         do {
                             code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
-                        } while (!usedAlphabet.contains(code) && usedAlphabet.size() < alphabet.length());
+                        } while (usedAlphabet.contains(code) && usedAlphabet.size() < alphabet.length());
                     }
 
                     if (usedAlphabet.size() >= alphabet.length()) {
