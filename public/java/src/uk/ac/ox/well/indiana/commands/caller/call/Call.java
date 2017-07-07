@@ -225,8 +225,9 @@ public class Call extends Module {
         Map<String, String> chrCodes = createContigEncoding(annotations, LOOKUPS.keySet());
 
         List<List<String>> annotatedContigs = new ArrayList<>();
+        Set<String> usedAlphabet = new HashSet<>();
         for (String background : LOOKUPS.keySet()) {
-            String annotatedContig = annotateContig(annotations, background, chrCodes);
+            String annotatedContig = annotateContig(annotations, background, usedAlphabet);
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
@@ -277,11 +278,10 @@ public class Call extends Module {
         return Joiner.on("").join(finalPieces);
     }
 
-    private String annotateContig(List<Map<String, String>> annotations, String background, Map<String, String> chrCodes) {
+    private String annotateContig(List<Map<String, String>> annotations, String background, Set<String> usedAlphabet) {
         StringBuilder ab = new StringBuilder();
 
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Set<String> usedAlphabet = new HashSet<>();
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
