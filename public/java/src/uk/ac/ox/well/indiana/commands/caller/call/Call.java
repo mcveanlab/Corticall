@@ -1,6 +1,8 @@
 package uk.ac.ox.well.indiana.commands.caller.call;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
@@ -12,6 +14,7 @@ import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
@@ -278,7 +281,9 @@ public class Call extends Module {
         StringBuilder ab = new StringBuilder();
 
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        Set<String> usedAlphabet = new HashSet<>();
 
+        IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
             String[] lociStrings = m.get(background).split(";");
 
@@ -289,11 +294,30 @@ public class Call extends Module {
             } else if (lociStrings.length == 1) {
                 String[] pieces = lociStrings[0].split(":");
                 String contig = pieces[0];
+                int start = Integer.valueOf(pieces[1]);
+                int end = Integer.valueOf(pieces[2]);
+
+                Interval it = new Interval(contig, start, end);
+                Interval lit = new Interval(contig, start - 500, end + 500);
 
                 if (contig.equals("NA")) {
                     code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
                 } else {
-                    code = chrCodes.get(contig);
+                    if (itm.containsOverlapping(lit)) {
+                        code = itm.getOverlapping(lit).iterator().next();
+                    } else {
+                        do {
+                            code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
+                        } while (!usedAlphabet.contains(code) && usedAlphabet.size() < alphabet.length());
+                    }
+
+                    if (usedAlphabet.size() >= alphabet.length()) {
+                        throw new IndianaException("Out of codes to assign.");
+                    }
+
+                    itm.put(it, code);
+
+                    //code = chrCodes.get(contig);
                 }
             }
 
