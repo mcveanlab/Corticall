@@ -292,7 +292,7 @@ public class Call extends Module {
             if (m.get("is_novel").equals("true")) {
                 code = ".";
             } else if (lociStrings.length == 1) {
-                String[] pieces = lociStrings[0].split(":");
+                String[] pieces = lociStrings[0].split("[:-]");
                 String contig = pieces[0];
                 int start = Integer.valueOf(pieces[1]);
                 int end = Integer.valueOf(pieces[2]);
