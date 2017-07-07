@@ -292,19 +292,18 @@ public class Call extends Module {
             if (m.get("is_novel").equals("true")) {
                 code = ".";
             } else if (lociStrings.length == 1) {
-                log.info("{}", lociStrings[0]);
-
                 String[] pieces = lociStrings[0].split("[:-]");
                 String contig = pieces[0];
-                int start = Integer.valueOf(pieces[1]);
-                int end = Integer.valueOf(pieces[2]);
-
-                Interval it = new Interval(contig, start, end);
-                Interval lit = new Interval(contig, start - 500, end + 500);
 
                 if (contig.equals("NA")) {
                     code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
                 } else {
+                    int start = Integer.valueOf(pieces[1]);
+                    int end = Integer.valueOf(pieces[2]);
+
+                    Interval it = new Interval(contig, start, end);
+                    Interval lit = new Interval(contig, start - 500, end + 500);
+
                     if (itm.containsOverlapping(lit)) {
                         code = itm.getOverlapping(lit).iterator().next();
                     } else {
