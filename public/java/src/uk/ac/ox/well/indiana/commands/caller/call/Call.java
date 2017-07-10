@@ -99,6 +99,7 @@ public class Call extends Module {
         return false;
     }
 
+    /*
     private void numBubbles(String annotatedContig, List<Map<String, String>> annotations) {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
@@ -187,6 +188,7 @@ public class Call extends Module {
             }
         }
     }
+    */
 
     private int numTemplateSwitches(String annotatedContig) {
         final String flankingNovelRegex = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
