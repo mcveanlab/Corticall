@@ -64,11 +64,12 @@ public class CreateInheritanceTrack extends Module {
                     if (childHasCoverage && !otherParentHasNoCoverage) {
                         if (start == -1) { start = i; }
                         stop = i + GRAPH.getKmerSize();
-                        //log.info("{} {} {}", rseq.getName().split("\\s+")[0], i, parent);
                     } else {
-                        log.info("{} {}:{}-{} {}", parent, rseq.getName().split("\\s+")[0], start, stop, stop - start);
-                        start = -1;
-                        stop = -1;
+                        if (start != -1) {
+                            log.info("{} {}:{}-{} {}", parent, rseq.getName().split("\\s+")[0], start, stop, stop - start);
+                            start = -1;
+                            stop = -1;
+                        }
                     }
                 }
             }
