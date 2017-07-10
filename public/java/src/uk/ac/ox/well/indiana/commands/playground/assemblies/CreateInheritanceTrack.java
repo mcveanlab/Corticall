@@ -49,6 +49,10 @@ public class CreateInheritanceTrack extends Module {
             ReferenceSequence rseq;
             while ((rseq = LOOKUPS.get(parent).getReferenceSequence().nextSequence()) != null) {
                 String seq = rseq.getBaseString();
+
+                int start = -1;
+                int stop = -1;
+
                 for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
@@ -58,9 +62,13 @@ public class CreateInheritanceTrack extends Module {
                     boolean otherParentHasNoCoverage = (cr != null && cr.getCoverage(otherParentColor) > 0);
 
                     if (childHasCoverage && !otherParentHasNoCoverage) {
-                        log.info("{} {} {}", rseq.getName().split("\\s+")[0], i, parent);
+                        if (start == -1) { start = i; }
+                        stop = i + GRAPH.getKmerSize();
+                        //log.info("{} {} {}", rseq.getName().split("\\s+")[0], i, parent);
                     } else {
-                        log.info("break?");
+                        log.info("{} {}:{}-{} {}", parent, rseq.getName().split("\\s+")[0], start, stop, stop - start);
+                        start = -1;
+                        stop = -1;
                     }
                 }
             }
