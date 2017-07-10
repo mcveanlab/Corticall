@@ -59,6 +59,8 @@ public class CreateInheritanceTrack extends Module {
 
                     if (childHasCoverage && !otherParentHasNoCoverage) {
                         log.info("{} {} {}", rseq.getName().split("\\s+")[0], i, parent);
+                    } else {
+                        log.info("break?");
                     }
                 }
             }
