@@ -201,7 +201,9 @@ public class Call extends Module {
 
                 for (int j = i - 1; j >= 0; j--) {
                     char currentCode = annotatedContig.get(j).getCode();
-                    if (currentCode != '_' && currentCode != '.' && currentCode != '?') {
+                    if (currentCode == '.' || currentCode == '?') {
+                        break;
+                    } else if (currentCode != '_') {
                         lastValidIndex = j;
                         lastValidCode = currentCode;
                         break;
@@ -210,7 +212,9 @@ public class Call extends Module {
 
                 for (int j = i + 1; j < annotatedContig.size(); j++) {
                     char currentCode = annotatedContig.get(j).getCode();
-                    if (currentCode != '_' && currentCode != '.' && currentCode != '?') {
+                    if (currentCode == '.' || currentCode == '?') {
+                        break;
+                    } else if (currentCode != '_') {
                         nextValidIndex = j;
                         nextValidCode = currentCode;
                         break;
