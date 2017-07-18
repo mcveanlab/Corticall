@@ -77,10 +77,6 @@ public class Call extends Module {
 
             log.info("{} {} {}", contigName, annotatedContig.length(), annotatedContig);
 
-            if (annotatedContig.length() == 119) {
-                log.info("{}", contig);
-            }
-
             if (isNahrEvent(annotatedContig)) {
                 //out.println(contigName);
             }
