@@ -176,7 +176,7 @@ public class Call extends Module {
 
             for (int i = 0; i < annotatedContig.length(); i++) {
                 char ann = annotatedContig.charAt(i);
-                if (ann != '.' && ann != '_' && !annotationsToBackground.containsKey(ann)) {
+                if (ann != '.' && ann != '_' && ann != '?' && !annotationsToBackground.containsKey(ann)) {
                     annotationsToBackground.put(ann, background);
                 }
             }
@@ -201,7 +201,7 @@ public class Call extends Module {
                     for (int codeIndex = 0; codeIndex < annotatedContigs.get(backgroundIndex).get(fragmentIndex).length(); codeIndex++) {
                         char code = annotatedContigs.get(backgroundIndex).get(fragmentIndex).charAt(codeIndex);
 
-                        if (code != '.' && code != '_') {
+                        if (code != '.' && code != '_' && code != '?') {
                             ContainerUtils.increment(codeUsageMap, String.valueOf(code));
                         }
                     }
@@ -278,7 +278,8 @@ public class Call extends Module {
                 String contig = pieces[0];
 
                 if (contig.equals("NA")) {
-                    code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
+                    //code = String.valueOf(alphabet.charAt(rng.nextInt(alphabet.length())));
+                    code = "?";
                 } else {
                     int start = Integer.valueOf(pieces[1]);
                     int end = Integer.valueOf(pieces[2]);
