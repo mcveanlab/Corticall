@@ -77,17 +77,19 @@ public class Call extends Module {
 
             log.info("{} {}", contigName, annotatedContig.size());
 
-            List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
-
             StringBuilder sba = new StringBuilder();
-            StringBuilder sbs = new StringBuilder();
-
             for (int i = 0; i < annotatedContig.size(); i++) {
                 sba.append(annotatedContig.get(i).getCode());
+            }
+            log.info("  {}", sba);
+
+            List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
+
+            StringBuilder sbs = new StringBuilder();
+            for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
                 sbs.append(smoothedAnnotatedContig.get(i).getCode());
             }
 
-            log.info("  {}", sba);
             log.info("  {}", sbs);
 
             //if (isNahrEvent(annotatedContig)) {
