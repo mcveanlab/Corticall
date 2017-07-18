@@ -206,7 +206,7 @@ public class Call extends Module {
             }
         }
 
-        return "NA";
+        return null;
     }
 
     private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig, List<Map<String, String>> annotations) {
@@ -251,7 +251,7 @@ public class Call extends Module {
                         ka.setCode(nextValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
                         ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
-                        ka.setSmoothed(true);
+                        ka.setSmoothed(ka.getCode() != '_');
 
                         smoothedAnnotatedContig.set(j, ka);
                     }
@@ -262,7 +262,7 @@ public class Call extends Module {
                         ka.setCode(lastValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
                         ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(lastValidIndex).getIntervals()));
-                        ka.setSmoothed(true);
+                        ka.setSmoothed(ka.getCode() != '_');
 
                         smoothedAnnotatedContig.set(j, ka);
                     }
