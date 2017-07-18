@@ -148,6 +148,7 @@ public class Call extends Module {
         private String background;
         private String intervals;
         private int offset;
+        private boolean smoothed = false;
 
         public KmerAnnotation() {}
 
@@ -170,12 +171,16 @@ public class Call extends Module {
         public int getOffset() { return offset; }
         public void setOffset(int offset) { this.offset = offset; }
 
+        public boolean isSmoothed() { return this.smoothed; }
+        public void setSmoothed(boolean smoothed) { this.smoothed = smoothed; }
+
         @Override
         public String toString() {
             return "KmerAnnotation{" +
                     "code=" + code +
                     ", background='" + background + '\'' +
                     ", intervals='" + intervals + '\'' +
+                    ", smoothed='" + smoothed + '\'' +
                     '}';
         }
     }
