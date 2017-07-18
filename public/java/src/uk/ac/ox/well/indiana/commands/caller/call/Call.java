@@ -70,125 +70,33 @@ public class Call extends Module {
         //List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
         //List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
-        Map<String, List<Map<String, String>>> contigs = loadAnnotations();
+        Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
+        for (String contigName : allAnnotations.keySet()) {
+            String contig = getContig(allAnnotations.get(contigName));
+            String annotatedContig = annotateContig(allAnnotations.get(contigName));
 
-        for (String contigName : contigs.keySet()) {
-            if (isNahrEvent(contigName, contigs.get(contigName))) {
+            log.info("{} {} {}", contigName, annotatedContig.length(), annotatedContig);
+
+            if (isNahrEvent(annotatedContig)) {
                 //out.println(contigName);
             }
         }
     }
 
-    private boolean isNahrEvent(String contigName, List<Map<String, String>> annotations) {
-        String contig = getContig(annotations);
-        String annotatedContig = annotateContig(annotations);
+    private int numBubbles(String annotatedContig) {
 
+    }
+
+    private boolean isNahrEvent(String annotatedContig) {
         int numTemplateSwitches = numTemplateSwitches(annotatedContig);
         int numNovelRuns = numNovelRuns(annotatedContig);
 
-        log.info("{} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig.length());
-
-        if (numTemplateSwitches >= 2 && numNovelRuns >= 2) {
-            log.info("nahr: {} {} {} {}", contigName, numTemplateSwitches, numNovelRuns, annotatedContig);
-
-            out.println(contigName + "\t" + annotatedContig + "\t" + contig);
-
+        if (numTemplateSwitches >= 1 && numNovelRuns >= 1) {
             return true;
         }
 
         return false;
     }
-
-    /*
-    private void numBubbles(String annotatedContig, List<Map<String, String>> annotations) {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
-
-        for (int c : parentColors) {
-            log.info("    parent: {}", c);
-
-            DirectedGraph<CortexVertex, CortexEdge> childContig = new DefaultDirectedGraph<>(CortexEdge.class);
-
-            Set<CortexVertex> traversalSeeds = new HashSet<>();
-
-            CortexVertex cvl = null;
-
-            CortexVertex mostRecentNonNovelKmer = null;
-            boolean inNovelRun = false;
-
-            for (int i = 0; i < annotations.size(); i++) {
-                Map<String, String> ma = annotations.get(i);
-
-                String sk = ma.get("sk");
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
-
-                CortexVertex cv = new CortexVertex(sk, cr);
-                childContig.addVertex(cv);
-                if (cvl != null) {
-                    childContig.addEdge(cvl, cv, new CortexEdge(childColor, 1.0));
-                }
-                cvl = cv;
-
-                if (mostRecentNonNovelKmer == null) {
-                    mostRecentNonNovelKmer = cv;
-                }
-
-                if (ma.get("is_novel").equals("false")) {
-                    if (inNovelRun) {
-                        traversalSeeds.add(cv);
-                    }
-
-                    mostRecentNonNovelKmer = cv;
-                    inNovelRun = false;
-                } else if (ma.get("is_novel").equals("true")) {
-                    if (!inNovelRun) {
-                        traversalSeeds.add(mostRecentNonNovelKmer);
-                    }
-
-                    inNovelRun = true;
-                }
-            }
-
-            log.info("      num seeds: {}", traversalSeeds.size());
-
-            TraversalEngine e = new TraversalEngineFactory()
-                    .combinationOperator(OR)
-                    .traversalDirection(BOTH)
-                    .traversalColor(c)
-                    .joiningColors(childColor)
-                    .stopper(BubbleClosingStopper.class)
-                    .graph(GRAPH)
-                    .make();
-
-            DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
-            for (CortexVertex seed : traversalSeeds) {
-                sg.addVertex(seed);
-            }
-
-            for (CortexVertex source : traversalSeeds) {
-                for (CortexVertex sink : traversalSeeds) {
-                    if (!source.equals(sink)) {
-                        e.getConfiguration().setPreviousTraversal(sg);
-
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(source.getSk());
-                        if (g != null && g.vertexSet().size() > 0) {
-                            DijkstraShortestPath<CortexVertex, CortexEdge> dsp = new DijkstraShortestPath<>(g);
-
-                            if (!source.equals(sink) && g.containsVertex(source) && g.containsVertex(sink)) {
-                                GraphPath<CortexVertex, CortexEdge> p = dsp.getPath(source, sink);
-
-                                if (p != null) {
-                                    log.info("{} {} {} {} {}", source, sink, p.getLength(), p.getStartVertex(), p.getEndVertex());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
 
     private int numTemplateSwitches(String annotatedContig) {
         final String flankingNovelRegex = "(([^_\\.])\\2+)_*(\\.+)_*(([^_\\.])\\5+)";
