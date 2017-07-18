@@ -192,16 +192,16 @@ public class Call extends Module {
     }
 
     private String selectInterval(String manyIntervals, String singleInterval) {
-        log.info("{} {}", manyIntervals, singleInterval);
+        if (manyIntervals != null && singleInterval != null) {
+            Interval it = stringToInterval(singleInterval.split(";")[0]);
+            Interval wideIt = new Interval(it.getContig(), it.getStart() - 500, it.getEnd() + 500, it.isNegativeStrand(), it.getName());
 
-        Interval it = stringToInterval(singleInterval.split(";")[0]);
-        Interval wideIt = new Interval(it.getContig(), it.getStart() - 500, it.getEnd() + 500, it.isNegativeStrand(), it.getName());
+            for (String newIntervalStr : manyIntervals.split(";")) {
+                Interval newInterval = stringToInterval(newIntervalStr);
 
-        for (String newIntervalStr : manyIntervals.split(";")) {
-            Interval newInterval = stringToInterval(newIntervalStr);
-
-            if (wideIt.intersects(newInterval)) {
-                return newIntervalStr;
+                if (wideIt.intersects(newInterval)) {
+                    return newIntervalStr;
+                }
             }
         }
 
@@ -260,7 +260,7 @@ public class Call extends Module {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(lastValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
-                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
+                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(lastValidIndex).getIntervals()));
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
