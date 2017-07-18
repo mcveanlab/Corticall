@@ -74,7 +74,7 @@ public class Call extends Module {
         for (String contigName : allAnnotations.keySet()) {
             String contig = getContig(allAnnotations.get(contigName));
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
-            List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig);
+            List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
 
             log.info("{} {}", contigName, annotatedContig.size());
 
@@ -185,7 +185,9 @@ public class Call extends Module {
         }
     }
 
-    private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig) {
+    //private String extractInterval()
+
+    private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig, List<Map<String, String>> annotations) {
         List<KmerAnnotation> smoothedAnnotatedContig = new ArrayList<>();
 
         for (int i = 0; i < annotatedContig.size(); i++) {
@@ -220,6 +222,7 @@ public class Call extends Module {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(nextValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
+                        ka.setIntervals(annotations.get(j).get(ka.getBackground()));
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
@@ -230,6 +233,7 @@ public class Call extends Module {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(lastValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
+                        ka.setIntervals(annotations.get(j).get(ka.getBackground()));
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
