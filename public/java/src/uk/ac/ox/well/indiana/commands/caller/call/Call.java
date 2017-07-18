@@ -202,6 +202,7 @@ public class Call extends Module {
                 for (int j = i - 1; j >= 0; j--) {
                     char currentCode = annotatedContig.get(j).getCode();
                     if (currentCode == '.' || currentCode == '?') {
+                        lastValidIndex = j;
                         break;
                     } else if (currentCode != '_') {
                         lastValidIndex = j;
@@ -213,6 +214,7 @@ public class Call extends Module {
                 for (int j = i + 1; j < annotatedContig.size(); j++) {
                     char currentCode = annotatedContig.get(j).getCode();
                     if (currentCode == '.' || currentCode == '?') {
+                        nextValidIndex = j;
                         break;
                     } else if (currentCode != '_') {
                         nextValidIndex = j;
@@ -243,6 +245,8 @@ public class Call extends Module {
                         smoothedAnnotatedContig.set(j, ka);
                     }
                     i = smoothedAnnotatedContig.size();
+                } else {
+                    i = nextValidIndex;
                 }
             } else {
                 KmerAnnotation ka = new KmerAnnotation(annotatedContig.get(i));
