@@ -185,7 +185,26 @@ public class Call extends Module {
         }
     }
 
-    //private String extractInterval()
+    private Interval stringToInterval(String intervalStr) {
+        String[] pieces = intervalStr.split("[:-]");
+
+        return new Interval(pieces[0], Integer.valueOf(pieces[1]), Integer.valueOf(pieces[2]), pieces[3].equals("-"), "");
+    }
+
+    private String selectInterval(String manyIntervals, String singleInterval) {
+        Interval it = stringToInterval(singleInterval.split(";")[0]);
+        Interval wideIt = new Interval(it.getContig(), it.getStart() - 500, it.getEnd() + 500, it.isNegativeStrand(), it.getName());
+
+        for (String newIntervalStr : manyIntervals.split(";")) {
+            Interval newInterval = stringToInterval(newIntervalStr);
+
+            if (wideIt.intersects(newInterval)) {
+                return newIntervalStr;
+            }
+        }
+
+        return "NA";
+    }
 
     private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig, List<Map<String, String>> annotations) {
         List<KmerAnnotation> smoothedAnnotatedContig = new ArrayList<>();
@@ -197,7 +216,7 @@ public class Call extends Module {
         for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
             if (smoothedAnnotatedContig.get(i).getCode() == '_') {
                 int lastValidIndex = 0, nextValidIndex = 0;
-                char lastValidCode = ' ', nextValidCode = ' ';
+                char lastValidCode = '_', nextValidCode = '_';
 
                 for (int j = i - 1; j >= 0; j--) {
                     char currentCode = annotatedContig.get(j).getCode();
@@ -223,23 +242,23 @@ public class Call extends Module {
                     }
                 }
 
-                if ((lastValidCode == nextValidCode) || (lastValidCode == ' ' && nextValidCode != ' ')) {
+                if ((lastValidCode == nextValidCode) || (lastValidCode == '_' && nextValidCode != '_')) {
                     for (int j = i; j < nextValidIndex; j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(nextValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
-                        ka.setIntervals(annotations.get(j).get(ka.getBackground()));
+                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
                     }
                     i = nextValidIndex;
-                } else if (nextValidCode == ' ') {
+                } else if (nextValidCode == '_') {
                     for (int j = lastValidIndex + 1; j < smoothedAnnotatedContig.size(); j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(lastValidCode);
                         ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
-                        ka.setIntervals(annotations.get(j).get(ka.getBackground()));
+                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
@@ -341,7 +360,7 @@ public class Call extends Module {
     private String annotateContig(List<Map<String, String>> annotations, String background, Set<String> usedAlphabet) {
         StringBuilder ab = new StringBuilder();
 
-        final String alphabet = "!\"#$%&'()*+,-/0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^`abcdefghijklmnopqrstuvwxyz{|}~";
+        final String alphabet = "!#$%&()*+,-/0123456789:;@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^`abcdefghijklmnopqrstuvwxyz|~";
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
