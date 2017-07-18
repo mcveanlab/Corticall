@@ -84,7 +84,7 @@ public class Call extends Module {
     }
 
     private int numBubbles(String annotatedContig) {
-
+        return 0;
     }
 
     private boolean isNahrEvent(String annotatedContig) {
