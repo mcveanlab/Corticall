@@ -188,6 +188,8 @@ public class Call extends Module {
     private Interval stringToInterval(String intervalStr) {
         String[] pieces = intervalStr.split("[:-]");
 
+        log.info("{}", intervalStr);
+
         return new Interval(pieces[0], Integer.valueOf(pieces[1]), Integer.valueOf(pieces[2]), pieces[3].equals("-"), "");
     }
 
