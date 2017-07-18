@@ -186,11 +186,10 @@ public class Call extends Module {
     }
 
     private Interval stringToInterval(String intervalStr) {
-        String[] pieces = intervalStr.split("[:-]");
+        String[] pieces = intervalStr.split(":");
+        String[] pos = pieces[1].split("-");
 
-        log.info("{}", intervalStr);
-
-        return new Interval(pieces[0], Integer.valueOf(pieces[1]), Integer.valueOf(pieces[2]), pieces[3].equals("-"), "");
+        return new Interval(pieces[0], Integer.valueOf(pos[0]), Integer.valueOf(pos[1]), pieces[2].equals("-"), "");
     }
 
     private String selectInterval(String manyIntervals, String singleInterval) {
