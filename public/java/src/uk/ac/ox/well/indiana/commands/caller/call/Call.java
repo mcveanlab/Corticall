@@ -74,12 +74,13 @@ public class Call extends Module {
         for (String contigName : allAnnotations.keySet()) {
             String contig = getContig(allAnnotations.get(contigName));
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
+
+            log.info("{} {}", contigName, annotatedContig.size());
+
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
 
             StringBuilder sba = new StringBuilder();
             StringBuilder sbs = new StringBuilder();
-
-            log.info("{} {}", contigName, annotatedContig.size());
 
             for (int i = 0; i < annotatedContig.size(); i++) {
                 sba.append(annotatedContig.get(i).getCode());
