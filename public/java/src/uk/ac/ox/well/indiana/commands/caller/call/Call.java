@@ -142,14 +142,19 @@ public class Call extends Module {
         private char code;
         private String background;
         private String intervals;
+        private int offset;
 
         public char getCode() { return code; }
         public void setCode(char code) { this.code = code; }
-        public String getBackground() { return background; }
 
+        public String getBackground() { return background; }
         public void setBackground(String background) { this.background = background; }
+
         public String getIntervals() { return intervals; }
         public void setIntervals(String intervals) { this.intervals = intervals; }
+
+        public int getOffset() { return offset; }
+        public void setOffset(int offset) { this.offset = offset; }
 
         @Override
         public String toString() {
@@ -239,6 +244,7 @@ public class Call extends Module {
                 ka.setCode(code);
                 ka.setBackground(background);
                 ka.setIntervals(annotations.get(offset).get(background));
+                ka.setOffset(offset);
                 kmerAnnotations.add(ka);
             }
         }
@@ -246,7 +252,7 @@ public class Call extends Module {
         log.info("{} {} {}", pieceLengthSum, annotations.size(), kmerAnnotations.size());
 
         for (KmerAnnotation ka : kmerAnnotations) {
-            log.info("{}", ka);
+            log.info("{} {} {}", ka, annotations.get(ka.getOffset()).get("3D7"), annotations.get(ka.getOffset()).get("HB3"));
         }
 
         return Joiner.on("").join(finalPieces);
