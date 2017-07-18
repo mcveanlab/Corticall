@@ -73,9 +73,14 @@ public class Call extends Module {
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
         for (String contigName : allAnnotations.keySet()) {
             String contig = getContig(allAnnotations.get(contigName));
-            String annotatedContig = annotateContig(allAnnotations.get(contigName));
+            List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
+            List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig);
 
-            log.info("{} {} {}", contigName, annotatedContig.length(), annotatedContig);
+            log.info("{} {}", contigName, annotatedContig.size());
+
+            for (int i = 0; i < annotatedContig.size(); i++) {
+                log.info("  - {} {}", annotatedContig.get(i), smoothedAnnotatedContig.get(i));
+            }
 
             //if (isNahrEvent(annotatedContig)) {
                 //out.println(contigName);
@@ -144,6 +149,15 @@ public class Call extends Module {
         private String intervals;
         private int offset;
 
+        public KmerAnnotation() {}
+
+        public KmerAnnotation(KmerAnnotation o) {
+            code = o.getCode();
+            background = o.getBackground();
+            intervals = o.getIntervals();
+            offset = o.getOffset();
+        }
+
         public char getCode() { return code; }
         public void setCode(char code) { this.code = code; }
 
@@ -166,7 +180,56 @@ public class Call extends Module {
         }
     }
 
-    private String annotateContig(List<Map<String, String>> annotations) {
+    private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig) {
+        List<KmerAnnotation> smoothedAnnotatedContig = new ArrayList<>();
+
+        int lastValidIndex = -1;
+        char lastValidCode = ' ';
+        int nextValidIndex = -2;
+        char nextValidCode = ' ';
+
+        for (int i = 0; i < annotatedContig.size(); i++) {
+            if (annotatedContig.get(i).getCode() == '_') {
+                for (int j = i - 1; j >= 0; j--) {
+                    char currentCode = annotatedContig.get(j).getCode();
+                    if (currentCode != '_' && currentCode != '.' && currentCode != '?') {
+                        lastValidIndex = j;
+                        lastValidCode = currentCode;
+                        break;
+                    }
+                }
+
+                for (int j = i + 1; j < annotatedContig.size(); j++) {
+                    char currentCode = annotatedContig.get(j).getCode();
+                    if (currentCode != '_' && currentCode != '.' && currentCode != '?') {
+                        nextValidIndex = j;
+                        nextValidCode = currentCode;
+                        break;
+                    }
+                }
+
+                if (lastValidCode == ' ' && nextValidCode != ' ') {
+
+                } else if (lastValidCode != ' ' && nextValidCode == ' ') {
+
+                } else if (lastValidCode == nextValidCode) {
+                    for (int j = i; j < nextValidIndex; j++) {
+                        KmerAnnotation ka = new KmerAnnotation(annotatedContig.get(j));
+                        ka.setCode(lastValidCode);
+                    }
+                    i = nextValidIndex;
+                }
+            } else {
+                KmerAnnotation ka = new KmerAnnotation(annotatedContig.get(i));
+                smoothedAnnotatedContig.add(ka);
+            }
+        }
+
+
+        return smoothedAnnotatedContig;
+    }
+
+    private List<KmerAnnotation> annotateContig(List<Map<String, String>> annotations) {
         List<List<String>> annotatedContigs = new ArrayList<>();
         Set<String> usedAlphabet = new HashSet<>();
         Map<Character, String> annotationsToBackground = new HashMap<>();
@@ -227,11 +290,6 @@ public class Call extends Module {
             }
         }
 
-        int pieceLengthSum = 0;
-        for (String finalPiece : finalPieces) {
-            pieceLengthSum += finalPiece.length();
-        }
-
         List<KmerAnnotation> kmerAnnotations = new ArrayList<>();
 
         int offset = 0;
@@ -249,21 +307,13 @@ public class Call extends Module {
             }
         }
 
-        log.info("{} {} {}", pieceLengthSum, annotations.size(), kmerAnnotations.size());
-
-        for (KmerAnnotation ka : kmerAnnotations) {
-            log.info("{} {} {}", ka, annotations.get(ka.getOffset()).get("3D7"), annotations.get(ka.getOffset()).get("HB3"));
-        }
-
-        return Joiner.on("").join(finalPieces);
-
-        //return kmerAnnotations;
+        return kmerAnnotations;
     }
 
     private String annotateContig(List<Map<String, String>> annotations, String background, Set<String> usedAlphabet) {
         StringBuilder ab = new StringBuilder();
 
-        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        final String alphabet = "!\"#$%&'()*+,-/0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^`abcdefghijklmnopqrstuvwxyz{|}~";
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
