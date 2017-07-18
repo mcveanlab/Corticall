@@ -192,7 +192,7 @@ public class Call extends Module {
     }
 
     private String selectInterval(String manyIntervals, String singleInterval) {
-        if (manyIntervals != null && singleInterval != null) {
+        if (manyIntervals != null && singleInterval != null && !manyIntervals.contains("NA") && !singleInterval.contains("NA")) {
             Interval it = stringToInterval(singleInterval.split(";")[0]);
             Interval wideIt = new Interval(it.getContig(), it.getStart() - 500, it.getEnd() + 500, it.isNegativeStrand(), it.getName());
 
