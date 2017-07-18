@@ -221,6 +221,9 @@ public class Call extends Module {
                     for (int j = i; j < nextValidIndex; j++) {
                         KmerAnnotation ka = new KmerAnnotation(annotatedContig.get(j));
                         ka.setCode(lastValidCode);
+                        ka.setSmoothed(true);
+
+                        smoothedAnnotatedContig.add(ka);
                     }
                     i = nextValidIndex;
                 }
