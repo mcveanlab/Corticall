@@ -219,15 +219,17 @@ public class Call extends Module {
                     for (int j = i; j < nextValidIndex; j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(nextValidCode);
+                        ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
                     }
                     i = nextValidIndex;
                 } else if (nextValidCode == ' ') {
-                    for (int j = lastValidIndex; j < smoothedAnnotatedContig.size(); j++) {
+                    for (int j = lastValidIndex + 1; j < smoothedAnnotatedContig.size(); j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(lastValidCode);
+                        ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
                         ka.setSmoothed(true);
 
                         smoothedAnnotatedContig.set(j, ka);
