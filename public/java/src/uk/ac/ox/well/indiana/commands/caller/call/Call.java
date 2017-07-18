@@ -227,8 +227,6 @@ public class Call extends Module {
             pieceLengthSum += finalPiece.length();
         }
 
-        log.info("{} {}", pieceLengthSum, annotations.size());
-
         List<KmerAnnotation> kmerAnnotations = new ArrayList<>();
 
         int offset = 0;
@@ -241,8 +239,11 @@ public class Call extends Module {
                 ka.setCode(code);
                 ka.setBackground(background);
                 ka.setIntervals(annotations.get(offset).get(background));
+                kmerAnnotations.add(ka);
             }
         }
+
+        log.info("{} {} {}", pieceLengthSum, annotations.size(), kmerAnnotations.size());
 
         for (KmerAnnotation ka : kmerAnnotations) {
             log.info("{}", ka);
