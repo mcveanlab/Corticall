@@ -77,14 +77,10 @@ public class Call extends Module {
 
             log.info("{} {} {}", contigName, annotatedContig.length(), annotatedContig);
 
-            if (isNahrEvent(annotatedContig)) {
+            //if (isNahrEvent(annotatedContig)) {
                 //out.println(contigName);
-            }
+            //}
         }
-    }
-
-    private int numBubbles(String annotatedContig) {
-        return 0;
     }
 
     private boolean isNahrEvent(String annotatedContig) {
@@ -142,11 +138,43 @@ public class Call extends Module {
         return sb.toString();
     }
 
+    private class KmerAnnotation {
+        private char code;
+        private String background;
+        private String intervals;
+
+        public char getCode() { return code; }
+        public void setCode(char code) { this.code = code; }
+        public String getBackground() { return background; }
+
+        public void setBackground(String background) { this.background = background; }
+        public String getIntervals() { return intervals; }
+        public void setIntervals(String intervals) { this.intervals = intervals; }
+
+        @Override
+        public String toString() {
+            return "KmerAnnotation{" +
+                    "code=" + code +
+                    ", background='" + background + '\'' +
+                    ", intervals='" + intervals + '\'' +
+                    '}';
+        }
+    }
+
     private String annotateContig(List<Map<String, String>> annotations) {
         List<List<String>> annotatedContigs = new ArrayList<>();
         Set<String> usedAlphabet = new HashSet<>();
+        Map<Character, String> annotationsToBackground = new HashMap<>();
+
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background, usedAlphabet);
+
+            for (int i = 0; i < annotatedContig.length(); i++) {
+                char ann = annotatedContig.charAt(i);
+                if (ann != '.' && ann != '_' && !annotationsToBackground.containsKey(ann)) {
+                    annotationsToBackground.put(ann, background);
+                }
+            }
 
             String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
 
@@ -194,7 +222,35 @@ public class Call extends Module {
             }
         }
 
+        int pieceLengthSum = 0;
+        for (String finalPiece : finalPieces) {
+            pieceLengthSum += finalPiece.length();
+        }
+
+        log.info("{} {}", pieceLengthSum, annotations.size());
+
+        List<KmerAnnotation> kmerAnnotations = new ArrayList<>();
+
+        int offset = 0;
+        for (String finalPiece : finalPieces) {
+            for (int i = 0; i < finalPiece.length(); i++, offset++) {
+                char code = finalPiece.charAt(i);
+                String background = annotationsToBackground.containsKey(code) ? annotationsToBackground.get(code) : null;
+
+                KmerAnnotation ka = new KmerAnnotation();
+                ka.setCode(code);
+                ka.setBackground(background);
+                ka.setIntervals(annotations.get(offset).get(background));
+            }
+        }
+
+        for (KmerAnnotation ka : kmerAnnotations) {
+            log.info("{}", ka);
+        }
+
         return Joiner.on("").join(finalPieces);
+
+        //return kmerAnnotations;
     }
 
     private String annotateContig(List<Map<String, String>> annotations, String background, Set<String> usedAlphabet) {
