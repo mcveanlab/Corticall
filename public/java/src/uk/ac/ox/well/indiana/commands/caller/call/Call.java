@@ -77,7 +77,22 @@ public class Call extends Module {
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
 
-            log.info("{} {} {}", contig.length(), contig.length() - GRAPH.getKmerSize(), smoothedAnnotatedContig.size());
+            log.info("{} {} {}", contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
+
+            for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
+                String sk = contig.substring(i, i + GRAPH.getKmerSize());
+                CortexKmer ck = new CortexKmer(sk);
+                CortexRecord cr = GRAPH.findRecord(ck);
+
+                Map<Integer, Set<String>> inEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                Map<Integer, Set<String>> outEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+
+                smoothedAnnotatedContig.get(i).setKmer(sk);
+                smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
+                smoothedAnnotatedContig.get(i).setIncomingEdges(outEdges);
+
+                log.info("  {}", smoothedAnnotatedContig.get(i));
+            }
 
             if (contigName.equals("contig15")) {
 
@@ -166,20 +181,30 @@ public class Call extends Module {
     }
 
     private class KmerAnnotation {
+        private String kmer;
         private char code;
         private String background;
         private String intervals;
         private int offset;
         private boolean smoothed = false;
+        private Map<Integer, Set<String>> incomingEdges = new HashMap<>();
+        private Map<Integer, Set<String>> outgoingEdges = new HashMap<>();
 
         public KmerAnnotation() {}
 
         public KmerAnnotation(KmerAnnotation o) {
+            kmer = o.getKmer();
             code = o.getCode();
             background = o.getBackground();
             intervals = o.getIntervals();
             offset = o.getOffset();
+            smoothed = o.isSmoothed();
+            incomingEdges = o.getIncomingEdges();
+            outgoingEdges = o.getOutgoingEdges();
         }
+
+        public String getKmer() { return kmer; }
+        public void setKmer(String kmer) { this.kmer = kmer; }
 
         public char getCode() { return code; }
         public void setCode(char code) { this.code = code; }
@@ -196,13 +221,23 @@ public class Call extends Module {
         public boolean isSmoothed() { return this.smoothed; }
         public void setSmoothed(boolean smoothed) { this.smoothed = smoothed; }
 
+        public Map<Integer, Set<String>> getIncomingEdges() { return incomingEdges; }
+        public void setIncomingEdges(Map<Integer, Set<String>> incomingEdges) { this.incomingEdges = incomingEdges; }
+
+        public Map<Integer, Set<String>> getOutgoingEdges() { return outgoingEdges; }
+        public void setOutgoingEdges(Map<Integer, Set<String>> outgoingEdges) { this.outgoingEdges = outgoingEdges; }
+
         @Override
         public String toString() {
             return "KmerAnnotation{" +
-                    "code=" + code +
+                    "kmer='" + kmer + '\'' +
+                    ", code=" + code +
                     ", background='" + background + '\'' +
                     ", intervals='" + intervals + '\'' +
-                    ", smoothed='" + smoothed + '\'' +
+                    ", offset=" + offset +
+                    ", smoothed=" + smoothed +
+                    ", incomingEdges=" + incomingEdges +
+                    ", outgoingEdges=" + outgoingEdges +
                     '}';
         }
     }
