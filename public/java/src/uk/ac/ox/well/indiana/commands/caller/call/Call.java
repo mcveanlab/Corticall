@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.commands.caller.call;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
+import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
@@ -226,15 +227,90 @@ public class Call extends Module {
     private List<KmerAnnotation> smoothAnnotations(List<KmerAnnotation> annotatedContig, List<Map<String, String>> annotations) {
         List<KmerAnnotation> smoothedAnnotatedContig = new ArrayList<>();
 
+        List<Pair<Integer, Integer>> lps = new ArrayList<>();
+        int regionStart = -1;
+        int regionEnd = -1;
         for (int i = 0; i < annotatedContig.size(); i++) {
             smoothedAnnotatedContig.add(new KmerAnnotation(annotatedContig.get(i)));
+
+            if (annotatedContig.get(i).getCode() == '_') {
+                if (regionStart == -1) {
+                    regionStart = i;
+                    regionEnd = i;
+                } else if (regionEnd == i - 1) {
+                    regionEnd = i;
+                } else {
+                    lps.add(new Pair<>(regionStart, regionEnd));
+                    regionStart = i;
+                    regionEnd = i;
+                }
+            }
         }
 
+        if (regionStart > -1) {
+            lps.add(new Pair<>(regionStart, regionEnd));
+        }
+
+        for (int i = 0; i < lps.size(); i++) {
+            Pair<Integer, Integer> lp = lps.get(i);
+            int lowerPosLimit = i > 0 ? lps.get(i-1).getSecond() + 1 : 0;
+            int upperPosLimit = i < lps.size() - 1 ? lps.get(i+1).getFirst() - 1 : annotatedContig.size() - 1;
+            int lastValidIndex = -1, nextValidIndex = -1;
+            char lastValidCode = '_', nextValidCode = '_';
+
+            for (int j = lp.getFirst() - 1; j >= lowerPosLimit; j--) {
+                char currentCode = annotatedContig.get(j).getCode();
+                if (currentCode == '.' || currentCode == '?') {
+                    break;
+                } else if (currentCode != '_') {
+                    lastValidIndex = j;
+                    lastValidCode = currentCode;
+                    break;
+                }
+            }
+
+            for (int j = lp.getSecond() + 1; j <= upperPosLimit; j++) {
+                char currentCode = annotatedContig.get(j).getCode();
+                if (currentCode == '.' || currentCode == '?') {
+                    break;
+                } else if (currentCode != '_') {
+                    nextValidIndex = j;
+                    nextValidCode = currentCode;
+                    break;
+                }
+            }
+
+            char fillCode = '_';
+            int fillIndex = -1;
+            if (lastValidIndex >= 0 && nextValidIndex >= 0 && lastValidCode == nextValidCode && lastValidCode != '_') {
+                fillCode = lastValidCode;
+                fillIndex = lastValidIndex;
+            } else if (lastValidIndex == -1 && nextValidIndex >= 0 && nextValidCode != '_') {
+                fillCode = nextValidCode;
+                fillIndex = nextValidIndex;
+            } else if (lastValidIndex >= 0 && nextValidIndex == -1 && lastValidCode != '_') {
+                fillCode = lastValidCode;
+                fillIndex = lastValidIndex;
+            }
+
+            if (fillCode != '_') {
+                for (int j = lp.getFirst(); j <= lp.getSecond(); j++) {
+                    KmerAnnotation ka = smoothedAnnotatedContig.get(j);
+                    ka.setCode(fillCode);
+                    ka.setBackground(smoothedAnnotatedContig.get(fillIndex).getBackground());
+                    ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(fillIndex).getIntervals()));
+                    ka.setSmoothed(true);
+
+                    smoothedAnnotatedContig.set(j, ka);
+                }
+            }
+        }
+
+        /*
         for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
             if (smoothedAnnotatedContig.get(i).getCode() == '_') {
                 int lastValidIndex = 0, nextValidIndex = 0;
-                char lastValidCode = '_', nextValidCode = '_';
-                boolean found = false;
+                char lastValidCode = ' ', nextValidCode = ' ';
 
                 for (int j = i - 1; j >= 0; j--) {
                     char currentCode = annotatedContig.get(j).getCode();
@@ -244,7 +320,6 @@ public class Call extends Module {
                     } else if (currentCode != '_') {
                         lastValidIndex = j;
                         lastValidCode = currentCode;
-                        found = true;
                         break;
                     }
                 }
@@ -257,43 +332,41 @@ public class Call extends Module {
                     } else if (currentCode != '_') {
                         nextValidIndex = j;
                         nextValidCode = currentCode;
-                        found = true;
                         break;
                     }
                 }
 
-                if (found) {
-                    if ((lastValidCode == nextValidCode && nextValidCode != '_') || (lastValidCode == '_' && nextValidCode != '_')) {
-                        for (int j = i; j < nextValidIndex; j++) {
-                            KmerAnnotation ka = smoothedAnnotatedContig.get(j);
-                            ka.setCode(nextValidCode);
-                            ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
-                            ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
-                            ka.setSmoothed(ka.getCode() != '_');
+                if ((lastValidCode == nextValidCode && nextValidCode != '_')) {
+                    for (int j = i; j < nextValidIndex; j++) {
+                        KmerAnnotation ka = smoothedAnnotatedContig.get(j);
+                        ka.setCode(nextValidCode);
+                        ka.setBackground(smoothedAnnotatedContig.get(nextValidIndex).getBackground());
+                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(nextValidIndex).getIntervals()));
+                        ka.setSmoothed(ka.getCode() != '_');
 
-                            smoothedAnnotatedContig.set(j, ka);
-                        }
-                        i = nextValidIndex;
-                    } else if (lastValidCode != '_' && nextValidCode == '_') {
-                        for (int j = lastValidIndex + 1; j < smoothedAnnotatedContig.size(); j++) {
-                            KmerAnnotation ka = smoothedAnnotatedContig.get(j);
-                            ka.setCode(lastValidCode);
-                            ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
-                            ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(lastValidIndex).getIntervals()));
-                            ka.setSmoothed(ka.getCode() != '_');
-
-                            smoothedAnnotatedContig.set(j, ka);
-                        }
-                        i = smoothedAnnotatedContig.size();
-                    } else {
-                        i = nextValidIndex;
+                        smoothedAnnotatedContig.set(j, ka);
                     }
+                    i = nextValidIndex;
+                } else if (lastValidCode != '_' && nextValidCode == '_') {
+                    for (int j = lastValidIndex + 1; j < smoothedAnnotatedContig.size(); j++) {
+                        KmerAnnotation ka = smoothedAnnotatedContig.get(j);
+                        ka.setCode(lastValidCode);
+                        ka.setBackground(smoothedAnnotatedContig.get(lastValidIndex).getBackground());
+                        ka.setIntervals(selectInterval(annotations.get(j).get(ka.getBackground()), smoothedAnnotatedContig.get(lastValidIndex).getIntervals()));
+                        ka.setSmoothed(ka.getCode() != '_');
+
+                        smoothedAnnotatedContig.set(j, ka);
+                    }
+                    i = smoothedAnnotatedContig.size();
+                } else {
+                    i = nextValidIndex;
                 }
             } else {
                 KmerAnnotation ka = new KmerAnnotation(annotatedContig.get(i));
                 smoothedAnnotatedContig.set(i, ka);
             }
         }
+        */
 
         return smoothedAnnotatedContig;
     }
