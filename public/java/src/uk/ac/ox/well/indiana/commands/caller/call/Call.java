@@ -77,7 +77,7 @@ public class Call extends Module {
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
 
-            log.info("{} {} {}", contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
+            log.info("{} {} {} {}", contigName, contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
 
             for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
                 String sk = contig.substring(i, i + GRAPH.getKmerSize());
