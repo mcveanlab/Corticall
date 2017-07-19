@@ -100,12 +100,12 @@ public class Call extends Module {
                         smoothedAnnotatedContig.get(i).setAltInDegree(childIncomingEdges.size());
                     }
 
-                    Set<String> childOutgoingEdges = new HashSet<>();
-                    childOutgoingEdges.addAll(inEdges.get(childColor));
-                    childOutgoingEdges.removeAll(inEdges.get(parentColor));
+                    Set<String> childOutgooutgEdges = new HashSet<>();
+                    childOutgooutgEdges.addAll(outEdges.get(childColor));
+                    childOutgooutgEdges.removeAll(outEdges.get(parentColor));
 
-                    if (childOutgoingEdges.size() > 0) {
-                        smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgoingEdges.size());
+                    if (childOutgooutgEdges.size() > 0) {
+                        smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgooutgEdges.size());
                     }
                 }
 
