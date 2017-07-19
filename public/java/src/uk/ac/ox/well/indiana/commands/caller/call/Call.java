@@ -72,6 +72,10 @@ public class Call extends Module {
 
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
         for (String contigName : allAnnotations.keySet()) {
+            if (contigName.equals("contig29")) {
+                log.info("Hi!");
+            }
+
             String contig = getContig(allAnnotations.get(contigName));
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
 
