@@ -72,7 +72,7 @@ public class Call extends Module {
 
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
         for (String contigName : allAnnotations.keySet()) {
-            if (contigName.equals("contig86")) {
+            if (contigName.equals("contig298")) {
                 log.info("Hi!");
             }
 
