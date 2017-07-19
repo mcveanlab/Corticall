@@ -77,6 +77,13 @@ public class Call extends Module {
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
 
+            log.info("{} {} {}", contig.length(), contig.length() - GRAPH.getKmerSize(), smoothedAnnotatedContig.size());
+
+            if (contigName.equals("contig15")) {
+
+            }
+
+            /*
             log.info("{} {}", contigName, annotatedContig.size());
 
             StringBuilder sba = new StringBuilder();
@@ -99,6 +106,7 @@ public class Call extends Module {
             //if (isNahrEvent(annotatedContig)) {
                 //out.println(contigName);
             //}
+            */
         }
     }
 
