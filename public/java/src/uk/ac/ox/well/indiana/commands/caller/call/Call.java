@@ -67,8 +67,8 @@ public class Call extends Module {
 
     @Override
     public void execute() {
-        //int childColor = GRAPH.getColorForSampleName(CHILD);
-        //List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
         //List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
@@ -89,7 +89,27 @@ public class Call extends Module {
 
                 smoothedAnnotatedContig.get(i).setKmer(sk);
                 smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
-                smoothedAnnotatedContig.get(i).setIncomingEdges(outEdges);
+                smoothedAnnotatedContig.get(i).setOutgoingEdges(outEdges);
+
+                for (int parentColor : parentColors) {
+                    Set<String> childIncomingEdges = new HashSet<>();
+                    childIncomingEdges.addAll(inEdges.get(childColor));
+                    childIncomingEdges.removeAll(inEdges.get(parentColor));
+
+                    if (childIncomingEdges.size() > 0) {
+                        smoothedAnnotatedContig.get(i).setAltInDegree(childIncomingEdges.size());
+                    }
+
+                    Set<String> childOutgoingEdges = new HashSet<>();
+                    childOutgoingEdges.addAll(inEdges.get(childColor));
+                    childOutgoingEdges.removeAll(inEdges.get(parentColor));
+
+                    if (childOutgoingEdges.size() > 0) {
+                        smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgoingEdges.size());
+                    }
+                }
+
+
 
                 log.info("  {}", smoothedAnnotatedContig.get(i));
             }
@@ -189,6 +209,8 @@ public class Call extends Module {
         private boolean smoothed = false;
         private Map<Integer, Set<String>> incomingEdges = new HashMap<>();
         private Map<Integer, Set<String>> outgoingEdges = new HashMap<>();
+        private int altInDegree = 0;
+        private int altOutDegree = 0;
 
         public KmerAnnotation() {}
 
@@ -227,6 +249,12 @@ public class Call extends Module {
         public Map<Integer, Set<String>> getOutgoingEdges() { return outgoingEdges; }
         public void setOutgoingEdges(Map<Integer, Set<String>> outgoingEdges) { this.outgoingEdges = outgoingEdges; }
 
+        public int getAltInDegree() { return altInDegree; }
+        public void setAltInDegree(int altInDegree) { this.altInDegree = altInDegree; }
+
+        public int getAltOutDegree() { return altOutDegree; }
+        public void setAltOutDegree(int altOutDegree) { this.altOutDegree = altOutDegree; }
+
         @Override
         public String toString() {
             return "KmerAnnotation{" +
@@ -234,10 +262,8 @@ public class Call extends Module {
                     ", code=" + code +
                     ", background='" + background + '\'' +
                     ", intervals='" + intervals + '\'' +
-                    ", offset=" + offset +
                     ", smoothed=" + smoothed +
-                    ", incomingEdges=" + incomingEdges +
-                    ", outgoingEdges=" + outgoingEdges +
+                    ", i/o=" + altInDegree + "," + altOutDegree +
                     '}';
         }
     }
