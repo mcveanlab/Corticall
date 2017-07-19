@@ -270,7 +270,7 @@ public class Call extends Module {
                         smoothedAnnotatedContig.set(j, ka);
                     }
                     i = nextValidIndex;
-                } else if (nextValidCode == '_') {
+                } else if (lastValidCode != '_' && nextValidCode == '_') {
                     for (int j = lastValidIndex + 1; j < smoothedAnnotatedContig.size(); j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(lastValidCode);
