@@ -259,7 +259,7 @@ public class Call extends Module {
                     }
                 }
 
-                if ((lastValidCode == nextValidCode) || (lastValidCode == '_' && nextValidCode != '_')) {
+                if ((lastValidCode == nextValidCode && nextValidCode != '_') || (lastValidCode == '_' && nextValidCode != '_')) {
                     for (int j = i; j < nextValidIndex; j++) {
                         KmerAnnotation ka = smoothedAnnotatedContig.get(j);
                         ka.setCode(nextValidCode);
