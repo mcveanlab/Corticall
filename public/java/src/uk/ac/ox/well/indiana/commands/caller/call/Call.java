@@ -392,7 +392,7 @@ public class Call extends Module {
     private String annotateContig(List<Map<String, String>> annotations, String background, Set<String> usedAlphabet) {
         StringBuilder ab = new StringBuilder();
 
-        final String alphabet = "!#$%&()*+,-/0123456789:;@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^`abcdefghijklmnopqrstuvwxyz|~";
+        final String alphabet = "0123456789@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
