@@ -476,7 +476,7 @@ public class Call extends Module {
                 String background = annotationsToBackground.containsKey(code) ? annotationsToBackground.get(code) : null;
 
                 KmerAnnotation ka = new KmerAnnotation();
-                ka.setCode(code);
+                ka.setCode(annotations.get(offset).get(background).contains(";") ? '_' : code); // TODO: an ugly fix for a bug
                 ka.setBackground(background);
                 ka.setIntervals(annotations.get(offset).get(background));
                 ka.setOffset(offset);
