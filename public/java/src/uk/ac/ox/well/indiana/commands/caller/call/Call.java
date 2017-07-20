@@ -20,6 +20,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
@@ -71,9 +73,16 @@ public class Call extends Module {
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
         //List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
+        Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
+
         out.println(Joiner.on("\t").join("contigName", "index", "kmer", "code", "background", "intervals", "is_smoothed", "altInDegree", "altOutDegree"));
 
-        Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing contigs")
+                .message("contigs processed")
+                .maxRecord(allAnnotations.size())
+                .make(log);
+
         for (String contigName : allAnnotations.keySet()) {
             String contig = getContig(allAnnotations.get(contigName));
 
@@ -83,14 +92,11 @@ public class Call extends Module {
 
             for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
                 KmerAnnotation ka = smoothedAnnotatedContig.get(i);
-                KmerAnnotation kb = annotatedContig.get(i);
-                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree(),
-                                                 contigName, i, kb.getKmer(), kb.getCode(), kb.getBackground(), kb.getIntervals(), kb.isSmoothed(), kb.getAltInDegree(), kb.getAltOutDegree()));
+                //KmerAnnotation kb = annotatedContig.get(i);
+                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree()));
             }
 
-            //log.info("{} {} {} {}", contigName, contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
-
-            //if (contigName.equals("contig291")) { }
+            pm.update();
         }
     }
 
@@ -124,8 +130,6 @@ public class Call extends Module {
                     smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgoingEdges.size());
                 }
             }
-
-            log.info("  {}", smoothedAnnotatedContig.get(i));
         }
     }
 
@@ -422,12 +426,6 @@ public class Call extends Module {
             annotatedContigs.add(pieces);
         }
 
-        for (int f = 0; f < annotatedContigs.get(0).size(); f++) {
-            log.info("{}:", f);
-            log.info("  0: {}", annotatedContigs.get(0).get(f));
-            log.info("  1: {}", annotatedContigs.get(1).get(f));
-        }
-
         List<String> finalPieces = new ArrayList<>();
         int lastBestBackgroundIndex = 0;
         for (int fragmentIndex = 0; fragmentIndex < annotatedContigs.get(0).size(); fragmentIndex++) {
@@ -496,11 +494,6 @@ public class Call extends Module {
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
-            int index = Integer.valueOf(m.get("index"));
-            if (index == 5596) {
-                log.info("H!");
-            }
-
             String[] lociStrings = m.get(background).split(";");
 
             String code = "_";
