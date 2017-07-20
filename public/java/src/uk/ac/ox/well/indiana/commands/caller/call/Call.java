@@ -90,8 +90,8 @@ public class Call extends Module {
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
             addEdgeAnnotations(childColor, parentColors, contig, smoothedAnnotatedContig);
 
-            for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
-                KmerAnnotation ka = smoothedAnnotatedContig.get(i);
+            for (int i = 0; i < annotatedContig.size(); i++) {
+                KmerAnnotation ka = annotatedContig.get(i);
                 //KmerAnnotation kb = annotatedContig.get(i);
                 out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree()));
             }
