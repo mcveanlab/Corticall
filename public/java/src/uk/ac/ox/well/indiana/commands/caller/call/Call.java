@@ -361,8 +361,8 @@ public class Call extends Module {
         return smoothedAnnotatedContig;
     }
 
-    private List<String> splitOnRepeatedCharacters(String annotatedContig, char... splits) {
-        Set<Integer> splitPositions = new TreeSet<>();
+    private TreeSet<Integer> computeSplits(String annotatedContig, char... splits) {
+        TreeSet<Integer> splitPositions = new TreeSet<>();
         for (char split : splits) {
             for (int i = 0; i < annotatedContig.length(); i++) {
                 if (annotatedContig.charAt(i) == split) {
@@ -377,23 +377,21 @@ public class Call extends Module {
             }
         }
 
+        return splitPositions;
+    }
+
+    private List<String> splitAtPositions(String annotatedContig, TreeSet<Integer> splitPositions) {
         List<String> pieces = new ArrayList<>();
-        int length = 0;
         int prevPos = 0;
         for (int nextPos : splitPositions) {
             String piece = annotatedContig.substring(prevPos, nextPos);
             if (piece.length() > 0) {
                 pieces.add(piece);
                 prevPos = nextPos;
-
-                length += piece.length();
             }
         }
         String piece = annotatedContig.substring(prevPos, annotatedContig.length());
         pieces.add(piece);
-        length += piece.length();
-
-        log.info("pieces: {} {}", annotatedContig.length(), length);
 
         return pieces;
     }
@@ -403,6 +401,8 @@ public class Call extends Module {
         Set<String> usedAlphabet = new HashSet<>();
         Map<Character, String> annotationsToBackground = new HashMap<>();
 
+        TreeSet<Integer> splits = new TreeSet<>();
+        List<String> annotatedContigsBeforeSplit = new ArrayList<>();
         for (String background : LOOKUPS.keySet()) {
             String annotatedContig = annotateContig(annotations, background, usedAlphabet);
 
@@ -413,16 +413,19 @@ public class Call extends Module {
                 }
             }
 
-            //String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
-            //annotatedContigs.add(Arrays.asList(pieces));
+            splits.addAll(computeSplits(annotatedContig, '.', '_'));
+            annotatedContigsBeforeSplit.add(annotatedContig);
+        }
 
-            List<String> pieces = splitOnRepeatedCharacters(annotatedContig, '.', '_');
+        for (String annotatedContig : annotatedContigsBeforeSplit) {
+            List<String> pieces = splitAtPositions(annotatedContig, splits);
             annotatedContigs.add(pieces);
+        }
 
-            log.info("  {}", annotatedContig);
-            for (int i = 0; i < pieces.size(); i++) {
-                log.info("  {} {} {}", background, i, pieces.get(i));
-            }
+        for (int f = 0; f < annotatedContigs.get(0).size(); f++) {
+            log.info("{}:", f);
+            log.info("  0: {}", annotatedContigs.get(0).get(f));
+            log.info("  1: {}", annotatedContigs.get(1).get(f));
         }
 
         List<String> finalPieces = new ArrayList<>();
