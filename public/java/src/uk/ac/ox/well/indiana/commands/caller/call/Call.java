@@ -83,7 +83,9 @@ public class Call extends Module {
 
             for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
                 KmerAnnotation ka = smoothedAnnotatedContig.get(i);
-                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree()));
+                KmerAnnotation kb = annotatedContig.get(i);
+                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree(),
+                                                 contigName, i, kb.getKmer(), kb.getCode(), kb.getBackground(), kb.getIntervals(), kb.isSmoothed(), kb.getAltInDegree(), kb.getAltOutDegree()));
             }
 
             //log.info("{} {} {} {}", contigName, contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
