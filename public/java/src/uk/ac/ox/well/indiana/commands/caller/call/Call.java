@@ -381,6 +381,7 @@ public class Call extends Module {
             pieces.add(annotatedContig.substring(prevPos, nextPos));
             prevPos = nextPos;
         }
+        pieces.add(prevPos, annotatedContig.length());
 
         return pieces;
     }
