@@ -378,12 +378,20 @@ public class Call extends Module {
         }
 
         List<String> pieces = new ArrayList<>();
+        int length = 0;
         int prevPos = 0;
         for (int nextPos : splitPositions) {
-            pieces.add(annotatedContig.substring(prevPos, nextPos));
-            prevPos = nextPos;
+            String piece = annotatedContig.substring(prevPos, nextPos);
+            if (piece.length() > 0) {
+                pieces.add(piece);
+                prevPos = nextPos;
+
+                length += piece.length();
+            }
         }
         pieces.add(annotatedContig.substring(prevPos, annotatedContig.length()));
+
+        log.info("pieces: {} {}", annotatedContig.length(), length);
 
         return pieces;
     }
