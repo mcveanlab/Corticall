@@ -389,7 +389,9 @@ public class Call extends Module {
                 length += piece.length();
             }
         }
-        pieces.add(annotatedContig.substring(prevPos, annotatedContig.length()));
+        String piece = annotatedContig.substring(prevPos, annotatedContig.length());
+        pieces.add(piece);
+        length += piece.length();
 
         log.info("pieces: {} {}", annotatedContig.length(), length);
 
