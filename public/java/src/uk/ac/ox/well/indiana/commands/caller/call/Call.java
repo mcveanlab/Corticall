@@ -71,77 +71,59 @@ public class Call extends Module {
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(PARENTS);
         //List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
 
+        out.println(Joiner.on("\t").join("contigName", "index", "kmer", "code", "background", "intervals", "is_smoothed", "altInDegree", "altOutDegree"));
+
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
         for (String contigName : allAnnotations.keySet()) {
             String contig = getContig(allAnnotations.get(contigName));
+
             List<KmerAnnotation> annotatedContig = annotateContig(allAnnotations.get(contigName));
             List<KmerAnnotation> smoothedAnnotatedContig = smoothAnnotations(annotatedContig, allAnnotations.get(contigName));
-
-            log.info("{} {} {} {}", contigName, contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
+            addEdgeAnnotations(childColor, parentColors, contig, smoothedAnnotatedContig);
 
             for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
-                String sk = contig.substring(i, i + GRAPH.getKmerSize());
-                CortexKmer ck = new CortexKmer(sk);
-                CortexRecord cr = GRAPH.findRecord(ck);
+                KmerAnnotation ka = smoothedAnnotatedContig.get(i);
+                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree()));
+            }
 
-                Map<Integer, Set<String>> inEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-                Map<Integer, Set<String>> outEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+            //log.info("{} {} {} {}", contigName, contig.length(), contig.length() - GRAPH.getKmerSize() + 1, smoothedAnnotatedContig.size());
 
-                smoothedAnnotatedContig.get(i).setKmer(sk);
-                smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
-                smoothedAnnotatedContig.get(i).setOutgoingEdges(outEdges);
+            //if (contigName.equals("contig291")) { }
+        }
+    }
 
-                for (int parentColor : parentColors) {
-                    Set<String> childIncomingEdges = new HashSet<>();
-                    childIncomingEdges.addAll(inEdges.get(childColor));
-                    childIncomingEdges.removeAll(inEdges.get(parentColor));
+    private void addEdgeAnnotations(int childColor, List<Integer> parentColors, String contig, List<KmerAnnotation> smoothedAnnotatedContig) {
+        for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
+            String sk = contig.substring(i, i + GRAPH.getKmerSize());
+            CortexKmer ck = new CortexKmer(sk);
+            CortexRecord cr = GRAPH.findRecord(ck);
 
-                    if (childIncomingEdges.size() > 0) {
-                        smoothedAnnotatedContig.get(i).setAltInDegree(childIncomingEdges.size());
-                    }
+            Map<Integer, Set<String>> inEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+            Map<Integer, Set<String>> outEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
 
-                    Set<String> childOutgooutgEdges = new HashSet<>();
-                    childOutgooutgEdges.addAll(outEdges.get(childColor));
-                    childOutgooutgEdges.removeAll(outEdges.get(parentColor));
+            smoothedAnnotatedContig.get(i).setKmer(sk);
+            smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
+            smoothedAnnotatedContig.get(i).setOutgoingEdges(outEdges);
 
-                    if (childOutgooutgEdges.size() > 0) {
-                        smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgooutgEdges.size());
-                    }
+            for (int parentColor : parentColors) {
+                Set<String> childIncomingEdges = new HashSet<>();
+                childIncomingEdges.addAll(inEdges.get(childColor));
+                childIncomingEdges.removeAll(inEdges.get(parentColor));
+
+                if (childIncomingEdges.size() > 0) {
+                    smoothedAnnotatedContig.get(i).setAltInDegree(childIncomingEdges.size());
                 }
 
+                Set<String> childOutgoingEdges = new HashSet<>();
+                childOutgoingEdges.addAll(outEdges.get(childColor));
+                childOutgoingEdges.removeAll(outEdges.get(parentColor));
 
-
-                log.info("  {}", smoothedAnnotatedContig.get(i));
+                if (childOutgoingEdges.size() > 0) {
+                    smoothedAnnotatedContig.get(i).setAltOutDegree(childOutgoingEdges.size());
+                }
             }
 
-            if (contigName.equals("contig15")) {
-
-            }
-
-            /*
-            log.info("{} {}", contigName, annotatedContig.size());
-
-            StringBuilder sba = new StringBuilder();
-            for (int i = 0; i < annotatedContig.size(); i++) {
-                sba.append(annotatedContig.get(i).getCode());
-            }
-            log.info("  {}", sba);
-
-            StringBuilder sbs = new StringBuilder();
-            for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
-                sbs.append(smoothedAnnotatedContig.get(i).getCode());
-            }
-
-            log.info("  {}", sbs);
-
-            for (KmerAnnotation ka : smoothedAnnotatedContig) {
-                log.info("{}", ka);
-            }
-
-            //if (isNahrEvent(annotatedContig)) {
-                //out.println(contigName);
-            //}
-            */
+            log.info("  {}", smoothedAnnotatedContig.get(i));
         }
     }
 
