@@ -406,6 +406,7 @@ public class Call extends Module {
             List<String> pieces = splitOnRepeatedCharacters(annotatedContig, '.', '_');
             annotatedContigs.add(pieces);
 
+            log.info("  {}", annotatedContig);
             for (int i = 0; i < pieces.size(); i++) {
                 log.info("  {} {} {}", background, i, pieces.get(i));
             }
