@@ -361,6 +361,30 @@ public class Call extends Module {
         return smoothedAnnotatedContig;
     }
 
+    private List<String> splitOnRepeatedCharacters(String annotatedContig, char... splits) {
+        Set<Integer> splitPositions = new TreeSet<>();
+        for (char split : splits) {
+            for (int i = 0; i < annotatedContig.length(); i++) {
+                if (annotatedContig.charAt(i) == split) {
+                    int j;
+                    for (j = i + 1; j < annotatedContig.length() && annotatedContig.charAt(j) == split; j++) {}
+
+                    splitPositions.add(i);
+                    splitPositions.add(j);
+                }
+            }
+        }
+
+        List<String> pieces = new ArrayList<>();
+        int prevPos = 0;
+        for (int nextPos : splitPositions) {
+            pieces.add(annotatedContig.substring(prevPos, nextPos));
+            prevPos = nextPos;
+        }
+
+        return pieces;
+    }
+
     private List<KmerAnnotation> annotateContig(List<Map<String, String>> annotations) {
         List<List<String>> annotatedContigs = new ArrayList<>();
         Set<String> usedAlphabet = new HashSet<>();
@@ -376,9 +400,15 @@ public class Call extends Module {
                 }
             }
 
-            String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
+            //String[] pieces = annotatedContig.split("((?<=\\.+)|(?=\\.+))");
+            //annotatedContigs.add(Arrays.asList(pieces));
 
-            annotatedContigs.add(Arrays.asList(pieces));
+            List<String> pieces = splitOnRepeatedCharacters(annotatedContig, '.', '_');
+            annotatedContigs.add(pieces);
+
+            for (int i = 0; i < pieces.size(); i++) {
+                log.info("  {} {} {}", background, i, pieces.get(i));
+            }
         }
 
         List<String> finalPieces = new ArrayList<>();
