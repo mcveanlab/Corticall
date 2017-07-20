@@ -75,7 +75,7 @@ public class Call extends Module {
 
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
 
-        out.println(Joiner.on("\t").join("contigName", "index", "kmer", "code", "background", "intervals", "is_smoothed", "altInDegree", "altOutDegree"));
+        out.println(Joiner.on("\t").join("contigName", "index", "kmer", "code", "background", "intervals", "is_smoothed", "altInDegree", "altOutDegree", "coverage"));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing contigs")
@@ -92,8 +92,7 @@ public class Call extends Module {
 
             for (int i = 0; i < smoothedAnnotatedContig.size(); i++) {
                 KmerAnnotation ka = smoothedAnnotatedContig.get(i);
-                //KmerAnnotation kb = annotatedContig.get(i);
-                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree()));
+                out.println(Joiner.on("\t").join(contigName, i, ka.getKmer(), ka.getCode(), ka.getBackground(), ka.getIntervals(), ka.isSmoothed(), ka.getAltInDegree(), ka.getAltOutDegree(), ka.getCoverage()));
             }
 
             pm.update();
@@ -112,6 +111,7 @@ public class Call extends Module {
             smoothedAnnotatedContig.get(i).setKmer(sk);
             smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
             smoothedAnnotatedContig.get(i).setOutgoingEdges(outEdges);
+            smoothedAnnotatedContig.get(i).setCoverage(cr.getCoverage(childColor));
 
             for (int parentColor : parentColors) {
                 Set<String> childIncomingEdges = new HashSet<>();
@@ -199,6 +199,7 @@ public class Call extends Module {
         private Map<Integer, Set<String>> outgoingEdges = new HashMap<>();
         private int altInDegree = 0;
         private int altOutDegree = 0;
+        private int coverage = 0;
 
         public KmerAnnotation() {}
 
@@ -211,6 +212,7 @@ public class Call extends Module {
             smoothed = o.isSmoothed();
             incomingEdges = o.getIncomingEdges();
             outgoingEdges = o.getOutgoingEdges();
+            coverage = o.getCoverage();
         }
 
         public String getKmer() { return kmer == null ? "NA" : kmer; }
@@ -242,6 +244,9 @@ public class Call extends Module {
 
         public int getAltOutDegree() { return altOutDegree; }
         public void setAltOutDegree(int altOutDegree) { this.altOutDegree = altOutDegree; }
+
+        public int getCoverage() { return coverage; }
+        public void setCoverage(int coverage) { this.coverage = coverage; }
 
         @Override
         public String toString() {
