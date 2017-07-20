@@ -449,6 +449,11 @@ public class Call extends Module {
 
         IntervalTreeMap<String> itm = new IntervalTreeMap<>();
         for (Map<String, String> m : annotations) {
+            int index = Integer.valueOf(m.get("index"));
+            if (index == 5596) {
+                log.info("H!");
+            }
+
             String[] lociStrings = m.get(background).split(";");
 
             String code = "_";
