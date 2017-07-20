@@ -371,6 +371,8 @@ public class Call extends Module {
 
                     splitPositions.add(i);
                     splitPositions.add(j);
+
+                    i = j;
                 }
             }
         }
