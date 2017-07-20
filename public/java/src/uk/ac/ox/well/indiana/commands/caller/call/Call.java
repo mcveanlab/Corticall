@@ -207,22 +207,22 @@ public class Call extends Module {
             outgoingEdges = o.getOutgoingEdges();
         }
 
-        public String getKmer() { return kmer; }
+        public String getKmer() { return kmer == null ? "NA" : kmer; }
         public void setKmer(String kmer) { this.kmer = kmer; }
 
         public char getCode() { return code; }
         public void setCode(char code) { this.code = code; }
 
-        public String getBackground() { return background; }
+        public String getBackground() { return background == null ? "NA" : background; }
         public void setBackground(String background) { this.background = background; }
 
-        public String getIntervals() { return intervals; }
+        public String getIntervals() { return intervals == null ? "NA" : intervals; }
         public void setIntervals(String intervals) { this.intervals = intervals; }
 
         public int getOffset() { return offset; }
         public void setOffset(int offset) { this.offset = offset; }
 
-        public boolean isSmoothed() { return this.smoothed; }
+        public boolean isSmoothed() { return smoothed; }
         public void setSmoothed(boolean smoothed) { this.smoothed = smoothed; }
 
         public Map<Integer, Set<String>> getIncomingEdges() { return incomingEdges; }
