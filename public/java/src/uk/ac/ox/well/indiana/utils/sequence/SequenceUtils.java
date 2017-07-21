@@ -738,4 +738,40 @@ public class SequenceUtils {
 
         return s.substring(0, length - 3) + "..." + s.substring(s.length() - 3, s.length());
     }
+
+    public static TreeSet<Integer> computeSplits(String annotatedContig, char... splits) {
+        TreeSet<Integer> splitPositions = new TreeSet<>();
+        for (char split : splits) {
+            for (int i = 0; i < annotatedContig.length(); i++) {
+                if (annotatedContig.charAt(i) == split) {
+                    int j;
+                    for (j = i + 1; j < annotatedContig.length() && annotatedContig.charAt(j) == split; j++) {}
+
+                    splitPositions.add(i);
+                    splitPositions.add(j);
+
+                    i = j;
+                }
+            }
+        }
+
+        return splitPositions;
+    }
+
+    public static List<String> splitAtPositions(String annotatedContig, TreeSet<Integer> splitPositions) {
+        List<String> pieces = new ArrayList<>();
+        int prevPos = 0;
+        for (int nextPos : splitPositions) {
+            String piece = annotatedContig.substring(prevPos, nextPos);
+            if (piece.length() > 0) {
+                pieces.add(piece);
+                prevPos = nextPos;
+            }
+        }
+        String piece = annotatedContig.substring(prevPos, annotatedContig.length());
+        pieces.add(piece);
+
+        return pieces;
+    }
+
 }
