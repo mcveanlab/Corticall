@@ -111,7 +111,7 @@ public class Call extends Module {
             smoothedAnnotatedContig.get(i).setKmer(sk);
             smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);
             smoothedAnnotatedContig.get(i).setOutgoingEdges(outEdges);
-            smoothedAnnotatedContig.get(i).setCoverage(cr.getCoverage(childColor));
+            smoothedAnnotatedContig.get(i).setCoverage(cr == null ? 0 : cr.getCoverage(childColor));
 
             for (int parentColor : parentColors) {
                 Set<String> childIncomingEdges = new HashSet<>();
