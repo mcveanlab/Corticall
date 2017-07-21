@@ -136,6 +136,8 @@ public class RemoveUnanchored extends Module {
                 }
 
                 if (!leftAnchored || !rightAnchored) {
+                    log.debug("    discard: {}", ann);
+
                     unanchored.addAll(seenRois);
                     numUnanchoredChains++;
                 }
