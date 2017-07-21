@@ -57,7 +57,7 @@ public class RemoveUnanchored extends Module {
         //log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Finding tips")
+                .header("Finding unanchored kmers")
                 .message("records processed")
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
@@ -140,6 +140,8 @@ public class RemoveUnanchored extends Module {
                     numUnanchoredChains++;
                 }
             }
+
+            pm.update();
         }
 
         log.info("Found {} unanchored kmer chains ({} kmers total)", numUnanchoredChains, unanchored.size());
