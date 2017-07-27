@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 public class CortexLinksTest {
     @Test
     public void testLoadFormatVersion2() {
-        CortexLinks ctp = new CortexLinks("testdata/PG0085-C.infer.se.ctp");
+        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0085-C.infer.se.ctp");
 
         Assert.assertEquals(2, ctp.getVersion());
         Assert.assertEquals(1, ctp.getNumColors());
@@ -29,7 +29,7 @@ public class CortexLinksTest {
 
     @Test
     public void testLoadFormatVersion3() {
-        CortexLinks ctp = new CortexLinks("testdata/PG0063-C.ERR019060.infer.pe.k51.v3.ctp");
+        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0063-C.ERR019060.infer.pe.k51.v3.ctp");
 
         Assert.assertEquals(3, ctp.getVersion());
         Assert.assertEquals(1, ctp.getNumColors());
@@ -52,7 +52,7 @@ public class CortexLinksTest {
 
     @Test
     public void testMultipleIteration() {
-        CortexLinks ctp = new CortexLinks("testdata/PG0085-C.infer.se.ctp");
+        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0085-C.infer.se.ctp");
 
         CortexLinksRecord cprFirst1 = null, cprLast1 = null;
         for (CortexLinksRecord cpr : ctp) {
@@ -73,7 +73,7 @@ public class CortexLinksTest {
 
     @Test
     public void testParseRecordWithExtendedInfo() {
-        CortexLinks ctp = new CortexLinks("testdata/PG0051-C.ERR019061.chr1.se.ctp");
+        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0051-C.ERR019061.chr1.se.ctp");
 
         for (CortexLinksRecord clr : ctp) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
@@ -83,7 +83,7 @@ public class CortexLinksTest {
             }
         }
 
-        CortexLinks ctp2 = new CortexLinks("testdata/PG0085-C.infer.se.ctp");
+        CortexGraphLinks ctp2 = new CortexGraphLinks("testdata/PG0085-C.infer.se.ctp");
 
         for (CortexLinksRecord clr : ctp2) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {

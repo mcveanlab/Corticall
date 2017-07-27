@@ -19,8 +19,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexGraphLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
 
@@ -204,7 +204,7 @@ public class ArgumentHandler {
                 }
 
                 field.set(instance, o);
-            } else if (Map.class.isAssignableFrom(type) && !CortexLinksMap.class.isAssignableFrom(type)) {
+            } else if (Map.class.isAssignableFrom(type) && !CortexLinks.class.isAssignableFrom(type)) {
                 Map<String, String> pairs = new HashMap<>();
 
                 for (String avalue : value.split(",")) {
@@ -266,10 +266,10 @@ public class ArgumentHandler {
                 return new CortexKmer(value);
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
+            } else if (type.equals(CortexGraphLinks.class)) {
+                return new CortexGraphLinks(value);
             } else if (type.equals(CortexLinks.class)) {
                 return new CortexLinks(value);
-            } else if (type.equals(CortexLinksMap.class)) {
-                return new CortexLinksMap(value);
             } else if (type.equals(GFF3.class)) {
                 return new GFF3(value);
             } else if (type.equals(FastaSequenceFile.class)) {

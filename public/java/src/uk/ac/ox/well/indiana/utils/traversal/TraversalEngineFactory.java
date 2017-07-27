@@ -4,7 +4,6 @@ import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.Arrays;
@@ -42,8 +41,8 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 
-    public TraversalEngineFactory links(CortexLinksMap lm) {
-        int linkColor = configuration.getGraph().getColorForSampleName(lm.getCortexLinks().getColor(0).getSampleName());
+    public TraversalEngineFactory links(CortexLinks lm) {
+        int linkColor = configuration.getGraph().getColorForSampleName(lm.getCortexGraphLinks().getColor(0).getSampleName());
 
         configuration.getLinks().put(linkColor, lm);
 
