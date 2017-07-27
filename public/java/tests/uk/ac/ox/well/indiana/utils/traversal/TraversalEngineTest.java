@@ -1,27 +1,29 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.DijkstraShortestPath;
-import org.jgrapht.alg.shortestpath.KShortestPaths;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.assembler.TempGraphAssembler;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.CycleCollapsingContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.DestinationStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
-import uk.ac.ox.well.indiana.utils.visualizer.GraphVisualizer;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -197,7 +199,7 @@ public class TraversalEngineTest {
     public void testVarGeneReconstruction() {
         FastaSequenceFile f = new FastaSequenceFile(new File("testdata/var.fasta"), true);
         CortexGraph g = new CortexGraph("testdata/var.ctx");
-        CortexLinksMap l = new CortexLinksMap("testdata/var.ctp.gz");
+        CortexLinks l = new CortexLinks("testdata/var.ctp.gz");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("var"))
@@ -562,106 +564,213 @@ public class TraversalEngineTest {
     }
 
     @Test
-    public void testCallNAHR() {
+    public void iterateFwdWithoutPathInformation() {
         Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("mom",                Collections.singletonList("AGTTCGAATCTGGGCTATATGCT"));
 
-        String var1 = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(30));
-        String var2 = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(30));
-        String nahr = var1.substring(0, 15) + var2.substring(15, 30);
-
-        System.out.println(var1);
-        System.out.println(var2);
-        System.out.println(nahr);
-
-        haplotypes.put("var", Arrays.asList(var1, var2));
-        haplotypes.put("kid", Collections.singletonList(nahr));
-
-        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 13);
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
         TraversalEngine e = new TraversalEngineFactory()
-                //.traversalColor(g.getColorForSampleName("kid"))
-                .displayColors(g.getColorsForSampleNames(Arrays.asList("var", "kid")))
-                .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
-                .connectAllNeighbors(false)
-                .stopper(ExplorationStopper.class)
+                .traversalColor(g.getColorForSampleName("mom"))
                 .graph(g)
                 .make();
 
-        String seed1 = var1.substring(7, 20);
-        String seed2 = var2.substring(7, 20);
-        String seedr = nahr.substring(7, 20);
+        String sk = "AGTTCGA";
+        StringBuilder sb = new StringBuilder();
+        sb.append(sk);
 
-        e.getConfiguration().setTraversalColor(g.getColorForSampleName("var"));
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> walk1 = e.dfs(seed1);
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> walk2 = e.dfs(seed2);
+        e.setCursor(sk, true);
+        while (e.hasNext()) {
+            CortexVertex cv = e.next();
+            sk = cv.getSk();
 
-        e.getConfiguration().setTraversalColor(g.getColorForSampleName("kid"));
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> walkr = e.dfs(seedr);
-
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> graph = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        Graphs.addGraph(graph, walk1);
-        Graphs.addGraph(graph, walk2);
-        Graphs.addGraph(graph, walkr);
-
-        GraphVisualizer gv = new GraphVisualizer(9000);
-        gv.display(graph, "nahr");
-
-        /*
-        Set<CortexVertex> iss = new HashSet<>();
-        Set<CortexVertex> oss = new HashSet<>();
-
-        for (CortexVertex v : walk.vertexSet()) {
-            if (TraversalEngine.inDegree(walk, v) > 1) {
-                iss.add(v);
-            }
-
-            if (TraversalEngine.outDegree(walk, v) > 1) {
-                oss.add(v);
-            }
+            sb.append(sk.substring(sk.length() - 1, sk.length()));
         }
 
-        e.getConfiguration().setStoppingRule(DestinationStopper.class);
-        e.getConfiguration().setGraphCombinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR);
+        Assert.assertEquals(sb.toString(), haplotypes.get("mom").iterator().next());
+    }
 
-        for (CortexVertex is : iss) {
-            for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
-                p.addVertex(os);
+    @Test
+    public void iterateRevWithoutPathInformation() {
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("mom",                Collections.singletonList("AGTTCGAATCTGGGCTATATGCT"));
 
-                e.getConfiguration().setPreviousTraversal(p);
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
-                for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
-                    e.getConfiguration().setTraversalColor(c);
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(g.getColorForSampleName("mom"))
+                .graph(g)
+                .make();
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
+        String sk = "ATATGCT";
+        StringBuilder sb = new StringBuilder();
+        sb.append(sk);
 
-                    if (w != null) {
-                        Graphs.addGraph(walk, w);
-                    }
+        e.setCursor(sk, false);
+        while (e.hasPrevious()) {
+            CortexVertex cv = e.previous();
+            sk = cv.getSk();
+
+            sb.insert(0, sk.substring(0, 1));
+        }
+
+        Assert.assertEquals(sb.toString(), haplotypes.get("mom").iterator().next());
+    }
+
+    @Test
+    public void iterateFwdToForkWithoutPathInformation() {
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("kid", Arrays.asList("AGTTCGAATCTGGGCTATATGCT", "AGTTCGAATCTGAGCTATATGCT"));
+
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(g.getColorForSampleName("kid"))
+                .graph(g)
+                .make();
+
+        String sk = "AGTTCGA";
+        StringBuilder sb = new StringBuilder();
+        sb.append(sk);
+
+        e.setCursor(sk, true);
+        while (e.hasNext()) {
+            CortexVertex cv = e.next();
+            sk = cv.getSk();
+
+            sb.append(sk.substring(sk.length() - 1, sk.length()));
+        }
+
+        Assert.assertEquals(sb.toString(), "AGTTCGAATCTG");
+    }
+
+    @Test
+    public void iterateRevToForkWithoutPathInformation() {
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("kid", Arrays.asList("AGTTCGAATCTGGGCTATATGCT", "AGTTCGAATCTGAGCTATATGCT"));
+
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(g.getColorForSampleName("kid"))
+                .graph(g)
+                .make();
+
+        String sk = "ATATGCT";
+        StringBuilder sb = new StringBuilder();
+        sb.append(sk);
+
+        e.setCursor(sk, false);
+        while (e.hasPrevious()) {
+            CortexVertex cv = e.previous();
+            sk = cv.getSk();
+
+            sb.insert(0, sk.substring(0, 1));
+        }
+
+        Assert.assertEquals(sb.toString(), "GCTATATGCT");
+    }
+
+    @Test
+    public void testPathBasedAssembly() {
+        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
+        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+
+        FastaSequenceFile fsf = new FastaSequenceFile(new File("testdata/test.with_links_v2.fa"), true);
+        String seq = fsf.nextSequence().getBaseString();
+
+        FastaSequenceFile ssf = new FastaSequenceFile(new File("testdata/allcontigs.fa"), false);
+        Map<CortexKmer, String> seedsAndExpectedContigs = new HashMap<>();
+        ReferenceSequence rseq;
+        while ((rseq = ssf.nextSequence()) != null) {
+            String[] pieces = rseq.getName().split("\\s+");
+            for (String piece : pieces) {
+                if (piece.startsWith("seed=")) {
+                    String seed = piece.replace("seed=", "");
+                    seedsAndExpectedContigs.put(new CortexKmer(seed), rseq.getBaseString());
                 }
             }
         }
 
-        PathFinder dspKid = new PathFinder(walk, g.getColorForSampleName("kid"));
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(0)
+                .graph(g)
+                .links(l)
+                .make();
 
-        Set<Pair<String, String>> allelesVsSelf = new HashSet<>();
+        for (int i = 0; i <= seq.length() - g.getKmerSize(); i++) {
+            String seed = seq.substring(i, i + g.getKmerSize());
 
-        for (CortexVertex os : oss) {
-            for (CortexVertex is : iss) {
-                GraphPath<CortexVertex, CortexEdge> pk1 = dspKid.getPathFinder(os, is, new CortexKmer("TGAGCTA"), true);
-                GraphPath<CortexVertex, CortexEdge> pk2 = dspKid.getPathFinder(os, is, new CortexKmer("TGAGCTA"), false);
+            String expectedContig = seedsAndExpectedContigs.get(new CortexKmer(seed));
 
-                Pair<String, String> akm = pathsToAlleles(pk1, pk2);
-                allelesVsSelf.add(akm);
+            StringBuilder sb = new StringBuilder();
+            sb.append(seed);
+
+            e.setCursor(seed, true);
+            while (e.hasNext()) {
+                CortexVertex cv = e.next();
+                String sk = cv.getSk();
+
+                sb.append(sk.substring(sk.length() - 1, sk.length()));
             }
+
+            e.setCursor(seed, false);
+            while (e.hasPrevious()) {
+                CortexVertex cv = e.previous();
+                String sk = cv.getSk();
+
+                sb.insert(0, sk.substring(0, 1));
+            }
+
+            String contigFwd = sb.toString();
+            String contigRev = SequenceUtils.reverseComplement(contigFwd);
+
+            Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (" + contigFwd.length() + " vs " + expectedContig.length() + ") for seed " + i + " (" + seed + ")");
         }
+    }
 
-        Pair<String, String> alleleVsSelf = allelesVsSelf.iterator().next();
+    @Test
+    public void testPathBasedReconstruction() {
+        CortexGraph g = new CortexGraph("testdata/pf3d7.chr1.ctx");
+        CortexLinks l = new CortexLinks("testdata/pf3d7.chr1.ctp.gz");
 
-        Assert.assertEquals(alleleVsSelf.getFirst(), "A");
-        Assert.assertEquals(alleleVsSelf.getSecond(), "G");
-        */
+        FastaSequenceFile fsf = new FastaSequenceFile(new File("testdata/Pf3D7_01_v3.fasta"), true);
+        String seq = fsf.nextSequence().getBaseString();
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(0)
+                .graph(g)
+                .links(l)
+                .make();
+
+        for (int i = 0; i <= seq.length() - g.getKmerSize(); i++) {
+            String seed = seq.substring(i, i + g.getKmerSize());
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(seed);
+
+            e.setCursor(seed, true);
+            while (e.hasNext()) {
+                CortexVertex cv = e.next();
+                String sk = cv.getSk();
+
+                sb.append(sk.substring(sk.length() - 1, sk.length()));
+            }
+
+            e.setCursor(seed, false);
+            while (e.hasPrevious()) {
+                CortexVertex cv = e.previous();
+                String sk = cv.getSk();
+
+                sb.insert(0, sk.substring(0, 1));
+            }
+
+            String contig = sb.toString();
+
+            System.out.println(i + " " + seed + " " + contig.length());
+
+            Assert.assertTrue(seq.contains(contig));
+        }
     }
 
     private static Pair<String, String> pathsToAlleles(GraphPath<CortexVertex, CortexEdge> p0, GraphPath<CortexVertex, CortexEdge> p1) {

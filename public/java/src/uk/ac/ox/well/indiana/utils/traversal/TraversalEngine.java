@@ -13,18 +13,25 @@ import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
-public class TraversalEngine {
+public class TraversalEngine implements ListIterator<CortexVertex> {
     private TraversalEngineConfiguration ec;
 
     public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
+
+    private String curKmer = null;
+    private String prevKmer;
+    private String nextKmer;
+
+    private LinkStore linkStore;
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk) {
         if (sk.length() != ec.getGraph().getKmerSize()) {
@@ -516,4 +523,115 @@ public class TraversalEngine {
 
         return vs.size();
     }
+
+    @Override
+    public CortexVertex next() {
+        if (nextKmer == null) { throw new NoSuchElementException("No single next kmer from cursor '" + curKmer + "'"); }
+
+        linkStore.incrementAge();
+
+        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(nextKmer));
+        CortexVertex cv = new CortexVertex(nextKmer, cr);
+
+        prevKmer = curKmer;
+        curKmer = nextKmer;
+
+        Set<CortexVertex> nextKmers = getNextVertices(curKmer);
+        nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getSk() : null;
+
+        if (nextKmers.size() > 1) {
+            nextKmer = getAdjacentKmer(curKmer, nextKmers, true);
+        }
+
+        for (int c : ec.getLinks().keySet()) {
+            if (ec.getLinks().get(c).containsKey(curKmer)) {
+                linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), true);
+            }
+        }
+
+        return cv;
+    }
+
+    @Override
+    public CortexVertex previous() {
+        if (prevKmer == null) { throw new NoSuchElementException("No single prev kmer from cursor '" + curKmer + "'"); }
+
+        linkStore.incrementAge();
+
+        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(prevKmer));
+        CortexVertex cv = new CortexVertex(prevKmer, cr);
+
+        nextKmer = curKmer;
+        curKmer = prevKmer;
+
+        Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
+        prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getSk() : null;
+
+        if (prevKmers.size() > 1) {
+            prevKmer = getAdjacentKmer(curKmer, prevKmers, false);
+        }
+
+        for (int c : ec.getLinks().keySet()) {
+            if (ec.getLinks().get(c).containsKey(curKmer)) {
+                linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), false);
+            }
+        }
+
+        return cv;
+    }
+
+    private String getAdjacentKmer(String kmer, Set<CortexVertex> adjKmers, boolean goForward) {
+        String choice = linkStore.getNextJunctionChoice();
+
+        if (choice != null) {
+            Set<String> adjKmersStr = new HashSet<>();
+            for (CortexVertex cv : adjKmers) {
+                adjKmersStr.add(cv.getSk());
+            }
+
+            String adjKmer = goForward ? kmer.substring(1, kmer.length()) + choice : choice + kmer.substring(0, kmer.length() - 1);
+
+            if (adjKmersStr.contains(adjKmer)) {
+                return adjKmer;
+            }
+        }
+
+        return null;
+    }
+
+    public void setCursor(String sk, boolean goForward) {
+        curKmer = sk;
+
+        if (curKmer != null) {
+            Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
+            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getSk() : null;
+
+            Set<CortexVertex> nextKmers = getNextVertices(curKmer);
+            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getSk() : null;
+
+            linkStore = new LinkStore();
+
+            for (int c : ec.getLinks().keySet()) {
+                if (ec.getLinks().get(c).containsKey(curKmer)) {
+                    linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), goForward);
+                }
+            }
+        }
+    }
+
+    public String getCursor() { return curKmer; }
+
+    @Override public boolean hasNext() { return nextKmer != null; }
+
+    @Override public boolean hasPrevious() { return prevKmer != null; }
+
+    @Override public int nextIndex() { return 0; }
+
+    @Override public int previousIndex() { return 0; }
+
+    @Override public void remove() { throw new UnsupportedOperationException("Cannot remove elements from CortexGraph iterator"); }
+
+    @Override public void set(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot set elements in CortexGraph iterator"); }
+
+    @Override public void add(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot add elements to CortexGraph iterator"); }
 }
