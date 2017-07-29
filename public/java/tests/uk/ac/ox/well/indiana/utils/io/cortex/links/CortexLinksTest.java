@@ -71,6 +71,7 @@ public class CortexLinksTest {
         Assert.assertNotEquals(cprFirst1, cprLast1);
     }
 
+    /*
     @Test
     public void testParseRecordWithExtendedInfo() {
         CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0051-C.ERR019061.chr1.se.ctp");
@@ -93,4 +94,5 @@ public class CortexLinksTest {
             }
         }
     }
+    */
 }

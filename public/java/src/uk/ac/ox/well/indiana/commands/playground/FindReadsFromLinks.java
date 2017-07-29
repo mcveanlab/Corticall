@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.commands.playground;
 
 import htsjdk.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
-import uk.ac.ox.well.indiana.commands.playground.index.KmerIndex;
+import uk.ac.ox.well.indiana.commands.playground.index.alignedbam.KmerIndex;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
@@ -33,7 +33,7 @@ public class FindReadsFromLinks extends Module {
 
         for (CortexLinksRecord clr : LINKS) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                String seq = cjr.getSeq();
+                String seq = null; // cjr.getSeq();
 
                 Map<String, SAMRecord> srs = new HashMap<>();
 

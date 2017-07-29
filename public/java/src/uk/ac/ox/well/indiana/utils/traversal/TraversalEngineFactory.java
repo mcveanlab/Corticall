@@ -41,17 +41,13 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 
-    public TraversalEngineFactory links(CortexLinks lm) {
-        int linkColor = configuration.getGraph().getColorForSampleName(lm.getCortexGraphLinks().getColor(0).getSampleName());
-
-        configuration.getLinks().put(linkColor, lm);
-
-        return this;
-    }
+    public TraversalEngineFactory links(String label, CortexLinks... lms) { for (CortexLinks lm : lms) { configuration.getLinks().put(lm, label); } return this; }
 
     public TraversalEngine make() {
         configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new IndianaException("Joining colors must be greater than 0 (provided " + c + ")"); });
         configuration.getRecruitmentColors().forEach(c -> { if (c < 0) throw new IndianaException("Recruitment colors must be greater than 0 (provided " + c + ")"); });
+
+        if (configuration.getGraph() == null) { throw new IndianaException("Must provide graph to traverse."); }
 
         return new TraversalEngine(configuration);
     }

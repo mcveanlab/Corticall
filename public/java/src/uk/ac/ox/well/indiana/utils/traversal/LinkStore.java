@@ -1,9 +1,6 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
-import com.google.common.base.Joiner;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
@@ -61,7 +58,6 @@ public class LinkStore {
     public String getOldestLink() {
         int age = Integer.MIN_VALUE;
         String oldestLink = null;
-        //List<String> oldestLinks = new ArrayList<>();
 
         for (String junctionList : linkAges.keySet()) {
             if (linkAges.get(junctionList) > age) {
@@ -94,5 +90,9 @@ public class LinkStore {
         }
 
         return choice;
+    }
+
+    public boolean isActive() {
+        return linkPos.size() > 0;
     }
 }

@@ -26,11 +26,11 @@ public class TraversalEngineConfiguration {
     private DirectedGraph<CortexVertex, CortexEdge> previousTraversal;
     private Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule;
 
-    private Map<Integer, CortexLinks> links = new HashMap<>();
+    //private Map<Integer, CortexLinks> links = new HashMap<>();
+    private Map<CortexLinks, String> links = new HashMap<>();
 
     private CortexGraph graph;
     private CortexGraph rois;
-    private CortexGraph dirty;
 
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
     public void setGraphCombinationOperator(GraphCombinationOperator gco) { this.gco = gco; }
@@ -63,15 +63,15 @@ public class TraversalEngineConfiguration {
     public Class<? extends TraversalStopper<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
     public void setStoppingRule(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }
 
-    public Map<Integer, CortexLinks> getLinks() { return links; }
-    public void setLinks(Map<Integer, CortexLinks> links) { this.links = links; }
+    //public Map<Integer, CortexLinks> getLinks() { return links; }
+    //public void setLinks(Map<Integer, CortexLinks> links) { this.links = links; }
+
+    public Map<CortexLinks, String> getLinks() { return links; }
+    public void setLinks(Map<CortexLinks, String> links) { this.links = links; }
 
     public CortexGraph getGraph() { return graph; }
     public void setGraph(CortexGraph graph) { this.graph = graph; }
 
     public CortexGraph getRois() { return rois; }
     public void setRois(CortexGraph rois) { this.rois = rois; }
-
-    public CortexGraph getDirty() { return dirty; }
-    public void setDirty(CortexGraph dirty) { this.dirty = dirty; }
 }
