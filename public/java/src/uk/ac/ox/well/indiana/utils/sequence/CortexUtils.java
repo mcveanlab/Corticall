@@ -927,9 +927,7 @@ public class CortexUtils {
                                          cjr.getNumKmers(),
                                          cjr.getNumJunctions(),
                                          cjr.getCoverages(),
-                                         SequenceUtils.complement(cjr.getJunctions()),
-                                         SequenceUtils.reverseComplement(cjr.getSeq()),
-                                         cjr.getJunctionPositions()
+                                         SequenceUtils.complement(cjr.getJunctions())
                    );
     }
 
@@ -972,7 +970,7 @@ public class CortexUtils {
             isForward = !isForward;
         }
 
-        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions, cjr.getSeq(), cjr.getJunctionPositions());
+        return new CortexJunctionsRecord(isForward, cjr.getNumKmers(), cjr.getNumJunctions(), cjr.getCoverages(), junctions);
     }
 
     /**
@@ -1052,7 +1050,7 @@ public class CortexUtils {
 
     public static List<String> getKmersInLinkFromSeq(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
         List<String> expectedKmers = new ArrayList<>();
-        String seq = cjr.getSeq();
+        String seq = null; // cjr.getSeq();
         CortexKmer ck = new CortexKmer(sk);
         if ((!ck.isFlipped() && !cjr.isForward()) || (ck.isFlipped() && cjr.isForward())) {
             seq = SequenceUtils.reverseComplement(seq);
@@ -1066,7 +1064,8 @@ public class CortexUtils {
     }
 
     public static List<String> getKmersInLink(CortexGraph cg, String sk, CortexJunctionsRecord cjr) {
-        return (cjr.getSeq() != null) ? getKmersInLinkFromSeq(cg, sk, cjr) : getKmersInLinkByNavigation(cg, sk, cjr);
+        //return (cjr.getSeq() != null) ? getKmersInLinkFromSeq(cg, sk, cjr) : getKmersInLinkByNavigation(cg, sk, cjr);
+        return null;
     }
 
     public static Map<String, Integer> getKmersAndCoverageInLink(CortexGraph cg, String sk, CortexLinksRecord clr) {

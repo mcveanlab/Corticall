@@ -178,25 +178,7 @@ public class CortexGraphLinks implements Iterable<CortexLinksRecord>, Iterator<C
 
                     String junctions = linkLine[offset + numColors];
 
-                    String seq = null;
-                    int[] juncpos = null;
-                    if (linkLine.length > offset + numColors + 1) {
-                        for (int j = offset + numColors + 1; j < linkLine.length; j++) {
-                            String entry = linkLine[j];
-
-                            if (entry.contains("seq=")) {
-                                seq = entry.replaceAll("seq=", "");
-                            } else if (entry.contains("juncpos=")) {
-                                String[] sjuncpos = entry.replaceAll("juncpos=", "").split(",");
-                                juncpos = new int[sjuncpos.length];
-                                for (int k = 0; k < sjuncpos.length; k++) {
-                                    juncpos[k] = Integer.valueOf(sjuncpos[k]);
-                                }
-                            }
-                        }
-                    }
-
-                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions, seq, juncpos);
+                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
                     cjs.add(cj);
                 }
 

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.index;
+package uk.ac.ox.well.indiana.commands.playground.index.alignedbam;
 
 import htsjdk.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;

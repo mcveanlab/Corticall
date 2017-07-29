@@ -1,16 +1,13 @@
-package uk.ac.ox.well.indiana.commands.attic;
+package uk.ac.ox.well.indiana.commands.playground.index.reference;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.mapdb.*;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 
 import java.io.File;
-import java.io.PrintStream;
-import java.util.*;
 
 public class IndexReference extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference sequence")

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.playground.index;
+package uk.ac.ox.well.indiana.commands.playground.index.alignedbam;
 
 import htsjdk.samtools.*;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -13,7 +13,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
-public class BuildIndex extends Module {
+public class IndexBam extends Module {
     @Argument(fullName="bam", shortName="b", doc="BAM")
     public File SAM_FILE;
 

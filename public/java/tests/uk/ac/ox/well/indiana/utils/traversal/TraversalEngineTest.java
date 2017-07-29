@@ -4,6 +4,7 @@ import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
@@ -114,25 +115,18 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .joiningColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad")))
-                .recruitmentColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad")))
-                .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
-                .connectAllNeighbors(false)
-                .stopper(ContigStopper.class)
                 .graph(g)
                 .make();
 
         Map<String, String> expectations = new LinkedHashMap<>();
         expectations.put("mom", "AGTTCTGATCTGGGCTATATGCT");
         expectations.put("dad",   "TTCGAATCTGGGCTATATGCT");
-        expectations.put("kid", "AGTTCTGATCTGGGCTATGGCTA");
+        expectations.put("kid", "AGTTCTGATCTGGGCTATGGCT");
 
         for (int c = 0; c < 3; c++) {
             e.getConfiguration().setTraversalColor(c);
 
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> walk = e.dfs("CTGGG");
-
-            String contig = e.getContig(walk, "CTGGG", c);
+            String contig = e.walk("CTGGG");
 
             Assert.assertEquals(contig, expectations.get(g.getSampleName(c)));
         }
@@ -167,9 +161,7 @@ public class TraversalEngineTest {
                 e.getConfiguration().setRecruitmentColors();
             }
 
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> walkNew = e.dfs("GTTCT");
-
-            String contig = e.getContig(walkNew, "GTTCT", g.getColorForSampleName("kid"));
+            String contig = e.walk("GTTCT");
 
             Assert.assertEquals(contig, expectations.get(useRecruitment));
         }
@@ -188,10 +180,8 @@ public class TraversalEngineTest {
                 .graph(g)
                 .make();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> walk = e.dfs("GATCA");
-        String contig = e.getContig(walk, "GATCA", g.getColorForSampleName("test"));
+        String contig = e.walk("GATCA");
 
-        //Assert.assertEquals("GGATCAGTCCAGTCCCCCCT", contig);
         Assert.assertEquals("GGATCAGTCC", contig);
     }
 
@@ -208,16 +198,14 @@ public class TraversalEngineTest {
                 .connectAllNeighbors(false)
                 .stopper(CycleCollapsingContigStopper.class)
                 .graph(g)
-                .links(l)
+                .links("var", l)
                 .make();
 
         String varSequence = f.nextSequence().getBaseString().toUpperCase();
         String[] kmers = { "ATGTGCCCTTGAATATGAATATTATAAGCATACTAATGGCGGTGGTA", "GTACCAAATGATTATAAAAGTGGTGATATTCCATTGAATACACAACC" };
 
         for (String kmer : kmers) {
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> walk = e.dfs(kmer);
-
-            String contig = e.getContig(walk, kmer, g.getColorForSampleName("var"));
+            String contig = e.walk(kmer);
 
             Assert.assertEquals(varSequence, contig);
         }
@@ -671,15 +659,9 @@ public class TraversalEngineTest {
         Assert.assertEquals(sb.toString(), "GCTATATGCT");
     }
 
-    @Test
-    public void testPathBasedAssembly() {
-        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
-
-        FastaSequenceFile fsf = new FastaSequenceFile(new File("testdata/test.with_links_v2.fa"), true);
-        String seq = fsf.nextSequence().getBaseString();
-
-        FastaSequenceFile ssf = new FastaSequenceFile(new File("testdata/allcontigs.fa"), false);
+    @NotNull
+    private Map<CortexKmer, String> loadSeedAndExpectedContigs(String expFile) {
+        FastaSequenceFile ssf = new FastaSequenceFile(new File(expFile), false);
         Map<CortexKmer, String> seedsAndExpectedContigs = new HashMap<>();
         ReferenceSequence rseq;
         while ((rseq = ssf.nextSequence()) != null) {
@@ -691,85 +673,83 @@ public class TraversalEngineTest {
                 }
             }
         }
+        return seedsAndExpectedContigs;
+    }
+
+    @Test
+    public void testPathlessAssembly() {
+        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
+
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.without_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
                 .graph(g)
-                .links(l)
                 .make();
 
-        for (int i = 0; i <= seq.length() - g.getKmerSize(); i++) {
-            String seed = seq.substring(i, i + g.getKmerSize());
+        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+            String seed = ck.getKmerAsString();
 
-            String expectedContig = seedsAndExpectedContigs.get(new CortexKmer(seed));
-
-            StringBuilder sb = new StringBuilder();
-            sb.append(seed);
-
-            e.setCursor(seed, true);
-            while (e.hasNext()) {
-                CortexVertex cv = e.next();
-                String sk = cv.getSk();
-
-                sb.append(sk.substring(sk.length() - 1, sk.length()));
-            }
-
-            e.setCursor(seed, false);
-            while (e.hasPrevious()) {
-                CortexVertex cv = e.previous();
-                String sk = cv.getSk();
-
-                sb.insert(0, sk.substring(0, 1));
-            }
-
-            String contigFwd = sb.toString();
+            String contigFwd = e.walk(seed);
             String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
-            Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (" + contigFwd.length() + " vs " + expectedContig.length() + ") for seed " + i + " (" + seed + ")");
+            String expectedContig = seedsAndExpectedContigs.get(ck);
+
+            Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
         }
     }
 
     @Test
-    public void testPathBasedReconstruction() {
-        CortexGraph g = new CortexGraph("testdata/pf3d7.chr1.ctx");
-        CortexLinks l = new CortexLinks("testdata/pf3d7.chr1.ctp.gz");
+    public void testSinglePathBasedAssembly() {
+        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
+        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
 
-        FastaSequenceFile fsf = new FastaSequenceFile(new File("testdata/Pf3D7_01_v3.fasta"), true);
-        String seq = fsf.nextSequence().getBaseString();
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
                 .graph(g)
-                .links(l)
+                .links("3D7", l)
                 .make();
 
-        for (int i = 0; i <= seq.length() - g.getKmerSize(); i++) {
-            String seed = seq.substring(i, i + g.getKmerSize());
+        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+            String seed = ck.getKmerAsString();
 
-            StringBuilder sb = new StringBuilder();
-            sb.append(seed);
+            String contigFwd = e.walk(seed);
+            String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
-            e.setCursor(seed, true);
-            while (e.hasNext()) {
-                CortexVertex cv = e.next();
-                String sk = cv.getSk();
+            String expectedContig = seedsAndExpectedContigs.get(ck);
 
-                sb.append(sk.substring(sk.length() - 1, sk.length()));
-            }
+            Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
+        }
+    }
 
-            e.setCursor(seed, false);
-            while (e.hasPrevious()) {
-                CortexVertex cv = e.previous();
-                String sk = cv.getSk();
+    @Test
+    public void testMultiplePathBasedAssembly() {
+        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
+        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
+        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
 
-                sb.insert(0, sk.substring(0, 1));
-            }
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
-            String contig = sb.toString();
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(0)
+                .graph(g)
+                .links("3D7", l0)
+                .links("HB3", l1)
+                .links("reads", l2)
+                .make();
 
-            System.out.println(i + " " + seed + " " + contig.length());
+        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+            String seed = ck.getKmerAsString();
 
-            Assert.assertTrue(seq.contains(contig));
+            String contigFwd = e.walk(seed);
+            String contigRev = SequenceUtils.reverseComplement(contigFwd);
+
+            String expectedContig = seedsAndExpectedContigs.get(new CortexKmer(seed));
+
+            Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
         }
     }
 

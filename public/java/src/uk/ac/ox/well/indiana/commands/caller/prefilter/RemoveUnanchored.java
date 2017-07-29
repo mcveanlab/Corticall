@@ -82,8 +82,7 @@ public class RemoveUnanchored extends Module {
 
         for (CortexKmer rk : rois) {
             if (!unanchored.contains(rk)) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(rk.getKmerAsString());
-                String contig = e.getContig(g, rk.getKmerAsString(), childColor);
+                String contig = e.walk(rk.getKmerAsString());
                 StringBuilder annb = new StringBuilder();
 
                 Set<CortexKmer> seenRois = new HashSet<>();

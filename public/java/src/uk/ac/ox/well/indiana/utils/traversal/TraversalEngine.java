@@ -8,6 +8,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
@@ -32,6 +33,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     private String nextKmer;
 
     private LinkStore linkStore;
+    private Set<String> seen;
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk) {
         if (sk.length() != ec.getGraph().getKmerSize()) {
@@ -66,176 +68,24 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return null;
     }
 
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        Set<Integer> displayColors = new HashSet<>(ec.getDisplayColors());
-        if (displayColors.isEmpty()) {
-            Graphs.addGraph(m, g);
-        } else {
-            Map<String, Map<Integer, Set<String>>> pkscache = new HashMap<>();
-            Map<String, Map<Integer, Set<String>>> nkscache = new HashMap<>();
-
-            for (int c : displayColors) {
-                DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
-
-                for (CortexVertex v : g.vertexSet()) {
-                    Map<Integer, Set<String>> pks = pkscache.containsKey(v.getSk()) ? pkscache.get(v.getSk()) : getAllPrevKmers(v.getSk());
-                    Map<Integer, Set<String>> nks = nkscache.containsKey(v.getSk()) ? nkscache.get(v.getSk()) : getAllNextKmers(v.getSk());
-
-                    pkscache.put(v.getSk(), pks);
-                    nkscache.put(v.getSk(), nks);
-
-                    g2.addVertex(v);
-
-                    for (String pk : pks.get(c)) {
-                        CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
-
-                        g2.addVertex(pv);
-                        g2.addEdge(pv, v, new CortexEdge(c, 1.0));
-                    }
-
-                    for (String nk : nks.get(c)) {
-                        CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
-
-                        g2.addVertex(nv);
-                        g2.addEdge(v, nv, new CortexEdge(c, 1.0));
-                    }
-                }
-
-                Graphs.addGraph(m, g2);
-            }
-        }
-
-        return m;
-    }
-
-    public String getContig(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String kmer, int color) {
-        List<CortexVertex> contigKmers = new ArrayList<>();
-
-        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(kmer));
-        CortexVertex cv = new CortexVertex(kmer, cr);
-
-        CortexLinksRecord currentLink = null;
-        LinkedList<String> sks = new LinkedList<>();
-
-        Set<CortexVertex> visited = new HashSet<>();
-
-        while (cv != null) {
-            if (ec.getLinks().containsKey(color) && ec.getLinks().get(color).containsKey(cv.getCr().getCortexKmer())) {
-                CortexLinksRecord clr = ec.getLinks().get(color).get(cv.getCr().getCortexKmer());
-
-                if (currentLink == null) {
-                    currentLink = clr;
-
-                    sks.clear();
-
-                    String seq = clr.getJunctions().get(0).getSeq();
-                    if (!clr.getKmerAsString().equals(cv.getSk())) {
-                        seq = SequenceUtils.reverseComplement(seq);
-                    }
-
-                    for (int i = 0; i <= seq.length() - clr.getKmer().length(); i++) {
-                        String seqk = seq.substring(i, i + clr.getKmer().length());
-                        sks.add(seqk);
-                    }
-                }
-            }
-
-            if (sks.size() > 0) { sks.removeLast(); }
-
-            contigKmers.add(0, cv);
-            if (sks.size() == 0) {
-                if (visited.contains(cv)) { break; }
-                visited.add(cv);
-            }
-
-            if (g.inDegreeOf(cv) == 0) {
-                cv = null;
-            } else if (g.inDegreeOf(cv) == 1) {
-                cv = Graphs.predecessorListOf(g, cv).get(0);
-            } else {
-                if (sks.size() > 0) {
-                    List<CortexVertex> pvs = Graphs.predecessorListOf(g, cv);
-                    for (CortexVertex pv : pvs) {
-                        if (pv.getSk().equals(sks.peekLast())) {
-                            cv = pv;
-                            break;
-                        }
-                    }
-                } else {
-                    cv = null;
-                }
-            }
-        }
-
-        cv = new CortexVertex(kmer, cr);
-
-        boolean pastFirst = false;
-        currentLink = null;
-        sks.clear();
-        visited.clear();
-
-        while (cv != null) {
-            if (ec.getLinks().containsKey(color) && ec.getLinks().get(color).containsKey(cv.getCr().getCortexKmer())) {
-                CortexLinksRecord clr = ec.getLinks().get(color).get(cv.getCr().getCortexKmer());
-
-                if (currentLink == null) {
-                    currentLink = clr;
-
-                    sks.clear();
-
-                    String seq = clr.getJunctions().get(0).getSeq();
-                    if (!clr.getKmerAsString().equals(cv.getSk())) {
-                        seq = SequenceUtils.reverseComplement(seq);
-                    }
-
-                    for (int i = 0; i <= seq.length() - clr.getKmer().length(); i++) {
-                        String seqk = seq.substring(i, i + clr.getKmer().length());
-                        sks.add(seqk);
-                    }
-                }
-            }
-
-            if (sks.size() > 0) { sks.removeFirst(); }
-
-            if (pastFirst) {
-                contigKmers.add(cv);
-
-                if (sks.size() == 0) {
-                    if (visited.contains(cv)) { break; }
-                    visited.add(cv);
-                }
-            }
-
-            if (g.outDegreeOf(cv) == 0) {
-                cv = null;
-            } else if (g.outDegreeOf(cv) == 1) {
-                cv = Graphs.successorListOf(g, cv).get(0);
-            } else {
-                if (sks.size() > 0) {
-                    List<CortexVertex> nvs = Graphs.successorListOf(g, cv);
-                    for (CortexVertex nv : nvs) {
-                        if (nv.getSk().equals(sks.peekFirst())) {
-                            cv = nv;
-                            break;
-                        }
-                    }
-                } else {
-                    cv = null;
-                }
-            }
-
-            pastFirst = true;
-        }
-
+    public String walk(String seed) {
         StringBuilder sb = new StringBuilder();
-        for (CortexVertex cva : contigKmers) {
-            if (sb.length() == 0) {
-                sb.append(cva.getSk());
-            } else {
-                sb.append(cva.getSk().substring(cva.getSk().length() - 1, cva.getSk().length()));
-            }
+        sb.append(seed);
+
+        setCursor(seed, true);
+        while (hasNext()) {
+            CortexVertex cv = next();
+            String sk = cv.getSk();
+
+            sb.append(sk.substring(sk.length() - 1, sk.length()));
+        }
+
+        setCursor(seed, false);
+        while (hasPrevious()) {
+            CortexVertex cv = previous();
+            String sk = cv.getSk();
+
+            sb.insert(0, sk.substring(0, 1));
         }
 
         return sb.toString();
@@ -537,15 +387,21 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         curKmer = nextKmer;
 
         Set<CortexVertex> nextKmers = getNextVertices(curKmer);
-        nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getSk() : null;
+        nextKmer = null;
 
-        if (nextKmers.size() > 1) {
+        if (nextKmers.size() == 1 && (!seen.contains(nextKmers.iterator().next().getSk()) || linkStore.isActive())) {
+            nextKmer = nextKmers.iterator().next().getSk();
+
+            seen.add(nextKmer);
+        } else if (nextKmers.size() > 1) {
             nextKmer = getAdjacentKmer(curKmer, nextKmers, true);
         }
 
-        for (int c : ec.getLinks().keySet()) {
-            if (ec.getLinks().get(c).containsKey(curKmer)) {
-                linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), true);
+        if (!ec.getLinks().isEmpty()) {
+            for (CortexLinks lm : ec.getLinks().keySet()) {
+                if (lm.containsKey(curKmer)) {
+                    linkStore.add(curKmer, lm.get(curKmer), true);
+                }
             }
         }
 
@@ -565,15 +421,21 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         curKmer = prevKmer;
 
         Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
-        prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getSk() : null;
+        prevKmer = null;
 
-        if (prevKmers.size() > 1) {
+        if (prevKmers.size() == 1 && (!seen.contains(prevKmers.iterator().next().getSk()) || linkStore.isActive())) {
+            prevKmer = prevKmers.iterator().next().getSk();
+
+            seen.add(prevKmer);
+        } else if (prevKmers.size() > 1) {
             prevKmer = getAdjacentKmer(curKmer, prevKmers, false);
         }
 
-        for (int c : ec.getLinks().keySet()) {
-            if (ec.getLinks().get(c).containsKey(curKmer)) {
-                linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), false);
+        if (!ec.getLinks().isEmpty()) {
+            for (CortexLinks lm : ec.getLinks().keySet()) {
+                if (lm.containsKey(curKmer)) {
+                    linkStore.add(curKmer, lm.get(curKmer), false);
+                }
             }
         }
 
@@ -610,10 +472,13 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
             nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getSk() : null;
 
             linkStore = new LinkStore();
+            seen = new HashSet<>();
 
-            for (int c : ec.getLinks().keySet()) {
-                if (ec.getLinks().get(c).containsKey(curKmer)) {
-                    linkStore.add(curKmer, ec.getLinks().get(c).get(curKmer), goForward);
+            if (!ec.getLinks().isEmpty()) {
+                for (CortexLinks lm : ec.getLinks().keySet()) {
+                    if (lm.containsKey(curKmer)) {
+                        linkStore.add(curKmer, lm.get(curKmer), goForward);
+                    }
                 }
             }
         }
@@ -634,4 +499,49 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     @Override public void set(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot set elements in CortexGraph iterator"); }
 
     @Override public void add(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot add elements to CortexGraph iterator"); }
+
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        Set<Integer> displayColors = new HashSet<>(ec.getDisplayColors());
+        if (displayColors.isEmpty()) {
+            Graphs.addGraph(m, g);
+        } else {
+            Map<String, Map<Integer, Set<String>>> pkscache = new HashMap<>();
+            Map<String, Map<Integer, Set<String>>> nkscache = new HashMap<>();
+
+            for (int c : displayColors) {
+                DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
+
+                for (CortexVertex v : g.vertexSet()) {
+                    Map<Integer, Set<String>> pks = pkscache.containsKey(v.getSk()) ? pkscache.get(v.getSk()) : getAllPrevKmers(v.getSk());
+                    Map<Integer, Set<String>> nks = nkscache.containsKey(v.getSk()) ? nkscache.get(v.getSk()) : getAllNextKmers(v.getSk());
+
+                    pkscache.put(v.getSk(), pks);
+                    nkscache.put(v.getSk(), nks);
+
+                    g2.addVertex(v);
+
+                    for (String pk : pks.get(c)) {
+                        CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(new CortexKmer(pk)));
+
+                        g2.addVertex(pv);
+                        g2.addEdge(pv, v, new CortexEdge(c, 1.0));
+                    }
+
+                    for (String nk : nks.get(c)) {
+                        CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(new CortexKmer(nk)));
+
+                        g2.addVertex(nv);
+                        g2.addEdge(v, nv, new CortexEdge(c, 1.0));
+                    }
+                }
+
+                Graphs.addGraph(m, g2);
+            }
+        }
+
+        return m;
+    }
+
 }
