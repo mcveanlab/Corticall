@@ -16,6 +16,7 @@ public class CortexVertex {
     private String sk;
     private CortexRecord cr;
     private Interval locus;
+    private Set<String> kmerSources;
 
     public CortexVertex(String sk, CortexRecord cr) {
         this.sk = sk;
@@ -28,6 +29,12 @@ public class CortexVertex {
         this.locus = locus;
     }
 
+    public CortexVertex(String sk, CortexRecord cr, Set<String> kmerSources) {
+        this.sk = sk;
+        this.cr = cr;
+        this.kmerSources = kmerSources;
+    }
+
     public String getSk() { return sk; }
 
     public CortexRecord getCr() { return cr; }
@@ -35,6 +42,8 @@ public class CortexVertex {
     public CortexKmer getCk() { return cr.getCortexKmer(); }
 
     public Interval getLocus() { return locus; }
+
+    public Set<String> getSources() { return kmerSources; }
 
     @Override
     public boolean equals(Object o) {
@@ -63,6 +72,7 @@ public class CortexVertex {
                 "sk='" + sk + '\'' +
                 ", cr=" + cr +
                 ", locus=" + locus +
+                ", kmerSources=" + kmerSources +
                 '}';
     }
 }

@@ -82,7 +82,7 @@ public class RemoveUnanchored extends Module {
 
         for (CortexKmer rk : rois) {
             if (!unanchored.contains(rk)) {
-                String contig = e.walk(rk.getKmerAsString());
+                String contig = TraversalEngine.toContig(e.walk(rk.getKmerAsString()));
                 StringBuilder annb = new StringBuilder();
 
                 Set<CortexKmer> seenRois = new HashSet<>();
