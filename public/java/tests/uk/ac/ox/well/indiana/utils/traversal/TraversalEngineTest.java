@@ -13,6 +13,8 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.assembler.TempGraphAssembler;
+import uk.ac.ox.well.indiana.utils.caller.Bubble;
+import uk.ac.ox.well.indiana.utils.caller.BubbleCaller;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
@@ -126,7 +128,7 @@ public class TraversalEngineTest {
         for (int c = 0; c < 3; c++) {
             e.getConfiguration().setTraversalColor(c);
 
-            String contig = e.walk("CTGGG");
+            String contig = TraversalEngine.toContig(e.walk("CTGGG"));
 
             Assert.assertEquals(contig, expectations.get(g.getSampleName(c)));
         }
@@ -161,7 +163,7 @@ public class TraversalEngineTest {
                 e.getConfiguration().setRecruitmentColors();
             }
 
-            String contig = e.walk("GTTCT");
+            String contig = TraversalEngine.toContig(e.walk("GTTCT"));
 
             Assert.assertEquals(contig, expectations.get(useRecruitment));
         }
@@ -180,7 +182,7 @@ public class TraversalEngineTest {
                 .graph(g)
                 .make();
 
-        String contig = e.walk("GATCA");
+        String contig = TraversalEngine.toContig(e.walk("GATCA"));
 
         Assert.assertEquals("GGATCAGTCC", contig);
     }
@@ -205,9 +207,60 @@ public class TraversalEngineTest {
         String[] kmers = { "ATGTGCCCTTGAATATGAATATTATAAGCATACTAATGGCGGTGGTA", "GTACCAAATGATTATAAAAGTGGTGATATTCCATTGAATACACAACC" };
 
         for (String kmer : kmers) {
-            String contig = e.walk(kmer);
+            String contig = TraversalEngine.toContig(e.walk(kmer));
 
             Assert.assertEquals(varSequence, contig);
+        }
+    }
+
+    @Test
+    public void testCallBubble() {
+        List<String> refAlleles = Arrays.asList("A", "",  "C", "",       "CCATA");
+        List<String> altAlleles = Arrays.asList("C", "C", "",  "CTAAAG", "ATGCG");
+
+        String flank5p = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(6));
+        String flank3p = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(6));
+
+        for (int i = 0; i < refAlleles.size(); i++) {
+            String refAllele = refAlleles.get(i);
+            String altAllele = altAlleles.get(i);
+
+            Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+            haplotypes.put("ref", Collections.singletonList(flank5p + refAllele + flank3p));
+            haplotypes.put("alt", Collections.singletonList(flank5p + altAllele + flank3p));
+
+            CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 5);
+
+            int refColor = g.getColorForSampleName("ref");
+            int altColor = g.getColorForSampleName("alt");
+
+            Set<CortexKmer> novelKmers = new HashSet<>();
+            for (CortexRecord cr : g) {
+                if (cr.getCoverage(refColor) == 0 && cr.getCoverage(altColor) > 0) {
+                    novelKmers.add(cr.getCortexKmer());
+                }
+            }
+
+            String expFlank5p = flank5p.substring(flank5p.length() - g.getKmerSize(), flank5p.length());
+            String expFlank3p = flank3p.substring(0, g.getKmerSize());
+
+            for (CortexKmer nk : novelKmers) {
+                TraversalEngine e = new TraversalEngineFactory()
+                        .traversalColor(altColor)
+                        .graph(g)
+                        .make();
+
+                List<CortexVertex> walk = e.walk(nk.getKmerAsString());
+
+                String contigFw = TraversalEngine.toContig(walk);
+                String contigRc = SequenceUtils.reverseComplement(contigFw);
+
+                if (haplotypes.get("alt").iterator().next().equals(contigFw) || haplotypes.get("alt").iterator().next().equals(contigRc)) {
+                    Bubble bubble = BubbleCaller.call(e.getConfiguration(), walk, refColor, altColor, nk);
+
+                    Assert.assertEquals(new Bubble(expFlank5p, refAllele, altAllele, expFlank3p), bubble);
+                }
+            }
         }
     }
 
@@ -690,7 +743,7 @@ public class TraversalEngineTest {
         for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
-            String contigFwd = e.walk(seed);
+            String contigFwd = TraversalEngine.toContig(e.walk(seed));
             String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
             String expectedContig = seedsAndExpectedContigs.get(ck);
@@ -715,7 +768,7 @@ public class TraversalEngineTest {
         for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
-            String contigFwd = e.walk(seed);
+            String contigFwd = TraversalEngine.toContig(e.walk(seed));
             String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
             String expectedContig = seedsAndExpectedContigs.get(ck);
@@ -744,7 +797,7 @@ public class TraversalEngineTest {
         for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
-            String contigFwd = e.walk(seed);
+            String contigFwd = TraversalEngine.toContig(e.walk(seed));
             String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
             String expectedContig = seedsAndExpectedContigs.get(new CortexKmer(seed));
