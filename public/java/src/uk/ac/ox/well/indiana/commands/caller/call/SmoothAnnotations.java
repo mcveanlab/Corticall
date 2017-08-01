@@ -4,6 +4,12 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import org.apache.commons.math3.util.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -16,7 +22,11 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
+import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -26,11 +36,13 @@ import java.util.regex.Pattern;
 
 import static uk.ac.ox.well.indiana.utils.sequence.SequenceUtils.computeSplits;
 import static uk.ac.ox.well.indiana.utils.sequence.SequenceUtils.splitAtPositions;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 23/06/2017.
  */
-public class Call extends Module {
+public class SmoothAnnotations extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -502,10 +514,10 @@ public class Call extends Module {
         Map<String, List<Map<String, String>>> contigs = new TreeMap<>();
 
         for (Map<String, String> m : tr) {
-            if (!contigs.containsKey(m.get("contigName"))) {
-                contigs.put(m.get("contigName"), new ArrayList<>());
+            if (!contigs.containsKey(m.get("name"))) {
+                contigs.put(m.get("name"), new ArrayList<>());
             }
-            contigs.get(m.get("contigName")).add(m);
+            contigs.get(m.get("name")).add(m);
         }
 
         return contigs;

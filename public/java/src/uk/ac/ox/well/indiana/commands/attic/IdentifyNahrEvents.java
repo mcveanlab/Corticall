@@ -1,4 +1,4 @@
-package uk.ac.ox.well.indiana.commands.caller.call;
+package uk.ac.ox.well.indiana.commands.attic;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMSequenceRecord;
