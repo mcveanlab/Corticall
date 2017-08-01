@@ -55,8 +55,6 @@ public class Call extends Module {
     @Output
     public PrintStream out;
 
-    private Random rng = new Random();
-
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -70,9 +68,41 @@ public class Call extends Module {
                 .maxRecord(allAnnotations.size())
                 .make(log);
 
+        Map<CortexKmer, Boolean> rois = loadRois();
+        Set<CortexKmer> newRois = new HashSet<>();
+
         for (String contigName : allAnnotations.keySet()) {
+            for (Map<String, String> e : allAnnotations.get(contigName)) {
+                CortexKmer ck = new CortexKmer(e.get("kmer"));
+                boolean isNovel = e.get("code").equals(".");
+
+                if (isNovel) {
+                    if (rois.containsKey(ck)) {
+                        rois.put(ck, true);
+                    } else {
+                        newRois.add(ck);
+                    }
+                }
+            }
+
             pm.update();
         }
+
+        log.info("{} {}", rois.size(), newRois.size());
+
+        for (CortexKmer rk : rois.keySet()) {
+            log.info("rk: {} {}", rk, rois.get(rk));
+        }
+    }
+
+    private Map<CortexKmer, Boolean> loadRois() {
+        Map<CortexKmer, Boolean> rois = new HashMap<>();
+
+        for (CortexRecord cr : ROI) {
+            rois.put(cr.getCortexKmer(), false);
+        }
+
+        return rois;
     }
 
     private Map<String, List<Map<String, String>>> loadAnnotations() {
