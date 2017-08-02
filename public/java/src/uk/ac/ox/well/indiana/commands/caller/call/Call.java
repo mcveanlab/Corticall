@@ -89,8 +89,10 @@ public class Call extends Module {
                 .rois(ROI)
                 .make();
 
-        //for (String contigName : allAnnotations.keySet()) {
-        String contigName = "contig11";
+        for (String contigName : allAnnotations.keySet()) {
+            //String contigName = "contig11";
+            log.info("{}", contigName);
+
             DirectedGraph<CortexVertex, CortexEdge> gAlt = buildContigGraph(allAnnotations.get(contigName), 0, childColor);
             Map<String, Integer> vertexIndex = new HashMap<>();
             for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
@@ -151,7 +153,7 @@ public class Call extends Module {
                                     int boundaryLeft = vertexIndex.get(os.getSk());
                                     int boundaryRight = vertexIndex.get(is.getSk());
 
-                                    log.info("b: {} {} {}", b, boundaryLeft, boundaryRight);
+                                    log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
                                     log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
                                     log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
                                 }
@@ -166,7 +168,7 @@ public class Call extends Module {
             }
 
             pm.update();
-        //}
+        }
 
         /*
         log.info("{}", rois.size());
