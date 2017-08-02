@@ -82,11 +82,7 @@ public class Call extends Module {
                 if (isNovel) {
                     int novelStart = i;
                     int novelStop;
-                    for (novelStop = i + 1; novelStop < allAnnotations.get(contigName).size(); novelStop++) {
-                        if (!e.get("code").equals(".") && !e.get("code").equals("?")) {
-                            break;
-                        }
-                    }
+                    for (novelStop = i + 1; novelStop < allAnnotations.get(contigName).size() && (e.get("code").equals(".") || e.get("code").equals("?")); novelStop++) {}
 
                     log.info("novel stretch: {} {}", novelStart, novelStop);
 
