@@ -108,7 +108,7 @@ public class Call extends Module {
 
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
 
-                    if (novelStretchBoundaries.getFirst() > 0 && novelStretchBoundaries.getSecond() < allAnnotations.get(contigName).size()) {
+                    if (novelStretchBoundaries.getFirst() > 0 && novelStretchBoundaries.getSecond() < allAnnotations.get(contigName).size() - 1) {
                         String backgroundStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("background");
                         String backgroundStop = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("background");
                         String regionStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("code");
