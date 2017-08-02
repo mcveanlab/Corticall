@@ -150,7 +150,7 @@ public class Call extends Module {
                                             GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
                                             Bubble b = new Bubble(pRef, pAlt);
-                                            log.info("  b: {} {} {}", b, os, is);
+                                            log.info("  b: {} {} {}", b, os.getSk(), is.getSk());
 
                                             /*
                                             int boundaryLeft = vertexIndex.get(os.getSk());
