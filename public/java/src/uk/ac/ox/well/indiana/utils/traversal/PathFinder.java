@@ -37,28 +37,31 @@ public class PathFinder {
     public GraphPath<CortexVertex, CortexEdge> getPathFinder(CortexVertex startVertex, CortexVertex endVertex, CortexKmer constraint, boolean accept) {
         KShortestPaths<CortexVertex, CortexEdge> ksp = new KShortestPaths<>(g, 10);
 
-        List<GraphPath<CortexVertex, CortexEdge>> pathsUnfiltered = ksp.getPaths(startVertex, endVertex);
-        List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered;
+        List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = null;
 
-        if (constraint == null) {
-            pathsFiltered = pathsUnfiltered;
-        } else {
-            pathsFiltered = new ArrayList<>();
+        if (g.containsVertex(startVertex) && g.containsVertex(endVertex)) {
+            List<GraphPath<CortexVertex, CortexEdge>> pathsUnfiltered = ksp.getPaths(startVertex, endVertex);
 
-            for (GraphPath<CortexVertex, CortexEdge> gp : pathsUnfiltered) {
-                boolean constraintFound = false;
+            if (constraint == null) {
+                pathsFiltered = pathsUnfiltered;
+            } else {
+                pathsFiltered = new ArrayList<>();
 
-                for (CortexVertex cv : gp.getVertexList()) {
-                    CortexKmer ck = new CortexKmer(cv.getSk());
+                for (GraphPath<CortexVertex, CortexEdge> gp : pathsUnfiltered) {
+                    boolean constraintFound = false;
 
-                    if (ck.equals(constraint)) {
-                        constraintFound = true;
-                        break;
+                    for (CortexVertex cv : gp.getVertexList()) {
+                        CortexKmer ck = new CortexKmer(cv.getSk());
+
+                        if (ck.equals(constraint)) {
+                            constraintFound = true;
+                            break;
+                        }
                     }
-                }
 
-                if ((constraintFound && accept) || (!constraintFound && !accept)) {
-                    pathsFiltered.add(gp);
+                    if ((constraintFound && accept) || (!constraintFound && !accept)) {
+                        pathsFiltered.add(gp);
+                    }
                 }
             }
         }
