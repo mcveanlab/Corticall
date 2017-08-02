@@ -108,56 +108,58 @@ public class Call extends Module {
 
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
 
-                    String backgroundStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst()  - 1).get("background");
-                    String backgroundStop  = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("background");
-                    String regionStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst()  - 1).get("code");
-                    String regionStop  = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("code");
+                    if (novelStretchBoundaries.getFirst() > 0 && novelStretchBoundaries.getSecond() < allAnnotations.get(contigName).size()) {
+                        String backgroundStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("background");
+                        String backgroundStop = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("background");
+                        String regionStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("code");
+                        String regionStop = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("code");
 
-                    if (backgroundStart.equals(backgroundStop) && regionStart.equals(regionStop)) {
-                        int refColor = GRAPH.getColorForSampleName(backgroundStart);
+                        if (backgroundStart.equals(backgroundStop) && regionStart.equals(regionStop)) {
+                            int refColor = GRAPH.getColorForSampleName(backgroundStart);
 
-                        e.getConfiguration().setTraversalColor(refColor);
-                        e.getConfiguration().setPreviousTraversal(buildContigGraph(allAnnotations.get(contigName), novelStretchBoundaries.getSecond(), childColor));
+                            e.getConfiguration().setTraversalColor(refColor);
+                            e.getConfiguration().setPreviousTraversal(buildContigGraph(allAnnotations.get(contigName), novelStretchBoundaries.getSecond(), childColor));
 
-                        int navBoundaryStart = novelStretchBoundaries.getFirst() - WINDOW >= 0 ? novelStretchBoundaries.getFirst() - WINDOW : 0;
-                        String seed = allAnnotations.get(contigName).get(navBoundaryStart).get("kmer");
+                            int navBoundaryStart = novelStretchBoundaries.getFirst() - WINDOW >= 0 ? novelStretchBoundaries.getFirst() - WINDOW : 0;
+                            String seed = allAnnotations.get(contigName).get(navBoundaryStart).get("kmer");
 
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gRef = e.dfs(seed);
+                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gRef = e.dfs(seed);
 
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSum = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                        Graphs.addGraph(gSum, gRef);
-                        Graphs.addGraph(gSum, gAlt);
+                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSum = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                            Graphs.addGraph(gSum, gRef);
+                            Graphs.addGraph(gSum, gAlt);
 
-                        PathFinder dspRef = new PathFinder(gSum, refColor);
-                        PathFinder dspAlt = new PathFinder(gSum, childColor);
+                            PathFinder dspRef = new PathFinder(gSum, refColor);
+                            PathFinder dspAlt = new PathFinder(gSum, childColor);
 
-                        Set<CortexVertex> iss = new HashSet<>();
-                        Set<CortexVertex> oss = new HashSet<>();
+                            Set<CortexVertex> iss = new HashSet<>();
+                            Set<CortexVertex> oss = new HashSet<>();
 
-                        for (CortexVertex v : gSum.vertexSet()) {
-                            if (TraversalEngine.inDegree(gSum, v) == 2) {
-                                iss.add(v);
+                            for (CortexVertex v : gSum.vertexSet()) {
+                                if (TraversalEngine.inDegree(gSum, v) == 2) {
+                                    iss.add(v);
+                                }
+
+                                if (TraversalEngine.outDegree(gSum, v) == 2) {
+                                    oss.add(v);
+                                }
                             }
 
-                            if (TraversalEngine.outDegree(gSum, v) == 2) {
-                                oss.add(v);
-                            }
-                        }
+                            for (CortexVertex os : oss) {
+                                for (CortexVertex is : iss) {
+                                    if (!os.equals(is)) {
+                                        GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
+                                        GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
-                        for (CortexVertex os : oss) {
-                            for (CortexVertex is : iss) {
-                                if (!os.equals(is)) {
-                                    GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
-                                    GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
+                                        Bubble b = new Bubble(pRef, pAlt);
 
-                                    Bubble b = new Bubble(pRef, pAlt);
+                                        int boundaryLeft = vertexIndex.get(os.getSk());
+                                        int boundaryRight = vertexIndex.get(is.getSk());
 
-                                    int boundaryLeft = vertexIndex.get(os.getSk());
-                                    int boundaryRight = vertexIndex.get(is.getSk());
-
-                                    log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
-                                    log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
-                                    log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                        log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
+                                        log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
+                                        log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                    }
                                 }
                             }
                         }
