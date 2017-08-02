@@ -108,6 +108,8 @@ public class Call extends Module {
 
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
 
+                    log.info("  novel stretch: {} {}", novelStretchBoundaries.getFirst(), novelStretchBoundaries.getSecond());
+
                     if (novelStretchBoundaries.getFirst() > 0 && novelStretchBoundaries.getSecond() < allAnnotations.get(contigName).size() - 1) {
                         String backgroundStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("background");
                         String backgroundStop = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("background");
@@ -166,8 +168,6 @@ public class Call extends Module {
                             }
                         }
                     }
-
-                    log.info("novel stretch: {} {}", novelStretchBoundaries.getFirst(), novelStretchBoundaries.getSecond());
 
                     i = novelStretchBoundaries.getSecond();
                 }
