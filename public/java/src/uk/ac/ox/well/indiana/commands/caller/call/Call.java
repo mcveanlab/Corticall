@@ -125,40 +125,42 @@ public class Call extends Module {
 
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> gRef = e.dfs(seed);
 
-                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSum = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                            Graphs.addGraph(gSum, gRef);
-                            Graphs.addGraph(gSum, gAlt);
+                            if (gRef != null) {
+                                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSum = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                                Graphs.addGraph(gSum, gRef);
+                                Graphs.addGraph(gSum, gAlt);
 
-                            PathFinder dspRef = new PathFinder(gSum, refColor);
-                            PathFinder dspAlt = new PathFinder(gSum, childColor);
+                                PathFinder dspRef = new PathFinder(gSum, refColor);
+                                PathFinder dspAlt = new PathFinder(gSum, childColor);
 
-                            Set<CortexVertex> iss = new HashSet<>();
-                            Set<CortexVertex> oss = new HashSet<>();
+                                Set<CortexVertex> iss = new HashSet<>();
+                                Set<CortexVertex> oss = new HashSet<>();
 
-                            for (CortexVertex v : gSum.vertexSet()) {
-                                if (TraversalEngine.inDegree(gSum, v) == 2) {
-                                    iss.add(v);
+                                for (CortexVertex v : gSum.vertexSet()) {
+                                    if (TraversalEngine.inDegree(gSum, v) == 2) {
+                                        iss.add(v);
+                                    }
+
+                                    if (TraversalEngine.outDegree(gSum, v) == 2) {
+                                        oss.add(v);
+                                    }
                                 }
 
-                                if (TraversalEngine.outDegree(gSum, v) == 2) {
-                                    oss.add(v);
-                                }
-                            }
+                                for (CortexVertex os : oss) {
+                                    for (CortexVertex is : iss) {
+                                        if (!os.equals(is)) {
+                                            GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
+                                            GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
-                            for (CortexVertex os : oss) {
-                                for (CortexVertex is : iss) {
-                                    if (!os.equals(is)) {
-                                        GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
-                                        GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
+                                            Bubble b = new Bubble(pRef, pAlt);
 
-                                        Bubble b = new Bubble(pRef, pAlt);
+                                            int boundaryLeft = vertexIndex.get(os.getSk());
+                                            int boundaryRight = vertexIndex.get(is.getSk());
 
-                                        int boundaryLeft = vertexIndex.get(os.getSk());
-                                        int boundaryRight = vertexIndex.get(is.getSk());
-
-                                        log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
-                                        log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
-                                        log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                            log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
+                                            log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
+                                            log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                        }
                                     }
                                 }
                             }
