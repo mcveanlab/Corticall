@@ -102,7 +102,7 @@ public class Call extends Module {
             for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
                 Map<String, String> m = allAnnotations.get(contigName).get(i);
 
-                if (m.get("code").equals(".") || m.get("code").equals("?")) {
+                if (m.get("code").equals(".")) {
                     CortexKmer novelKmer = new CortexKmer(m.get("kmer"));
 
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
@@ -212,9 +212,16 @@ public class Call extends Module {
         return sg;
     }
 
-    private Pair<Integer, Integer> getNovelStretchBoundaries(List<Map<String, String>> annotations, int novelStart) {
+    private Pair<Integer, Integer> getNovelStretchBoundaries(List<Map<String, String>> annotations, int i) {
+        int novelStart;
+        for (novelStart = i - 1;
+             novelStart >= 0 && (annotations.get(novelStart).get("code").equals(".") || annotations.get(novelStart).get("code").equals("?"));
+             novelStart--) {
+        }
+        novelStart++;
+
         int novelStop;
-        for (novelStop = novelStart + 1;
+        for (novelStop = i + 1;
              novelStop < annotations.size() && (annotations.get(novelStop).get("code").equals(".") || annotations.get(novelStop).get("code").equals("?"));
              novelStop++) {
         }
