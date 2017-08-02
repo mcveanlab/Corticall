@@ -91,7 +91,12 @@ public class Call extends Module {
 
         //for (String contigName : allAnnotations.keySet()) {
         String contigName = "contig11";
-        DirectedGraph<CortexVertex, CortexEdge> gAlt = buildContigGraph(allAnnotations.get(contigName), 0, childColor);
+            DirectedGraph<CortexVertex, CortexEdge> gAlt = buildContigGraph(allAnnotations.get(contigName), 0, childColor);
+            Map<String, Integer> vertexIndex = new HashMap<>();
+            for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
+                Map<String, String> m = allAnnotations.get(contigName).get(i);
+                vertexIndex.put(m.get("kmer"), i);
+            }
 
             for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
                 Map<String, String> m = allAnnotations.get(contigName).get(i);
@@ -143,7 +148,7 @@ public class Call extends Module {
 
                                     Bubble b = new Bubble(pRef, pAlt);
 
-                                    log.info("b: {}", b);
+                                    log.info("b: {} {} {}", b, vertexIndex.get(is.getSk()), vertexIndex.get(os.getSk()));
                                 }
                             }
                         }
