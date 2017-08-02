@@ -52,6 +52,9 @@ public class Call extends Module {
     @Argument(fullName="annotations", shortName="a", doc="Annotated contigs")
     public File ANNOTATIONS;
 
+    @Argument(fullName="window", shortName="w", doc="Window")
+    public Integer WINDOW = 100;
+
     @Output
     public PrintStream out;
 
@@ -75,21 +78,10 @@ public class Call extends Module {
             for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
                 Map<String, String> e = allAnnotations.get(contigName).get(i);
 
-                //CortexKmer ck = new CortexKmer(e.get("kmer"));
-                boolean isNovel = e.get("code").equals(".");
+                if (e.get("code").equals(".")) {
+                    Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
 
-
-                if (isNovel) {
-                    int novelStart = i;
-                    int novelStop;
-                    for (novelStop = i + 1;
-                         novelStop < allAnnotations.get(contigName).size() && (allAnnotations.get(contigName).get(novelStop).get("code").equals(".") || allAnnotations.get(contigName).get(novelStop).get("code").equals("?"));
-                         novelStop++) {
-                    }
-
-                    log.info("novel stretch: {} {}", novelStart, novelStop);
-
-                    i = novelStop;
+                    log.info("novel stretch: {} {}", novelStretchBoundaries.getFirst(), novelStretchBoundaries.getSecond());
                 }
             }
 
@@ -103,6 +95,17 @@ public class Call extends Module {
             log.info("rk: {} {}", rk, rois.get(rk));
         }
         */
+    }
+
+    private Pair<Integer, Integer> getNovelStretchBoundaries(List<Map<String, String>> annotations, int novelStart) {
+        int novelStop = novelStart;
+        for (novelStop = novelStart + 1;
+             novelStop < annotations.size() && (annotations.get(novelStop).get("code").equals(".") || annotations.get(novelStop).get("code").equals("?"));
+             novelStop++) {
+        }
+        novelStop--;
+
+        return new Pair<>(novelStart, novelStop);
     }
 
     private Map<CortexKmer, Boolean> loadRois() {
