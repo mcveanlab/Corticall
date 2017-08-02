@@ -139,13 +139,8 @@ public class Call extends Module {
                                 Set<CortexVertex> oss = new HashSet<>();
 
                                 for (CortexVertex v : gSum.vertexSet()) {
-                                    if (TraversalEngine.inDegree(gSum, v) == 2) {
-                                        iss.add(v);
-                                    }
-
-                                    if (TraversalEngine.outDegree(gSum, v) == 2) {
-                                        oss.add(v);
-                                    }
+                                    if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
+                                    if (TraversalEngine.outDegree(gSum, v) > 1) { oss.add(v); }
                                 }
 
                                 for (CortexVertex os : oss) {
