@@ -137,17 +137,10 @@ public class Call extends Module {
                                 PathFinder dspRef = new PathFinder(gSum, refColor);
                                 PathFinder dspAlt = new PathFinder(gSum, childColor);
 
-                                Set<CortexVertex> iss = new HashSet<>();
-                                Set<CortexVertex> oss = new HashSet<>();
+                                List<CortexVertex> iss = new ArrayList<>();
+                                List<CortexVertex> oss = new ArrayList<>();
 
-                                /*
-                                for (CortexVertex v : gSum.vertexSet()) {
-                                    if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
-                                    if (TraversalEngine.outDegree(gSum, v) > 1) { oss.add(v); }
-                                }
-                                */
-
-                                for (int j = navBoundaryStart; j < novelStretchBoundaries.getFirst(); j++) {
+                                for (int j = novelStretchBoundaries.getFirst() - 1; j > navBoundaryStart; j--) {
                                     String s = allAnnotations.get(contigName).get(j).get("kmer");
                                     CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
 
