@@ -158,8 +158,8 @@ public class Call extends Module {
                                             int boundaryRight = vertexIndex.get(is.getSk());
 
                                             log.info("  b: {} {} {}", b, boundaryLeft, boundaryRight);
-                                            log.info("  {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
-                                            log.info("  {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                            log.info("     {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
+                                            log.info("     {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
                                         }
                                     }
                                 }
