@@ -88,7 +88,7 @@ public class Call extends Module {
                         }
                     }
 
-                    log.info("{} {}", novelStart, novelStop);
+                    log.info("novel stretch: {} {}", novelStart, novelStop);
 
                     i = novelStop;
                 }
