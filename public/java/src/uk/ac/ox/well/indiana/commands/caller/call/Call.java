@@ -161,6 +161,8 @@ public class Call extends Module {
                                     if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
                                 }
 
+                                log.info("  {} {}", oss.size(), iss.size());
+
                                 for (CortexVertex os : oss) {
                                     for (CortexVertex is : iss) {
                                         if (!os.equals(is)) {
