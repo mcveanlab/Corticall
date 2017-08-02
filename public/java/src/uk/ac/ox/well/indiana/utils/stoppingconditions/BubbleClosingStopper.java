@@ -32,6 +32,6 @@ public class BubbleClosingStopper extends AbstractTraversalStopper<CortexVertex,
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
-        return currentGraphSize > 1000 || currentTraversalDepth >= 5 || numAdjacentEdges == 0;
+        return currentGraphSize > 200 || currentTraversalDepth >= 5 || numAdjacentEdges == 0;
     }
 }

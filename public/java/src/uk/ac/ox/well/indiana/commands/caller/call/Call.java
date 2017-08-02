@@ -123,6 +123,8 @@ public class Call extends Module {
                             e.getConfiguration().setPreviousTraversal(buildContigGraph(allAnnotations.get(contigName), novelStretchBoundaries.getSecond(), childColor));
 
                             int navBoundaryStart = novelStretchBoundaries.getFirst() - WINDOW >= 0 ? novelStretchBoundaries.getFirst() - WINDOW : 0;
+                            int navBoundaryStop  = novelStretchBoundaries.getSecond() + WINDOW > allAnnotations.get(contigName).size() ? novelStretchBoundaries.getSecond() + WINDOW : allAnnotations.get(contigName).size();
+
                             String seed = allAnnotations.get(contigName).get(navBoundaryStart).get("kmer");
 
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> gRef = e.dfs(seed);
@@ -138,9 +140,25 @@ public class Call extends Module {
                                 Set<CortexVertex> iss = new HashSet<>();
                                 Set<CortexVertex> oss = new HashSet<>();
 
+                                /*
                                 for (CortexVertex v : gSum.vertexSet()) {
                                     if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
                                     if (TraversalEngine.outDegree(gSum, v) > 1) { oss.add(v); }
+                                }
+                                */
+
+                                for (int j = navBoundaryStart; j < novelStretchBoundaries.getFirst(); j++) {
+                                    String s = allAnnotations.get(contigName).get(j).get("kmer");
+                                    CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+
+                                    if (TraversalEngine.outDegree(gSum, v) > 1) { oss.add(v); }
+                                }
+
+                                for (int j = novelStretchBoundaries.getSecond(); j < navBoundaryStop; j++) {
+                                    String s = allAnnotations.get(contigName).get(j).get("kmer");
+                                    CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+
+                                    if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
                                 }
 
                                 for (CortexVertex os : oss) {
