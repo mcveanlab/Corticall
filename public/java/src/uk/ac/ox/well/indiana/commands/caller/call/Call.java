@@ -69,26 +69,35 @@ public class Call extends Module {
                 .make(log);
 
         Map<CortexKmer, Boolean> rois = loadRois();
-        Set<CortexKmer> newRois = new HashSet<>();
 
-        for (String contigName : allAnnotations.keySet()) {
-            for (Map<String, String> e : allAnnotations.get(contigName)) {
-                CortexKmer ck = new CortexKmer(e.get("kmer"));
+        //for (String contigName : allAnnotations.keySet()) {
+        String contigName = "contig11";
+            for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
+                Map<String, String> e = allAnnotations.get(contigName).get(i);
+
+                //CortexKmer ck = new CortexKmer(e.get("kmer"));
                 boolean isNovel = e.get("code").equals(".");
 
+
                 if (isNovel) {
-                    if (rois.containsKey(ck)) {
-                        rois.put(ck, true);
-                    } else {
-                        newRois.add(ck);
+                    int novelStart = i;
+                    int novelStop;
+                    for (novelStop = i + 1; novelStop < allAnnotations.get(contigName).size(); novelStop++) {
+                        if (!e.get("code").equals(".") && !e.get("code").equals("?")) {
+                            break;
+                        }
                     }
+
+                    log.info("{} {}", novelStart, novelStop);
+
+                    i = novelStop;
                 }
             }
 
             pm.update();
-        }
+        //}
 
-        log.info("{} {}", rois.size(), newRois.size());
+        log.info("{}", rois.size());
 
         for (CortexKmer rk : rois.keySet()) {
             log.info("rk: {} {}", rk, rois.get(rk));
