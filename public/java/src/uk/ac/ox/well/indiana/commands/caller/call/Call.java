@@ -82,7 +82,10 @@ public class Call extends Module {
                 if (isNovel) {
                     int novelStart = i;
                     int novelStop;
-                    for (novelStop = i + 1; novelStop < allAnnotations.get(contigName).size() && (e.get("code").equals(".") || e.get("code").equals("?")); novelStop++) {}
+                    for (novelStop = i + 1;
+                         novelStop < allAnnotations.get(contigName).size() && (allAnnotations.get(contigName).get(novelStop).get("code").equals(".") || allAnnotations.get(contigName).get(novelStop).get("code").equals("?"));
+                         novelStop++) {
+                    }
 
                     log.info("novel stretch: {} {}", novelStart, novelStop);
 
@@ -93,11 +96,13 @@ public class Call extends Module {
             pm.update();
         //}
 
+        /*
         log.info("{}", rois.size());
 
         for (CortexKmer rk : rois.keySet()) {
             log.info("rk: {} {}", rk, rois.get(rk));
         }
+        */
     }
 
     private Map<CortexKmer, Boolean> loadRois() {
