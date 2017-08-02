@@ -119,7 +119,7 @@ public class Call extends Module {
                         Graphs.addGraph(gSum, gRef);
                         Graphs.addGraph(gSum, gAlt);
 
-                        PathFinder dspRef = new PathFinder(gSum, refColor).;
+                        PathFinder dspRef = new PathFinder(gSum, refColor);
                         PathFinder dspAlt = new PathFinder(gSum, childColor);
 
                         Set<CortexVertex> iss = new HashSet<>();
