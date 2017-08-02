@@ -82,6 +82,8 @@ public class Call extends Module {
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
 
                     log.info("novel stretch: {} {}", novelStretchBoundaries.getFirst(), novelStretchBoundaries.getSecond());
+
+                    i = novelStretchBoundaries.getSecond();
                 }
             }
 
