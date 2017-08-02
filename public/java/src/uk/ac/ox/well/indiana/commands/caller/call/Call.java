@@ -4,10 +4,16 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import org.apache.commons.math3.util.Pair;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.caller.Bubble;
 import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -16,7 +22,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.table.TableReader;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
+import uk.ac.ox.well.indiana.utils.traversal.*;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -53,7 +60,7 @@ public class Call extends Module {
     public File ANNOTATIONS;
 
     @Argument(fullName="window", shortName="w", doc="Window")
-    public Integer WINDOW = 100;
+    public Integer WINDOW = 10;
 
     @Output
     public PrintStream out;
@@ -73,13 +80,74 @@ public class Call extends Module {
 
         Map<CortexKmer, Boolean> rois = loadRois();
 
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
+                .joiningColors(childColor)
+                .stopper(BubbleClosingStopper.class)
+                .graph(GRAPH)
+                .rois(ROI)
+                .make();
+
         //for (String contigName : allAnnotations.keySet()) {
         String contigName = "contig11";
-            for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
-                Map<String, String> e = allAnnotations.get(contigName).get(i);
+        DirectedGraph<CortexVertex, CortexEdge> gAlt = buildContigGraph(allAnnotations.get(contigName), 0, childColor);
 
-                if (e.get("code").equals(".")) {
+            for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
+                Map<String, String> m = allAnnotations.get(contigName).get(i);
+
+                if (m.get("code").equals(".")) {
+                    CortexKmer novelKmer = new CortexKmer(m.get("kmer"));
+
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
+
+                    String backgroundStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst()  - 1).get("background");
+                    String backgroundStop  = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("background");
+
+                    if (backgroundStart.equals(backgroundStop)) {
+                        int refColor = GRAPH.getColorForSampleName(backgroundStart);
+
+                        e.getConfiguration().setTraversalColor(refColor);
+                        e.getConfiguration().setPreviousTraversal(buildContigGraph(allAnnotations.get(contigName), novelStretchBoundaries.getSecond(), childColor));
+
+                        int navBoundaryStart = novelStretchBoundaries.getFirst() - WINDOW >= 0 ? novelStretchBoundaries.getFirst() - WINDOW : 0;
+                        String seed = allAnnotations.get(contigName).get(navBoundaryStart).get("kmer");
+
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gRef = e.dfs(seed);
+
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSum = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                        Graphs.addGraph(gSum, gRef);
+                        Graphs.addGraph(gSum, gAlt);
+
+                        PathFinder dspRef = new PathFinder(gSum, refColor).;
+                        PathFinder dspAlt = new PathFinder(gSum, childColor);
+
+                        Set<CortexVertex> iss = new HashSet<>();
+                        Set<CortexVertex> oss = new HashSet<>();
+
+                        for (CortexVertex v : gSum.vertexSet()) {
+                            if (TraversalEngine.inDegree(gSum, v) > 1) {
+                                iss.add(v);
+                            }
+
+                            if (TraversalEngine.outDegree(gSum, v) > 1) {
+                                oss.add(v);
+                            }
+                        }
+
+                        for (CortexVertex os : oss) {
+                            for (CortexVertex is : iss) {
+                                if (!os.equals(is)) {
+                                    GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
+                                    GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
+
+                                    Bubble b = new Bubble(pRef, pAlt);
+
+                                    log.info("b: {}", b);
+                                }
+                            }
+                        }
+                    }
 
                     log.info("novel stretch: {} {}", novelStretchBoundaries.getFirst(), novelStretchBoundaries.getSecond());
 
@@ -99,8 +167,30 @@ public class Call extends Module {
         */
     }
 
+    private DirectedGraph<CortexVertex, CortexEdge> buildContigGraph(List<Map<String, String>> annotations, int start, int color) {
+        DirectedGraph<CortexVertex, CortexEdge> sg = new DefaultDirectedGraph<>(CortexEdge.class);
+
+        String sk0 = annotations.get(start).get("kmer");
+        CortexKmer ck0 = new CortexKmer(sk0);
+        CortexVertex cv0 = new CortexVertex(sk0, GRAPH.findRecord(ck0));
+        sg.addVertex(cv0);
+
+        for (int i = start + 1; i < annotations.size(); i++) {
+            String sk1 = annotations.get(i).get("kmer");
+            CortexKmer ck1 = new CortexKmer(sk1);
+            CortexVertex cv1 = new CortexVertex(sk1, GRAPH.findRecord(ck1));
+            sg.addVertex(cv1);
+
+            sg.addEdge(cv0, cv1, new CortexEdge(color, 1.0));
+
+            cv0 = cv1;
+        }
+
+        return sg;
+    }
+
     private Pair<Integer, Integer> getNovelStretchBoundaries(List<Map<String, String>> annotations, int novelStart) {
-        int novelStop = novelStart;
+        int novelStop;
         for (novelStop = novelStart + 1;
              novelStop < annotations.size() && (annotations.get(novelStop).get("code").equals(".") || annotations.get(novelStop).get("code").equals("?"));
              novelStop++) {

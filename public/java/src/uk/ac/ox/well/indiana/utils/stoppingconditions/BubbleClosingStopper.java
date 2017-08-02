@@ -27,13 +27,6 @@ public class BubbleClosingStopper extends AbstractTraversalStopper<CortexVertex,
 
     @Override
     public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
-        boolean hasJoined = false;
-
-        for (int c : joiningColors) {
-            hasJoined |= (cv.getCr().getCoverage(c) > 0);
-        }
-
-        //return (hasJoined && previousGraph.containsVertex(cv));
         return previousGraph.containsVertex(cv);
     }
 
