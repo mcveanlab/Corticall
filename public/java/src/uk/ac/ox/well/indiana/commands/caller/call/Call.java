@@ -90,7 +90,6 @@ public class Call extends Module {
                 .make();
 
         for (String contigName : allAnnotations.keySet()) {
-            //String contigName = "contig11";
             log.info("{}", contigName);
 
             DirectedGraph<CortexVertex, CortexEdge> gAlt = buildContigGraph(allAnnotations.get(contigName), 0, childColor);
@@ -103,7 +102,7 @@ public class Call extends Module {
             for (int i = 0; i < allAnnotations.get(contigName).size(); i++) {
                 Map<String, String> m = allAnnotations.get(contigName).get(i);
 
-                if (m.get("code").equals(".")) {
+                if (m.get("code").equals(".") || m.get("code").equals("?")) {
                     CortexKmer novelKmer = new CortexKmer(m.get("kmer"));
 
                     Pair<Integer, Integer> novelStretchBoundaries = getNovelStretchBoundaries(allAnnotations.get(contigName), i);
@@ -168,17 +167,6 @@ public class Call extends Module {
                                                 log.info("  b: {} {} {}", b, os.getSk(), is.getSk());
                                                 break;
                                             }
-
-                                            /*
-                                            int boundaryLeft = vertexIndex.get(os.getSk());
-                                            log.info("     {}", boundaryLeft);
-
-                                            int boundaryRight = vertexIndex.get(is.getSk());
-                                            log.info("     {}", boundaryRight);
-
-                                            log.info("     {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
-                                            log.info("     {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
-                                            */
                                         }
                                     }
                                 }
