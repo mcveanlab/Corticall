@@ -150,8 +150,9 @@ public class Call extends Module {
                                             GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
                                             Bubble b = new Bubble(pRef, pAlt);
-                                            log.info("  b: {}", b);
+                                            log.info("  b: {} {} {}", b, os, is);
 
+                                            /*
                                             int boundaryLeft = vertexIndex.get(os.getSk());
                                             log.info("     {}", boundaryLeft);
 
@@ -160,6 +161,7 @@ public class Call extends Module {
 
                                             log.info("     {}", allAnnotations.get(contigName).get(boundaryLeft).get("intervals"));
                                             log.info("     {}", allAnnotations.get(contigName).get(boundaryRight).get("intervals"));
+                                            */
                                         }
                                     }
                                 }
