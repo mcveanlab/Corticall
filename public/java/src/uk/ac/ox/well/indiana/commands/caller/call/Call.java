@@ -115,7 +115,7 @@ public class Call extends Module {
                         String regionStart = allAnnotations.get(contigName).get(novelStretchBoundaries.getFirst() - 1).get("code");
                         String regionStop = allAnnotations.get(contigName).get(novelStretchBoundaries.getSecond() + 1).get("code");
 
-                        if (backgroundStart.equals(backgroundStop) && regionStart.equals(regionStop) && !regionStart.equals("NA")) {
+                        if (backgroundStart.equals(backgroundStop) && regionStart.equals(regionStop) && !backgroundStart.equals("NA")) {
                             int refColor = GRAPH.getColorForSampleName(backgroundStart);
 
                             e.getConfiguration().setTraversalColor(refColor);
