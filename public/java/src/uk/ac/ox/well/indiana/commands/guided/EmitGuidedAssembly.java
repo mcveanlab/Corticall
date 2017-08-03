@@ -60,7 +60,7 @@ public class EmitGuidedAssembly extends Module {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
-                .links(LINKS)
+                //.links(LINKS)
                 .traversalColor(childColor)
                 .rois(ROI)
                 .make();
