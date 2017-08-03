@@ -83,7 +83,7 @@ public class EmitGuidedAssembly extends Module {
                     }
                 }
 
-                log.info("  - {} {}", rseq.getName(), seq.length() - GRAPH.getKmerSize(), signalKmers.size());
+                log.info("  - {} {}", seq.length() - GRAPH.getKmerSize(), signalKmers.size());
             }
         }
     }
