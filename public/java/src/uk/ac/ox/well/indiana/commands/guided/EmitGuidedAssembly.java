@@ -25,8 +25,8 @@ public class EmitGuidedAssembly extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="links", shortName="l", doc="Links")
-    public HashMap<CortexLinks, String> LINKS;
+    //@Argument(fullName="links", shortName="l", doc="Links")
+    //public HashMap<CortexLinks, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
@@ -43,16 +43,11 @@ public class EmitGuidedAssembly extends Module {
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = new ArrayList<>();
-        for (String parent : LINKS.values()) {
-            if (!parent.equals("reads")) {
-                parentColors.add(GRAPH.getColorForSampleName(parent));
-            }
-        }
+        List<Integer> parentColors = GRAPH.getColorsForSampleNames(new ArrayList<>(REFERENCES.values()));
 
         log.info("Colors:");
         log.info("  -   child: {} {}", CHILD, childColor);
-        log.info("  - parents: {} {}", LINKS.values(), parentColors);
+        log.info("  - parents: {} {}", REFERENCES.values(), parentColors);
 
         Map<String, String> kmersSharedWithOneParent = makeSignalKmersList(childColor, parentColors);
 
