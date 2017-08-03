@@ -10,6 +10,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
@@ -83,6 +85,13 @@ public class EmitGuidedAssembly extends Module {
 
                 String seq = rseq.getBaseString();
 
+                ProgressMeter pm = new ProgressMeterFactory()
+                        .indent("    ")
+                        .header("processed kmers")
+                        .message("kmers processed")
+                        .maxRecord(seq.length() - GRAPH.getKmerSize())
+                        .make(log);
+
                 for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
@@ -91,6 +100,8 @@ public class EmitGuidedAssembly extends Module {
                     if (cr != null && cr.getCoverage(childColor) > 0 && cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 && numParentsWithCoverage(cr, parentColors) == 1 && singlyConnected(cr, parentColors)) {
                         kmersSharedWithOneParent.put(sk, REFERENCES.get(REF));
                     }
+
+                    pm.update();
                 }
             }
         }
