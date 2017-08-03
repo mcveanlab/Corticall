@@ -238,7 +238,8 @@ public class ArgumentHandler {
                     String v = pairs.get(k);
 
                     Method put = Map.class.getDeclaredMethod("put", Object.class, Object.class);
-                    put.invoke(o, k, handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
+                    //put.invoke(o, k, handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
+                    put.invoke(o, handleArgumentTypes(Class.forName(keyvalueTypes[0]), k), handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
                 }
 
                 field.set(instance, o);
