@@ -63,7 +63,7 @@ public class EmitGuidedAssembly extends Module {
 
                 Map<String, Boolean> signalKmers = new HashMap<>();
 
-                for (int i = 0; i <= seq.length(); i++) {
+                for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
                     CortexRecord cr = GRAPH.findRecord(ck);
