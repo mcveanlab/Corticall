@@ -8,6 +8,7 @@ import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 public class TraversalEngineFactory {
     private TraversalEngineConfiguration configuration = new TraversalEngineConfiguration();
@@ -42,6 +43,8 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 
     public TraversalEngineFactory links(String label, CortexLinks... lms) { for (CortexLinks lm : lms) { configuration.getLinks().put(lm, label); } return this; }
+
+    public TraversalEngineFactory links(Map<CortexLinks, String> lms) { for (CortexLinks lm : lms.keySet()) { configuration.getLinks().put(lm, lms.get(lm)); } return this; }
 
     public TraversalEngine make() {
         configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new IndianaException("Joining colors must be greater than 0 (provided " + c + ")"); });
