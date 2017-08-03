@@ -49,15 +49,6 @@ public class EmitGuidedAssembly extends Module {
         log.info("  -   child: {} {}", CHILD, childColor);
         log.info("  - parents: {} {}", REFERENCES.values(), parentColors);
 
-        Map<String, String> kmersSharedWithOneParent = makeSignalKmersList(childColor, parentColors);
-
-        Map<String, Integer> refCount = new HashMap<>();
-        for (String sk : kmersSharedWithOneParent.keySet()) {
-            ContainerUtils.increment(refCount, sk);
-        }
-
-        log.info("{}", kmersSharedWithOneParent);
-
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
                 //.links(LINKS)
@@ -65,43 +56,31 @@ public class EmitGuidedAssembly extends Module {
                 .rois(ROI)
                 .make();
 
-        //Set<String> usedKmers = new HashSet<>();
-    }
-
-    private Map<String, String> makeSignalKmersList(int childColor, List<Integer> parentColors) {
-        Map<String, String> kmersSharedWithOneParent = new HashMap<>();
-
-        log.info("Processing references:");
-
         for (IndexedFastaSequenceFile REF : REFERENCES.keySet()) {
             ReferenceSequence rseq;
             while ((rseq = REF.nextSequence()) != null) {
-                log.info("  {} {}", REFERENCES.get(REF), rseq.getName());
-
                 String seq = rseq.getBaseString();
 
-                ProgressMeter pm = new ProgressMeterFactory()
-                        .indent("    ")
-                        .header("processed kmers")
-                        .message("kmers processed")
-                        .maxRecord(seq.length() - GRAPH.getKmerSize())
-                        .make(log);
+                Map<String, Boolean> signalKmers = new HashMap<>();
 
-                for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                for (int i = 0; i <= seq.length(); i++) {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
                     CortexRecord cr = GRAPH.findRecord(ck);
 
-                    if (cr != null && cr.getCoverage(childColor) > 0 && cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 && numParentsWithCoverage(cr, parentColors) == 1 && singlyConnected(cr, parentColors)) {
-                        kmersSharedWithOneParent.put(sk, REFERENCES.get(REF));
-                    }
+                    if (cr != null &&
+                        cr.getCoverage(childColor) > 0 &&
+                        cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 &&
+                        numParentsWithCoverage(cr, parentColors) == 1 &&
+                        singlyConnected(cr, parentColors)) {
 
-                    pm.update();
+                        signalKmers.put(sk, false);
+                    }
                 }
+
+                log.info("{} {} {}", rseq.getName(), seq.length() - GRAPH.getKmerSize(), signalKmers.size());
             }
         }
-
-        return kmersSharedWithOneParent;
     }
 
     private int numParentsWithCoverage(CortexRecord cr, List<Integer> parentColors) {

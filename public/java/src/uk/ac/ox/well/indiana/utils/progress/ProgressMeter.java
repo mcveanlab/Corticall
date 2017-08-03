@@ -20,7 +20,7 @@ public class ProgressMeter {
         this.message = message;
         this.indent = indent;
 
-        log.info("{}", this.header);
+        log.info("{}{}", this.indent, this.header);
     }
 
     public void update() {
