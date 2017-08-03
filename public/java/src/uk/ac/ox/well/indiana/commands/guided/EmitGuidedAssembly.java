@@ -41,7 +41,12 @@ public class EmitGuidedAssembly extends Module {
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
-        List<Integer> parentColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LINKS.values()));
+        List<Integer> parentColors = new ArrayList<>();
+        for (String parent : LINKS.values()) {
+            if (!parent.equals("reads")) {
+                parentColors.add(GRAPH.getColorForSampleName(parent));
+            }
+        }
 
         log.info("Colors:");
         log.info("  -   child: {} {}", CHILD, childColor);
