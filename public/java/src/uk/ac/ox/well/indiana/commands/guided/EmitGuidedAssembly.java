@@ -43,6 +43,10 @@ public class EmitGuidedAssembly extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LINKS.values()));
 
+        log.info("Colors:");
+        log.info("  -   child: {} {}", CHILD, childColor);
+        log.info("  - parents: {} {}", LINKS.values(), parentColors);
+
         Map<String, String> kmersSharedWithOneParent = makeSignalKmersList(childColor, parentColors);
 
         Map<String, Integer> refCount = new HashMap<>();
