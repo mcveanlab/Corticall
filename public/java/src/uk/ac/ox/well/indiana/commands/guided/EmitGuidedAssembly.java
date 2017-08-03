@@ -25,8 +25,8 @@ public class EmitGuidedAssembly extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    //@Argument(fullName="links", shortName="l", doc="Links")
-    //public HashMap<CortexLinks, String> LINKS;
+    @Argument(fullName="links", shortName="l", doc="Links")
+    public HashMap<CortexLinks, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
@@ -51,14 +51,18 @@ public class EmitGuidedAssembly extends Module {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
-                //.links(LINKS)
+                .links(LINKS)
                 .traversalColor(childColor)
                 .rois(ROI)
                 .make();
 
+        log.info("Processing contigs:");
+
         for (IndexedFastaSequenceFile REF : REFERENCES.keySet()) {
             ReferenceSequence rseq;
             while ((rseq = REF.nextSequence()) != null) {
+                log.info("  {}", rseq.getName());
+
                 String seq = rseq.getBaseString();
 
                 Map<String, Boolean> signalKmers = new HashMap<>();
@@ -71,6 +75,7 @@ public class EmitGuidedAssembly extends Module {
                     if (cr != null &&
                         cr.getCoverage(childColor) > 0 &&
                         cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 &&
+                        hasNoLinks(cr) &&
                         numParentsWithCoverage(cr, parentColors) == 1 &&
                         singlyConnected(cr, parentColors)) {
 
@@ -78,9 +83,19 @@ public class EmitGuidedAssembly extends Module {
                     }
                 }
 
-                log.info("{} {} {}", rseq.getName(), seq.length() - GRAPH.getKmerSize(), signalKmers.size());
+                log.info("  - {} {}", rseq.getName(), seq.length() - GRAPH.getKmerSize(), signalKmers.size());
             }
         }
+    }
+
+    private boolean hasNoLinks(CortexRecord cr) {
+        for (CortexLinks lm : LINKS.keySet()) {
+            if (lm.containsKey(cr.getCortexKmer())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private int numParentsWithCoverage(CortexRecord cr, List<Integer> parentColors) {
