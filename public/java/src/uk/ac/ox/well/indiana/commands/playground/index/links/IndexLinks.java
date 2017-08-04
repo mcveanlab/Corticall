@@ -1,70 +1,75 @@
 package uk.ac.ox.well.indiana.commands.playground.index.links;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexGraphLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.NavigableSet;
+import java.util.Set;
 
 public class IndexLinks extends Module {
-    @Argument(fullName="reference", shortName="r", doc="Reference sequence")
-    public File REF_FILE;
-
-    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
-    public Integer KMER_SIZE = 47;
+    @Argument(fullName="links", shortName="l", doc="Links")
+    public CortexGraphLinks LINKS;
 
     @Override
     public void execute() {
-        File dbFile = new File(REF_FILE.getAbsoluteFile() + ".linkdb");
+        File dbFile = new File(LINKS.getCortexLinksFile().getAbsolutePath() + ".linkdb");
 
         DB db = DBMaker
                 .fileDB(dbFile)
                 .fileMmapEnable()
                 .make();
 
-        BTreeMap<long[], int[]> kmerIndex = db.treeMap("index")
-                .keySerializer(Serializer.LONG_ARRAY)
-                .valueSerializer(Serializer.INT_ARRAY)
+        NavigableSet<Object[]> linkIndex = db.treeSet("links")
+                .serializer(new SerializerArrayTuple(Serializer.STRING, Serializer.STRING))
                 .create();
 
-        FastaSequenceFile ref = new FastaSequenceFile(REF_FILE, true);
-        ReferenceSequence rseq;
-        while ((rseq = ref.nextSequence()) != null) {
-            log.info("  {}", rseq.getName());
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing links")
+                .message("links processed")
+                .maxRecord(LINKS.getNumKmersWithLinks())
+                .make(log);
 
-            String seq = new String(rseq.getBases());
-
-            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                String sk = seq.substring(i, i + KMER_SIZE);
-
-                if (!sk.contains("N") && !sk.contains(".")) {
-                    CortexBinaryKmer cbk = new CortexBinaryKmer(sk.getBytes());
-
-                    int[] l = {rseq.getContigIndex(), i};
-
-                    if (!kmerIndex.containsKey(cbk.getBinaryKmer())) {
-                        kmerIndex.put(cbk.getBinaryKmer(), l);
-                    } else {
-                        int[] l1 = kmerIndex.get(cbk.getBinaryKmer());
-                        int[] l2 = new int[l1.length + 2];
-
-                        System.arraycopy(l1, 0, l2, 0, l1.length);
-                        System.arraycopy(l, 0, l2, l1.length, l.length);
-
-                        kmerIndex.put(cbk.getBinaryKmer(), l2);
-                    }
-                }
+        for (CortexLinksRecord clr : LINKS) {
+            for (CortexJunctionsRecord cjr : clr.getJunctions()) {
+                linkIndex.add(new Object[]{clr.getKmerAsString(), cjr.toString()});
             }
-
             db.commit();
+
+            pm.update();
         }
 
         db.close();
+
+        /*
+        Set subset = linkIndex.subSet(
+                new Object[]{example},        // lower interval bound
+                new Object[]{example, null});
+
+        for (Object o : subset) {
+            Object[] oa = (Object[]) o;
+            String kmer = (String) oa[0];
+            String linkText = (String) oa[1];
+
+            log.info("{} {} {}", example, kmer, linkText);
+        }
+        */
     }
 }
