@@ -1,15 +1,5 @@
 package uk.ac.ox.well.indiana.utils.assembler;
 
-import org.jetbrains.annotations.NotNull;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-
 /**
  * Created by kiran on 24/07/2017.
  */

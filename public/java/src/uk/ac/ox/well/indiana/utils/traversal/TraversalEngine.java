@@ -10,13 +10,11 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
@@ -457,7 +455,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         }
 
         if (!ec.getLinks().isEmpty()) {
-            for (CortexLinks lm : ec.getLinks().keySet()) {
+            for (CortexLinksMap lm : ec.getLinks().keySet()) {
                 if (lm.containsKey(curKmer)) {
                     linkStore.add(curKmer, lm.get(curKmer), true, ec.getLinks().get(lm));
                 }
@@ -494,7 +492,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         }
 
         if (!ec.getLinks().isEmpty()) {
-            for (CortexLinks lm : ec.getLinks().keySet()) {
+            for (CortexLinksMap lm : ec.getLinks().keySet()) {
                 if (lm.containsKey(curKmer)) {
                     linkStore.add(curKmer, lm.get(curKmer), false, ec.getLinks().get(lm));
                 }
@@ -539,7 +537,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
             seen = new HashSet<>();
 
             if (!ec.getLinks().isEmpty()) {
-                for (CortexLinks lm : ec.getLinks().keySet()) {
+                for (CortexLinksMap lm : ec.getLinks().keySet()) {
                     if (lm.containsKey(curKmer)) {
                         linkStore.add(curKmer, lm.get(curKmer), goForward, ec.getLinks().get(lm));
                     }

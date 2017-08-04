@@ -21,7 +21,6 @@ public class CortexJunctionsRecord {
         StringBuilder buffer = new StringBuilder();
 
         buffer.append(isFw ? "F" : "R").append(" ");
-        buffer.append(numKmers).append(" ");
         buffer.append(numJunctions).append(" ");
 
         for (int coverage : coverages) {

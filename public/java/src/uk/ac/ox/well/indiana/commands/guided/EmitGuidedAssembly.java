@@ -5,13 +5,10 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
-import uk.ac.ox.well.indiana.utils.containers.ContainerUtils;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
-import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
@@ -26,7 +23,7 @@ public class EmitGuidedAssembly extends Module {
     public CortexGraph GRAPH;
 
     @Argument(fullName="links", shortName="l", doc="Links")
-    public HashMap<CortexLinks, String> LINKS;
+    public HashMap<CortexLinksMap, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
@@ -89,7 +86,7 @@ public class EmitGuidedAssembly extends Module {
     }
 
     private boolean hasNoLinks(CortexRecord cr) {
-        for (CortexLinks lm : LINKS.keySet()) {
+        for (CortexLinksMap lm : LINKS.keySet()) {
             if (lm.containsKey(cr.getCortexKmer())) {
                 return false;
             }

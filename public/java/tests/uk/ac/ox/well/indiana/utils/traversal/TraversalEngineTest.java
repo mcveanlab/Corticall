@@ -2,7 +2,6 @@ package uk.ac.ox.well.indiana.utils.traversal;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
@@ -15,9 +14,8 @@ import org.testng.annotations.Test;
 import uk.ac.ox.well.indiana.utils.assembler.TempGraphAssembler;
 import uk.ac.ox.well.indiana.utils.caller.Bubble;
 import uk.ac.ox.well.indiana.utils.caller.BubbleCaller;
-import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.CycleCollapsingContigStopper;
@@ -25,8 +23,6 @@ import uk.ac.ox.well.indiana.utils.stoppingconditions.DestinationStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ExplorationStopper;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -191,7 +187,7 @@ public class TraversalEngineTest {
     public void testVarGeneReconstruction() {
         FastaSequenceFile f = new FastaSequenceFile(new File("testdata/var.fasta"), true);
         CortexGraph g = new CortexGraph("testdata/var.ctx");
-        CortexLinks l = new CortexLinks("testdata/var.ctp.gz");
+        CortexLinksMap l = new CortexLinksMap("testdata/var.ctp.gz");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("var"))
@@ -755,7 +751,7 @@ public class TraversalEngineTest {
     @Test
     public void testSinglePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinksMap l = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
@@ -780,9 +776,9 @@ public class TraversalEngineTest {
     @Test
     public void testMultiplePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
-        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
-        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
+        CortexLinksMap l0 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinksMap l1 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
+        CortexLinksMap l2 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
