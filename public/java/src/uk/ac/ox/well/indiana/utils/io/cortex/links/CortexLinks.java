@@ -1,73 +1,183 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
+import org.jetbrains.annotations.NotNull;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
+import org.mapdb.serializer.SerializerArrayTuple;
+import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
-    private CortexGraphLinks cortexGraphLinks;
-    private Map<CortexKmer, CortexLinksRecord> recordHash;
+    private File dbFile;
+    private DB db;
+    private NavigableSet<Object[]> linkIndex;
 
-    public CortexLinks(String cortexLinksPath) { initialize(new CortexGraphLinks(cortexLinksPath)); }
-    public CortexLinks(File cortexLinksFile) { initialize(new CortexGraphLinks(cortexLinksFile)); }
-
-    private void initialize(CortexGraphLinks cortexGraphLinks) {
-        this.cortexGraphLinks = cortexGraphLinks;
-
-        recordHash = new HashMap<>((int) cortexGraphLinks.getNumLinks());
-
-        for (CortexLinksRecord clr : cortexGraphLinks) {
-            recordHash.put(clr.getKmer(), clr);
-        }
+    public CortexLinks(String cortexLinksFilePath) {
+        loadLinksDB(new File(cortexLinksFilePath + ".linkdb"));
     }
 
-    public CortexGraphLinks getCortexGraphLinks() { return cortexGraphLinks; }
+    public CortexLinks(File cortexLinksFile) {
+        loadLinksDB(new File(cortexLinksFile.getAbsolutePath() + ".linkdb"));
+    }
 
-    public boolean containsKey(String kmer) { return containsKey(new CortexKmer(kmer)); }
+    private void loadLinksDB(File dbFile) {
+        this.dbFile = dbFile;
 
-    public boolean containsKey(byte[] kmer) { return containsKey(new CortexKmer(kmer)); }
+        db = DBMaker
+                .fileDB(this.dbFile)
+                .fileMmapEnable()
+                .readOnly()
+                .make();
 
-    public CortexLinksRecord get(String kmer) { return get(new CortexKmer(kmer)); }
-
-    public CortexLinksRecord get(byte[] kmer) { return get(new CortexKmer(kmer)); }
-
-    @Override
-    public int size() { return recordHash.size(); }
-
-    @Override
-    public boolean isEmpty() { return recordHash.isEmpty(); }
-
-    @Override
-    public boolean containsKey(Object key) { return recordHash.containsKey(key); }
-
-    @Override
-    public boolean containsValue(Object value) { return recordHash.containsValue(value); }
-
-    @Override
-    public CortexLinksRecord get(Object key) { return recordHash.get(key); }
+        linkIndex = db.treeSet("links")
+                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
+                .counterEnable()
+                .counterEnable()
+                .counterEnable()
+                .open();
+    }
 
     @Override
-    public CortexLinksRecord put(CortexKmer key, CortexLinksRecord value) { return recordHash.put(key, value); }
+    public int size() {
+        return linkIndex.size();
+    }
 
     @Override
-    public CortexLinksRecord remove(Object key) { return recordHash.remove(key); }
+    public boolean isEmpty() {
+        return linkIndex.size() == 0;
+    }
+
+    public boolean containsKey(String sk) {
+        Set subset = linkIndex.subSet(
+                new Object[]{sk.getBytes()},
+                new Object[]{sk.getBytes(), null});
+
+        return subset.size() > 0;
+    }
+
+    public boolean containsKey(CortexKmer ck) {
+        Set subset = linkIndex.subSet(
+                new Object[]{ck.getKmerAsBytes()},
+                new Object[]{ck.getKmerAsBytes(), null});
+
+        return subset.size() > 0;
+    }
+
+    public CortexLinksRecord get(String sk) {
+        Set subset = linkIndex.subSet(
+                new Object[]{sk.getBytes()},
+                new Object[]{sk.getBytes(), null});
+
+
+        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
+        for (Object o : subset) {
+            Object[] oa = (Object[]) o;
+            CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
+            cjrs.add(cjr);
+        }
+
+        return new CortexLinksRecord(sk, cjrs);
+    }
+
+    public CortexLinksRecord get(CortexKmer ck) {
+        Set subset = linkIndex.subSet(
+                new Object[]{ck.getKmerAsBytes()},
+                new Object[]{ck.getKmerAsBytes(), null});
+
+
+        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
+        for (Object o : subset) {
+            Object[] oa = (Object[]) o;
+            CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
+            cjrs.add(cjr);
+        }
+
+        return new CortexLinksRecord(ck.getKmerAsString(), cjrs);
+    }
 
     @Override
-    public void putAll(Map<? extends CortexKmer, ? extends CortexLinksRecord> m) { recordHash.putAll(m); }
+    public CortexLinksRecord get(Object key) {
+        throw new IndianaException("Not implemented.");
+    }
 
     @Override
-    public void clear() { recordHash.clear(); }
+    public boolean containsKey(Object key) {
+        throw new IndianaException("Not implemented.");
+    }
 
     @Override
-    public Set<CortexKmer> keySet() { return recordHash.keySet(); }
+    public boolean containsValue(Object value) {
+        throw new IndianaException("Not implemented.");
+    }
 
     @Override
-    public Collection<CortexLinksRecord> values() { return recordHash.values(); }
+    public CortexLinksRecord put(CortexKmer key, CortexLinksRecord value) {
+        throw new IndianaException("Not implemented.");
+    }
 
     @Override
-    public Set<Entry<CortexKmer, CortexLinksRecord>> entrySet() { return recordHash.entrySet(); }
+    public CortexLinksRecord remove(Object key) {
+        throw new IndianaException("Not implemented.");
+    }
+
+    @Override
+    public void putAll(@NotNull Map<? extends CortexKmer, ? extends CortexLinksRecord> m) {
+        throw new IndianaException("Not implemented.");
+    }
+
+    @Override
+    public void clear() {
+        throw new IndianaException("Not implemented.");
+    }
+
+    @NotNull
+    @Override
+    public Set<CortexKmer> keySet() {
+        Set<CortexKmer> keys = new HashSet<>();
+
+        for (Object[] o : linkIndex) {
+            byte[] o0 = (byte[]) o[0];
+            CortexKmer ck = new CortexKmer(o0);
+
+            keys.add(ck);
+        }
+
+        return keys;
+    }
+
+    private CortexJunctionsRecord decode(byte[] bline) {
+        String line = new String(bline);
+        String[] linkLine = line.split("\\s+");
+
+        String orientation = linkLine[0];
+        int numJunctions = Integer.valueOf(linkLine[1]);
+
+        String[] covs = linkLine[2].split(",");
+        int[] coverages = new int[covs.length];
+        for (int i = 0; i < covs.length; i++) {
+            coverages[i] = Integer.valueOf(covs[i]);
+        }
+
+        String junctions = linkLine[3];
+
+        return new CortexJunctionsRecord(orientation.equals("F"), -1, numJunctions, coverages, junctions);
+    }
+
+    @NotNull
+    @Override
+    public Collection<CortexLinksRecord> values() {
+        throw new IndianaException("Not implemented.");
+    }
+
+    @NotNull
+    @Override
+    public Set<Entry<CortexKmer, CortexLinksRecord>> entrySet() {
+        throw new IndianaException("Not implemented.");
+    }
 }

@@ -3,7 +3,7 @@ package uk.ac.ox.well.indiana.utils.traversal;
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.Arrays;
@@ -42,9 +42,9 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 
-    public TraversalEngineFactory links(String label, CortexLinks... lms) { for (CortexLinks lm : lms) { configuration.getLinks().put(lm, label); } return this; }
+    public TraversalEngineFactory links(String label, CortexLinksMap... lms) { for (CortexLinksMap lm : lms) { configuration.getLinks().put(lm, label); } return this; }
 
-    public TraversalEngineFactory links(Map<CortexLinks, String> lms) { for (CortexLinks lm : lms.keySet()) { configuration.getLinks().put(lm, lms.get(lm)); } return this; }
+    public TraversalEngineFactory links(Map<CortexLinksMap, String> lms) { for (CortexLinksMap lm : lms.keySet()) { configuration.getLinks().put(lm, lms.get(lm)); } return this; }
 
     public TraversalEngine make() {
         configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new IndianaException("Joining colors must be greater than 0 (provided " + c + ")"); });

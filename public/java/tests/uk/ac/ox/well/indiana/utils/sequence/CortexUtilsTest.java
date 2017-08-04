@@ -6,7 +6,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 
 import java.util.*;
@@ -15,7 +15,7 @@ public class CortexUtilsTest {
     @Test
     public void testKmersInLink() {
         CortexGraph cg = new CortexGraph("testdata/PG0051-C.ERR019061.chr1.infer.sorted.ctx");
-        CortexLinks ctp = new CortexLinks("testdata/PG0051-C.ERR019061.chr1.se.ctp");
+        CortexLinksMap ctp = new CortexLinksMap("testdata/PG0051-C.ERR019061.chr1.se.ctp");
 
         for (CortexKmer ock : ctp.keySet()) {
             for (int rc = 0; rc <= 1; rc++) {

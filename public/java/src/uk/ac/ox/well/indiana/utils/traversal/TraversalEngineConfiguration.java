@@ -2,7 +2,7 @@ package uk.ac.ox.well.indiana.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
 import java.util.*;
@@ -27,7 +27,7 @@ public class TraversalEngineConfiguration {
     private Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule;
 
     //private Map<Integer, CortexLinks> links = new HashMap<>();
-    private Map<CortexLinks, String> links = new HashMap<>();
+    private Map<CortexLinksMap, String> links = new HashMap<>();
 
     private CortexGraph graph;
     private CortexGraph rois;
@@ -66,8 +66,8 @@ public class TraversalEngineConfiguration {
     //public Map<Integer, CortexLinks> getLinks() { return links; }
     //public void setLinks(Map<Integer, CortexLinks> links) { this.links = links; }
 
-    public Map<CortexLinks, String> getLinks() { return links; }
-    public void setLinks(Map<CortexLinks, String> links) { this.links = links; }
+    public Map<CortexLinksMap, String> getLinks() { return links; }
+    public void setLinks(Map<CortexLinksMap, String> links) { this.links = links; }
 
     public CortexGraph getGraph() { return graph; }
     public void setGraph(CortexGraph graph) { this.graph = graph; }
