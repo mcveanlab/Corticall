@@ -108,6 +108,7 @@ public class EmitGuidedAssembly extends Module {
 
                             Set<Interval> its = ref.findKmer(cv.getSk());
                             Interval it = selectInterval(lastConfidentInterval, its);
+                            lastConfidentInterval = it;
 
                             if (goForward) {
                                 cvs.add(cv);
