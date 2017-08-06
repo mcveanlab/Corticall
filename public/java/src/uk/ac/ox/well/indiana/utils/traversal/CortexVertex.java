@@ -35,6 +35,13 @@ public class CortexVertex {
         this.kmerSources = kmerSources;
     }
 
+    public CortexVertex(String sk, CortexRecord cr, Interval locus, Set<String> kmerSources) {
+        this.sk = sk;
+        this.cr = cr;
+        this.locus = locus;
+        this.kmerSources = kmerSources;
+    }
+
     public String getSk() { return sk; }
 
     public CortexRecord getCr() { return cr; }
