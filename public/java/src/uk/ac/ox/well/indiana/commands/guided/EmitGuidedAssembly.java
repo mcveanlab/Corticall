@@ -74,7 +74,7 @@ public class EmitGuidedAssembly extends Module {
                     CortexRecord cr = GRAPH.findRecord(ck);
                     Set<Interval> its = REF.findKmer(sk);
 
-                    if (isSignalKmer(childColor, parentColors, cr, its)) {
+                    if (isSignalKmer(childColor, parentColors, cr, its, rseq)) {
                         signalKmers.put(sk, false);
                     }
                 }
@@ -95,7 +95,7 @@ public class EmitGuidedAssembly extends Module {
                                 cvs.add(0, cv);
                             }
 
-                            log.info("{} {} {} {} {}", signalKmer, goForward, cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
+                            log.info("{} {} {} {}", goForward, cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
                         }
                     }
                 }
@@ -103,7 +103,7 @@ public class EmitGuidedAssembly extends Module {
         }
     }
 
-    private boolean isSignalKmer(int childColor, List<Integer> parentColors, CortexRecord cr, Set<Interval> its) {
+    private boolean isSignalKmer(int childColor, List<Integer> parentColors, CortexRecord cr, Set<Interval> its, ReferenceSequence rseq) {
         return cr != null &&
                cr.getCoverage(childColor) > 0 &&
                cr.getInDegree(childColor) == 1 &&
@@ -111,7 +111,8 @@ public class EmitGuidedAssembly extends Module {
                hasNoLinks(cr) &&
                numParentsWithCoverage(cr, parentColors) == 1 &&
                singlyConnected(cr, parentColors) &&
-               its.size() == 1;
+               its.size() == 1 &&
+               rseq.getName().contains(its.iterator().next().getContig());
     }
 
     private boolean hasNoLinks(CortexRecord cr) {
