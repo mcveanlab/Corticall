@@ -27,7 +27,7 @@ public class EmitGuidedAssembly extends Module {
     public HashMap<CortexLinks, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
-    public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
+    public TreeMap<IndexedFastaSequenceFile, String> REFERENCES;
 
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
