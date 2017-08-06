@@ -136,9 +136,11 @@ public class EmitGuidedAssembly extends Module {
             }
 
             return null;
+        } else if (its.size() == 1) {
+            return its.iterator().next();
         }
 
-        return its.iterator().next();
+        return null;
     }
 
     private boolean isSignalKmer(int childColor, List<Integer> parentColors, CortexRecord cr, Set<Interval> its, ReferenceSequence rseq) {
