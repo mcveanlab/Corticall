@@ -8,6 +8,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
@@ -23,7 +24,7 @@ public class EmitGuidedAssembly extends Module {
     public CortexGraph GRAPH;
 
     @Argument(fullName="links", shortName="l", doc="Links")
-    public HashMap<CortexLinksMap, String> LINKS;
+    public HashMap<CortexLinks, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
     public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
@@ -86,7 +87,7 @@ public class EmitGuidedAssembly extends Module {
     }
 
     private boolean hasNoLinks(CortexRecord cr) {
-        for (CortexLinksMap lm : LINKS.keySet()) {
+        for (CortexLinks lm : LINKS.keySet()) {
             if (lm.containsKey(cr.getCortexKmer())) {
                 return false;
             }

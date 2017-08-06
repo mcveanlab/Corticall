@@ -15,6 +15,7 @@ import uk.ac.ox.well.indiana.utils.assembler.TempGraphAssembler;
 import uk.ac.ox.well.indiana.utils.caller.Bubble;
 import uk.ac.ox.well.indiana.utils.caller.BubbleCaller;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
@@ -187,7 +188,7 @@ public class TraversalEngineTest {
     public void testVarGeneReconstruction() {
         FastaSequenceFile f = new FastaSequenceFile(new File("testdata/var.fasta"), true);
         CortexGraph g = new CortexGraph("testdata/var.ctx");
-        CortexLinksMap l = new CortexLinksMap("testdata/var.ctp.gz");
+        CortexLinks l = new CortexLinks("testdata/var.ctp.gz");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("var"))
@@ -751,7 +752,7 @@ public class TraversalEngineTest {
     @Test
     public void testSinglePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinksMap l = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
@@ -776,9 +777,9 @@ public class TraversalEngineTest {
     @Test
     public void testMultiplePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinksMap l0 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
-        CortexLinksMap l1 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
-        CortexLinksMap l2 = new CortexLinksMap("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
+        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
+        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 

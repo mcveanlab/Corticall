@@ -61,6 +61,10 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
                     new Object[]{sk.getBytes()},
                     new Object[]{sk.getBytes(), null});
 
+            boolean con = linkIndex.contains(sk.getBytes());
+
+            System.out.println(sk + " " + con + " " + (subset.size() == 0));
+
             return subset.size() > 0;
         } else {
             return clm.containsKey(sk);
