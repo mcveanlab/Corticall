@@ -2,7 +2,9 @@ package uk.ac.ox.well.indiana.commands.guided;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
+import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
@@ -27,7 +29,7 @@ public class EmitGuidedAssembly extends Module {
     public HashMap<CortexLinks, String> LINKS;
 
     @Argument(fullName="refs", shortName="R", doc="References")
-    public HashMap<IndexedFastaSequenceFile, String> REFERENCES;
+    public HashMap<KmerLookup, String> REFERENCES;
 
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
@@ -56,9 +58,9 @@ public class EmitGuidedAssembly extends Module {
 
         log.info("Processing contigs:");
 
-        for (IndexedFastaSequenceFile REF : REFERENCES.keySet()) {
+        for (KmerLookup REF : REFERENCES.keySet()) {
             ReferenceSequence rseq;
-            while ((rseq = REF.nextSequence()) != null) {
+            while ((rseq = REF.getReferenceSequence().nextSequence()) != null) {
                 log.info("  {}", rseq.getName());
 
                 String seq = rseq.getBaseString();
@@ -69,19 +71,25 @@ public class EmitGuidedAssembly extends Module {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
                     CortexRecord cr = GRAPH.findRecord(ck);
+                    Set<Interval> its = REF.findKmer(sk);
 
                     if (cr != null &&
                         cr.getCoverage(childColor) > 0 &&
                         cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 &&
                         hasNoLinks(cr) &&
                         numParentsWithCoverage(cr, parentColors) == 1 &&
-                        singlyConnected(cr, parentColors)) {
+                        singlyConnected(cr, parentColors) &&
+                        its.size() == 1) {
 
                         signalKmers.put(sk, false);
                     }
                 }
 
                 log.info("  - {} {}", seq.length() - GRAPH.getKmerSize(), signalKmers.size());
+
+                for (String signalKmer : signalKmers.keySet()) {
+
+                }
             }
         }
     }
