@@ -19,7 +19,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.collection.CortexCollection;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexGraphLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksIterable;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.io.gff.GFF3;
 import uk.ac.ox.well.indiana.utils.io.xmfa.XMFASequenceFile;
@@ -267,8 +267,8 @@ public class ArgumentHandler {
                 return new CortexKmer(value);
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
-            } else if (type.equals(CortexGraphLinks.class)) {
-                return new CortexGraphLinks(value);
+            } else if (type.equals(CortexLinksIterable.class)) {
+                return new CortexLinksIterable(value);
             } else if (type.equals(CortexLinksMap.class)) {
                 return new CortexLinksMap(value);
             } else if (type.equals(GFF3.class)) {

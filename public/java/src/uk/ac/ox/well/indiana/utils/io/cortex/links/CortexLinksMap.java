@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.Set;
 
 public class CortexLinksMap implements Map<CortexKmer, CortexLinksRecord> {
-    private CortexGraphLinks cortexGraphLinks;
+    private CortexLinksIterable cortexGraphLinks;
     private Map<CortexKmer, CortexLinksRecord> recordHash;
 
-    public CortexLinksMap(String cortexLinksPath) { initialize(new CortexGraphLinks(cortexLinksPath)); }
-    public CortexLinksMap(File cortexLinksFile) { initialize(new CortexGraphLinks(cortexLinksFile)); }
+    public CortexLinksMap(String cortexLinksPath) { initialize(new CortexLinksIterable(cortexLinksPath)); }
+    public CortexLinksMap(File cortexLinksFile) { initialize(new CortexLinksIterable(cortexLinksFile)); }
 
-    private void initialize(CortexGraphLinks cortexGraphLinks) {
+    private void initialize(CortexLinksIterable cortexGraphLinks) {
         this.cortexGraphLinks = cortexGraphLinks;
 
         recordHash = new HashMap<>((int) cortexGraphLinks.getNumLinks());
@@ -25,7 +25,7 @@ public class CortexLinksMap implements Map<CortexKmer, CortexLinksRecord> {
         }
     }
 
-    public CortexGraphLinks getCortexGraphLinks() { return cortexGraphLinks; }
+    public CortexLinksIterable getCortexGraphLinks() { return cortexGraphLinks; }
 
     public boolean containsKey(String kmer) { return containsKey(new CortexKmer(kmer)); }
 

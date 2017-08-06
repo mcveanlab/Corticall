@@ -6,22 +6,18 @@ import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexGraphLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksIterable;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.util.NavigableSet;
 
 public class IndexLinks extends Module {
     @Argument(fullName="links", shortName="l", doc="Links")
-    public CortexGraphLinks LINKS;
+    public CortexLinksIterable LINKS;
 
     @Override
     public void execute() {

@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 public class CortexLinksTest {
     @Test
     public void testLoadFormatVersion2() {
-        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0085-C.infer.se.ctp");
+        CortexLinksIterable ctp = new CortexLinksIterable("testdata/PG0085-C.infer.se.ctp");
 
         Assert.assertEquals(2, ctp.getVersion());
         Assert.assertEquals(1, ctp.getNumColors());
@@ -29,7 +29,7 @@ public class CortexLinksTest {
 
     @Test
     public void testLoadFormatVersion3() {
-        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0063-C.ERR019060.infer.pe.k51.v3.ctp");
+        CortexLinksIterable ctp = new CortexLinksIterable("testdata/PG0063-C.ERR019060.infer.pe.k51.v3.ctp");
 
         Assert.assertEquals(3, ctp.getVersion());
         Assert.assertEquals(1, ctp.getNumColors());
@@ -52,7 +52,7 @@ public class CortexLinksTest {
 
     @Test
     public void testMultipleIteration() {
-        CortexGraphLinks ctp = new CortexGraphLinks("testdata/PG0085-C.infer.se.ctp");
+        CortexLinksIterable ctp = new CortexLinksIterable("testdata/PG0085-C.infer.se.ctp");
 
         CortexLinksRecord cprFirst1 = null, cprLast1 = null;
         for (CortexLinksRecord cpr : ctp) {
