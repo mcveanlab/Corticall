@@ -60,9 +60,16 @@ public class EmitGuidedAssembly extends Module {
 
         log.info("Processing contigs:");
 
-        for (KmerLookup REF : REFERENCES.keySet()) {
+        Map<String, KmerLookup> ids = new TreeMap<>();
+        for (KmerLookup kl : REFERENCES.keySet()) {
+            ids.put(REFERENCES.get(kl), kl);
+        }
+
+        for (String id : ids.keySet()) {
+            KmerLookup ref = ids.get(id);
+
             ReferenceSequence rseq;
-            while ((rseq = REF.getReferenceSequence().nextSequence()) != null) {
+            while ((rseq = ref.getReferenceSequence().nextSequence()) != null) {
                 log.info("  {}", rseq.getName());
 
                 String seq = rseq.getBaseString();
@@ -73,7 +80,7 @@ public class EmitGuidedAssembly extends Module {
                     String sk = seq.substring(i, i + GRAPH.getKmerSize());
                     CortexKmer ck = new CortexKmer(sk);
                     CortexRecord cr = GRAPH.findRecord(ck);
-                    Set<Interval> its = REF.findKmer(sk);
+                    Set<Interval> its = ref.findKmer(sk);
 
                     if (isSignalKmer(childColor, parentColors, cr, its, rseq)) {
                         signalKmers.put(sk, false);
@@ -87,8 +94,8 @@ public class EmitGuidedAssembly extends Module {
 
                     CortexVertex cv0 = new CortexVertex(signalKmer,
                                                         GRAPH.findRecord(new CortexKmer(signalKmer)),
-                                                        REF.findKmer(signalKmer).iterator().next(),
-                                                        Collections.singleton(REFERENCES.get(REF)));
+                                                        ref.findKmer(signalKmer).iterator().next(),
+                                                        Collections.singleton(REFERENCES.get(ref)));
                     cvs.add(cv0);
 
                     for (boolean goForward : Arrays.asList(true, false)) {
@@ -99,7 +106,7 @@ public class EmitGuidedAssembly extends Module {
                         while (goForward ? e.hasNext() : e.hasPrevious()) {
                             CortexVertex cv = goForward ? e.next() : e.previous();
 
-                            Set<Interval> its = REF.findKmer(cv.getSk());
+                            Set<Interval> its = ref.findKmer(cv.getSk());
                             Interval it = selectInterval(lastConfidentInterval, its);
 
                             if (goForward) {
@@ -108,7 +115,7 @@ public class EmitGuidedAssembly extends Module {
                                 cvs.add(0, cv);
                             }
 
-                            log.info("{} {} {} {} {}", goForward, cv.getSk(), cv.getSources(), it, REF.findKmer(cv.getSk()));
+                            log.info("{} {} {} {} {}", goForward, cv.getSk(), cv.getSources(), it, ref.findKmer(cv.getSk()));
 
                             if (goForward ? !e.hasNext() : !e.hasPrevious()) {
                                 log.info("  {}", cv.getCr());
