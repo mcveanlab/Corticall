@@ -17,6 +17,7 @@ import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.io.PrintStream;
+import java.sql.Ref;
 import java.util.*;
 
 /**
@@ -84,10 +85,22 @@ public class EmitGuidedAssembly extends Module {
                 for (String signalKmer : signalKmers.keySet()) {
                     List<CortexVertex> cvs = new ArrayList<>();
 
+                    CortexVertex cv0 = new CortexVertex(signalKmer,
+                                                        GRAPH.findRecord(new CortexKmer(signalKmer)),
+                                                        REF.findKmer(signalKmer).iterator().next(),
+                                                        Collections.singleton(REFERENCES.get(REF)));
+                    cvs.add(cv0);
+
                     for (boolean goForward : Arrays.asList(true, false)) {
+                        Interval lastConfidentInterval = cv0.getLocus();
+                        boolean isAscending = true;
+
                         e.setCursor(signalKmer, goForward);
                         while (goForward ? e.hasNext() : e.hasPrevious()) {
                             CortexVertex cv = goForward ? e.next() : e.previous();
+
+                            Set<Interval> its = REF.findKmer(cv.getSk());
+                            Interval it = selectInterval(lastConfidentInterval, its);
 
                             if (goForward) {
                                 cvs.add(cv);
@@ -95,7 +108,7 @@ public class EmitGuidedAssembly extends Module {
                                 cvs.add(0, cv);
                             }
 
-                            log.info("{} {} {} {}", goForward, cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
+                            log.info("{} {} {} {} {}", goForward, cv.getSk(), cv.getSources(), it, REF.findKmer(cv.getSk()));
 
                             if (goForward ? !e.hasNext() : !e.hasPrevious()) {
                                 log.info("  {}", cv.getCr());
@@ -105,6 +118,20 @@ public class EmitGuidedAssembly extends Module {
                 }
             }
         }
+    }
+
+    private Interval selectInterval(Interval lastConfidentInterval, Set<Interval> its) {
+        if (lastConfidentInterval != null) {
+            for (Interval it : its) {
+                if (it.intersects(lastConfidentInterval)) {
+                    return it;
+                }
+            }
+
+            return null;
+        }
+
+        return its.iterator().next();
     }
 
     private boolean isSignalKmer(int childColor, List<Integer> parentColors, CortexRecord cr, Set<Interval> its, ReferenceSequence rseq) {
