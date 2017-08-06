@@ -146,7 +146,7 @@ public class EmitGuidedAssembly extends Module {
                                             cvs.add(0, cva);
                                         }
 
-                                        adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
+                                        adjs = goForward ? e.getNextVertices(cva.getSk()) : e.getPrevVertices(cva.getSk());
 
                                         if (adjs.size() == 1) {
                                             e.setCursor(cva.getSk(), goForward);
