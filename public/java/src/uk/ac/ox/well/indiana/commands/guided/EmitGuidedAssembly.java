@@ -96,6 +96,10 @@ public class EmitGuidedAssembly extends Module {
                             }
 
                             log.info("{} {} {} {}", goForward, cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
+
+                            if (goForward ? !e.hasNext() : !e.hasPrevious()) {
+                                log.info("  {}", cv.getCr());
+                            }
                         }
                     }
                 }
