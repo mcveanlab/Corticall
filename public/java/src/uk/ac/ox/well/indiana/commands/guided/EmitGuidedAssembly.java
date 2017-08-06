@@ -12,6 +12,7 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
@@ -73,14 +74,7 @@ public class EmitGuidedAssembly extends Module {
                     CortexRecord cr = GRAPH.findRecord(ck);
                     Set<Interval> its = REF.findKmer(sk);
 
-                    if (cr != null &&
-                        cr.getCoverage(childColor) > 0 &&
-                        cr.getInDegree(childColor) == 1 && cr.getOutDegree(childColor) == 1 &&
-                        hasNoLinks(cr) &&
-                        numParentsWithCoverage(cr, parentColors) == 1 &&
-                        singlyConnected(cr, parentColors) &&
-                        its.size() == 1) {
-
+                    if (isSignalKmer(childColor, parentColors, cr, its)) {
                         signalKmers.put(sk, false);
                     }
                 }
@@ -88,10 +82,36 @@ public class EmitGuidedAssembly extends Module {
                 log.info("  - {} {}", seq.length() - GRAPH.getKmerSize(), signalKmers.size());
 
                 for (String signalKmer : signalKmers.keySet()) {
+                    List<CortexVertex> cvs = new ArrayList<>();
 
+                    for (boolean goForward : Arrays.asList(true, false)) {
+                        e.setCursor(signalKmer, goForward);
+                        while (goForward ? e.hasNext() : e.hasPrevious()) {
+                            CortexVertex cv = e.next();
+
+                            if (goForward) {
+                                cvs.add(cv);
+                            } else {
+                                cvs.add(0, cv);
+                            }
+
+                            log.info("{} {} {} {} {}", signalKmer, goForward, cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private boolean isSignalKmer(int childColor, List<Integer> parentColors, CortexRecord cr, Set<Interval> its) {
+        return cr != null &&
+               cr.getCoverage(childColor) > 0 &&
+               cr.getInDegree(childColor) == 1 &&
+               cr.getOutDegree(childColor) == 1 &&
+               hasNoLinks(cr) &&
+               numParentsWithCoverage(cr, parentColors) == 1 &&
+               singlyConnected(cr, parentColors) &&
+               its.size() == 1;
     }
 
     private boolean hasNoLinks(CortexRecord cr) {
