@@ -52,6 +52,14 @@ public class CortexVertex {
 
     public Set<String> getSources() { return kmerSources; }
 
+    public void setLocus(Interval locus) {
+        this.locus = locus;
+    }
+
+    public void setKmerSources(Set<String> kmerSources) {
+        this.kmerSources = kmerSources;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

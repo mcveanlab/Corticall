@@ -110,6 +110,9 @@ public class EmitGuidedAssembly extends Module {
                             Interval it = selectInterval(lastConfidentInterval, its);
                             lastConfidentInterval = it;
 
+                            cv.setLocus(it);
+                            cv.setKmerSources(Collections.singleton(REFERENCES.get(ref)));
+
                             if (goForward) {
                                 cvs.add(cv);
                             } else {
