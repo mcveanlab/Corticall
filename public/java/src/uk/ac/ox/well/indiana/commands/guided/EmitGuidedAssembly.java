@@ -113,15 +113,48 @@ public class EmitGuidedAssembly extends Module {
                             cv.setLocus(it);
                             cv.setKmerSources(Collections.singleton(REFERENCES.get(ref)));
 
-                            if (goForward) {
-                                cvs.add(cv);
-                            } else {
-                                cvs.add(0, cv);
-                            }
+                            if (goForward) { cvs.add(cv); }
+                            else { cvs.add(0, cv); }
 
-                            log.info("{} {} {} {} {}", goForward, cv.getSk(), cv.getSources(), it, ref.findKmer(cv.getSk()));
+                            log.info("{} {} {}", cv.getSk(), it, ref.findKmer(cv.getSk()));
 
                             if (goForward ? !e.hasNext() : !e.hasPrevious()) {
+                                Set<CortexVertex> adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
+
+                                while (adjs != null && adjs.size() > 1) {
+                                    CortexVertex cva = null;
+
+                                    for (CortexVertex adj : adjs) {
+                                        Set<Interval> its2 = ref.findKmer(adj.getSk());
+
+                                        Interval it2 = selectInterval(lastConfidentInterval, its2);
+
+                                        if (it2 != null) {
+                                            adj.setLocus(it2);
+                                            cva = adj;
+
+                                            break;
+                                        }
+                                    }
+
+                                    adjs = null;
+
+                                    if (cva != null) {
+                                        if (goForward) {
+                                            cvs.add(cva);
+                                        } else {
+                                            cvs.add(0, cva);
+                                        }
+
+                                        adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
+
+                                        if (adjs.size() == 1) {
+                                            e.setCursor(cva.getSk(), goForward);
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 log.info("  {}", cv.getCr());
                             }
                         }
