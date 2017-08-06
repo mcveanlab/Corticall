@@ -87,7 +87,7 @@ public class EmitGuidedAssembly extends Module {
                     for (boolean goForward : Arrays.asList(true, false)) {
                         e.setCursor(signalKmer, goForward);
                         while (goForward ? e.hasNext() : e.hasPrevious()) {
-                            CortexVertex cv = e.next();
+                            CortexVertex cv = goForward ? e.next() : e.previous();
 
                             if (goForward) {
                                 cvs.add(cv);
