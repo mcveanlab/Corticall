@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-public class CortexGraphLinks implements Iterable<CortexLinksRecord>, Iterator<CortexLinksRecord> {
+public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterator<CortexLinksRecord> {
     private File linksFile;
 
     private int version;
@@ -31,12 +31,12 @@ public class CortexGraphLinks implements Iterable<CortexLinksRecord>, Iterator<C
     private int recordsSeen = 0;
     private long recordsStart = 0;
 
-    public CortexGraphLinks(String linksString) {
+    public CortexLinksIterable(String linksString) {
         this.linksFile = new File(linksString);
         loadCortexLinks(this.linksFile);
     }
 
-    public CortexGraphLinks(File linksFile) {
+    public CortexLinksIterable(File linksFile) {
         this.linksFile = linksFile;
         loadCortexLinks(this.linksFile);
     }

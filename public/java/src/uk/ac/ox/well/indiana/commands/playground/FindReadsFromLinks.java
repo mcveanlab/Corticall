@@ -6,7 +6,7 @@ import uk.ac.ox.well.indiana.commands.playground.index.alignedbam.KmerIndex;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexGraphLinks;
+import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksIterable;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksRecord;
 
 import java.io.File;
@@ -17,7 +17,7 @@ public class FindReadsFromLinks extends Module {
     public File SAM_FILE;
 
     @Argument(fullName="links", shortName="l", doc="Links")
-    public CortexGraphLinks LINKS;
+    public CortexLinksIterable LINKS;
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
     public Integer KMER_SIZE = 47;

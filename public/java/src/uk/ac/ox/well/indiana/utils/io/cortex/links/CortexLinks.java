@@ -6,99 +6,117 @@ import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
 import java.io.File;
 import java.util.*;
 
 public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
-    private File dbFile;
-    private DB db;
+    private CortexLinksMap clm = null;
+    private DB db = null;
     private NavigableSet<Object[]> linkIndex;
 
-    public CortexLinks(String cortexLinksFilePath) {
-        loadLinksDB(new File(cortexLinksFilePath + ".linkdb"));
+    public CortexLinks(String ctpGzFilePath) {
+        loadLinks(new File(ctpGzFilePath));
     }
 
-    public CortexLinks(File cortexLinksFile) {
-        loadLinksDB(new File(cortexLinksFile.getAbsolutePath() + ".linkdb"));
+    public CortexLinks(File ctpGzFile) {
+        loadLinks(ctpGzFile);
     }
 
-    private void loadLinksDB(File dbFile) {
-        this.dbFile = dbFile;
+    private void loadLinks(File ctpGzFile) {
+        File dbFile = new File(ctpGzFile.getAbsolutePath() + ".linkdb");
 
-        db = DBMaker
-                .fileDB(this.dbFile)
-                .fileMmapEnable()
-                .readOnly()
-                .make();
+        if (dbFile.exists()) {
+            db = DBMaker
+                    .fileDB(dbFile)
+                    .fileMmapEnable()
+                    .readOnly()
+                    .make();
 
-        linkIndex = db.treeSet("links")
-                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
-                .counterEnable()
-                .counterEnable()
-                .counterEnable()
-                .open();
+            linkIndex = db.treeSet("links")
+                    .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
+                    .counterEnable()
+                    .counterEnable()
+                    .counterEnable()
+                    .open();
+        } else {
+            clm = new CortexLinksMap(ctpGzFile);
+        }
     }
 
     @Override
     public int size() {
-        return linkIndex.size();
+        return clm == null ? linkIndex.size() : clm.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return linkIndex.size() == 0;
+        return clm == null ? linkIndex.size() == 0 : clm.size() == 0;
     }
 
     public boolean containsKey(String sk) {
-        Set subset = linkIndex.subSet(
-                new Object[]{sk.getBytes()},
-                new Object[]{sk.getBytes(), null});
+        if (clm == null) {
+            Set subset = linkIndex.subSet(
+                    new Object[]{sk.getBytes()},
+                    new Object[]{sk.getBytes(), null});
 
-        return subset.size() > 0;
+            return subset.size() > 0;
+        } else {
+            return clm.containsKey(sk);
+        }
     }
 
     public boolean containsKey(CortexKmer ck) {
-        Set subset = linkIndex.subSet(
-                new Object[]{ck.getKmerAsBytes()},
-                new Object[]{ck.getKmerAsBytes(), null});
+        if (clm == null) {
+            Set subset = linkIndex.subSet(
+                    new Object[]{ck.getKmerAsBytes()},
+                    new Object[]{ck.getKmerAsBytes(), null});
 
-        return subset.size() > 0;
+            return subset.size() > 0;
+        } else {
+            return clm.containsKey(ck);
+        }
     }
 
     public CortexLinksRecord get(String sk) {
-        Set subset = linkIndex.subSet(
-                new Object[]{sk.getBytes()},
-                new Object[]{sk.getBytes(), null});
+        if (clm == null) {
+            Set subset = linkIndex.subSet(
+                    new Object[]{sk.getBytes()},
+                    new Object[]{sk.getBytes(), null});
 
 
-        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
-        for (Object o : subset) {
-            Object[] oa = (Object[]) o;
-            CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
-            cjrs.add(cjr);
+            List<CortexJunctionsRecord> cjrs = new ArrayList<>();
+            for (Object o : subset) {
+                Object[] oa = (Object[]) o;
+                CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
+                cjrs.add(cjr);
+            }
+
+            return new CortexLinksRecord(sk, cjrs);
+        } else {
+            return clm.get(sk);
         }
-
-        return new CortexLinksRecord(sk, cjrs);
     }
 
     public CortexLinksRecord get(CortexKmer ck) {
-        Set subset = linkIndex.subSet(
-                new Object[]{ck.getKmerAsBytes()},
-                new Object[]{ck.getKmerAsBytes(), null});
+        if (clm == null) {
+            Set subset = linkIndex.subSet(
+                    new Object[]{ck.getKmerAsBytes()},
+                    new Object[]{ck.getKmerAsBytes(), null});
 
 
-        List<CortexJunctionsRecord> cjrs = new ArrayList<>();
-        for (Object o : subset) {
-            Object[] oa = (Object[]) o;
-            CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
-            cjrs.add(cjr);
+            List<CortexJunctionsRecord> cjrs = new ArrayList<>();
+            for (Object o : subset) {
+                Object[] oa = (Object[]) o;
+                CortexJunctionsRecord cjr = decode((byte[]) oa[1]);
+                cjrs.add(cjr);
+            }
+
+            return new CortexLinksRecord(ck.getKmerAsString(), cjrs);
+        } else {
+            return clm.get(ck);
         }
-
-        return new CortexLinksRecord(ck.getKmerAsString(), cjrs);
     }
 
     @Override
@@ -139,16 +157,20 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     @NotNull
     @Override
     public Set<CortexKmer> keySet() {
-        Set<CortexKmer> keys = new HashSet<>();
+        if (clm == null) {
+            Set<CortexKmer> keys = new HashSet<>();
 
-        for (Object[] o : linkIndex) {
-            byte[] o0 = (byte[]) o[0];
-            CortexKmer ck = new CortexKmer(o0);
+            for (Object[] o : linkIndex) {
+                byte[] o0 = (byte[]) o[0];
+                CortexKmer ck = new CortexKmer(o0);
 
-            keys.add(ck);
+                keys.add(ck);
+            }
+
+            return keys;
+        } else {
+            return clm.keySet();
         }
-
-        return keys;
     }
 
     private CortexJunctionsRecord decode(byte[] bline) {
