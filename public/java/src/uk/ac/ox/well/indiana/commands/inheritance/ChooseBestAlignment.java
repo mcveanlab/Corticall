@@ -39,7 +39,8 @@ public class ChooseBestAlignment extends Module {
         }
 
         for (String contigName : chosenContigs) {
-            if (contigs.get(0).get(contigName).size() == 1 && contigs.get(1).get(contigName).size() == 1) {
+            if (contigs.get(0).containsKey(contigName) && contigs.get(1).containsKey(contigName) &&
+                contigs.get(0).get(contigName).size() == 1 && contigs.get(1).get(contigName).size() == 1) {
                 SAMRecord sr0 = contigs.get(0).get(contigName).get(0);
                 SAMRecord sr1 = contigs.get(1).get(contigName).get(0);
 
