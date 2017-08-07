@@ -58,6 +58,9 @@ public class ChooseBestAlignment extends Module {
             l1 += ce.getLength();
         }
 
+        log.info(" -- {}", s0.getSAMString());
+        log.info(" -- {}", s1.getSAMString());
+
         double pctId0 = 100.0 * (double) d0 / (double) l0;
         double pctId1 = 100.0 * (double) d1 / (double) l1;
 
