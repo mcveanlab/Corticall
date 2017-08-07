@@ -51,29 +51,26 @@ public class ChooseBestAlignment extends Module {
     }
 
     private SAMRecord chooseBetterAlignment(SAMRecord s0, SAMRecord s1) {
-        int d0 = 0, d1 = 0;
         int l0 = 0, l1 = 0;
 
         for (CigarElement ce : s0.getCigar().getCigarElements()) {
-            if (ce.getOperator().isIndelOrSkippedRegion()) {
-                d0 += ce.getLength();
+            if (ce.getOperator().equals(CigarOperator.MATCH_OR_MISMATCH)) {
+                l0 += ce.getLength();
             }
-            l0 += ce.getLength();
         }
 
         for (CigarElement ce : s1.getCigar().getCigarElements()) {
-            if (ce.getOperator().isIndelOrSkippedRegion()) {
-                d1 += ce.getLength();
+            if (ce.getOperator().equals(CigarOperator.MATCH_OR_MISMATCH)) {
+                l1 += ce.getLength();
             }
-            l1 += ce.getLength();
         }
 
         log.info(" -- {}", s0.getSAMString());
         log.info(" -- {}", s1.getSAMString());
 
-        double pctId0 = 100.0 * (double) d0 / (double) l0;
-        double pctId1 = 100.0 * (double) d1 / (double) l1;
+//        double pctId0 = 100.0 * (double) d0 / (double) l0;
+//        double pctId1 = 100.0 * (double) d1 / (double) l1;
 
-        return pctId0 > pctId1 ? s0 : s1;
+        return l0 > l1 ? s0 : s1;
     }
 }
