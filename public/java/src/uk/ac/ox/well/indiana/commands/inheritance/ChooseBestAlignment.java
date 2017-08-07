@@ -46,7 +46,7 @@ public class ChooseBestAlignment extends Module {
 
                 SAMRecord sr = chooseBetterAlignment(sr0, sr1);
 
-                if (sr != null) {
+                if (sr != null && sr.getCigar().getCigarElements().size() == 1) {
                     log.info("{} {}", contigName, sr.getSAMString());
                 }
             }
