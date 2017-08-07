@@ -56,12 +56,16 @@ public class ChooseBestAlignment extends Module {
         for (CigarElement ce : s0.getCigar().getCigarElements()) {
             if (ce.getOperator().equals(CigarOperator.MATCH_OR_MISMATCH)) {
                 l0 += ce.getLength();
+            } else {
+                l0 -= ce.getLength();
             }
         }
 
         for (CigarElement ce : s1.getCigar().getCigarElements()) {
             if (ce.getOperator().equals(CigarOperator.MATCH_OR_MISMATCH)) {
                 l1 += ce.getLength();
+            } else {
+                l1 -= ce.getLength();
             }
         }
 
