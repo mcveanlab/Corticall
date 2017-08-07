@@ -2,15 +2,13 @@ package uk.ac.ox.well.indiana.commands.inheritance;
 
 import htsjdk.samtools.*;
 import org.apache.commons.math3.util.MathUtils;
+import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by kiran on 07/08/2017.
@@ -24,22 +22,31 @@ public class ChooseBestAlignment extends Module {
 
     @Override
     public void execute() {
-        Map<String, SAMRecord> contigs = new TreeMap<>();
+        List<Map<String, List<SAMRecord>>> contigs = new ArrayList<>();
+        Map<String, SAMRecord> chosenContigs = new TreeMap<>();
 
-        for (SamReader sam : SAMS) {
-            for (SAMRecord sr : sam) {
-                if (!sr.isSecondaryOrSupplementary() && !sr.getNotPrimaryAlignmentFlag()) {
-                    if (!contigs.containsKey(sr.getReadName())) {
-                        contigs.put(sr.getReadName(), sr);
-                    } else {
-                        contigs.put(sr.getReadName(), chooseBetterAlignment(contigs.get(sr.getReadName()), sr));
-                    }
+        for (int i = 0; i < SAMS.size(); i++) {
+            contigs.add(new HashMap<>());
+
+            for (SAMRecord sr : SAMS.get(i)) {
+                if (!contigs.get(i).containsKey(sr.getReadName())) {
+                    contigs.get(i).put(sr.getReadName(), new ArrayList<>());
                 }
+
+                contigs.get(i).get(sr.getReadName()).add(sr);
+                chosenContigs.put(sr.getReadName(), null);
             }
         }
 
-        for (String contigName : contigs.keySet()) {
-            log.info("{} {}", contigName, contigs.get(contigName).getSAMString());
+        for (String contigName : chosenContigs.keySet()) {
+            if (contigs.get(0).get(contigName).size() == 1 && contigs.get(1).get(contigName).size() == 1) {
+                SAMRecord sr0 = contigs.get(0).get(contigName).get(0);
+                SAMRecord sr1 = contigs.get(1).get(contigName).get(0);
+
+                chosenContigs.put(contigName, chooseBetterAlignment(sr0, sr1));
+
+                log.info("{} {}", contigName, chosenContigs.get(contigName));
+            }
         }
     }
 
@@ -66,10 +73,6 @@ public class ChooseBestAlignment extends Module {
 
         double pctId0 = 100.0 * (double) d0 / (double) l0;
         double pctId1 = 100.0 * (double) d1 / (double) l1;
-
-        if (s0.getCigar().equals(s1.getCigar())) {
-            return null;
-        }
 
         return pctId0 > pctId1 ? s0 : s1;
     }
