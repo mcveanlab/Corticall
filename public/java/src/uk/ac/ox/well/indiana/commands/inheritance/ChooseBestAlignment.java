@@ -28,7 +28,7 @@ public class ChooseBestAlignment extends Module {
 
         for (SamReader sam : SAMS) {
             for (SAMRecord sr : sam) {
-                if (!sr.isSecondaryOrSupplementary()) {
+                if (!sr.isSecondaryOrSupplementary() && !sr.getNotPrimaryAlignmentFlag()) {
                     if (!contigs.containsKey(sr.getReadName())) {
                         contigs.put(sr.getReadName(), sr);
                     } else {
