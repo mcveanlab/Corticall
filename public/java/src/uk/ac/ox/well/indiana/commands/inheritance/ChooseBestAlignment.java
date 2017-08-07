@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.inheritance;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
 import org.apache.commons.math3.util.MathUtils;
 import org.apache.commons.math3.util.Pair;
@@ -8,6 +9,7 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -17,8 +19,8 @@ public class ChooseBestAlignment extends Module {
     @Argument(fullName="sam", shortName="s", doc="SAM file")
     public ArrayList<SamReader> SAMS;
 
-    //@Output
-    //public File out;
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -47,10 +49,31 @@ public class ChooseBestAlignment extends Module {
                 SAMRecord sr = chooseBetterAlignment(sr0, sr1);
 
                 if (sr != null && sr.getCigar().getCigarElements().size() == 1) {
-                    log.info("{} {}", contigName, sr.getSAMString());
+                    //log.info("{} {}", contigName, sr.getSAMString());
+                    out.println(Joiner.on(" ").join(sr.getReferenceName(), sr.getStart(), sr.getEnd(), sr.getReadName()));
                 }
             }
         }
+
+        /*
+chr - M76611 MT 0 5967 white
+chr - PFC10_API_IRAB API 0 34242 white
+chr - Pf3D7_01_v3 1 0 640851 white
+chr - Pf3D7_02_v3 2 0 947102 white
+chr - Pf3D7_03_v3 3 0 1067971 white
+chr - Pf3D7_04_v3 4 0 1200490 white
+chr - Pf3D7_05_v3 5 0 1343557 white
+chr - Pf3D7_06_v3 6 0 1418242 white
+chr - Pf3D7_07_v3 7 0 1445207 white
+chr - Pf3D7_08_v3 8 0 1472805 white
+chr - Pf3D7_09_v3 9 0 1541735 white
+chr - Pf3D7_10_v3 10 0 1687656 white
+chr - Pf3D7_11_v3 11 0 2038340 white
+chr - Pf3D7_12_v3 12 0 2271494 white
+chr - Pf3D7_13_v3 13 0 2925236 white
+chr - Pf3D7_14_v3 14 0 3291936 white
+chr - Pf3D7_00_v3 U 0 650000 white
+         */
     }
 
     private SAMRecord chooseBetterAlignment(SAMRecord s0, SAMRecord s1) {
