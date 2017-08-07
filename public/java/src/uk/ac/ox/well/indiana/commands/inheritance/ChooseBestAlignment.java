@@ -53,7 +53,7 @@ public class ChooseBestAlignment extends Module {
                     String chrName = "Pf3D7_" + pieces[pieces.length - 1] + "_v3";
 
                     //log.info("{} {}", contigName, sr.getSAMString());
-                    out.println(Joiner.on(" ").join(chrName, sr.getStart(), sr.getEnd(), sr.getReferenceName()));
+                    out.println(Joiner.on(" ").join(chrName, sr.getStart(), sr.getEnd(), pieces[0]));
                 }
             }
         }
