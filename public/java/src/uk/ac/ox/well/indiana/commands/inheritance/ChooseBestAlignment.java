@@ -23,7 +23,7 @@ public class ChooseBestAlignment extends Module {
     @Override
     public void execute() {
         List<Map<String, List<SAMRecord>>> contigs = new ArrayList<>();
-        Map<String, SAMRecord> chosenContigs = new TreeMap<>();
+        Set<String> chosenContigs = new TreeSet<>();
 
         for (int i = 0; i < SAMS.size(); i++) {
             contigs.add(new HashMap<>());
@@ -34,18 +34,20 @@ public class ChooseBestAlignment extends Module {
                 }
 
                 contigs.get(i).get(sr.getReadName()).add(sr);
-                chosenContigs.put(sr.getReadName(), null);
+                chosenContigs.add(sr.getReadName());
             }
         }
 
-        for (String contigName : chosenContigs.keySet()) {
+        for (String contigName : chosenContigs) {
             if (contigs.get(0).get(contigName).size() == 1 && contigs.get(1).get(contigName).size() == 1) {
                 SAMRecord sr0 = contigs.get(0).get(contigName).get(0);
                 SAMRecord sr1 = contigs.get(1).get(contigName).get(0);
 
-                chosenContigs.put(contigName, chooseBetterAlignment(sr0, sr1));
+                SAMRecord sr = chooseBetterAlignment(sr0, sr1);
 
-                log.info("{} {}", contigName, chosenContigs.get(contigName).getSAMString());
+                if (sr != null) {
+                    log.info("{} {}", contigName, sr.getSAMString());
+                }
             }
         }
     }
@@ -69,11 +71,9 @@ public class ChooseBestAlignment extends Module {
             }
         }
 
-        log.info(" -- {}", s0.getSAMString());
-        log.info(" -- {}", s1.getSAMString());
-
-//        double pctId0 = 100.0 * (double) d0 / (double) l0;
-//        double pctId1 = 100.0 * (double) d1 / (double) l1;
+        if (s0.getCigar().equals(s1.getCigar())) {
+            return null;
+        }
 
         return l0 > l1 ? s0 : s1;
     }
