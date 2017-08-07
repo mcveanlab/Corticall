@@ -121,27 +121,34 @@ public class EmitGuidedAssembly extends Module {
                             if (goForward ? !e.hasNext() : !e.hasPrevious()) {
                                 Set<CortexVertex> adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
 
-                                while (adjs != null && adjs.size() > 1) {
+                                while (adjs != null && adjs.size() != 1) {
                                     CortexVertex cva = null;
 
-                                    for (CortexVertex adj : adjs) {
-                                        Set<Interval> its2 = ref.findKmer(adj.getSk());
+                                    if (adjs.size() > 1) {
+                                        for (CortexVertex adj : adjs) {
+                                            Set<Interval> its2 = ref.findKmer(adj.getSk());
 
-                                        Interval it2 = selectInterval(lastConfidentInterval, its2);
+                                            Interval it2 = selectInterval(lastConfidentInterval, its2);
 
-                                        if (it2 != null) {
-                                            adj.setLocus(it2);
-                                            cva = adj;
+                                            if (it2 != null) {
+                                                adj.setLocus(it2);
+                                                cva = adj;
 
-                                            break;
+                                                break;
+                                            }
                                         }
+                                    } else {
+                                        cva = inferNextVertex(cvs, goForward, ref);
                                     }
 
                                     adjs = null;
 
                                     if (cva != null) {
-                                        if (goForward) { cvs.add(cva); }
-                                        else { cvs.add(0, cva); }
+                                        if (goForward) {
+                                            cvs.add(cva);
+                                        } else {
+                                            cvs.add(0, cva);
+                                        }
 
                                         log.info("{} {} {} ******", cva.getSk(), cva.getLocus(), ref.findKmer(cva.getSk()));
 
@@ -153,14 +160,29 @@ public class EmitGuidedAssembly extends Module {
                                         }
                                     }
                                 }
-
-                                //log.info("  {}", cv.getCr());
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    private CortexVertex inferNextVertex(List<CortexVertex> cvs, boolean goForward, KmerLookup ref) {
+        CortexVertex cv0 = goForward ? cvs.get(cvs.size() - 2) : cvs.get(1);
+        CortexVertex cv1 = goForward ? cvs.get(cvs.size() - 1) : cvs.get(0);
+
+        Interval it = null;
+
+        if (cv0.getLocus().getStart() + 1 == cv1.getLocus().getStart()) {
+            it = new Interval(cv1.getLocus().getContig(), cv1.getLocus().getStart() + 1, cv1.getLocus().getEnd() + 1, cv1.getLocus().isNegativeStrand(), cv1.getLocus().getName());
+        } else {
+            it = new Interval(cv1.getLocus().getContig(), cv1.getLocus().getStart() - 1, cv1.getLocus().getEnd() - 1, cv1.getLocus().isNegativeStrand(), cv1.getLocus().getName());
+        }
+
+        String sk = ref.findKmer(it);
+
+        return new CortexVertex(sk, GRAPH.findRecord(new CortexKmer(sk)), it);
     }
 
     private Interval selectInterval(Interval lastConfidentInterval, Set<Interval> its) {
