@@ -45,7 +45,7 @@ public class ChooseBestAlignment extends Module {
 
                 chosenContigs.put(contigName, chooseBetterAlignment(sr0, sr1));
 
-                log.info("{} {}", contigName, chosenContigs.get(contigName));
+                log.info("{} {}", contigName, chosenContigs.get(contigName).getSAMString());
             }
         }
     }
