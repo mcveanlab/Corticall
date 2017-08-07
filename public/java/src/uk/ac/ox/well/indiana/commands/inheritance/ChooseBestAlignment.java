@@ -9,6 +9,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created by kiran on 07/08/2017.
@@ -22,7 +23,7 @@ public class ChooseBestAlignment extends Module {
 
     @Override
     public void execute() {
-        Map<String, SAMRecord> contigs = new HashMap<>();
+        Map<String, SAMRecord> contigs = new TreeMap<>();
 
         for (SamReader sam : SAMS) {
             for (SAMRecord sr : sam) {
@@ -35,7 +36,7 @@ public class ChooseBestAlignment extends Module {
         }
 
         for (String contigName : contigs.keySet()) {
-            log.info("{} {}", contigName, contigs.get(contigName));
+            log.info("{} {}", contigName, contigs.get(contigName).getSAMString());
         }
     }
 
