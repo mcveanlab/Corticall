@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.commands.inheritance;
 
 import htsjdk.samtools.*;
+import org.apache.commons.math3.util.MathUtils;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
@@ -27,10 +28,12 @@ public class ChooseBestAlignment extends Module {
 
         for (SamReader sam : SAMS) {
             for (SAMRecord sr : sam) {
-                if (!contigs.containsKey(sr.getReadName())) {
-                    contigs.put(sr.getReadName(), sr);
-                } else {
-                    contigs.put(sr.getReadName(), chooseBetterAlignment(contigs.get(sr.getReadName()), sr));
+                if (!sr.isSecondaryOrSupplementary()) {
+                    if (!contigs.containsKey(sr.getReadName())) {
+                        contigs.put(sr.getReadName(), sr);
+                    } else {
+                        contigs.put(sr.getReadName(), chooseBetterAlignment(contigs.get(sr.getReadName()), sr));
+                    }
                 }
             }
         }
@@ -63,6 +66,10 @@ public class ChooseBestAlignment extends Module {
 
         double pctId0 = 100.0 * (double) d0 / (double) l0;
         double pctId1 = 100.0 * (double) d1 / (double) l1;
+
+        if (s0.getCigar().equals(s1.getCigar())) {
+            return null;
+        }
 
         return pctId0 > pctId1 ? s0 : s1;
     }
