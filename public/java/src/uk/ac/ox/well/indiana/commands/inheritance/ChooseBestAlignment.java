@@ -49,7 +49,7 @@ public class ChooseBestAlignment extends Module {
                 SAMRecord sr = chooseBetterAlignment(sr0, sr1);
 
                 if (sr != null && sr.getCigar().getCigarElements().size() == 1) {
-                    String[] pieces = sr.getReferenceName().split("_");
+                    String[] pieces = sr.getReferenceName().replaceAll("_v3", "").split("_");
                     String chrName = "Pf3D7_" + pieces[pieces.length - 1] + "_v3";
 
                     //log.info("{} {}", contigName, sr.getSAMString());
