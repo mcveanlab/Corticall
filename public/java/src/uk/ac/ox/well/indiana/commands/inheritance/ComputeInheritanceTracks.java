@@ -72,8 +72,11 @@ public class ComputeInheritanceTracks extends Module {
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
-                            log.info("  {} {}", cc, bubble.getFirst());
-                            log.info("  {} {}", cc, bubble.getSecond());
+
+                            if (bubble != null) {
+                                log.info("  {} {}", cc, bubble.getFirst());
+                                log.info("  {} {}", cc, bubble.getSecond());
+                            }
                         }
                     }
 
@@ -294,6 +297,10 @@ public class ComputeInheritanceTracks extends Module {
 
         List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
 
-        return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
+        if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
+            return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
+        }
+
+        return null;
     }
 }
