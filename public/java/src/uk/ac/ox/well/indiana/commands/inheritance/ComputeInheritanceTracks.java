@@ -79,7 +79,7 @@ public class ComputeInheritanceTracks extends Module {
 
                 seeds++;
 
-                /*
+                //
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
                 int draftColor = getDraftColor(cr, draftColors);
 
@@ -123,7 +123,7 @@ public class ComputeInheritanceTracks extends Module {
                         //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
-                */
+                //
             }
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
