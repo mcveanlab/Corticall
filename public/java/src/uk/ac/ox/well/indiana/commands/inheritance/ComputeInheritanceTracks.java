@@ -271,18 +271,33 @@ public class ComputeInheritanceTracks extends Module {
             while (goForward ? e.hasNext() : e.hasPrevious()) {
                 CortexVertex cv = goForward ? e.next() : e.previous();
 
-                if (goForward) {
-                    childVertices.add(cv);
-                } else {
-                    childVertices.add(0, cv);
-                }
+                if (goForward) { childVertices.add(cv); }
+                else { childVertices.add(0, cv); }
 
-                if (cr.getCoverage(bubbleColor) > 0) {
-                    break;
-                }
+                if (cv.getCr().getCoverage(bubbleColor) > 0) { break; }
             }
         }
 
+        /*
+        e = new TraversalEngineFactory()
+                .traversalColor(bubbleColor)
+                .graph(GRAPH)
+                .make();
+
+        List<CortexVertex> draftVertices = new ArrayList<>();
+        draftVertices.add(childVertices.get(0));
+
+        e.setCursor(cr.getKmerAsString(), true);
+        while (e.hasNext()) {
+            CortexVertex cv = e.next();
+
+            draftVertices.add(cv);
+
+            if (cr.getCoverage(childColor) > 0) { break; }
+        }
+        */
+
+        //
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
         g.addVertex(childVertices.get(childVertices.size() - 1));
 
@@ -297,6 +312,7 @@ public class ComputeInheritanceTracks extends Module {
                 .make();
 
         List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
+        //
 
         if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
             return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
