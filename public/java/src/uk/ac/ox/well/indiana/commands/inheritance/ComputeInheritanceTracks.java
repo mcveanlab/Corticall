@@ -36,7 +36,7 @@ public class ComputeInheritanceTracks extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="child", shortName="c", doc="Parents")
+    @Argument(fullName="child", shortName="c", doc="Parents", required=false)
     public String CHILD;
 
     @Argument(fullName="parent", shortName="p", doc="Parents")
@@ -53,11 +53,10 @@ public class ComputeInheritanceTracks extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
         int refColor = GRAPH.getColorForSampleName("ref");
         Set<Integer> parentColors = new TreeSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(DRAFTS.keySet())));
-        Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
+        Set<Integer> childColors = CHILD == null ? getChildColors(parentColors, draftColors, refColor) : Collections.singleton(GRAPH.getColorForSampleName(CHILD));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing records")
@@ -91,9 +90,9 @@ public class ComputeInheritanceTracks extends Module {
                     //for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubbleB = callSimpleBubble(cr, cc, bubbleColor);
-                            Pair<String, String> bubbleD = callSimpleBubble(cr, cc, draftColor);
+                            //Pair<String, String> bubbleD = callSimpleBubble(cr, cc, draftColor);
 
-                            if (bubbleB != null && bubbleD != null && bubbleB.getSecond().equals(bubbleD.getSecond())) {
+                            if (bubbleB != null) {
                                 Interval coords = getBubbleCanonicalCoordinates(bubbleB.getFirst(), cc, refColor);
 
                                 if (coords != null) {
