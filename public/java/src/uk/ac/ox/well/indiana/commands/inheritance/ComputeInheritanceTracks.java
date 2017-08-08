@@ -51,9 +51,9 @@ public class ComputeInheritanceTracks extends Module {
                 hasUniqueCoordinates(cr, draftColors) &&
                 canWalkToCanonicalReference(cr, childColors, refColor)) {
 
-                Interval interval = getCanonicalReferenceCoordinates(cr, childColors, refColor);
+                List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
-                log.info("{} {}", interval, cr);
+                log.info("{} {}", intervals, cr);
                 for (String id : DRAFTS.keySet()) {
                     log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
                 }
@@ -173,7 +173,7 @@ public class ComputeInheritanceTracks extends Module {
         return false;
     }
 
-    private Interval getCanonicalReferenceCoordinates(CortexRecord cr, Set<Integer> childColors, int refColor) {
+    private List<Interval> getCanonicalReferenceCoordinates(CortexRecord cr, Set<Integer> childColors, int refColor) {
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
                 .make();
@@ -200,12 +200,14 @@ public class ComputeInheritanceTracks extends Module {
             }
 
             if (intervals.size() == 2) {
-                Interval it0 = intervals.get(0);
-                Interval it1 = intervals.get(1);
+                return intervals;
 
-                if (it0.getContig().equals(it1.getContig())) {
-                    return (it0.getStart() < it1.getStart()) ? it0 : it1;
-                }
+//                Interval it0 = intervals.get(0);
+//                Interval it1 = intervals.get(1);
+//
+//                if (it0.getContig().equals(it1.getContig())) {
+//                    return (it0.getStart() < it1.getStart()) ? it0 : it1;
+//                }
             }
         }
 
