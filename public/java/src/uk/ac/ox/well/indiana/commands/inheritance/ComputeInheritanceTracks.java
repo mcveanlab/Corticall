@@ -397,8 +397,6 @@ public class ComputeInheritanceTracks extends Module {
             }
         }
 
-        log.info("is: {} ie: {}", is, ie);
-
         if (is != null && ie != null) {
             return is.getStart() < ie.getStart() ? is : ie;
         }
