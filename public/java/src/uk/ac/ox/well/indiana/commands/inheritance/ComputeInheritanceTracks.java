@@ -1,13 +1,19 @@
 package uk.ac.ox.well.indiana.commands.inheritance;
 
 import htsjdk.samtools.util.Interval;
+import org.apache.commons.math3.util.Pair;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.DestinationStopper;
+import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
@@ -17,6 +23,7 @@ import java.util.*;
 
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 
 /**
  * Created by kiran on 08/08/2017.
@@ -51,18 +58,36 @@ public class ComputeInheritanceTracks extends Module {
                 hasUniqueCoordinates(cr, draftColors) &&
                 canWalkToCanonicalReference(cr, childColors, refColor)) {
 
-                int draftColor = getDraftColor(cr, draftColors);
-
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
+                int draftColor = getDraftColor(cr, draftColors);
 
                 if (intervals != null) {
                     log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
                     for (String id : DRAFTS.keySet()) {
                         log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
                     }
+
+                    int bubbleColor = getBubbleColor(draftColors, draftColor);
+
+                    for (int cc : childColors) {
+                        Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
+                        log.info("  {} {}", cc, bubble.getFirst());
+                        log.info("  {} {}", cc, bubble.getSecond());
+                    }
+
                 }
             }
         }
+    }
+
+    private int getBubbleColor(Set<Integer> draftColors, int draftColor) {
+        int bubbleColor = draftColor;
+        for (int dc : draftColors) {
+            if (dc != draftColor) {
+                bubbleColor = dc;
+            }
+        }
+        return bubbleColor;
     }
 
     private Set<Integer> getChildColors(Set<Integer> parentColors, Set<Integer> draftColors, int refColor) {
@@ -224,5 +249,47 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return -1;
+    }
+
+    private Pair<String, String> callSimpleBubble(CortexRecord cr, int childColor, int bubbleColor) {
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(childColor)
+                .graph(GRAPH)
+                .make();
+
+        List<CortexVertex> childVertices = new ArrayList<>();
+
+        for (boolean goForward : Arrays.asList(false, true)) {
+            while (goForward ? e.hasNext() : e.hasPrevious()) {
+                CortexVertex cv = goForward ? e.next() : e.previous();
+
+                if (goForward) {
+                    childVertices.add(cv);
+                } else {
+                    childVertices.add(0, cv);
+                }
+
+                if (cr.getCoverage(bubbleColor) > 0) {
+                    break;
+                }
+            }
+        }
+
+        DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
+        g.addVertex(childVertices.get(childVertices.size() - 1));
+
+        e = new TraversalEngineFactory()
+                .traversalColor(bubbleColor)
+                .joiningColors(childColor)
+                .traversalDirection(FORWARD)
+                .combinationOperator(AND)
+                .stopper(DestinationStopper.class)
+                .previousTraversal(g)
+                .graph(GRAPH)
+                .make();
+
+        List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
+
+        return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
     }
 }
