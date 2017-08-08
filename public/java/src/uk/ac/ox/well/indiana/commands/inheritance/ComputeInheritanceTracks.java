@@ -70,9 +70,11 @@ public class ComputeInheritanceTracks extends Module {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
                     for (int cc : childColors) {
-                        Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
-                        log.info("  {} {}", cc, bubble.getFirst());
-                        log.info("  {} {}", cc, bubble.getSecond());
+                        if (cr.getCoverage(cc) > 0) {
+                            Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
+                            log.info("  {} {}", cc, bubble.getFirst());
+                            log.info("  {} {}", cc, bubble.getSecond());
+                        }
                     }
 
                 }
