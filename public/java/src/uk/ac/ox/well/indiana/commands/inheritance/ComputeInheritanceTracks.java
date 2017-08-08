@@ -62,11 +62,6 @@ public class ComputeInheritanceTracks extends Module {
                 int draftColor = getDraftColor(cr, draftColors);
 
                 if (intervals != null) {
-                    log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
-                    for (String id : DRAFTS.keySet()) {
-                        log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
-                    }
-
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
                     for (int cc : childColors) {
@@ -74,6 +69,12 @@ public class ComputeInheritanceTracks extends Module {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
 
                             if (bubble != null) {
+                                log.info("-------");
+                                log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
+                                for (String id : DRAFTS.keySet()) {
+                                    log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
+                                }
+
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
                             }
