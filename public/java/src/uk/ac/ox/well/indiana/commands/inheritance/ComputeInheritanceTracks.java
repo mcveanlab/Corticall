@@ -69,14 +69,14 @@ public class ComputeInheritanceTracks extends Module {
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
-                            Interval coords = getBubbleCanonicalCoordinates(bubble);
 
                             if (bubble != null) {
+                                Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
                                 Pair<String, String> alleles = trimToAlleles(bubble);
 
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
-                                log.info("  - {} {}", alleles.getFirst(), alleles.getSecond());
+                                log.info("  - {} {} {}", alleles.getFirst(), alleles.getSecond(), coords);
                             }
                         }
                     }
