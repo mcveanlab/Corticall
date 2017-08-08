@@ -69,9 +69,10 @@ public class ComputeInheritanceTracks extends Module {
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
-                            Pair<String, String> alleles = trimToAlleles(bubble);
 
                             if (bubble != null) {
+                                Pair<String, String> alleles = trimToAlleles(bubble);
+
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
                                 log.info("  - {} {}", alleles.getFirst(), alleles.getSecond());
