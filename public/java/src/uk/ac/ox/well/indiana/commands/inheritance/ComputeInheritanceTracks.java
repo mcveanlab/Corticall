@@ -66,6 +66,7 @@ public class ComputeInheritanceTracks extends Module {
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
+        int seeds = 0;
         int numVariants = 0;
 
         for (CortexRecord cr : GRAPH) {
@@ -76,6 +77,9 @@ public class ComputeInheritanceTracks extends Module {
                 hasUniqueCoordinates(cr, draftColors) &&
                 canWalkToCanonicalReference(cr, childColors, refColor)) {
 
+                seeds++;
+
+                /*
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
                 int draftColor = getDraftColor(cr, draftColors);
 
@@ -119,9 +123,10 @@ public class ComputeInheritanceTracks extends Module {
                         //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
+                */
             }
 
-            pm.update("records processed, " + numVariants + " variants, " + seen.size() + " kmers from variants");
+            pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
         }
     }
 
