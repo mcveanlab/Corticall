@@ -90,13 +90,14 @@ public class ComputeInheritanceTracks extends Module {
                     int cc = childColor;
                     //for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
-                            Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
+                            Pair<String, String> bubbleB = callSimpleBubble(cr, cc, bubbleColor);
+                            Pair<String, String> bubbleD = callSimpleBubble(cr, cc, draftColor);
 
-                            if (bubble != null) {
-                                Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
+                            if (bubbleB != null && bubbleD != null && bubbleB.getSecond().equals(bubbleD.getSecond())) {
+                                Interval coords = getBubbleCanonicalCoordinates(bubbleB.getFirst(), cc, refColor);
 
                                 if (coords != null) {
-                                    Pair<String, String> alleles = trimToAlleles(bubble);
+                                    Pair<String, String> alleles = trimToAlleles(bubbleB);
 
                                     //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
 
@@ -105,8 +106,8 @@ public class ComputeInheritanceTracks extends Module {
                                     locus.add(coords);
                                     colors.add(cc);
 
-                                    for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
-                                        String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
+                                    for (int i = 0; i <= bubbleB.getFirst().length() - GRAPH.getKmerSize(); i++) {
+                                        String sk = bubbleB.getFirst().substring(i, i + GRAPH.getKmerSize());
                                         seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
                                     }
                                 }
