@@ -53,9 +53,11 @@ public class ComputeInheritanceTracks extends Module {
 
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
-                log.info("{} {}", intervals, cr);
-                for (String id : DRAFTS.keySet()) {
-                    log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
+                if (intervals != null) {
+                    log.info("{} {}", intervals, cr);
+                    for (String id : DRAFTS.keySet()) {
+                        log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
+                    }
                 }
             }
         }
