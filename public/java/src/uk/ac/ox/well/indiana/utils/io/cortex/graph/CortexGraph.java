@@ -263,9 +263,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         long midIndex = startIndex + (stopIndex - startIndex) / 2;
 
         while (startIndex != midIndex && midIndex != stopIndex) {
+            long oldRecordsSeen = recordsSeen;
+
             CortexRecord startRecord = getRecord(startIndex);
             CortexRecord midRecord = getRecord(midIndex);
             CortexRecord stopRecord = getRecord(stopIndex);
+
+            recordsSeen = oldRecordsSeen;
 
             String startKmer = startRecord.getKmerAsString();
             String midKmer = midRecord.getKmerAsString();
