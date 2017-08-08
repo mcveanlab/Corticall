@@ -6,21 +6,21 @@ import java.util.Arrays;
 
 public class CortexKmer implements CharSequence, Comparable<CortexKmer> {
     private byte[] kmer;
-    private String sk;
+    //private String sk;
     private boolean isFlippedFromSuppliedOrientation = false;
 
     public CortexKmer(String kmer) {
         this.kmer = SequenceUtils.alphanumericallyLowestOrientation(kmer.getBytes());
 
         isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer.getBytes());
-        this.sk = new String(this.kmer);
+        //this.sk = new String(this.kmer);
     }
 
     public CortexKmer(byte[] kmer) {
         this.kmer = SequenceUtils.alphanumericallyLowestOrientation(kmer);
 
         isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer);
-        this.sk = new String(this.kmer);
+        //this.sk = new String(this.kmer);
     }
 
     public CortexKmer(byte[] kmer, boolean kmerIsAlphanumericallyLowest) {
@@ -32,7 +32,7 @@ public class CortexKmer implements CharSequence, Comparable<CortexKmer> {
             isFlippedFromSuppliedOrientation = Arrays.hashCode(this.kmer) != Arrays.hashCode(kmer);
         }
 
-        this.sk = new String(this.kmer);
+        //this.sk = new String(this.kmer);
     }
 
     public int length() {
@@ -55,10 +55,7 @@ public class CortexKmer implements CharSequence, Comparable<CortexKmer> {
         return kmer;
     }
 
-    public String getKmerAsString() {
-        //return new String(kmer);
-        return sk;
-    }
+    public String getKmerAsString() { return new String(kmer); }
 
     public CortexKmer getSubKmer(int start, int length) {
         byte[] subkmer = new byte[length];
