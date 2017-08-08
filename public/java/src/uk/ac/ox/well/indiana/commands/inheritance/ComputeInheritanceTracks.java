@@ -33,7 +33,9 @@ public class ComputeInheritanceTracks extends Module {
         int refColor = GRAPH.getColorForSampleName("ref");
 
         for (CortexRecord cr : GRAPH) {
-            if (isSharedWithOnlyOneParent(cr, parentColors, draftColors) && isSharedWithSomeChildren(cr, parentColors, draftColors, refColor)) {
+            if (isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
+                isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
+                isSinglyConnected(cr)) {
                 log.info("{}", cr);
                 for (String id : DRAFTS.keySet()) {
                     log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
@@ -74,5 +76,15 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return numChildrenWithCoverage > 1 && numChildrenWithCoverage < numChildren;
+    }
+
+    private boolean isSinglyConnected(CortexRecord cr) {
+        for (int c = 0; c < cr.getNumColors(); c++) {
+            if (cr.getCoverage(c) > 0 && (cr.getInDegree(c) != 1 || cr.getInDegree(c) != 1)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
