@@ -8,7 +8,9 @@ import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
@@ -51,8 +53,11 @@ public class ComputeInheritanceTracks extends Module {
         int refColor = GRAPH.getColorForSampleName("ref");
         Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
 
+        Set<CortexBinaryKmer> seen = new HashSet<>();
+
         for (CortexRecord cr : GRAPH) {
-            if (isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
+            if (!seen.contains(cr.getCortexBinaryKmer()) &&
+                isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
                 isSinglyConnected(cr) &&
                 hasUniqueCoordinates(cr, draftColors) &&
@@ -64,8 +69,6 @@ public class ComputeInheritanceTracks extends Module {
                 if (intervals != null) {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
-                    log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
-
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
@@ -74,9 +77,15 @@ public class ComputeInheritanceTracks extends Module {
                                 Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
                                 Pair<String, String> alleles = trimToAlleles(bubble);
 
+                                log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
                                 log.info("  - {} {} {}", alleles.getFirst(), alleles.getSecond(), coords);
+
+                                for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
+                                    String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
+                                    seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
+                                }
                             }
                         }
                     }
