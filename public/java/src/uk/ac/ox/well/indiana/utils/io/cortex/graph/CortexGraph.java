@@ -176,6 +176,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         nextRecord = getNextRecord();
     }
 
+    public long numRecordsSeen() { return recordsSeen; }
+
     private CortexRecord getNextRecord() {
         if (recordsSeen < getNumRecords()) {
             try {
