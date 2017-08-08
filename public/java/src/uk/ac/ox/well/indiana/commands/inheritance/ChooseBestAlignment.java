@@ -40,6 +40,8 @@ public class ChooseBestAlignment extends Module {
             }
         }
 
+
+
         for (String contigName : chosenContigs) {
             if (contigs.get(0).containsKey(contigName) && contigs.get(1).containsKey(contigName) &&
                 contigs.get(0).get(contigName).size() == 1 && contigs.get(1).get(contigName).size() == 1) {
@@ -52,7 +54,6 @@ public class ChooseBestAlignment extends Module {
                     String[] pieces = sr.getReferenceName().replaceAll("_v3", "").split("_");
                     String chrName = "Pf3D7_" + pieces[pieces.length - 1] + "_v3";
 
-                    //log.info("{} {}", contigName, sr.getSAMString());
                     out.println(Joiner.on(" ").join(chrName, sr.getStart(), sr.getEnd(), pieces[0]));
                 }
             }
