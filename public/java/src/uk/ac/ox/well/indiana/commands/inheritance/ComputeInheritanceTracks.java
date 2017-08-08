@@ -200,14 +200,12 @@ public class ComputeInheritanceTracks extends Module {
             }
 
             if (intervals.size() == 2) {
-                return intervals;
+                Interval it0 = intervals.get(0);
+                Interval it1 = intervals.get(1);
 
-//                Interval it0 = intervals.get(0);
-//                Interval it1 = intervals.get(1);
-//
-//                if (it0.getContig().equals(it1.getContig())) {
-//                    return (it0.getStart() < it1.getStart()) ? it0 : it1;
-//                }
+                if (it0.getContig().equals(it1.getContig())) {
+                    return intervals;
+                }
             }
         }
 
