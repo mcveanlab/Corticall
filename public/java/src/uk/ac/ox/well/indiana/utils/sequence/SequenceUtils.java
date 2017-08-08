@@ -773,5 +773,4 @@ public class SequenceUtils {
 
         return pieces;
     }
-
 }
