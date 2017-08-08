@@ -106,7 +106,7 @@ public class ComputeInheritanceTracks extends Module {
                     }
 
                     if (childAllele.size() == 1) {
-                        log.info("  {} {} {} {}", childAllele, draftAllele, locus, colors);
+                        log.info("  call: {} {} {} {} {}", GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
             }
