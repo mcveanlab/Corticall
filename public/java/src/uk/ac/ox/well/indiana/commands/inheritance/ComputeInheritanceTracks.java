@@ -7,9 +7,16 @@ import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
+import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.io.PrintStream;
 import java.util.*;
+
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
+import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 08/08/2017.
@@ -24,6 +31,9 @@ public class ComputeInheritanceTracks extends Module {
     @Argument(fullName="drafts", shortName="d", doc="Parental drafts")
     public HashMap<String, KmerLookup> DRAFTS;
 
+    @Argument(fullName="reference", shortName="R", doc="Canonical reference")
+    public KmerLookup REFERENCE;
+
     @Output
     public PrintStream out;
 
@@ -32,18 +42,35 @@ public class ComputeInheritanceTracks extends Module {
         Set<Integer> parentColors = new TreeSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(DRAFTS.keySet())));
         int refColor = GRAPH.getColorForSampleName("ref");
+        Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
 
         for (CortexRecord cr : GRAPH) {
             if (isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
                 isSinglyConnected(cr) &&
-                hasUniqueCoordinates(cr, draftColors)) {
+                hasUniqueCoordinates(cr, draftColors) &&
+                canWalkToCanonicalReference(cr, childColors, refColor)) {
+
                 log.info("{}", cr);
                 for (String id : DRAFTS.keySet()) {
                     log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
                 }
             }
         }
+    }
+
+    private Set<Integer> getChildColors(Set<Integer> parentColors, Set<Integer> draftColors, int refColor) {
+        Set<Integer> childColors = new TreeSet<>();
+
+        for (int c = 0; c < GRAPH.getNumColors(); c++) {
+            childColors.add(c);
+        }
+
+        childColors.removeAll(parentColors);
+        childColors.removeAll(draftColors);
+        childColors.remove(refColor);
+
+        return childColors;
     }
 
     private boolean isSharedWithOnlyOneParent(CortexRecord cr, Set<Integer> parentColors, Set<Integer> draftColors) {
@@ -109,6 +136,36 @@ public class ComputeInheritanceTracks extends Module {
             Set<Interval> its = kl.findKmer(cr.getKmerAsString());
 
             return its != null && its.size() == 1;
+        }
+
+        return false;
+    }
+
+    private boolean canWalkToCanonicalReference(CortexRecord cr, Set<Integer> childColors, int refColor) {
+        TraversalEngine e = new TraversalEngineFactory()
+                .graph(GRAPH)
+                .make();
+
+        for (int cc : childColors) {
+            e.getConfiguration().setTraversalColor(cc);
+
+            int found = 0;
+
+            for (boolean goForward : Arrays.asList(true, false)) {
+                e.setCursor(cr.getKmerAsString(), goForward);
+                while (goForward ? e.hasNext() : e.hasPrevious()) {
+                    CortexVertex cv = goForward ? e.next() : e.previous();
+
+                    if (cv.getCr().getCoverage(refColor) > 0) {
+                        found++;
+                        break;
+                    }
+                }
+            }
+
+            if (found == 2) {
+                return true;
+            }
         }
 
         return false;
