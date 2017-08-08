@@ -51,10 +51,12 @@ public class ComputeInheritanceTracks extends Module {
                 hasUniqueCoordinates(cr, draftColors) &&
                 canWalkToCanonicalReference(cr, childColors, refColor)) {
 
+                int draftColor = getDraftColor(cr, draftColors);
+
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
                 if (intervals != null) {
-                    log.info("{} {}", intervals, cr);
+                    log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
                     for (String id : DRAFTS.keySet()) {
                         log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
                     }
@@ -212,5 +214,15 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return null;
+    }
+
+    private int getDraftColor(CortexRecord cr, Set<Integer> draftColors) {
+        for (int dc : draftColors) {
+            if (cr.getCoverage(dc) > 0) {
+                return dc;
+            }
+        }
+
+        return -1;
     }
 }
