@@ -77,7 +77,7 @@ public class ComputeInheritanceTracks extends Module {
                 if (intervals != null) {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
-                    log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
+                    //log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
 
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
@@ -87,9 +87,9 @@ public class ComputeInheritanceTracks extends Module {
                                 Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
                                 Pair<String, String> alleles = trimToAlleles(bubble);
 
-                                log.info("  {} {}", cc, bubble.getFirst());
-                                log.info("  {} {}", cc, bubble.getSecond());
-                                log.info("  - {} {} {}", alleles.getFirst(), alleles.getSecond(), coords);
+                                //log.info("  {} {}", cc, bubble.getFirst());
+                                //log.info("  {} {}", cc, bubble.getSecond());
+                                log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
 
                                 for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
                                     String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
@@ -101,7 +101,7 @@ public class ComputeInheritanceTracks extends Module {
                 }
             }
 
-            pm.update();
+            pm.update("records processed, " + seen.size() + " kmers from variants");
         }
     }
 
