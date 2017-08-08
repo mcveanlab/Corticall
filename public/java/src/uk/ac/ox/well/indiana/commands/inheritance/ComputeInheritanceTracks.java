@@ -77,7 +77,10 @@ public class ComputeInheritanceTracks extends Module {
                 if (intervals != null) {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
-                    //log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
+                    Set<String> childAllele = new HashSet<>();
+                    Set<String> draftAllele = new HashSet<>();
+                    Set<Interval> locus = new HashSet<>();
+                    Set<Integer> colors = new HashSet<>();
 
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
@@ -87,9 +90,12 @@ public class ComputeInheritanceTracks extends Module {
                                 Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
                                 Pair<String, String> alleles = trimToAlleles(bubble);
 
-                                //log.info("  {} {}", cc, bubble.getFirst());
-                                //log.info("  {} {}", cc, bubble.getSecond());
-                                log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
+                                //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
+
+                                childAllele.add(alleles.getFirst());
+                                draftAllele.add(alleles.getSecond());
+                                locus.add(coords);
+                                colors.add(cc);
 
                                 for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
                                     String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
@@ -97,6 +103,10 @@ public class ComputeInheritanceTracks extends Module {
                                 }
                             }
                         }
+                    }
+
+                    if (childAllele.size() == 1) {
+                        log.info("  {} {} {} {}", childAllele, draftAllele, locus, colors);
                     }
                 }
             }
