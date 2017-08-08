@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.inheritance;
 
+import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
@@ -35,7 +36,8 @@ public class ComputeInheritanceTracks extends Module {
         for (CortexRecord cr : GRAPH) {
             if (isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
-                isSinglyConnected(cr)) {
+                isSinglyConnected(cr) &&
+                hasUniqueCoordinates(cr, draftColors)) {
                 log.info("{}", cr);
                 for (String id : DRAFTS.keySet()) {
                     log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
@@ -89,5 +91,26 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return isSinglyConnected;
+    }
+
+    private boolean hasUniqueCoordinates(CortexRecord cr, Set<Integer> draftColors) {
+        int draftColor = -1;
+        int numDraftsWithCoverage = 0;
+        for (int dc : draftColors) {
+            if (cr.getCoverage(dc) > 0) {
+                draftColor = dc;
+                numDraftsWithCoverage++;
+            }
+        }
+
+        if (numDraftsWithCoverage == 1 && draftColor > -1) {
+            KmerLookup kl = DRAFTS.get(GRAPH.getSampleName(draftColor));
+
+            Set<Interval> its = kl.findKmer(cr.getKmerAsString());
+
+            return its != null && its.size() == 1;
+        }
+
+        return false;
     }
 }
