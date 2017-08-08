@@ -62,10 +62,11 @@ public class ComputeInheritanceTracks extends Module {
                 .header("Processing records")
                 .message("records processed")
                 .maxRecord(GRAPH.getNumRecords())
-                .updateRecord(GRAPH.getNumRecords() / 100)
+                .updateRecord(GRAPH.getNumRecords() / 1000)
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
+        int numVariants = 0;
 
         for (CortexRecord cr : GRAPH) {
             if (!seen.contains(cr.getCortexBinaryKmer()) &&
@@ -114,12 +115,13 @@ public class ComputeInheritanceTracks extends Module {
                     }
 
                     if (childAllele.size() == 1) {
-                        log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+                        numVariants++;
+                        //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
             }
 
-            pm.update("records processed, " + seen.size() + " kmers from variants");
+            pm.update("records processed, " + numVariants + " variants, " + seen.size() + " kmers from variants");
         }
     }
 
