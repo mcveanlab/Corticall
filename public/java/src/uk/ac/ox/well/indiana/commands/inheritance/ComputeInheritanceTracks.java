@@ -88,18 +88,21 @@ public class ComputeInheritanceTracks extends Module {
 
                             if (bubble != null) {
                                 Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
-                                Pair<String, String> alleles = trimToAlleles(bubble);
 
-                                //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
+                                if (coords != null) {
+                                    Pair<String, String> alleles = trimToAlleles(bubble);
 
-                                childAllele.add(alleles.getFirst());
-                                draftAllele.add(alleles.getSecond());
-                                locus.add(coords);
-                                colors.add(cc);
+                                    //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
 
-                                for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
-                                    String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
-                                    seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
+                                    childAllele.add(alleles.getFirst());
+                                    draftAllele.add(alleles.getSecond());
+                                    locus.add(coords);
+                                    colors.add(cc);
+
+                                    for (int i = 0; i <= bubble.getFirst().length() - GRAPH.getKmerSize(); i++) {
+                                        String sk = bubble.getFirst().substring(i, i + GRAPH.getKmerSize());
+                                        seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
+                                    }
                                 }
                             }
                         }
