@@ -12,6 +12,8 @@ import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
+import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.DestinationStopper;
@@ -53,6 +55,12 @@ public class ComputeInheritanceTracks extends Module {
         int refColor = GRAPH.getColorForSampleName("ref");
         Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing records")
+                .message("records processed")
+                .maxRecord(GRAPH.getNumRecords())
+                .make(log);
+
         Set<CortexBinaryKmer> seen = new HashSet<>();
 
         for (CortexRecord cr : GRAPH) {
@@ -69,6 +77,8 @@ public class ComputeInheritanceTracks extends Module {
                 if (intervals != null) {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
+                    log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
+
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
@@ -77,7 +87,6 @@ public class ComputeInheritanceTracks extends Module {
                                 Interval coords = getBubbleCanonicalCoordinates(bubble.getFirst(), cc, refColor);
                                 Pair<String, String> alleles = trimToAlleles(bubble);
 
-                                log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
                                 log.info("  - {} {} {}", alleles.getFirst(), alleles.getSecond(), coords);
@@ -91,6 +100,8 @@ public class ComputeInheritanceTracks extends Module {
                     }
                 }
             }
+
+            pm.update();
         }
     }
 
