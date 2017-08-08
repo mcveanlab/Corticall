@@ -86,8 +86,7 @@ public class ComputeInheritanceTracks extends Module {
                     Set<Interval> locus = new HashSet<>();
                     Set<Integer> colors = new HashSet<>();
 
-                    int cc = childColor;
-                    //for (int cc : childColors) {
+                    for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubbleB = callSimpleBubble(cr, cc, bubbleColor);
                             //Pair<String, String> bubbleD = callSimpleBubble(cr, cc, draftColor);
@@ -112,7 +111,7 @@ public class ComputeInheritanceTracks extends Module {
                                 }
                             }
                         }
-                    //}
+                    }
 
                     if (childAllele.size() == 1) {
                         log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
