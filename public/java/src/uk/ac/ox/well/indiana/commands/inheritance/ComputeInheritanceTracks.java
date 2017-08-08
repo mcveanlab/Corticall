@@ -69,6 +69,7 @@ public class ComputeInheritanceTracks extends Module {
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
+                            Interval coords = getBubbleCanonicalCoordinates(bubble);
 
                             if (bubble != null) {
                                 Pair<String, String> alleles = trimToAlleles(bubble);
@@ -332,5 +333,46 @@ public class ComputeInheritanceTracks extends Module {
         pieces[3] = s0.substring(s0end, s0.length());
 
         return new Pair<>(pieces[1], pieces[2]);
+    }
+
+    private Interval getBubbleCanonicalCoordinates(String childHaplotype, int childColor, int refColor) {
+        Interval is = null, ie = null;
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(childColor)
+                .graph(GRAPH)
+                .make();
+
+        String firstKmer = childHaplotype.substring(0, GRAPH.getKmerSize());
+        String lastKmer = childHaplotype.substring(childHaplotype.length() - GRAPH.getKmerSize(), childHaplotype.length());
+
+        for (boolean goForward : Arrays.asList(false, true)) {
+            e.setCursor(goForward ? lastKmer : firstKmer, goForward);
+            while (goForward ? e.hasNext() : e.hasPrevious()) {
+                CortexVertex cv = goForward ? e.next() : e.previous();
+
+                if (cv.getCr().getCoverage(refColor) > 0) {
+                    Set<Interval> intervals = REFERENCE.findKmer(cv.getSk());
+
+                    if (intervals != null && intervals.size() == 1) {
+                        if (goForward) {
+                            ie = intervals.iterator().next();
+                        } else {
+                            is = intervals.iterator().next();
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        log.info("is: {} ie: {}", is, ie);
+
+        if (is != null && ie != null) {
+            return is.getStart() < ie.getStart() ? is : ie;
+        }
+
+        return null;
     }
 }
