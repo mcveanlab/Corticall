@@ -62,7 +62,7 @@ public class ComputeInheritanceTracks extends Module {
                 .header("Processing records")
                 .message("records processed")
                 .maxRecord(GRAPH.getNumRecords())
-                .updateRecord(GRAPH.getNumRecords() / 1000)
+                .updateRecord(GRAPH.getNumRecords() / 100)
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
@@ -74,8 +74,8 @@ public class ComputeInheritanceTracks extends Module {
                 isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
                 isSinglyConnected(cr) &&
-                hasUniqueCoordinates(cr, draftColors) &&
-                canWalkToCanonicalReference(cr, childColors, refColor)) {
+                hasUniqueCoordinates(cr, draftColors)) { // &&
+                //canWalkToCanonicalReference(cr, childColors, refColor)) {
 
                 seeds++;
 
