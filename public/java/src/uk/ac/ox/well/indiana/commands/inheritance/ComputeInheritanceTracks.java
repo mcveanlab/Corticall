@@ -51,7 +51,9 @@ public class ComputeInheritanceTracks extends Module {
                 hasUniqueCoordinates(cr, draftColors) &&
                 canWalkToCanonicalReference(cr, childColors, refColor)) {
 
-                log.info("{}", cr);
+                Interval interval = getCanonicalReferenceCoordinates(cr, childColors, refColor);
+
+                log.info("{} {}", interval, cr);
                 for (String id : DRAFTS.keySet()) {
                     log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
                 }
@@ -169,5 +171,44 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return false;
+    }
+
+    private Interval getCanonicalReferenceCoordinates(CortexRecord cr, Set<Integer> childColors, int refColor) {
+        TraversalEngine e = new TraversalEngineFactory()
+                .graph(GRAPH)
+                .make();
+
+        for (int cc : childColors) {
+            e.getConfiguration().setTraversalColor(cc);
+
+            List<Interval> intervals = new ArrayList<>();
+
+            for (boolean goForward : Arrays.asList(true, false)) {
+                e.setCursor(cr.getKmerAsString(), goForward);
+                while (goForward ? e.hasNext() : e.hasPrevious()) {
+                    CortexVertex cv = goForward ? e.next() : e.previous();
+
+                    if (cv.getCr().getCoverage(refColor) > 0) {
+                        Set<Interval> its = REFERENCE.findKmer(cv.getSk());
+                        if (its != null && its.size() == 1) {
+                            intervals.add(its.iterator().next());
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            if (intervals.size() == 2) {
+                Interval it0 = intervals.get(0);
+                Interval it1 = intervals.get(1);
+
+                if (it0.getContig().equals(it1.getContig())) {
+                    return (it0.getStart() < it1.getStart()) ? it0 : it1;
+                }
+            }
+        }
+
+        return null;
     }
 }
