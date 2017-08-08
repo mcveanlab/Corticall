@@ -65,20 +65,17 @@ public class ComputeInheritanceTracks extends Module {
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
                     log.info("{} {} {} {}", draftColor, GRAPH.getSampleName(draftColor), intervals, cr);
-                    //for (String id : DRAFTS.keySet()) {
-                    //    log.info("  {} {}", id, DRAFTS.get(id).findKmer(cr.getKmerAsString()));
-                    //}
 
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
 
                             if (bubble != null) {
-                                log.info("  {} {} {}", cc, bubble.getFirst(), bubble.getSecond());
+                                log.info("  {} {}", cc, bubble.getFirst());
+                                log.info("  {} {}", cc, bubble.getSecond());
                             }
                         }
                     }
-
                 }
             }
         }
@@ -297,27 +294,6 @@ public class ComputeInheritanceTracks extends Module {
             if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
                 return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
             }
-
-            /*
-            DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
-            g.addVertex(childVertices.get(childVertices.size() - 1));
-
-            e = new TraversalEngineFactory()
-                    .traversalColor(bubbleColor)
-                    .joiningColors(childColor)
-                    .traversalDirection(FORWARD)
-                    .combinationOperator(AND)
-                    .stopper(DestinationStopper.class)
-                    .previousTraversal(g)
-                    .graph(GRAPH)
-                    .make();
-
-            List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
-
-            if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
-                return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
-            }
-            */
         }
 
         return null;
