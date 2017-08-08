@@ -79,12 +79,15 @@ public class ComputeInheritanceTracks extends Module {
     }
 
     private boolean isSinglyConnected(CortexRecord cr) {
+        boolean isSinglyConnected = true;
         for (int c = 0; c < cr.getNumColors(); c++) {
-            if (cr.getCoverage(c) > 0 && (cr.getInDegree(c) != 1 || cr.getInDegree(c) != 1)) {
-                return false;
+            if (cr.getCoverage(c) > 0) {
+                if (!(cr.getInDegree(c) == 1 && cr.getOutDegree(c) == 1)) {
+                    isSinglyConnected = false;
+                }
             }
         }
 
-        return true;
+        return isSinglyConnected;
     }
 }
