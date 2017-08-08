@@ -59,6 +59,7 @@ public class ComputeInheritanceTracks extends Module {
                 .header("Processing records")
                 .message("records processed")
                 .maxRecord(GRAPH.getNumRecords())
+                .updateRecord(GRAPH.getNumRecords() / 100)
                 .make(log);
 
         Set<CortexBinaryKmer> seen = new HashSet<>();
@@ -109,7 +110,7 @@ public class ComputeInheritanceTracks extends Module {
                     }
 
                     if (childAllele.size() == 1) {
-                        log.info("  call: {} {} {} {} {}", GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+                        //log.info("  call: {} {} {} {} {}", GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
             }
