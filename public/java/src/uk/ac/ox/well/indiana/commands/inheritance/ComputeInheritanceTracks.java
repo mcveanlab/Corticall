@@ -79,11 +79,10 @@ public class ComputeInheritanceTracks extends Module {
 
                 seeds++;
 
-                //
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
-                int draftColor = getDraftColor(cr, draftColors);
 
-                if (intervals != null) {
+                if (intervals != null && intervals.get(0).getContig().equals("Pf3D7_01_v3")) {
+                    int draftColor = getDraftColor(cr, draftColors);
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
                     Set<String> childAllele = new HashSet<>();
@@ -123,7 +122,6 @@ public class ComputeInheritanceTracks extends Module {
                         //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
                     }
                 }
-                //
             }
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
