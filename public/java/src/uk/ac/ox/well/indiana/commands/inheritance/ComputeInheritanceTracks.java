@@ -277,26 +277,47 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         if (childVertices.get(0).getCr().getCoverage(bubbleColor) > 0) {
-            log.info("Hello!");
-        }
+            e = new TraversalEngineFactory()
+                    .traversalColor(bubbleColor)
+                    .graph(GRAPH)
+                    .make();
 
-        DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
-        g.addVertex(childVertices.get(childVertices.size() - 1));
+            List<CortexVertex> draftVertices = new ArrayList<>();
+            draftVertices.add(childVertices.get(0));
 
-        e = new TraversalEngineFactory()
-                .traversalColor(bubbleColor)
-                .joiningColors(childColor)
-                .traversalDirection(FORWARD)
-                .combinationOperator(AND)
-                .stopper(DestinationStopper.class)
-                .previousTraversal(g)
-                .graph(GRAPH)
-                .make();
+            e.setCursor(childVertices.get(0).getSk(), true);
+            while (e.hasNext()) {
+                CortexVertex cv = e.next();
 
-        List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
+                draftVertices.add(cv);
 
-        if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
-            return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
+                if (cv.getCr().getCoverage(childColor) > 0) { break; }
+            }
+
+            if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
+                return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
+            }
+
+            /*
+            DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
+            g.addVertex(childVertices.get(childVertices.size() - 1));
+
+            e = new TraversalEngineFactory()
+                    .traversalColor(bubbleColor)
+                    .joiningColors(childColor)
+                    .traversalDirection(FORWARD)
+                    .combinationOperator(AND)
+                    .stopper(DestinationStopper.class)
+                    .previousTraversal(g)
+                    .graph(GRAPH)
+                    .make();
+
+            List<CortexVertex> draftVertices = e.walk(childVertices.get(0).getSk());
+
+            if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
+                return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
+            }
+            */
         }
 
         return null;
