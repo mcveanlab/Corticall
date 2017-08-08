@@ -69,10 +69,12 @@ public class ComputeInheritanceTracks extends Module {
                     for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
+                            Pair<String, String> alleles = trimToAlleles(bubble);
 
                             if (bubble != null) {
                                 log.info("  {} {}", cc, bubble.getFirst());
                                 log.info("  {} {}", cc, bubble.getSecond());
+                                log.info("  - {} {}", alleles.getFirst(), alleles.getSecond());
                             }
                         }
                     }
@@ -297,5 +299,37 @@ public class ComputeInheritanceTracks extends Module {
         }
 
         return null;
+    }
+
+    private Pair<String, String> trimToAlleles(Pair<String, String> haplotypes) {
+        String s0 = haplotypes.getFirst();
+        String s1 = haplotypes.getSecond();
+
+        int s0start = 0, s0end = s0.length();
+        int s1start = 0, s1end = s1.length();
+
+        for (int i = 0, j = 0; i < s0.length() && j < s1.length(); i++, j++) {
+            if (s0.charAt(i) != s1.charAt(j)) {
+                s0start = i;
+                s1start = j;
+                break;
+            }
+        }
+
+        for (int i = s0.length() - 1, j = s1.length() - 1; i >= 0 && j >= 0; i--, j--) {
+            if (s0.charAt(i) != s1.charAt(j) || i == s0start - 1 || j == s1start - 1) {
+                s0end = i + 1;
+                s1end = j + 1;
+                break;
+            }
+        }
+
+        String[] pieces = new String[4];
+        pieces[0] = s0.substring(0, s0start);
+        pieces[1] = s0.substring(s0start, s0end);
+        pieces[2] = s1.substring(s1start, s1end);
+        pieces[3] = s0.substring(s0end, s0.length());
+
+        return new Pair<>(pieces[1], pieces[2]);
     }
 }
