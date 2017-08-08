@@ -39,7 +39,7 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory stopper(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 
-    public TraversalEngineFactory graph(CortexGraph clean) { configuration.setGraph(clean); return this; }
+    public TraversalEngineFactory graph(CortexGraph graph) { configuration.setGraph(graph); return this; }
 
     public TraversalEngineFactory rois(CortexGraph rois) { configuration.setRois(rois); return this; }
 

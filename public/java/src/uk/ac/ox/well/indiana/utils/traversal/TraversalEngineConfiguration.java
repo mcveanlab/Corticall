@@ -75,8 +75,8 @@ public class TraversalEngineConfiguration {
     public void setLinks(Map<CortexLinks, String> links) { this.links = links; }
 
     public CortexGraph getGraph() { return graph; }
-    public void setGraph(CortexGraph graph) { this.graph = graph; }
+    public void setGraph(CortexGraph graph) { this.graph = new CortexGraph(graph.getCortexFile()); }
 
     public CortexGraph getRois() { return rois; }
-    public void setRois(CortexGraph rois) { this.rois = rois; }
+    public void setRois(CortexGraph rois) { this.rois = new CortexGraph(rois.getCortexFile()); }
 }
