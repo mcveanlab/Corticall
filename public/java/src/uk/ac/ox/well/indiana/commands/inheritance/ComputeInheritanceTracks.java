@@ -36,6 +36,9 @@ public class ComputeInheritanceTracks extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
+    @Argument(fullName="child", shortName="c", doc="Parents")
+    public String CHILD;
+
     @Argument(fullName="parent", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
@@ -50,9 +53,10 @@ public class ComputeInheritanceTracks extends Module {
 
     @Override
     public void execute() {
+        int childColor = GRAPH.getColorForSampleName(CHILD);
+        int refColor = GRAPH.getColorForSampleName("ref");
         Set<Integer> parentColors = new TreeSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(DRAFTS.keySet())));
-        int refColor = GRAPH.getColorForSampleName("ref");
         Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -83,7 +87,8 @@ public class ComputeInheritanceTracks extends Module {
                     Set<Interval> locus = new HashSet<>();
                     Set<Integer> colors = new HashSet<>();
 
-                    for (int cc : childColors) {
+                    int cc = childColor;
+                    //for (int cc : childColors) {
                         if (cr.getCoverage(cc) > 0) {
                             Pair<String, String> bubble = callSimpleBubble(cr, cc, bubbleColor);
 
@@ -107,7 +112,7 @@ public class ComputeInheritanceTracks extends Module {
                                 }
                             }
                         }
-                    }
+                    //}
 
                     if (childAllele.size() == 1) {
                         log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
