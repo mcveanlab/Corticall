@@ -247,6 +247,10 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public CortexRecord getRecord(long i) {
+        if (i < 0 || i >= numRecords) {
+            throw new IndianaException("Record index is out of range (" + i + " vs 0-" + (numRecords - 1) + ")");
+        }
+
         long offset = dataOffset + i*recordSize;
         mappedRecordBuffer.position(offset);
         recordsSeen = 0;
@@ -267,7 +271,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         }
 
         long startIndex = 0;
-        long stopIndex = getNumRecords();
+        long stopIndex = getNumRecords() - 1;
         long midIndex = startIndex + (stopIndex - startIndex) / 2;
 
         while (startIndex != midIndex && midIndex != stopIndex) {
@@ -307,7 +311,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return null;
     }
 
-    public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.reverseComplement(bk))); }
+    public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk))); }
     public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
     public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
 

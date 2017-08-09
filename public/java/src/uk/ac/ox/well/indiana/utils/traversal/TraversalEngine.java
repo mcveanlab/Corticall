@@ -502,8 +502,9 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         if (!ec.getLinks().isEmpty()) {
             for (CortexLinks lm : ec.getLinks().keySet()) {
-                if (lm.containsKey(curKmer)) {
-                    linkStore.add(curKmer, lm.get(curKmer), false, ec.getLinks().get(lm));
+                CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                if (lm.containsKey(ck)) {
+                    linkStore.add(curKmer, lm.get(ck), false, ec.getLinks().get(lm));
                 }
             }
         }

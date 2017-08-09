@@ -55,4 +55,11 @@ public class ByteKmer implements Comparable<ByteKmer> {
 
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return "ByteKmer{" +
+                "kmer=" + (new String(kmer)) +
+                '}';
+    }
 }
