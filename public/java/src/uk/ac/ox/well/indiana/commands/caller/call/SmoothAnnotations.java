@@ -107,8 +107,10 @@ public class SmoothAnnotations extends Module {
             CortexKmer ck = new CortexKmer(sk);
             CortexRecord cr = GRAPH.findRecord(ck);
 
-            Map<Integer, Set<String>> inEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-            Map<Integer, Set<String>> outEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+            //Map<Integer, Set<String>> inEdges = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+            //Map<Integer, Set<String>> outEdges = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+            Map<Integer, Set<String>> inEdges = null;
+            Map<Integer, Set<String>> outEdges = null; // todo fix
 
             smoothedAnnotatedContig.get(i).setKmer(sk);
             smoothedAnnotatedContig.get(i).setIncomingEdges(inEdges);

@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.utils.io.cortex.links;
 
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.ByteKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class CortexLinksRecord {
         return record.toString();
     }
 
+    public ByteKmer getKmerAsByteKmer() { return new ByteKmer(kmer.getBytes()); }
     public String getKmerAsString() { return kmer; }
     public CortexKmer getKmer() { return new CortexKmer(kmer); }
     public List<CortexJunctionsRecord> getJunctions() { return cjs; }

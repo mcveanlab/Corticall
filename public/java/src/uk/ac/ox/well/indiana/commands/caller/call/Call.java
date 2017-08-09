@@ -141,14 +141,16 @@ public class Call extends Module {
 
                                 for (int j = novelStretchBoundaries.getFirst() - 1; j > navBoundaryStart; j--) {
                                     String s = allAnnotations.get(contigName).get(j).get("kmer");
-                                    CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+                                    //CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+                                    CortexVertex v = null; // todo fix
 
                                     if (TraversalEngine.outDegree(gSum, v) > 1) { oss.add(v); }
                                 }
 
                                 for (int j = novelStretchBoundaries.getSecond(); j < navBoundaryStop; j++) {
                                     String s = allAnnotations.get(contigName).get(j).get("kmer");
-                                    CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+                                    //CortexVertex v = new CortexVertex(s, GRAPH.findRecord(new CortexKmer(s)));
+                                    CortexVertex v = null; // todo fix
 
                                     if (TraversalEngine.inDegree(gSum, v) > 1) { iss.add(v); }
                                 }
@@ -195,13 +197,15 @@ public class Call extends Module {
 
         String sk0 = annotations.get(start).get("kmer");
         CortexKmer ck0 = new CortexKmer(sk0);
-        CortexVertex cv0 = new CortexVertex(sk0, GRAPH.findRecord(ck0));
+        //CortexVertex cv0 = new CortexVertex(sk0, GRAPH.findRecord(ck0));
+        CortexVertex cv0 = null; // todo fix
         sg.addVertex(cv0);
 
         for (int i = start + 1; i < annotations.size(); i++) {
             String sk1 = annotations.get(i).get("kmer");
             CortexKmer ck1 = new CortexKmer(sk1);
-            CortexVertex cv1 = new CortexVertex(sk1, GRAPH.findRecord(ck1));
+            //CortexVertex cv1 = new CortexVertex(sk1, GRAPH.findRecord(ck1));
+            CortexVertex cv1 = null; // todo fix
             sg.addVertex(cv1);
 
             sg.addEdge(cv0, cv1, new CortexEdge(color, 1.0));

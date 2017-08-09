@@ -92,10 +92,13 @@ public class EmitGuidedAssembly extends Module {
                 for (String signalKmer : signalKmers.keySet()) {
                     List<CortexVertex> cvs = new ArrayList<>();
 
+                    /*
                     CortexVertex cv0 = new CortexVertex(signalKmer,
                                                         GRAPH.findRecord(new CortexKmer(signalKmer)),
                                                         ref.findKmer(signalKmer).iterator().next(),
                                                         Collections.singleton(REFERENCES.get(ref)));
+                                                        */
+                    CortexVertex cv0 = null; // todo fix
                     cvs.add(cv0);
 
                     for (boolean goForward : Arrays.asList(true, false)) {
@@ -119,7 +122,8 @@ public class EmitGuidedAssembly extends Module {
                             log.info("{} {} {}", cv.getSk(), it, ref.findKmer(cv.getSk()));
 
                             if (goForward ? !e.hasNext() : !e.hasPrevious()) {
-                                Set<CortexVertex> adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
+                                //Set<CortexVertex> adjs = goForward ? e.getNextVertices(cv.getSk()) : e.getPrevVertices(cv.getSk());
+                                Set<CortexVertex> adjs = null; // todo fix
 
                                 while (adjs != null && adjs.size() != 1) {
                                     CortexVertex cva = null;
@@ -152,7 +156,8 @@ public class EmitGuidedAssembly extends Module {
 
                                         log.info("{} {} {} ******", cva.getSk(), cva.getLocus(), ref.findKmer(cva.getSk()));
 
-                                        adjs = goForward ? e.getNextVertices(cva.getSk()) : e.getPrevVertices(cva.getSk());
+                                        //adjs = goForward ? e.getNextVertices(cva.getSk()) : e.getPrevVertices(cva.getSk());
+                                        adjs = null; // todo fix
 
                                         if (adjs.size() == 1) {
                                             e.setCursor(cva.getSk(), goForward);
@@ -182,7 +187,8 @@ public class EmitGuidedAssembly extends Module {
 
         String sk = ref.findKmer(it);
 
-        return new CortexVertex(sk, GRAPH.findRecord(new CortexKmer(sk)), it);
+        //return new CortexVertex(sk, GRAPH.findRecord(new CortexKmer(sk)), it);
+        return null; // todo fix
     }
 
     private Interval selectInterval(Interval lastConfidentInterval, Set<Interval> its) {
