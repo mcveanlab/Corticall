@@ -16,7 +16,6 @@ import uk.ac.ox.well.indiana.utils.caller.Bubble;
 import uk.ac.ox.well.indiana.utils.caller.BubbleCaller;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.*;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.CycleCollapsingContigStopper;
@@ -710,9 +709,9 @@ public class TraversalEngineTest {
     }
 
     @NotNull
-    private Map<CortexKmer, String> loadSeedAndExpectedContigs(String expFile) {
+    private Map<CortexKmer, String> loadSeedsAndExpectedContigs(String expFile) {
         FastaSequenceFile ssf = new FastaSequenceFile(new File(expFile), false);
-        Map<CortexKmer, String> seedsAndExpectedContigs = new HashMap<>();
+        Map<CortexKmer, String> seedsAndExpectedContigs = new TreeMap<>();
         ReferenceSequence rseq;
         while ((rseq = ssf.nextSequence()) != null) {
             String[] pieces = rseq.getName().split("\\s+");
@@ -730,7 +729,7 @@ public class TraversalEngineTest {
     public void testPathlessAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.without_paths.fa");
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.without_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
@@ -754,7 +753,7 @@ public class TraversalEngineTest {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
         CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
@@ -781,7 +780,7 @@ public class TraversalEngineTest {
         CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
         CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)

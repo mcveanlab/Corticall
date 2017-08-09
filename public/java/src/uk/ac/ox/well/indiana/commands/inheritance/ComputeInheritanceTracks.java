@@ -101,7 +101,7 @@ public class ComputeInheritanceTracks extends Module {
                                 if (coords != null) {
                                     Pair<String, String> alleles = trimToAlleles(bubbleB);
 
-                                    //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
+                                    log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
 
                                     childAllele.add(alleles.getFirst());
                                     draftAllele.add(alleles.getSecond());
