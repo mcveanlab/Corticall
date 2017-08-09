@@ -162,7 +162,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             //index = new CortexIndex(ignoreIndex ? null : cortexFile.getAbsolutePath() + ".idx", this);
 
-            cache = new LRUMap(100000);
+            cache = new LRUMap(10000000);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
