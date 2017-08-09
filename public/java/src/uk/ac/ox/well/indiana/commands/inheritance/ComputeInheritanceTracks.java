@@ -90,14 +90,14 @@ public class ComputeInheritanceTracks extends Module {
                 isSinglyConnected(cr) &&
                 hasUniqueCoordinates(cr, draftColors)) { // && canWalkToCanonicalReference(cr, childColors, refColor))
 
-                int draftColor = getDraftColor(cr, draftColors);
-                KmerLookup kl = DRAFTS.get(GRAPH.getSampleName(draftColor));
-
-                log.info("{} {}", cr.getKmerAsString(), kl.findKmer(cr.getKmerAsString()));
+//                int draftColor = getDraftColor(cr, draftColors);
+//                KmerLookup kl = DRAFTS.get(GRAPH.getSampleName(draftColor));
+//
+//                log.info("{} {}", cr.getKmerAsString(), kl.findKmer(cr.getKmerAsString()));
 
                 seeds++;
 
-                /*
+                //
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
                 if (intervals != null) {
@@ -139,14 +139,14 @@ public class ComputeInheritanceTracks extends Module {
 
                     if (childAllele.size() == 1) {
                         numVariants++;
-                        //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+                        log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
 
                         Interval loc = locus.iterator().next();
 
                         out.println(Joiner.on(" ").join(loc.getContig(), loc.getStart(), loc.getEnd(), draftColor, GRAPH.getSampleName(draftColor), childAllele, draftAllele, colors));
                     }
                 }
-                */
+                //
             }
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
