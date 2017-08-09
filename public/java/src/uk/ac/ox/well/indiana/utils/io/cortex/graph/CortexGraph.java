@@ -147,15 +147,12 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            moveToBeginningOfRecordsSection();
-
             long maxMem = Runtime.getRuntime().maxMemory();
             long memPortion = maxMem / 2;
             int numItems = (int) (memPortion / recordSize);
-
-            System.out.println("Allocated " + memPortion + " bytes for record caching (~" + numItems + " records)");
-
             cache = new LRUMap(numItems);
+
+            moveToBeginningOfRecordsSection();
         } catch (FileNotFoundException e) {
             throw new IndianaException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
@@ -181,35 +178,54 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         nextRecord = getNextRecord();
     }
 
+    public CortexRecord getRecord(long i) {
+        seek(i);
+
+        //recordsSeen = 0;
+
+        return nextRecord;
+    }
+
     public long numRecordsSeen() { return recordsSeen; }
 
     private CortexRecord getNextRecord() {
         if (recordsSeen < getNumRecords()) {
             try {
-                long[] binaryKmer = new long[header.getKmerBits()];
-                for (int bits = 0; bits < header.getKmerBits(); bits++) {
-                    byte[] b = new byte[8];
+                CortexRecord cr;
 
-                    mappedRecordBuffer.read(b);
+                if (cache.containsKey(recordsSeen)) {
+                    cr = (CortexRecord) cache.get(recordsSeen);
+                    mappedRecordBuffer.position(dataOffset + ((recordsSeen+1)*recordSize));
+                } else {
+                    long[] binaryKmer = new long[header.getKmerBits()];
+                    for (int bits = 0; bits < header.getKmerBits(); bits++) {
+                        byte[] b = new byte[8];
 
-                    ByteBuffer bb = ByteBuffer.wrap(b);
-                    binaryKmer[bits] = bb.getLong();
+                        mappedRecordBuffer.read(b);
+
+                        ByteBuffer bb = ByteBuffer.wrap(b);
+                        binaryKmer[bits] = bb.getLong();
+                    }
+
+                    int[] coverages = new int[header.getNumColors()];
+                    for (int color = 0; color < header.getNumColors(); color++) {
+                        byte[] coverage = new byte[4];
+                        mappedRecordBuffer.read(coverage);
+
+                        coverages[color] = BinaryUtils.toUnsignedInt(coverage);
+                    }
+
+                    byte[] edges = new byte[header.getNumColors()];
+                    mappedRecordBuffer.read(edges);
+
+                    cr = new CortexRecord(binaryKmer, coverages, edges, header.getKmerSize(), header.getKmerBits());
+                    cache.put(recordsSeen, cr);
+                    cache.put(cr.getKmerAsByteKmer(), cr);
                 }
-
-                int[] coverages = new int[header.getNumColors()];
-                for (int color = 0; color < header.getNumColors(); color++) {
-                    byte[] coverage = new byte[4];
-                    mappedRecordBuffer.read(coverage);
-
-                    coverages[color] = BinaryUtils.toUnsignedInt(coverage);
-                }
-
-                byte[] edges = new byte[header.getNumColors()];
-                mappedRecordBuffer.read(edges);
 
                 recordsSeen++;
 
-                return new CortexRecord(binaryKmer, coverages, edges, header.getKmerSize(), header.getKmerBits());
+                return cr;
             } catch (IOException e) {
                 return null;
             }
@@ -249,24 +265,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         } catch (IOException e) {
             throw new IndianaException("Error while closing graph file", e);
         }
-    }
-
-    public CortexRecord getRecord(long i) {
-        if (i < 0 || i >= numRecords) {
-            throw new IndianaException("Record index is out of range (" + i + " vs 0-" + (numRecords - 1) + ")");
-        }
-
-        long offset = dataOffset + i*recordSize;
-        mappedRecordBuffer.position(offset);
-        recordsSeen = 0;
-
-        CortexRecord cr = getNextRecord();
-
-        if (cr != null) {
-            cache.put(new ByteKmer(cr.getKmerAsBytes()), cr);
-        }
-
-        return cr;
     }
 
     public CortexRecord findRecord(byte[] bk) {
