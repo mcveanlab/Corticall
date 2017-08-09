@@ -150,11 +150,11 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             moveToBeginningOfRecordsSection();
 
             long maxMem = Runtime.getRuntime().maxMemory();
-            int thirdMem = (int) maxMem / 3;
+            long thirdMem = maxMem / 3;
 
             System.out.println("Allocated " + thirdMem + " bytes for record caching (~" + thirdMem / recordSize + " records)");
 
-            cache = new LRUMap(thirdMem);
+            cache = new LRUMap((int) thirdMem);
         } catch (FileNotFoundException e) {
             throw new IndianaException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
