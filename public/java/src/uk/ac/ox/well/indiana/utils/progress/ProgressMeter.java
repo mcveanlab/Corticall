@@ -42,4 +42,6 @@ public class ProgressMeter {
     public void reset() {
         currentRecord = 0;
     }
+
+    public long pos() { return currentRecord; }
 }
