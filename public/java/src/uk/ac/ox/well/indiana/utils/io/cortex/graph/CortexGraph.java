@@ -265,7 +265,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return cr;
     }
 
-    public CortexRecord findRecord(ByteKmer kmer) {
+    public CortexRecord findRecord(byte[] bk) {
+        ByteKmer kmer = new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk));
         if (cache.containsKey(kmer)) {
             return (CortexRecord) cache.get(kmer);
         }
@@ -311,7 +312,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return null;
     }
 
-    public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk))); }
+    //public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk))); }
+    public CortexRecord findRecord(ByteKmer bk) { return findRecord(bk.getKmer()); }
     public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
     public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
 
