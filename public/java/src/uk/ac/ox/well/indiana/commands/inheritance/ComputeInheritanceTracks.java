@@ -1,5 +1,6 @@
 package uk.ac.ox.well.indiana.commands.inheritance;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
@@ -132,7 +133,11 @@ public class ComputeInheritanceTracks extends Module {
 
                     if (childAllele.size() == 1) {
                         numVariants++;
-                        log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+                        //log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+
+                        Interval loc = locus.iterator().next();
+
+                        out.println(Joiner.on(" ").join(loc.getContig(), loc.getStart(), loc.getEnd(), draftColor, GRAPH.getSampleName(draftColor), childAllele, draftAllele, colors));
                     }
                 }
             }
