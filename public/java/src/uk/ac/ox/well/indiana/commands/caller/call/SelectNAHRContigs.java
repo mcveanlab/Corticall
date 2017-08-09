@@ -89,6 +89,8 @@ public class SelectNAHRContigs extends Module {
                         }
                     }
                 }
+
+                nahrEventId++;
             }
         }
     }
