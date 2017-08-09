@@ -68,13 +68,13 @@ public class SelectNAHRContigs extends Module {
                         }
 
                         if (prevInterval != null && nextInterval != null) {
-                            if (prevInterval.contains("SI_SI")) {
+                            if (prevInterval.contains("SI_SI") || prevInterval.contains("_NIH_CSHL")) {
                                 prevInterval = prevInterval.replaceAll("HB3|DD2|7G8|GB4|803", "3D7");
                                 prevInterval = prevInterval.replaceAll("_SI_SI|_NIH_CSHL", "");
                                 prevInterval = prevInterval.replaceFirst(":", "_v3:");
                             }
 
-                            if (nextInterval.contains("SI_SI")) {
+                            if (nextInterval.contains("SI_SI") || nextInterval.contains("_NIH_CSHL")) {
                                 nextInterval = nextInterval.replaceAll("HB3|DD2|7G8|GB4|803", "3D7");
                                 nextInterval = nextInterval.replaceAll("_SI_SI|_NIH_CSHL", "");
                                 nextInterval = nextInterval.replaceFirst(":", "_v3:");
