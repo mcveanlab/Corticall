@@ -114,15 +114,16 @@ public class ComputeInheritanceTracks extends Module {
                                     Pair<String, String> alleles = trimToAlleles(bubbleB);
 
                                     //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
+                                    if (alleles.getFirst().length() == alleles.getSecond().length() && alleles.getFirst().length() == 1) {
+                                        childAllele.add(alleles.getFirst());
+                                        draftAllele.add(alleles.getSecond());
+                                        locus.add(coords);
+                                        colors.add(cc);
 
-                                    childAllele.add(alleles.getFirst());
-                                    draftAllele.add(alleles.getSecond());
-                                    locus.add(coords);
-                                    colors.add(cc);
-
-                                    for (int i = 0; i <= bubbleB.getFirst().length() - GRAPH.getKmerSize(); i++) {
-                                        String sk = bubbleB.getFirst().substring(i, i + GRAPH.getKmerSize());
-                                        seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
+                                        for (int i = 0; i <= bubbleB.getFirst().length() - GRAPH.getKmerSize(); i++) {
+                                            String sk = bubbleB.getFirst().substring(i, i + GRAPH.getKmerSize());
+                                            seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
+                                        }
                                     }
                                 }
                             }
