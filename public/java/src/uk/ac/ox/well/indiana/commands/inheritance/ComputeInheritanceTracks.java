@@ -79,6 +79,7 @@ public class ComputeInheritanceTracks extends Module {
 
         Iterator<CortexRecord> it = GRAPH.iterator();
         GRAPH.seek(SEEK);
+        int pos = 0;
         while (it.hasNext()) {
             CortexRecord cr = it.next();
 
@@ -86,14 +87,13 @@ public class ComputeInheritanceTracks extends Module {
                 isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
                 isSinglyConnected(cr) &&
-                hasUniqueCoordinates(cr, draftColors)) { // &&
-                //canWalkToCanonicalReference(cr, childColors, refColor)) {
+                hasUniqueCoordinates(cr, draftColors)) { // && canWalkToCanonicalReference(cr, childColors, refColor))
 
                 seeds++;
 
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
-                if (intervals != null /*&& intervals.get(0).getContig().equals("Pf3D7_01_v3")*/) {
+                if (intervals != null) {
                     int draftColor = getDraftColor(cr, draftColors);
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
@@ -139,9 +139,8 @@ public class ComputeInheritanceTracks extends Module {
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
 
-            if (pm.pos() >= SEEK + CHUNKSIZE) {
-                break;
-            }
+            pos++;
+            if (pos >= CHUNKSIZE) { break; }
         }
     }
 
