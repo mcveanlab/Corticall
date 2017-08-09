@@ -77,8 +77,11 @@ public class ComputeInheritanceTracks extends Module {
         int seeds = 0;
         int numVariants = 0;
 
+        Iterator<CortexRecord> it = GRAPH.iterator();
         GRAPH.seek(SEEK);
-        for (CortexRecord cr : GRAPH) {
+        while (it.hasNext()) {
+            CortexRecord cr = it.next();
+
             if (!seen.contains(cr.getCortexBinaryKmer()) &&
                 isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
