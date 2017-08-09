@@ -81,7 +81,7 @@ public class ComputeInheritanceTracks extends Module {
 
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
-                if (intervals != null && intervals.get(0).getContig().equals("Pf3D7_01_v3")) {
+                if (intervals != null /*&& intervals.get(0).getContig().equals("Pf3D7_01_v3")*/) {
                     int draftColor = getDraftColor(cr, draftColors);
                     int bubbleColor = getBubbleColor(draftColors, draftColor);
 
