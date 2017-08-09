@@ -48,6 +48,12 @@ public class ComputeInheritanceTracks extends Module {
     @Argument(fullName="reference", shortName="R", doc="Canonical reference")
     public KmerLookup REFERENCE;
 
+    @Argument(fullName="seek", shortName="s", doc="Seek to record")
+    public Integer SEEK = 0;
+
+    @Argument(fullName="chunkSize", shortName="cs", doc="Process chunkSize records")
+    public Long CHUNKSIZE = -1l;
+
     @Output
     public PrintStream out;
 
@@ -57,6 +63,8 @@ public class ComputeInheritanceTracks extends Module {
         Set<Integer> parentColors = new TreeSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(DRAFTS.keySet())));
         Set<Integer> childColors = CHILD == null ? getChildColors(parentColors, draftColors, refColor) : Collections.singleton(GRAPH.getColorForSampleName(CHILD));
+
+        if (CHUNKSIZE == -1) { CHUNKSIZE = GRAPH.getNumRecords(); }
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing records")
@@ -69,6 +77,7 @@ public class ComputeInheritanceTracks extends Module {
         int seeds = 0;
         int numVariants = 0;
 
+        GRAPH.seek(SEEK);
         for (CortexRecord cr : GRAPH) {
             if (!seen.contains(cr.getCortexBinaryKmer()) &&
                 isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
@@ -125,6 +134,10 @@ public class ComputeInheritanceTracks extends Module {
             }
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
+
+            if (pm.pos() >= SEEK + CHUNKSIZE) {
+                break;
+            }
         }
     }
 

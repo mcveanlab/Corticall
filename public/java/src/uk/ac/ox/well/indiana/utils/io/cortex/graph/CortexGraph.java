@@ -176,6 +176,18 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         nextRecord = getNextRecord();
     }
 
+    public void seek(long i) {
+        if (i < 0 || i >= numRecords) {
+            throw new IndianaException("Record index is out of range (" + i + " vs 0-" + (numRecords - 1) + ")");
+        }
+
+        long offset = dataOffset + i*recordSize;
+        mappedRecordBuffer.position(offset);
+        recordsSeen = i;
+
+        nextRecord = getNextRecord();
+    }
+
     public long numRecordsSeen() { return recordsSeen; }
 
     private CortexRecord getNextRecord() {
