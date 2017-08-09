@@ -22,7 +22,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private File cortexFile;
     private BinaryFile in;
 
-    //private CortexIndex index;
     private CortexHeader header;
 
     private long recordSize;
@@ -160,9 +159,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             moveToBeginningOfRecordsSection();
 
-            //index = new CortexIndex(ignoreIndex ? null : cortexFile.getAbsolutePath() + ".idx", this);
+            long maxMem = Runtime.getRuntime().maxMemory();
+            int thirdMem = (int) maxMem / 3;
 
-            cache = new LRUMap(10000000);
+
+
+
+            cache = new LRUMap(thirdMem);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
@@ -266,7 +269,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         long offset = dataOffset + i*recordSize;
         mappedRecordBuffer.position(offset);
         recordsSeen = 0;
-        //return getNextRecord();
 
         CortexRecord cr = getNextRecord();
 
