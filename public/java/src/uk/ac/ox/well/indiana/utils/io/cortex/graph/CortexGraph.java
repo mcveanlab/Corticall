@@ -36,22 +36,12 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     public CortexGraph(String cortexFilePath) {
         this.cortexFile = new File(cortexFilePath);
-        loadCortexGraph(this.cortexFile, false);
+        loadCortexGraph(this.cortexFile);
     }
 
     public CortexGraph(File cortexFile) {
         this.cortexFile = cortexFile;
-        loadCortexGraph(this.cortexFile, false);
-    }
-
-    public CortexGraph(String cortexFilePath, boolean ignoreIndex) {
-        this.cortexFile = new File(cortexFilePath);
-        loadCortexGraph(this.cortexFile, ignoreIndex);
-    }
-
-    public CortexGraph(File cortexFile, boolean ignoreIndex) {
-        this.cortexFile = cortexFile;
-        loadCortexGraph(this.cortexFile, ignoreIndex);
+        loadCortexGraph(this.cortexFile);
     }
 
     private byte[] fixStringsWithEarlyTerminators(byte[] string) {
@@ -70,7 +60,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return string;
     }
 
-    private void loadCortexGraph(File cortexFile, boolean ignoreIndex) {
+    private void loadCortexGraph(File cortexFile) {
         try {
             in = new BinaryFile(cortexFile, "r");
 
@@ -79,7 +69,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             String headerStartStr = new String(headerStart);
 
             if (!headerStartStr.equalsIgnoreCase("CORTEX")) {
-                throw new RuntimeException("The file '" + cortexFile.getAbsolutePath() + "' does not appear to be a Cortex graph");
+                throw new IndianaException("The file '" + cortexFile.getAbsolutePath() + "' does not appear to be a Cortex graph");
             }
 
             header = new CortexHeader();
@@ -87,7 +77,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             header.setVersion(in.readUnsignedInt());
 
             if (header.getVersion() != 6) {
-                throw new RuntimeException("The file '" + cortexFile.getAbsolutePath() + "' is not a version 6 Cortex graph");
+                throw new IndianaException("The file '" + cortexFile.getAbsolutePath() + "' is not a version 6 Cortex graph");
             }
 
             header.setKmerSize(in.readUnsignedInt());
@@ -145,7 +135,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             String headerEndStr = new String(headerEnd);
 
             if (!headerEndStr.equalsIgnoreCase("CORTEX")) {
-                throw new RuntimeException("We didn't see a proper header terminator at the expected place in Cortex graph '" + cortexFile.getAbsolutePath() + "'");
+                throw new IndianaException("We didn't see a proper header terminator at the expected place in Cortex graph '" + cortexFile.getAbsolutePath() + "'");
             }
 
             long size = in.getChannel().size();
@@ -162,14 +152,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             long maxMem = Runtime.getRuntime().maxMemory();
             int thirdMem = (int) maxMem / 3;
 
-
-
+            System.out.println("Allocated " + thirdMem + " bytes for record caching (~" + thirdMem / recordSize + " records)");
 
             cache = new LRUMap(thirdMem);
         } catch (FileNotFoundException e) {
-            throw new RuntimeException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
+            throw new IndianaException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
-            throw new RuntimeException("Error while parsing Cortex graph file '" + cortexFile.getAbsolutePath() + "': " + e);
+            throw new IndianaException("Error while parsing Cortex graph file '" + cortexFile.getAbsolutePath() + "': " + e);
         }
     }
 
@@ -257,7 +246,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         try {
             this.in.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IndianaException("Error while closing graph file", e);
         }
     }
 
