@@ -29,6 +29,8 @@ public class SelectNAHRContigs extends Module {
     public void execute() {
         Map<String, List<Map<String, String>>> allAnnotations = loadAnnotations();
 
+        int nahrEventId = 0;
+
         for (String contigName : allAnnotations.keySet()) {
             StringBuilder sb = new StringBuilder();
 
@@ -81,7 +83,7 @@ public class SelectNAHRContigs extends Module {
                             String[] pi = prevInterval.split("[:-]");
                             String[] ni = nextInterval.split("[:-]");
 
-                            out.println(Joiner.on(" ").join(pi[0], pi[1], pi[2], ni[0], ni[1], ni[2]));
+                            out.println(Joiner.on(" ").join(pi[0], pi[1], pi[2], ni[0], ni[1], ni[2], "thickness=" + nahrEventId));
 
                             //log.info("  {} {}", prevInterval, nextInterval);
                         }
