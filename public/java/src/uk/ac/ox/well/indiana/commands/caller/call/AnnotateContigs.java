@@ -103,8 +103,10 @@ public class AnnotateContigs extends Module {
                 Set<String> childOutgoingEdges = new HashSet<>();
 
                 if (cr != null) {
-                    Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
-                    Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+                    //Map<Integer, Set<String>> incomingKmers = TraversalEngine.getAllPrevKmers(cr, ck.isFlipped());
+                    //Map<Integer, Set<String>> outgoingKmers = TraversalEngine.getAllNextKmers(cr, ck.isFlipped());
+                    Map<Integer, Set<String>> incomingKmers = null; // todo fix
+                    Map<Integer, Set<String>> outgoingKmers = null; // todo fix
 
                     childIncomingEdges = incomingKmers.get(childColor);
                     childOutgoingEdges = outgoingKmers.get(childColor);

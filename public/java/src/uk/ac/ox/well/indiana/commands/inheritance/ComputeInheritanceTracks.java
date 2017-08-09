@@ -306,7 +306,7 @@ public class ComputeInheritanceTracks extends Module {
                 .make();
 
         List<CortexVertex> childVertices = new ArrayList<>();
-        childVertices.add(new CortexVertex(cr.getKmerAsString(), cr));
+        childVertices.add(new CortexVertex(cr.getKmerAsByteKmer(), cr));
 
         for (boolean goForward : Arrays.asList(false, true)) {
             e.setCursor(cr.getKmerAsString(), goForward);

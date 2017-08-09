@@ -3,10 +3,10 @@ package uk.ac.ox.well.indiana.utils.io.cortex.graph;
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
 import org.apache.commons.collections.map.LRUMap;
-import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.indiana.utils.io.utils.BinaryUtils;
+import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,7 +22,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private File cortexFile;
     private BinaryFile in;
 
-    private CortexIndex index;
+    //private CortexIndex index;
     private CortexHeader header;
 
     private long recordSize;
@@ -160,7 +160,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             moveToBeginningOfRecordsSection();
 
-            index = new CortexIndex(ignoreIndex ? null : cortexFile.getAbsolutePath() + ".idx", this);
+            //index = new CortexIndex(ignoreIndex ? null : cortexFile.getAbsolutePath() + ".idx", this);
 
             cache = new LRUMap(100000);
         } catch (FileNotFoundException e) {
@@ -250,18 +250,24 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         long offset = dataOffset + i*recordSize;
         mappedRecordBuffer.position(offset);
         recordsSeen = 0;
-        return getNextRecord();
+        //return getNextRecord();
+
+        CortexRecord cr = getNextRecord();
+
+        if (cr != null) {
+            cache.put(new ByteKmer(cr.getKmerAsBytes()), cr);
+        }
+
+        return cr;
     }
 
-    public CortexRecord findRecord(String kmer) {
+    public CortexRecord findRecord(ByteKmer kmer) {
         if (cache.containsKey(kmer)) {
             return (CortexRecord) cache.get(kmer);
         }
 
-        Pair<Long, Long> p = index.getBounds(kmer);
-
-        long startIndex = p.getFirst();
-        long stopIndex = p.getSecond();
+        long startIndex = 0;
+        long stopIndex = getNumRecords();
         long midIndex = startIndex + (stopIndex - startIndex) / 2;
 
         while (startIndex != midIndex && midIndex != stopIndex) {
@@ -273,9 +279,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             recordsSeen = oldRecordsSeen;
 
-            String startKmer = startRecord.getKmerAsString();
-            String midKmer = midRecord.getKmerAsString();
-            String stopKmer = stopRecord.getKmerAsString();
+            ByteKmer startKmer = startRecord.getKmerAsByteKmer();
+            ByteKmer midKmer = midRecord.getKmerAsByteKmer();
+            ByteKmer stopKmer = stopRecord.getKmerAsByteKmer();
 
             if (startKmer.compareTo(stopKmer) > 0) {
                 throw new IndianaException("Records are not sorted ('" + startKmer + "' is found before '" + stopKmer + "' but is lexicographically greater)");
@@ -286,21 +292,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             }
 
             if (kmer.compareTo(stopKmer) > 0 || kmer.compareTo(startKmer) < 0) { return null; }
-            else if (startKmer.equals(kmer)) {
-                cache.put(kmer, startRecord);
-
-                return startRecord;
-            }
-            else if (midKmer.equals(kmer)) {
-                cache.put(kmer, midRecord);
-
-                return midRecord;
-            }
-            else if (stopKmer.equals(kmer)) {
-                cache.put(kmer, stopRecord);
-
-                return stopRecord;
-            }
+            else if (startKmer.equals(kmer)) { return startRecord; }
+            else if (midKmer.equals(kmer)) { return midRecord; }
+            else if (stopKmer.equals(kmer)) { return stopRecord; }
             else if (kmer.compareTo(startKmer) > 0 && kmer.compareTo(midKmer) < 0) {
                 stopIndex = midIndex;
                 midIndex = startIndex + (stopIndex - startIndex) / 2;
@@ -313,9 +307,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return null;
     }
 
-    public CortexRecord findRecord(CortexKmer kmer) {
-        return findRecord(kmer.getKmerAsString());
-    }
+    public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.reverseComplement(bk))); }
+    public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
+    public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
 
     public File getCortexFile() { return cortexFile; }
     public CortexHeader getHeader() { return header; }

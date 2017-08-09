@@ -102,6 +102,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
     public CortexBinaryKmer getCortexBinaryKmer() { return new CortexBinaryKmer(this.binaryKmer); }
     public CortexKmer getCortexKmer() { return new CortexKmer(getKmerAsBytes(), true); }
     public String getKmerAsString() { return getCortexKmer().getKmerAsString(); }
+    public ByteKmer getKmerAsByteKmer() { return new ByteKmer(getKmerAsBytes()); }
 
     public byte[] getEdges() { return edges; }
 

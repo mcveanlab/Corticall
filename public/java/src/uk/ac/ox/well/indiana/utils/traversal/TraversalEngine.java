@@ -10,8 +10,8 @@ import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.ByteKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.indiana.utils.io.cortex.links.CortexLinksMap;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.stoppingconditions.TraversalStopper;
 
@@ -29,13 +29,14 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
-    private String curKmer = null;
-    private String prevKmer;
-    private String nextKmer;
+    private ByteKmer curKmer = null;
+    private ByteKmer prevKmer;
+    private ByteKmer nextKmer;
+    private Set<ByteKmer> seen;
+
     private Set<String> kmerSources;
 
     private LinkStore linkStore;
-    private Set<String> seen;
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk) {
         if (sk.length() != ec.getGraph().getKmerSize()) {
@@ -63,9 +64,11 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
             }
         }
 
+        /*
         if (dfs != null) {
             return addDisplayColors(dfs);
         }
+        */
 
         return null;
     }
@@ -75,7 +78,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         List<CortexVertex> contig = new ArrayList<>();
 
-        CortexVertex sv = new CortexVertex(seed, ec.getGraph().findRecord(new CortexKmer(seed)));
+        CortexVertex sv = new CortexVertex(new ByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
         contig.add(sv);
 
         setCursor(seed, true);
@@ -123,19 +126,19 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         }
 
         for (CortexVertex cv : walk) {
-            Map<Integer, Set<String>> nextKmers = TraversalEngine.getAllNextKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
-            Map<Integer, Set<String>> prevKmers = TraversalEngine.getAllPrevKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
+            Map<Integer, Set<ByteKmer>> nextKmers = TraversalEngine.getAllNextKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
+            Map<Integer, Set<ByteKmer>> prevKmers = TraversalEngine.getAllPrevKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
 
             for (int refColor : refColors) {
-                for (String nextKmer : nextKmers.get(refColor)) {
-                    CortexVertex nv = new CortexVertex(nextKmer, graph.findRecord(new CortexKmer(nextKmer)));
+                for (ByteKmer nextKmer : nextKmers.get(refColor)) {
+                    CortexVertex nv = new CortexVertex(nextKmer, graph.findRecord(nextKmer));
 
                     dwp.addVertex(nv);
                     dwp.addEdge(cv, nv, new CortexEdge(refColor, 1.0));
                 }
 
-                for (String prevKmer : prevKmers.get(refColor)) {
-                    CortexVertex pv = new CortexVertex(prevKmer, graph.findRecord(new CortexKmer(prevKmer)));
+                for (ByteKmer prevKmer : prevKmers.get(refColor)) {
+                    CortexVertex pv = new CortexVertex(prevKmer, graph.findRecord(prevKmer));
 
                     dwp.addVertex(pv);
                     dwp.addEdge(pv, cv, new CortexEdge(refColor, 1.0));
@@ -164,15 +167,15 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         if (cr == null) { throw new IndianaException("Record '" + sk + "' does not exist in graph."); }
 
-        CortexVertex cv = new CortexVertex(sk, cr);
+        CortexVertex cv = new CortexVertex(new ByteKmer(sk), cr);
 
         Set<CortexVertex> avs;
 
         TraversalStopper<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         do {
-            Set<CortexVertex> pvs = getPrevVertices(cv.getSk());
-            Set<CortexVertex> nvs = getNextVertices(cv.getSk());
+            Set<CortexVertex> pvs = getPrevVertices(cv.getBk());
+            Set<CortexVertex> nvs = getNextVertices(cv.getBk());
             avs = goForward ? nvs : pvs;
 
             // Connect the new vertices to the graph
@@ -248,22 +251,22 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         }
     }
 
-    public Set<CortexVertex> getPrevVertices(String sk) {
+    public Set<CortexVertex> getPrevVertices(ByteKmer sk) {
         Set<CortexVertex> prevVertices = new HashSet<>();
 
-        Map<Integer, Set<String>> prevKmers = getAllPrevKmers(sk);
+        Map<Integer, Set<ByteKmer>> prevKmers = getAllPrevKmers(sk);
 
         if (prevKmers.get(ec.getTraversalColor()).size() > 0) {
-            for (String prevKmer : prevKmers.get(ec.getTraversalColor())) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer))));
+            for (ByteKmer prevKmer : prevKmers.get(ec.getTraversalColor())) {
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(prevKmer)));
             }
         } else {
-            Map<String, Set<Integer>> inKmerMap = new HashMap<>();
+            Map<ByteKmer, Set<Integer>> inKmerMap = new HashMap<>();
 
             for (int c : ec.getRecruitmentColors()) {
-                Set<String> inKmers = prevKmers.get(c);
+                Set<ByteKmer> inKmers = prevKmers.get(c);
 
-                for (String inKmer : inKmers) {
+                for (ByteKmer inKmer : inKmers) {
                     if (!inKmerMap.containsKey(inKmer)) {
                         inKmerMap.put(inKmer, new HashSet<>());
                     }
@@ -272,33 +275,33 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
                 }
             }
 
-            for (String prevKmer : inKmerMap.keySet()) {
-                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(new CortexKmer(prevKmer))));
+            for (ByteKmer prevKmer : inKmerMap.keySet()) {
+                prevVertices.add(new CortexVertex(prevKmer, ec.getGraph().findRecord(prevKmer)));
             }
         }
 
         return prevVertices;
     }
 
-    public int getInDegree(String sk) { return getPrevVertices(sk).size(); }
+    //public int getInDegree(String sk) { return getPrevVertices(sk).size(); }
 
-    public int getOutDegree(String sk) { return getNextVertices(sk).size(); }
+    //public int getOutDegree(String sk) { return getNextVertices(sk).size(); }
 
-    public Set<CortexVertex> getNextVertices(String sk) {
+    public Set<CortexVertex> getNextVertices(ByteKmer sk) {
         Set<CortexVertex> nextVertices = new HashSet<>();
 
-        Map<Integer, Set<String>> nextKmers = getAllNextKmers(sk);
+        Map<Integer, Set<ByteKmer>> nextKmers = getAllNextKmers(sk);
         if (nextKmers.get(ec.getTraversalColor()).size() > 0) {
-            for (String nextKmer : nextKmers.get(ec.getTraversalColor())) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer))));
+            for (ByteKmer nextKmer : nextKmers.get(ec.getTraversalColor())) {
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(nextKmer)));
             }
         } else {
-            Map<String, Set<Integer>> outKmerMap = new HashMap<>();
+            Map<ByteKmer, Set<Integer>> outKmerMap = new HashMap<>();
 
             for (int c : ec.getRecruitmentColors()) {
-                Set<String> outKmers = nextKmers.get(c);
+                Set<ByteKmer> outKmers = nextKmers.get(c);
 
-                for (String outKmer : outKmers) {
+                for (ByteKmer outKmer : outKmers) {
                     if (!outKmerMap.containsKey(outKmer)) {
                         outKmerMap.put(outKmer, new HashSet<>());
                     }
@@ -307,28 +310,30 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
                 }
             }
 
-            for (String nextKmer : outKmerMap.keySet()) {
-                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(new CortexKmer(nextKmer))));
+            for (ByteKmer nextKmer : outKmerMap.keySet()) {
+                nextVertices.add(new CortexVertex(nextKmer, ec.getGraph().findRecord(nextKmer)));
             }
         }
 
         return nextVertices;
     }
 
-    public static Map<Integer, Set<String>> getAllPrevKmers(CortexRecord cr, boolean isFlipped) {
-        Map<Integer, Set<String>> prevKmers = new HashMap<>();
+    public static Map<Integer, Set<ByteKmer>> getAllPrevKmers(CortexRecord cr, boolean isFlipped) {
+        Map<Integer, Set<ByteKmer>> prevKmers = new HashMap<>();
 
         if (cr != null) {
-            String sk = !isFlipped ? cr.getKmerAsString() : SequenceUtils.reverseComplement(cr.getKmerAsString());
-            String suffix = sk.substring(0, sk.length() - 1);
-
-            Map<Integer, Set<String>> inEdges = getInEdges(cr, isFlipped);
+            byte[] sk = !isFlipped ? cr.getKmerAsBytes() : SequenceUtils.reverseComplement(cr.getKmerAsBytes());
+            Map<Integer, Set<Byte>> inEdges = getInEdges(cr, isFlipped);
 
             for (int c = 0; c < cr.getNumColors(); c++) {
-                Set<String> inKmers = new HashSet<>();
+                Set<ByteKmer> inKmers = new HashSet<>();
 
-                for (String inEdge : inEdges.get(c)) {
-                    inKmers.add(inEdge + suffix);
+                for (byte inEdge : inEdges.get(c)) {
+                    byte[] inKmer = new byte[sk.length];
+                    inKmer[0] = inEdge;
+                    System.arraycopy(sk, 0, inKmer, 1, sk.length - 1);
+
+                    inKmers.add(new ByteKmer(inKmer));
                 }
 
                 prevKmers.put(c, inKmers);
@@ -338,27 +343,29 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return prevKmers;
     }
 
-    public Map<Integer, Set<String>> getAllPrevKmers(String sk) {
-        CortexKmer ck = new CortexKmer(sk);
+    public Map<Integer, Set<ByteKmer>> getAllPrevKmers(ByteKmer sk) {
+        CortexKmer ck = new CortexKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllPrevKmers(cr, ck.isFlipped());
     }
 
-    public static Map<Integer, Set<String>> getAllNextKmers(CortexRecord cr, boolean isFlipped) {
-        Map<Integer, Set<String>> nextKmers = new HashMap<>();
+    public static Map<Integer, Set<ByteKmer>> getAllNextKmers(CortexRecord cr, boolean isFlipped) {
+        Map<Integer, Set<ByteKmer>> nextKmers = new HashMap<>();
 
         if (cr != null) {
-            String sk = !isFlipped ? cr.getKmerAsString() : SequenceUtils.reverseComplement(cr.getKmerAsString());
-            String prefix = sk.substring(1, sk.length());
-
-            Map<Integer, Set<String>> outEdges = getOutEdges(cr, isFlipped);
+            byte[] sk = !isFlipped ? cr.getKmerAsBytes() : SequenceUtils.reverseComplement(cr.getKmerAsBytes());
+            Map<Integer, Set<Byte>> outEdges = getOutEdges(cr, isFlipped);
 
             for (int c = 0; c < cr.getNumColors(); c++) {
-                Set<String> outKmers = new HashSet<>();
+                Set<ByteKmer> outKmers = new HashSet<>();
 
-                for (String outEdge : outEdges.get(c)) {
-                    outKmers.add(prefix + outEdge);
+                for (byte outEdge : outEdges.get(c)) {
+                    byte[] outKmer = new byte[sk.length];
+                    System.arraycopy(sk, 1, outKmer, 0, sk.length - 1);
+                    outKmer[outKmer.length - 1] = outEdge;
+
+                    outKmers.add(new ByteKmer(outKmer));
                 }
 
                 nextKmers.put(c, outKmers);
@@ -368,39 +375,39 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return nextKmers;
     }
 
-    public Map<Integer, Set<String>> getAllNextKmers(String sk) {
-        CortexKmer ck = new CortexKmer(sk);
+    public Map<Integer, Set<ByteKmer>> getAllNextKmers(ByteKmer sk) {
+        CortexKmer ck = new CortexKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllNextKmers(cr, ck.isFlipped());
     }
 
-    private static Map<Integer, Set<String>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
-        Map<Integer, Set<String>> inEdges = new HashMap<>();
+    private static Map<Integer, Set<Byte>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
+        Map<Integer, Set<Byte>> inEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                inEdges.put(c, new HashSet<>(cr.getInEdgesAsStrings(c, false)));
+                inEdges.put(c, new HashSet<>(cr.getInEdgesAsBytes(c, false)));
             }
         } else {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                inEdges.put(c, new HashSet<>(cr.getOutEdgesAsStrings(c, true)));
+                inEdges.put(c, new HashSet<>(cr.getOutEdgesAsBytes(c, true)));
             }
         }
 
         return inEdges;
     }
 
-    private static Map<Integer, Set<String>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
-        Map<Integer, Set<String>> outEdges = new HashMap<>();
+    private static Map<Integer, Set<Byte>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
+        Map<Integer, Set<Byte>> outEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                outEdges.put(c, new HashSet<>(cr.getOutEdgesAsStrings(c, false)));
+                outEdges.put(c, new HashSet<>(cr.getOutEdgesAsBytes(c, false)));
             }
         } else {
             for (int c = 0; c < cr.getNumColors(); c++) {
-                outEdges.put(c, new HashSet<>(cr.getInEdgesAsStrings(c, true)));
+                outEdges.put(c, new HashSet<>(cr.getInEdgesAsBytes(c, true)));
             }
         }
 
@@ -435,7 +442,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         linkStore.incrementAge();
 
-        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(nextKmer));
+        CortexRecord cr = ec.getGraph().findRecord(nextKmer);
         CortexVertex cv = new CortexVertex(nextKmer, cr, kmerSources);
 
         prevKmer = curKmer;
@@ -445,20 +452,21 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         nextKmer = null;
         kmerSources = null;
 
-        if (nextKmers.size() == 1 && (!seen.contains(nextKmers.iterator().next().getSk()) || linkStore.isActive())) {
-            nextKmer = nextKmers.iterator().next().getSk();
+        if (nextKmers.size() == 1 && (!seen.contains(nextKmers.iterator().next().getBk()) || linkStore.isActive())) {
+            nextKmer = nextKmers.iterator().next().getBk();
 
             seen.add(nextKmer);
         } else if (nextKmers.size() > 1) {
-            Pair<String, Set<String>> akp = getAdjacentKmer(curKmer, nextKmers, true);
+            Pair<ByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, nextKmers, true);
             nextKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
         }
 
         if (!ec.getLinks().isEmpty()) {
             for (CortexLinks lm : ec.getLinks().keySet()) {
-                if (lm.containsKey(curKmer)) {
-                    linkStore.add(curKmer, lm.get(curKmer), true, ec.getLinks().get(lm));
+                CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                if (lm.containsKey(ck)) {
+                    linkStore.add(curKmer, lm.get(ck), true, ec.getLinks().get(lm));
                 }
             }
         }
@@ -472,7 +480,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         linkStore.incrementAge();
 
-        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(prevKmer));
+        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(prevKmer.getKmer()));
         CortexVertex cv = new CortexVertex(prevKmer, cr, kmerSources);
 
         nextKmer = curKmer;
@@ -482,12 +490,12 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         prevKmer = null;
         kmerSources = null;
 
-        if (prevKmers.size() == 1 && (!seen.contains(prevKmers.iterator().next().getSk()) || linkStore.isActive())) {
-            prevKmer = prevKmers.iterator().next().getSk();
+        if (prevKmers.size() == 1 && (!seen.contains(prevKmers.iterator().next().getBk()) || linkStore.isActive())) {
+            prevKmer = prevKmers.iterator().next().getBk();
 
             seen.add(prevKmer);
         } else if (prevKmers.size() > 1) {
-            Pair<String, Set<String>> akp = getAdjacentKmer(curKmer, prevKmers, false);
+            Pair<ByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, prevKmers, false);
             prevKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
         }
@@ -503,18 +511,28 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return cv;
     }
 
-    private Pair<String, Set<String>> getAdjacentKmer(String kmer, Set<CortexVertex> adjKmers, boolean goForward) {
+    private Pair<ByteKmer, Set<String>> getAdjacentKmer(ByteKmer kmer, Set<CortexVertex> adjKmers, boolean goForward) {
         Pair<String, Set<String>> choicePair = linkStore.getNextJunctionChoice();
         String choice = choicePair.getFirst();
         Set<String> sources = choicePair.getSecond();
 
         if (choice != null) {
-            Set<String> adjKmersStr = new HashSet<>();
+            Set<ByteKmer> adjKmersStr = new HashSet<>();
             for (CortexVertex cv : adjKmers) {
-                adjKmersStr.add(cv.getSk());
+                adjKmersStr.add(cv.getBk());
             }
 
-            String adjKmer = goForward ? kmer.substring(1, kmer.length()) + choice : choice + kmer.substring(0, kmer.length() - 1);
+            byte[] bAdjKmer = new byte[kmer.length()];
+            if (goForward) {
+                System.arraycopy(kmer.getKmer(), 1, bAdjKmer, 0, kmer.length() - 1);
+                bAdjKmer[bAdjKmer.length - 1] = choice.getBytes()[0];
+            } else {
+                bAdjKmer[0] = choice.getBytes()[0];
+                System.arraycopy(kmer.getKmer(), 0, bAdjKmer, 1, kmer.length() - 1);
+            }
+
+            ByteKmer adjKmer = new ByteKmer(bAdjKmer);
+            //String adjKmer = goForward ? kmer.substring(1, kmer.length()) + choice : choice + kmer.substring(0, kmer.length() - 1);
 
             if (adjKmersStr.contains(adjKmer)) {
                 return new Pair<>(adjKmer, sources);
@@ -525,29 +543,30 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     }
 
     public void setCursor(String sk, boolean goForward) {
-        curKmer = sk;
+        if (sk != null) {
+            curKmer = new ByteKmer(sk.getBytes());
 
-        if (curKmer != null) {
             Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
-            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getSk() : null;
+            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getBk() : null;
 
             Set<CortexVertex> nextKmers = getNextVertices(curKmer);
-            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getSk() : null;
+            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getBk() : null;
 
             linkStore = new LinkStore();
             seen = new HashSet<>();
 
             if (!ec.getLinks().isEmpty()) {
                 for (CortexLinks lm : ec.getLinks().keySet()) {
-                    if (lm.containsKey(curKmer)) {
-                        linkStore.add(curKmer, lm.get(curKmer), goForward, ec.getLinks().get(lm));
+                    CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                    if (lm.containsKey(ck)) {
+                        linkStore.add(curKmer, lm.get(ck), goForward, ec.getLinks().get(lm));
                     }
                 }
             }
         }
     }
 
-    public String getCursor() { return curKmer; }
+    //public String getCursor() { return curKmer; }
 
     @Override public boolean hasNext() { return nextKmer != null; }
 
@@ -563,6 +582,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
     @Override public void add(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot add elements to CortexGraph iterator"); }
 
+    /*
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
@@ -570,15 +590,15 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         if (displayColors.isEmpty()) {
             Graphs.addGraph(m, g);
         } else {
-            Map<String, Map<Integer, Set<String>>> pkscache = new HashMap<>();
-            Map<String, Map<Integer, Set<String>>> nkscache = new HashMap<>();
+            Map<String, Map<Integer, Set<ByteKmer>>> pkscache = new HashMap<>();
+            Map<String, Map<Integer, Set<ByteKmer>>> nkscache = new HashMap<>();
 
             for (int c : displayColors) {
                 DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
 
                 for (CortexVertex v : g.vertexSet()) {
-                    Map<Integer, Set<String>> pks = pkscache.containsKey(v.getSk()) ? pkscache.get(v.getSk()) : getAllPrevKmers(v.getSk());
-                    Map<Integer, Set<String>> nks = nkscache.containsKey(v.getSk()) ? nkscache.get(v.getSk()) : getAllNextKmers(v.getSk());
+                    Map<Integer, Set<ByteKmer>> pks = pkscache.containsKey(v.getBk()) ? pkscache.get(v.getBk()) : getAllPrevKmers(v.getBk());
+                    Map<Integer, Set<ByteKmer>> nks = nkscache.containsKey(v.getBk()) ? nkscache.get(v.getBk()) : getAllNextKmers(v.getBk());
 
                     pkscache.put(v.getSk(), pks);
                     nkscache.put(v.getSk(), nks);
@@ -606,5 +626,5 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
         return m;
     }
-
+    */
 }

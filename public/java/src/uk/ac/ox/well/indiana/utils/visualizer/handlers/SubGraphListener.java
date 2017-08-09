@@ -6,6 +6,7 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.json.JSONObject;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.ByteKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
@@ -47,7 +48,7 @@ public class SubGraphListener extends BaseHandler {
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 String kmer = seq.substring(i, i + kmerSize);
 
-                CortexVertex cv = new CortexVertex(kmer, null);
+                CortexVertex cv = new CortexVertex(new ByteKmer(kmer.getBytes()), null);
                 g.addVertex(cv);
 
                 if (lv != null) {

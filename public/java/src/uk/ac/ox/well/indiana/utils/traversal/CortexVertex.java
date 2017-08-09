@@ -1,6 +1,7 @@
 package uk.ac.ox.well.indiana.utils.traversal;
 
 import htsjdk.samtools.util.Interval;
+import uk.ac.ox.well.indiana.utils.io.cortex.graph.ByteKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 
@@ -13,36 +14,39 @@ import java.util.TreeSet;
  * Created by kiran on 10/05/2017.
  */
 public class CortexVertex {
-    private String sk;
+    private ByteKmer sk;
+    //private String sk;
     private CortexRecord cr;
     private Interval locus;
     private Set<String> kmerSources;
 
-    public CortexVertex(String sk, CortexRecord cr) {
+    public CortexVertex(ByteKmer sk, CortexRecord cr) {
         this.sk = sk;
         this.cr = cr;
     }
 
-    public CortexVertex(String sk, CortexRecord cr, Interval locus) {
+    public CortexVertex(ByteKmer sk, CortexRecord cr, Interval locus) {
         this.sk = sk;
         this.cr = cr;
         this.locus = locus;
     }
 
-    public CortexVertex(String sk, CortexRecord cr, Set<String> kmerSources) {
+    public CortexVertex(ByteKmer sk, CortexRecord cr, Set<String> kmerSources) {
         this.sk = sk;
         this.cr = cr;
         this.kmerSources = kmerSources;
     }
 
-    public CortexVertex(String sk, CortexRecord cr, Interval locus, Set<String> kmerSources) {
+    public CortexVertex(ByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources) {
         this.sk = sk;
         this.cr = cr;
         this.locus = locus;
         this.kmerSources = kmerSources;
     }
 
-    public String getSk() { return sk; }
+    public String getSk() { return new String(sk.getKmer()); }
+
+    public ByteKmer getBk() { return sk; }
 
     public CortexRecord getCr() { return cr; }
 

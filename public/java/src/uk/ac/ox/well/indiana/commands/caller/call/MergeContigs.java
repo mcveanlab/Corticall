@@ -215,7 +215,8 @@ public class MergeContigs extends Module {
                 do {
                     seen.add(sk);
 
-                    Set<CortexVertex> avs = !goForward ? e.getPrevVertices(sk) : e.getNextVertices(sk);
+                    //Set<CortexVertex> avs = !goForward ? e.getPrevVertices(sk) : e.getNextVertices(sk);
+                    Set<CortexVertex> avs = null; // todo fix
 
                     sk = null;
 
