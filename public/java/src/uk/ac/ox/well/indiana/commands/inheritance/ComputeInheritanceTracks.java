@@ -3,32 +3,21 @@ package uk.ac.ox.well.indiana.commands.inheritance;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.util.Pair;
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.indiana.commands.Module;
 import uk.ac.ox.well.indiana.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.indiana.utils.arguments.Argument;
 import uk.ac.ox.well.indiana.utils.arguments.Output;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexBinaryKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.indiana.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleClosingStopper;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.BubbleOpeningStopper;
-import uk.ac.ox.well.indiana.utils.stoppingconditions.DestinationStopper;
-import uk.ac.ox.well.indiana.utils.traversal.CortexEdge;
 import uk.ac.ox.well.indiana.utils.traversal.CortexVertex;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.indiana.utils.traversal.TraversalEngineFactory;
 
 import java.io.PrintStream;
 import java.util.*;
-
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-import static uk.ac.ox.well.indiana.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 
 /**
  * Created by kiran on 08/08/2017.
@@ -79,7 +68,7 @@ public class ComputeInheritanceTracks extends Module {
         int numVariants = 0;
 
         Iterator<CortexRecord> it = GRAPH.iterator();
-        GRAPH.seek(SEEK);
+        GRAPH.position(SEEK);
         int pos = 0;
         while (it.hasNext()) {
             CortexRecord cr = it.next();
@@ -97,7 +86,7 @@ public class ComputeInheritanceTracks extends Module {
 
                 seeds++;
 
-                //
+                /*
                 List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
 
                 if (intervals != null) {
@@ -139,14 +128,14 @@ public class ComputeInheritanceTracks extends Module {
 
                     if (childAllele.size() == 1) {
                         numVariants++;
-                        log.info("  call: {} {} {} {} {} {}", GRAPH.numRecordsSeen(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
+                        log.info("  call: {} {} {} {} {} {}", GRAPH.position(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
 
                         Interval loc = locus.iterator().next();
 
                         out.println(Joiner.on(" ").join(loc.getContig(), loc.getStart(), loc.getEnd(), draftColor, GRAPH.getSampleName(draftColor), childAllele, draftAllele, colors));
                     }
                 }
-                //
+                */
             }
 
             pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");

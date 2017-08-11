@@ -33,6 +33,8 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     private CortexRecord nextRecord = null;
 
     private LRUMap cache = null;
+    private long cacheHitsByIndex = 0;
+    private long cacheHitsByKmer = 0;
 
     public CortexGraph(String cortexFilePath) {
         this.cortexFile = new File(cortexFilePath);
@@ -152,7 +154,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
             int numItems = (int) (memPortion / recordSize);
             cache = new LRUMap(numItems);
 
-            moveToBeginningOfRecordsSection();
+            position(0);
         } catch (FileNotFoundException e) {
             throw new IndianaException("Cortex graph file '" + cortexFile.getAbsolutePath() + "' not found: " + e);
         } catch (IOException e) {
@@ -160,13 +162,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         }
     }
 
-    private void moveToBeginningOfRecordsSection() {
-        mappedRecordBuffer.position(dataOffset);
-        recordsSeen = 0;
-        nextRecord = getNextRecord();
-    }
+    public long position() { return recordsSeen; }
 
-    public void seek(long i) {
+    public void position(long i) {
         if (i < 0 || i >= numRecords) {
             throw new IndianaException("Record index is out of range (" + i + " vs 0-" + (numRecords - 1) + ")");
         }
@@ -174,19 +172,14 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         long offset = dataOffset + i*recordSize;
         mappedRecordBuffer.position(offset);
         recordsSeen = i;
-
         nextRecord = getNextRecord();
     }
 
     public CortexRecord getRecord(long i) {
-        seek(i);
-
-        //recordsSeen = 0;
+        position(i);
 
         return nextRecord;
     }
-
-    public long numRecordsSeen() { return recordsSeen; }
 
     private CortexRecord getNextRecord() {
         if (recordsSeen < getNumRecords()) {
@@ -194,9 +187,13 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
                 CortexRecord cr;
 
                 if (cache.containsKey(recordsSeen)) {
-                    cr = (CortexRecord) cache.get(recordsSeen);
-                    mappedRecordBuffer.position(dataOffset + ((recordsSeen+1)*recordSize));
+                    cr = getFromCache(recordsSeen);
                 } else {
+                    long newpos = dataOffset + (recordsSeen*recordSize);
+                    if (mappedRecordBuffer.position() != newpos) {
+                        mappedRecordBuffer.position(newpos);
+                    }
+
                     long[] binaryKmer = new long[header.getKmerBits()];
                     for (int bits = 0; bits < header.getKmerBits(); bits++) {
                         byte[] b = new byte[8];
@@ -235,7 +232,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public Iterator<CortexRecord> iterator() {
-        moveToBeginningOfRecordsSection();
+        position(0);
 
         return this;
     }
@@ -270,7 +267,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     public CortexRecord findRecord(byte[] bk) {
         ByteKmer kmer = new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk));
         if (cache.containsKey(kmer)) {
-            return (CortexRecord) cache.get(kmer);
+            return getFromCache(kmer);
         }
 
         long startIndex = 0;
@@ -314,7 +311,6 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return null;
     }
 
-    //public CortexRecord findRecord(byte[] bk) { return findRecord(new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk))); }
     public CortexRecord findRecord(ByteKmer bk) { return findRecord(bk.getKmer()); }
     public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
     public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
@@ -394,4 +390,21 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return info;
     }
 
+    private CortexRecord getFromCache(long recordNum) {
+        cacheHitsByIndex++;
+        return (CortexRecord) cache.get(recordNum);
+    }
+
+    private CortexRecord getFromCache(ByteKmer kmer) {
+        cacheHitsByKmer++;
+        return (CortexRecord) cache.get(kmer);
+    }
+
+    public long getCacheHitsByIndex() {
+        return cacheHitsByIndex;
+    }
+
+    public long getCacheHitsByKmer() {
+        return cacheHitsByKmer;
+    }
 }
