@@ -2,6 +2,7 @@ package uk.ac.ox.well.indiana.commands.playground.index.links;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.indiana.commands.Module;
@@ -19,6 +20,9 @@ public class IndexLinks extends Module {
     @Argument(fullName="links", shortName="l", doc="Links")
     public CortexLinksIterable LINKS;
 
+    @Argument(fullName="source", shortName="s", doc="Link source")
+    public String SOURCE;
+
     @Override
     public void execute() {
         File dbFile = new File(LINKS.getCortexLinksFile().getAbsolutePath() + ".linkdb");
@@ -28,8 +32,48 @@ public class IndexLinks extends Module {
                 .fileMmapEnable()
                 .make();
 
+        storeVersion(db);
+        storeSourceTable(db);
+        storeColorTable(db);
+        storeLinks(db);
+
+        db.close();
+    }
+
+    private void storeVersion(DB db) {
+        db.atomicInteger("version", 1).create();
+
+        db.commit();
+    }
+
+    private void storeSourceTable(DB db) {
+        HTreeMap<Integer, String> sources = db.hashMap("sources")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(Serializer.STRING)
+                .create();
+
+        sources.put(0, SOURCE);
+
+        db.commit();
+    }
+
+    private void storeColorTable(DB db) {
+        HTreeMap<Integer, String> header = db.hashMap("colors")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(Serializer.STRING)
+                .create();
+
+        for (int c = 0; c < LINKS.getNumColors(); c++) {
+            String sampleName = LINKS.getColor(c).getSampleName();
+            header.put(c, sampleName);
+        }
+
+        db.commit();
+    }
+
+    private void storeLinks(DB db) {
         NavigableSet<Object[]> linkIndex = db.treeSet("links")
-                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
+                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.INTEGER))
                 .create();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -41,7 +85,7 @@ public class IndexLinks extends Module {
         int numRecords = 0, numLinks = 0;
         for (CortexLinksRecord clr : LINKS) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                linkIndex.add(new Object[]{clr.getKmer().getKmerAsBytes(), cjr.toString().getBytes()});
+                linkIndex.add(new Object[]{clr.getKmer().getKmerAsBytes(), cjr.toString().getBytes(), 0});
                 numLinks++;
             }
             numRecords++;
@@ -49,10 +93,8 @@ public class IndexLinks extends Module {
             pm.update();
         }
 
-        db.commit();
-
-        db.close();
-
         log.info("Wrote {} links in {} records", numLinks, numRecords);
+
+        db.commit();
     }
 }
