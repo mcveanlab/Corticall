@@ -3,6 +3,7 @@ package uk.ac.ox.well.indiana.utils.io.cortex.links;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.indiana.utils.exceptions.IndianaException;
@@ -13,19 +14,21 @@ import java.util.*;
 
 public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     private CortexLinksMap clm = null;
+
     private DB db = null;
     private NavigableSet<Object[]> linkIndex;
+    private HTreeMap<Integer, String> linkSources;
 
-    public CortexLinks(String ctpGzFilePath) {
-        loadLinks(new File(ctpGzFilePath));
+    public CortexLinks(String linksFilePath) {
+        loadLinks(new File(linksFilePath));
     }
 
-    public CortexLinks(File ctpGzFile) {
-        loadLinks(ctpGzFile);
+    public CortexLinks(File linksFile) {
+        loadLinks(linksFile);
     }
 
-    private void loadLinks(File ctpGzFile) {
-        File dbFile = new File(ctpGzFile.getAbsolutePath() + ".linkdb");
+    private void loadLinks(File linksFile) {
+        File dbFile = linksFile.getAbsolutePath().endsWith(".linkdb") ? linksFile : new File(linksFile.getAbsolutePath() + ".linkdb");
 
         if (dbFile.exists()) {
             db = DBMaker
@@ -34,15 +37,36 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
                     .readOnly()
                     .make();
 
+            int version = db.atomicInteger("version").open().get();
+            if (version != 1) {
+                throw new IndianaException("Expected linkdb file of version=1, found version=" + version);
+            }
+
+            linkSources = db.hashMap("sources")
+                    .keySerializer(Serializer.INTEGER)
+                    .valueSerializer(Serializer.STRING)
+                    .counterEnable()
+                    .open();
+
             linkIndex = db.treeSet("links")
-                    .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
-                    .counterEnable()
-                    .counterEnable()
+                    .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.INTEGER))
                     .counterEnable()
                     .open();
         } else {
-            clm = new CortexLinksMap(ctpGzFile);
+            clm = new CortexLinksMap(linksFile);
         }
+    }
+
+    public int getNumSources() {
+        return linkSources.size();
+    }
+
+    public String getSourceForIndex(int index) {
+        return linkSources.get(index);
+    }
+
+    public Collection<String> getSources() {
+        return linkSources.values();
     }
 
     @Override
@@ -59,7 +83,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{sk.getBytes()},
-                    new Object[]{sk.getBytes(), null});
+                    new Object[]{sk.getBytes(), null, null});
 
             return subset.size() > 0;
         } else {
@@ -71,7 +95,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{ck.getKmerAsBytes()},
-                    new Object[]{ck.getKmerAsBytes(), null});
+                    new Object[]{ck.getKmerAsBytes(), null, null});
 
             return subset.size() > 0;
         } else {
@@ -83,7 +107,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{sk.getBytes()},
-                    new Object[]{sk.getBytes(), null});
+                    new Object[]{sk.getBytes(), null, null});
 
 
             List<CortexJunctionsRecord> cjrs = new ArrayList<>();
@@ -103,7 +127,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{ck.getKmerAsBytes()},
-                    new Object[]{ck.getKmerAsBytes(), null});
+                    new Object[]{ck.getKmerAsBytes(), null, null});
 
 
             List<CortexJunctionsRecord> cjrs = new ArrayList<>();
