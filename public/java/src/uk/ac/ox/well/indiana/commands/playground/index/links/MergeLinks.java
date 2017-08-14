@@ -44,14 +44,25 @@ public class MergeLinks extends Module {
         storeVersion(db, 1);
         storeSourceTable(db, sourceMap);
         storeColorTable(db);
-        //storeLinks(db, sourceMap);
+        storeLinks(db, sourceMap);
 
-        log.info("{}", sourceMap);
+        db.close();
+    }
 
+    private void storeLinks(DB db, Map<String, Integer> sourceMap) {
+        NavigableSet<Object[]> linkIndex = db.treeSet("links")
+                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
+                .create();
+
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing records")
+                .message("records processed")
+                .maxRecord(GRAPH.getNumRecords())
+                .updateRecord(GRAPH.getNumRecords() / 1000)
+                .make(log);
+
+        int numLinks = 0;
         for (CortexRecord cr : GRAPH) {
-            log.info("ck={}", cr.getKmerAsString());
-
-            // F 10 1 AAAATTTGGT [3D7_ref]
             Map<Pair<String, Boolean>, Map<Integer, Integer>> covs = new LinkedHashMap<>();
             Map<Pair<String, Boolean>, Map<Integer, Set<Integer>>> srcs = new LinkedHashMap<>();
 
@@ -83,11 +94,49 @@ public class MergeLinks extends Module {
             }
 
             for (Pair<String, Boolean> key : covs.keySet()) {
-                log.info("{} {} {} {} {}", key.getSecond() ? "F" : "R", key.getFirst().length(), asString(covs.get(key), ","), key.getFirst(), asString(srcs.get(key), ",", ";"));
+                CortexJunctionsRecord ncjr = new CortexJunctionsRecord(key.getSecond(), 0, key.getFirst().length(), asArray(covs.get(key)), key.getFirst(), asMultiArray(srcs.get(key)));
+
+                linkIndex.add(new Object[]{cr.getKmerAsBytes(), ncjr.toString().getBytes(), ncjr.getSources().getBytes()});
+                numLinks++;
+            }
+
+            pm.update("records processed, " + numLinks + " stored");
+        }
+
+        db.commit();
+    }
+
+    private int[] asArray(Map<Integer, Integer> covs) {
+        int[] cova = new int[GRAPH.getNumColors()];
+
+        for (int c = 0; c < GRAPH.getNumColors(); c++) {
+            cova[c] = covs.containsKey(c) ? covs.get(c) : 0;
+        }
+
+        return cova;
+    }
+
+    private int[][] asMultiArray(Map<Integer, Set<Integer>> srcs) {
+        int[][] srcsa = new int[GRAPH.getNumColors()][];
+
+        for (int c = 0; c < GRAPH.getNumColors(); c++) {
+            if (srcs.containsKey(c)) {
+                Set<Integer> ss = srcs.get(c);
+                int[] ssb = new int[ss.size()];
+
+                int i = 0;
+                for (int si : ss) {
+                    ssb[i] = si;
+                    i++;
+                }
+
+                srcsa[c] = ssb;
+            } else {
+                srcsa[c] = new int[0];
             }
         }
 
-        db.close();
+        return srcsa;
     }
 
     private String asString(Map<Integer, Integer> covs, String sep) {
