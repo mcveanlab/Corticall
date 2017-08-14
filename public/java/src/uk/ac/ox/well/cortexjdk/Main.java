@@ -9,6 +9,7 @@ import ch.qos.logback.core.ConsoleAppender;
 import org.slf4j.LoggerFactory;
 import uk.ac.ox.well.cortexjdk.commands.Command;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.packageutils.Dispatch;
 import uk.ac.ox.well.cortexjdk.utils.packageutils.PackageInspector;
@@ -29,7 +30,6 @@ public class Main {
     public static String progName;
     public static String progDesc;
     public static String rootPackage;
-    public static String commandPackage;
 
     /**
      * Main method for CortexJDK.  First argument must be the module to run.  All other arguments are passed through to the module for processing.
@@ -37,13 +37,10 @@ public class Main {
      * @param args  Command-line arguments
      * @throws Exception
      */
-    public static void start(String newProgName, String newProgDesc, String newRootPackage, String newCommandPackage, String[] args) throws Exception {
+    public static void start(String newProgName, String newProgDesc, String newRootPackage, String[] args) throws Exception {
         progName = newProgName;
         progDesc = newProgDesc;
         rootPackage = newRootPackage;
-        commandPackage = newCommandPackage;
-
-        //org.apache.log4j.PropertyConfigurator.configure("/dev/null");
 
         if (args.length == 0 || args[0].equals("-h") || args[0].equals("--help")) {
             showPrimaryHelp();
@@ -52,7 +49,6 @@ public class Main {
             String[] moduleArgs = Arrays.copyOfRange(args, 1, args.length);
 
             Map<String, Class<? extends Command>> modules = new PackageInspector<>(Command.class, rootPackage).getExtendingClassesMap();
-            //Map<String, Class<? extends Module>> modules = new PackageInspector<Module>(Module.class, rootPackage).getExtendingClassesMap();
 
             if (!modules.containsKey(moduleName)) {
                 showInvalidModuleMessage(moduleName);
@@ -65,19 +61,6 @@ public class Main {
             }
 
         }
-    }
-
-    /**
-     * Print the startup banner
-     */
-    private static void printBanner() {
-        Properties prop = getBuildProperties();
-
-        String version = prop.get("major.version") + "." + prop.get("minor.version") + "-" + prop.get("git.version");
-        String gitDate = ((String) prop.get("git.date")).trim();
-        String buildDate = ((String) prop.get("build.date")).trim();
-        String dates = "(repo) " + gitDate + "; (build) " + buildDate;
-        log.info(progName + " {}; {}", version, dates);
     }
 
     /**
@@ -175,16 +158,6 @@ public class Main {
      * List all of the available modules, grouped by package.
      */
     private static void showPrimaryHelp() {
-        //Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, commandPackage).getExtendingClassesMap();
-        //Map<String, Class<? extends Module>> commands = new PackageInspector<Module>(Module.class, commandPackage).getExtendingClassesMap();
-
-        /*
-        int maxlength = 0;
-        for (String t : commands.keySet()) {
-            maxlength = (t.length() > maxlength) ? t.length() : maxlength;
-        }
-        */
-
         Properties prop = getBuildProperties();
 
         String gitDate = ((String) prop.get("git.date")).trim();
@@ -201,20 +174,21 @@ public class Main {
         System.out.println("Usage:   java -jar " + progName.toLowerCase() + ".jar <command> [options]");
         System.out.println();
 
-        /*
+        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, rootPackage).getExtendingClassesMap();
+
         System.out.print("Command:");
         int padwidth = 1;
+        int maxlength = 20;
         for (String t : commands.keySet()) {
             Description d = commands.get(t).getAnnotation(Description.class);
-            String description = (d == null) ? "no description available" : d.text();
+            if (d != null) {
+                System.out.format("%" + padwidth + "s%-" + maxlength + "s     %s%n", "", t, d.text());
 
-            System.out.format("%" + padwidth + "s%-" + maxlength + "s     %s%n", "", t, description);
-
-            padwidth = 9;
+                padwidth = 9;
+            }
         }
 
         System.out.println();
-        */
     }
 
     /**
