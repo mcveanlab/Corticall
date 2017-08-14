@@ -18,6 +18,8 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     private DB db = null;
     private NavigableSet<Object[]> linkIndex;
     private HTreeMap<Integer, String> linkSources;
+    private HTreeMap<Integer, String> linkColors;
+    private Map<String, Integer> linkSamples;
 
     public CortexLinks(String linksFilePath) {
         loadLinks(new File(linksFilePath));
@@ -42,11 +44,24 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
                 throw new IndianaException("Expected linkdb file of version=1, found version=" + version);
             }
 
+            linkColors = db.hashMap("colors")
+                    .keySerializer(Serializer.INTEGER)
+                    .valueSerializer(Serializer.STRING)
+                    .counterEnable()
+                    .open();
+
             linkSources = db.hashMap("sources")
                     .keySerializer(Serializer.INTEGER)
                     .valueSerializer(Serializer.STRING)
                     .counterEnable()
                     .open();
+
+            linkSamples = new HashMap<>();
+            for (Object o : linkColors.keySet()) {
+                Integer c = (Integer) o;
+                String sampleName = linkColors.get(c);
+                linkSamples.put(sampleName, c);
+            }
 
             linkIndex = db.treeSet("links")
                     .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.INTEGER))
@@ -68,6 +83,10 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     public Collection<String> getSources() {
         return linkSources.values();
     }
+
+    public Integer getColorForSampleName(String sampleName) { return linkSamples.get(sampleName); }
+
+    public String getSampleNameForColor(int c) { return linkColors.get(c); }
 
     @Override
     public int size() {

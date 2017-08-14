@@ -1,5 +1,7 @@
 package uk.ac.ox.well.indiana.commands.playground.index.links;
 
+import com.google.common.base.Joiner;
+import org.apache.commons.math3.util.Pair;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -18,10 +20,7 @@ import uk.ac.ox.well.indiana.utils.progress.ProgressMeter;
 import uk.ac.ox.well.indiana.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.TreeMap;
+import java.util.*;
 
 public class MergeLinks extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
@@ -47,18 +46,80 @@ public class MergeLinks extends Module {
         storeColorTable(db);
         //storeLinks(db, sourceMap);
 
+        log.info("{}", sourceMap);
+
         for (CortexRecord cr : GRAPH) {
-            for (int c = 0; c < LINKS.size(); c++) {
-                CortexLinks cl = LINKS.get(c);
+            log.info("ck={}", cr.getKmerAsString());
+
+            // F 10 1 AAAATTTGGT [3D7_ref]
+            Map<Pair<String, Boolean>, Map<Integer, Integer>> covs = new LinkedHashMap<>();
+            Map<Pair<String, Boolean>, Map<Integer, Set<Integer>>> srcs = new LinkedHashMap<>();
+
+            for (int i = 0; i < LINKS.size(); i++) {
+                int color = GRAPH.getColorForSampleName(LINKS.get(i).getSampleNameForColor(0));
+
+                CortexLinks cl = LINKS.get(i);
                 CortexLinksRecord clr = cl.get(cr.getCortexKmer());
 
                 for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                    log.info("{} {}", c, cjr);
+                    Pair<String, Boolean> key = new Pair<>(cjr.getJunctions(), cjr.isForward());
+
+                    if (!covs.containsKey(key)) {
+                        covs.put(key, new TreeMap<>());
+                        srcs.put(key, new TreeMap<>());
+                    }
+
+                    if (!covs.get(key).containsKey(color)) {
+                        covs.get(key).put(color, 0);
+                        srcs.get(key).put(color, new TreeSet<>());
+                    }
+
+                    if (cjr.getCoverage(0) > covs.get(key).get(color)) {
+                        covs.get(key).put(color, cjr.getCoverage(0));
+                    }
+
+                    srcs.get(key).get(color).addAll(getSourceIndices(sourceMap, LINKS.get(i).getSources()));
                 }
+            }
+
+            for (Pair<String, Boolean> key : covs.keySet()) {
+                log.info("{} {} {} {} {}", key.getSecond() ? "F" : "R", key.getFirst().length(), asString(covs.get(key), ","), key.getFirst(), asString(srcs.get(key), ",", ";"));
             }
         }
 
         db.close();
+    }
+
+    private String asString(Map<Integer, Integer> covs, String sep) {
+        List<Integer> covList = new ArrayList<>();
+        for (int c = 0; c < GRAPH.getNumColors(); c++) {
+            covList.add(covs.containsKey(c) ? covs.get(c) : 0);
+        }
+
+        return Joiner.on(sep).join(covList);
+    }
+
+    private String asString(Map<Integer, Set<Integer>> srcs, String isep, String esep) {
+        List<String> srcList = new ArrayList<>();
+        for (int c = 0; c < GRAPH.getNumColors(); c++) {
+            if (srcs.containsKey(c)) {
+                srcList.add(Joiner.on(isep).join(srcs.get(c)));
+            } else {
+                srcList.add("");
+            }
+        }
+
+        return Joiner.on(esep).join(srcList);
+    }
+
+    private Set<Integer> getSourceIndices(Map<String, Integer> sourceMap, Collection<String> sources) {
+        Set<Integer> sourceIndices = new TreeSet<>();
+
+        for (String source : sources) {
+            sourceIndices.add(sourceMap.get(source));
+        }
+
+        return sourceIndices;
     }
 
     private Map<String, Integer> getSourceMap() {

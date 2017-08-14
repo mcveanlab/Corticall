@@ -73,7 +73,7 @@ public class IndexLinks extends Module {
 
     private void storeLinks(DB db) {
         NavigableSet<Object[]> linkIndex = db.treeSet("links")
-                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.INTEGER))
+                .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
                 .create();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -85,7 +85,7 @@ public class IndexLinks extends Module {
         int numRecords = 0, numLinks = 0;
         for (CortexLinksRecord clr : LINKS) {
             for (CortexJunctionsRecord cjr : clr.getJunctions()) {
-                linkIndex.add(new Object[]{clr.getKmer().getKmerAsBytes(), cjr.toString().getBytes(), 0});
+                linkIndex.add(new Object[]{clr.getKmer().getKmerAsBytes(), cjr.toString().getBytes(), "0".getBytes()});
                 numLinks++;
             }
             numRecords++;
