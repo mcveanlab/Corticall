@@ -4,8 +4,8 @@
                       University of Oxford
   -->
 
-<project name="indiana" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
-    <description>Compile and distribute INDIANA</description>
+<project name="cortexjdk" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <description>Compile and distribute CortexJDK</description>
 
     <property name="src.dir" value="public/java" />
     <property name="src.R.dir" value="public/R" />
@@ -88,7 +88,7 @@
             <fileset dir="${src.html.dir}" />
         </copy>
 
-        <jar jarfile="${jars.dir}/indiana.jar">
+        <jar jarfile="${jars.dir}/cortexjdk.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
                 <include name="**/*.properties" />
@@ -100,12 +100,12 @@
 
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
-                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
+                <attribute name="Main-Class" value="uk.ac.ox.well.cortexjdk.CortexJDK" />
             </manifest>
         </jar>
     </target>
 
-    <!-- Prepare to make a jar file with all the INDIANA code and dependencies -->
+    <!-- Prepare to make a jar file with all the CortexJDK code and dependencies -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="${staging.dir}" />
 
@@ -114,11 +114,11 @@
         </unjar>
     </target>
 
-    <!-- Create a single executable jar with all of the INDIANA and dependency code wrapped up -->
+    <!-- Create a single executable jar with all of the CortexJDK and dependency code wrapped up -->
     <target name="dist" depends="tidy,compile,stage" description="bundle up an executable for distribution">
         <mkdir dir="${dist.dir}" />
 
-        <jar jarfile="${dist.dir}/indiana.jar">
+        <jar jarfile="${dist.dir}/cortexjdk.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.properties" />
                 <include name="**/*.R" />
@@ -132,7 +132,7 @@
             </fileset>
 
             <manifest>
-                <attribute name="Main-Class" value="uk.ac.ox.well.indiana.Indiana" />
+                <attribute name="Main-Class" value="uk.ac.ox.well.cortexjdk.CortexJDK" />
             </manifest>
         </jar>
 
@@ -152,7 +152,7 @@
                     <include name="*.jar" />  
                 </fileset>
             </classpath>
-            <classfileset dir="${build.dir}/uk/ac/ox/well/indiana/" includes="**/*.class" />
+            <classfileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/" includes="**/*.class" />
         </testng>
     </target>
 
@@ -169,10 +169,10 @@
 
     <target name="cobertura" depends="compile">
         <cobertura-instrument todir="${report.dir}">
-            <fileset dir="${build.dir}/uk/ac/ox/well/indiana/">
+            <fileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/">
                 <include name="**/*.class" />
             </fileset>
-            <classfileset dir="${build.dir}/uk/ac/ox/well/indiana/" includes="**/*.class" />
+            <classfileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/" includes="**/*.class" />
         </cobertura-instrument>
     </target>
  
@@ -246,7 +246,7 @@
     <target name="release" depends="clean,test,git.version,dist">
         <mkdir dir="${release.dir}" />
 
-        <copy file="${dist.dir}/indiana.jar" tofile="${release.dir}/indiana-${git.version.output}.jar" />
+        <copy file="${dist.dir}/cortexjdk.jar" tofile="${release.dir}/cortexjdk-${git.version.output}.jar" />
     </target>
 
     <!-- Tidy a little bit up -->
@@ -269,18 +269,18 @@
             <fileset dir="${report.dir}" />
             <fileset dir="${release.dir}" />
         </delete>
-        <delete file="${testdata.dir}/indianaLargeTableTest.table" verbose="false" quiet="true" />
+        <delete file="${testdata.dir}/largeTableTest.table" verbose="false" quiet="true" />
     </target>
 
 <!--
     <taskdef resource="proguard/ant/task.properties" classpath="lib/proguard-anttask-5.2.1.jar" />
     <proguard>
--injars       dist/indiana.jar
--outjars      dist/indiana_small.jar
+-injars       dist/cortexjdk.jar
+-outjars      dist/cortexjdk_small.jar
 -libraryjars  lib/
 -printmapping myapplication.map
 
--keep public class uk.ac.ox.well.indiana.Main {
+-keep public class uk.ac.ox.well.cortexjdk.Main {
     public static void main(java.lang.String[]);
 }
     </proguard>
