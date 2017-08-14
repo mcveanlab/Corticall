@@ -64,7 +64,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
             }
 
             linkIndex = db.treeSet("links")
-                    .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.INTEGER))
+                    .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
                     .counterEnable()
                     .open();
         } else {

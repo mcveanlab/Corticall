@@ -10,12 +10,16 @@ public class ProgressMeter {
     private String header = "";
     private String message = "";
     private String indent = "";
+    private int updateTime = 60;
 
-    public ProgressMeter(Logger log, long currentRecord, long updateRecord, long maxRecord, String header, String message, String indent) {
+    private long startTime = System.currentTimeMillis();
+
+    public ProgressMeter(Logger log, long currentRecord, long updateRecord, long maxRecord, int updateTime, String header, String message, String indent) {
         this.log = log;
         this.currentRecord = currentRecord;
         this.updateRecord = updateRecord;
         this.maxRecord = maxRecord;
+        this.updateTime = updateTime;
         this.header = header;
         this.message = message;
         this.indent = indent;
@@ -28,9 +32,9 @@ public class ProgressMeter {
     }
 
     public void update(String newMessage) {
-        if (currentRecord % updateRecord == 0) {
+        if (currentRecord % updateRecord == 0 || isTimeToUpdate()) {
             if (maxRecord > 0) {
-                log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, (int) Math.ceil(100.0*currentRecord/maxRecord), newMessage);
+                log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, String.format("%.2f", 100.0*((double)currentRecord)/((double)maxRecord)), newMessage);
             } else {
                 log.info("{}{} {} ", indent, currentRecord, newMessage);
             }
@@ -44,4 +48,17 @@ public class ProgressMeter {
     }
 
     public long pos() { return currentRecord; }
+
+    private boolean isTimeToUpdate() {
+        if (updateTime <= 0) { return false; }
+
+        long currentTime = System.currentTimeMillis();
+        boolean isTimeToUpdate = (currentTime - startTime) / 1000 >= updateTime;
+
+        if (isTimeToUpdate) {
+            startTime = currentTime;
+        }
+
+        return isTimeToUpdate;
+    }
 }
