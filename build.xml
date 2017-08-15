@@ -1,5 +1,5 @@
 <!--
-  Copyright (c) 2012, Kiran V Garimella (kiran@well.ox.ac.uk)
+  Copyright (c) 2017, Kiran V Garimella (kiran@well.ox.ac.uk)
                       Wellcome Trust Centre for Human Genetics
                       University of Oxford
   -->
@@ -135,9 +135,6 @@
                 <attribute name="Main-Class" value="uk.ac.ox.well.cortexjdk.CortexJDK" />
             </manifest>
         </jar>
-
-        <!--<taskdef resource="proguard/ant/task.properties" classpath="${lib.dir}/proguard-anttask-5.0.jar" />
-        <proguard configuration="${ivy.settings.dir}/application.pro" warn="false" />-->
     </target>
 
     <!-- Unit tests -->
@@ -155,39 +152,6 @@
             <classfileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/" includes="**/*.class" />
         </testng>
     </target>
-
-    <!-- Test coverage report -->
-    <!--<taskdef classpath="${jars.dir}/cobertura-2.1.1.jar" resource="tasks.properties" />-->
-    <!--
-    <taskdef resource="tasks.properties"> 
-        <classpath>  
-            <fileset dir="${lib.dir}">  
-                <include name="**/*.jar" />  
-            </fileset>
-        </classpath>
-    </taskdef>
-
-    <target name="cobertura" depends="compile">
-        <cobertura-instrument todir="${report.dir}">
-            <fileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/">
-                <include name="**/*.class" />
-            </fileset>
-            <classfileset dir="${build.dir}/uk/ac/ox/well/cortexjdk/" includes="**/*.class" />
-        </cobertura-instrument>
-    </target>
- 
-    <target name="cov" depends="cobertura">
-        <testng classpathref="${jars.dir}/cobertura-2.1.1.jar">
-            <classfileset dir="${report.dir}" includes="**/*.class" />
-        </testng>
-    </target>
- 
-    <target name="cov" depends="cobertura,test">
-        <cobertura-report format="html" destdir="${report.dir}">
-            <fileset dir="${src.dir}" includes="**/*.java"/>
-        </cobertura-report>
-    </target>
-    -->
 
     <!-- Update the build properties file with the git commit ID, commit date, and build date -->
     <target name="properties" depends="git.version,git.version.long,git.date,build.date">
@@ -271,18 +235,4 @@
         </delete>
         <delete file="${testdata.dir}/largeTableTest.table" verbose="false" quiet="true" />
     </target>
-
-<!--
-    <taskdef resource="proguard/ant/task.properties" classpath="lib/proguard-anttask-5.2.1.jar" />
-    <proguard>
--injars       dist/cortexjdk.jar
--outjars      dist/cortexjdk_small.jar
--libraryjars  lib/
--printmapping myapplication.map
-
--keep public class uk.ac.ox.well.cortexjdk.Main {
-    public static void main(java.lang.String[]);
-}
-    </proguard>
--->
 </project>
