@@ -35,6 +35,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     private Set<String> kmerSources;
     private Set<CortexLinks> specificLinksFiles;
     private LinkStore linkStore;
+    private boolean goForward;
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
@@ -77,13 +78,13 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
         contig.add(sv);
 
-        setCursor(seed, true);
+        seek(seed);
         while (hasNext()) {
             CortexVertex cv = next();
             contig.add(cv);
         }
 
-        setCursor(seed, false);
+        seek(seed);
         while (hasPrevious()) {
             CortexVertex cv = previous();
             contig.add(0, cv);
@@ -159,6 +160,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
+        //seek(sk);
         CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
 
         if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
@@ -431,6 +433,12 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     @Override
     public CortexVertex next() {
         if (nextKmer == null) { throw new NoSuchElementException("No single next kmer from cursor '" + curKmer + "'"); }
+        if (specificLinksFiles == null || !goForward) {
+            if (!goForward) { seek(new String(curKmer.getKmer())); }
+
+            initializeLinkStore(true);
+            goForward = true;
+        }
 
         linkStore.incrementAge();
 
@@ -469,6 +477,12 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     @Override
     public CortexVertex previous() {
         if (prevKmer == null) { throw new NoSuchElementException("No single prev kmer from cursor '" + curKmer + "'"); }
+        if (specificLinksFiles == null || goForward) {
+            if (goForward) { seek(new String(curKmer.getKmer())); }
+
+            initializeLinkStore(false);
+            goForward = false;
+        }
 
         linkStore.incrementAge();
 
@@ -534,7 +548,23 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return null;
     }
 
-    public void setCursor(String sk, boolean goForward) {
+    private void initializeLinkStore(boolean goForward) {
+        specificLinksFiles = new HashSet<>();
+        if (!ec.getLinks().isEmpty()) {
+            for (CortexLinks lm : ec.getLinks()) {
+                if (lm.getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
+                    specificLinksFiles.add(lm);
+
+                    CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                    if (lm.containsKey(ck)) {
+                        linkStore.add(curKmer, lm.get(ck), goForward, lm.getSourceForIndex(0));
+                    }
+                }
+            }
+        }
+    }
+
+    public void seek(String sk) {
         if (sk != null) {
             curKmer = new CortexByteKmer(sk.getBytes());
 
@@ -546,20 +576,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
             linkStore = new LinkStore();
             seen = new HashSet<>();
-
-            specificLinksFiles = new HashSet<>();
-            if (!ec.getLinks().isEmpty()) {
-                for (CortexLinks lm : ec.getLinks()) {
-                    if (lm.getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
-                        specificLinksFiles.add(lm);
-
-                        CortexKmer ck = new CortexKmer(curKmer.getKmer());
-                        if (lm.containsKey(ck)) {
-                            linkStore.add(curKmer, lm.get(ck), goForward, lm.getSourceForIndex(0));
-                        }
-                    }
-                }
-            }
+            specificLinksFiles = null;
         }
     }
 

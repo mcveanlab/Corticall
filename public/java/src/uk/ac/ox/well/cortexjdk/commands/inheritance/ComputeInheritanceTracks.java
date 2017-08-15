@@ -247,7 +247,7 @@ public class ComputeInheritanceTracks extends Module {
             int found = 0;
 
             for (boolean goForward : Arrays.asList(true, false)) {
-                e.setCursor(cr.getKmerAsString(), goForward);
+                e.seek(cr.getKmerAsString());
                 while (goForward ? e.hasNext() : e.hasPrevious()) {
                     CortexVertex cv = goForward ? e.next() : e.previous();
 
@@ -277,7 +277,7 @@ public class ComputeInheritanceTracks extends Module {
             List<Interval> intervals = new ArrayList<>();
 
             for (boolean goForward : Arrays.asList(true, false)) {
-                e.setCursor(cr.getKmerAsString(), goForward);
+                e.seek(cr.getKmerAsString());
                 while (goForward ? e.hasNext() : e.hasPrevious()) {
                     CortexVertex cv = goForward ? e.next() : e.previous();
 
@@ -325,7 +325,7 @@ public class ComputeInheritanceTracks extends Module {
         childVertices.add(new CortexVertex(cr.getKmerAsByteKmer(), cr));
 
         for (boolean goForward : Arrays.asList(false, true)) {
-            e.setCursor(cr.getKmerAsString(), goForward);
+            e.seek(cr.getKmerAsString());
             while (goForward ? e.hasNext() : e.hasPrevious()) {
                 CortexVertex cv = goForward ? e.next() : e.previous();
 
@@ -345,7 +345,7 @@ public class ComputeInheritanceTracks extends Module {
             List<CortexVertex> draftVertices = new ArrayList<>();
             draftVertices.add(childVertices.get(0));
 
-            e.setCursor(childVertices.get(0).getSk(), true);
+            e.seek(childVertices.get(0).getSk());
             while (e.hasNext()) {
                 CortexVertex cv = e.next();
 
@@ -406,7 +406,7 @@ public class ComputeInheritanceTracks extends Module {
         String lastKmer = childHaplotype.substring(childHaplotype.length() - GRAPH.getKmerSize(), childHaplotype.length());
 
         for (boolean goForward : Arrays.asList(false, true)) {
-            e.setCursor(goForward ? lastKmer : firstKmer, goForward);
+            e.seek(goForward ? lastKmer : firstKmer);
             while (goForward ? e.hasNext() : e.hasPrevious()) {
                 CortexVertex cv = goForward ? e.next() : e.previous();
 
