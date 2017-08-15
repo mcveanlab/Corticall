@@ -102,7 +102,7 @@ public class ArgumentHandler {
 
             options.addOption("h", "help", false, "Show this help message");
 
-            CommandLineParser parser = new CortexJDKParser();
+            CommandLineParser parser = new ArgumentParser();
             CommandLine cmd = parser.parse(options, args);
 
             if (cmd.hasOption("help") || (numArgFields > 0 && args.length == 0)) {

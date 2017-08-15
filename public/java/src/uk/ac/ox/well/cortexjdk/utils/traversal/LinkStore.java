@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.apache.commons.math3.util.Pair;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.ByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexJunctionsRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -16,7 +16,7 @@ public class LinkStore {
     private Map<String, Integer> linkPos = new TreeMap<>();
     private Map<String, String> linkSources = new TreeMap<>();
 
-    public void add(ByteKmer curKmer, CortexLinksRecord clr, boolean goForward, String linkSource) {
+    public void add(CortexByteKmer curKmer, CortexLinksRecord clr, boolean goForward, String linkSource) {
         boolean recordOrientationMatchesKmer = clr.getKmerAsByteKmer().equals(curKmer);
 
         List<CortexJunctionsRecord> junctions = new ArrayList<>();

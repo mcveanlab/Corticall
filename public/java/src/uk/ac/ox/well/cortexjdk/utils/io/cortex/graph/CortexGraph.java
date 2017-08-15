@@ -265,7 +265,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
     }
 
     public CortexRecord findRecord(byte[] bk) {
-        ByteKmer kmer = new ByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk));
+        CortexByteKmer kmer = new CortexByteKmer(SequenceUtils.alphanumericallyLowestOrientation(bk));
         if (cache.containsKey(kmer)) {
             return getFromCache(kmer);
         }
@@ -283,9 +283,9 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             recordsSeen = oldRecordsSeen;
 
-            ByteKmer startKmer = startRecord.getKmerAsByteKmer();
-            ByteKmer midKmer = midRecord.getKmerAsByteKmer();
-            ByteKmer stopKmer = stopRecord.getKmerAsByteKmer();
+            CortexByteKmer startKmer = startRecord.getKmerAsByteKmer();
+            CortexByteKmer midKmer = midRecord.getKmerAsByteKmer();
+            CortexByteKmer stopKmer = stopRecord.getKmerAsByteKmer();
 
             if (startKmer.compareTo(stopKmer) > 0) {
                 throw new CortexJDKException("Records are not sorted ('" + startKmer + "' is found before '" + stopKmer + "' but is lexicographically greater)");
@@ -311,7 +311,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return null;
     }
 
-    public CortexRecord findRecord(ByteKmer bk) { return findRecord(bk.getKmer()); }
+    public CortexRecord findRecord(CortexByteKmer bk) { return findRecord(bk.getKmer()); }
     public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
     public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
 
@@ -395,7 +395,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
         return (CortexRecord) cache.get(recordNum);
     }
 
-    private CortexRecord getFromCache(ByteKmer kmer) {
+    private CortexRecord getFromCache(CortexByteKmer kmer) {
         cacheHitsByKmer++;
         return (CortexRecord) cache.get(kmer);
     }

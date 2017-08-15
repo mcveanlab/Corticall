@@ -1,30 +1,33 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.cortexjdk.utils.traversal.AnnotatedEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
 import java.util.Set;
 
-public class TipBeginningStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
+public class TipBeginningStopper extends AbstractTraversalStopper<CortexVertex, CortexEdge> {
+    @Override
+    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         // We should accept this branch if we make it to the end of our traversal and we reconnect with a parent
 
         boolean reunion = false;
-        for (int c : parentColors) {
-            reunion |= cr.getCoverage(c) > 0;
+        for (int c : joiningColors) {
+            reunion |= cv.getCr().getCoverage(c) > 0;
         }
 
         return reunion;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int depth, int size, int edges, int childColor, Set<Integer> parentColors) {
+    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         // We should reject this branch if we run out of edges to navigate
 
-        boolean hasNoIncomingEdges = cr.getInDegree(childColor) == 0;
-        boolean hasNoOutgoingEdges = cr.getOutDegree(childColor) == 0;
+        boolean hasNoIncomingEdges = cv.getCr().getInDegree(traversalColor) == 0;
+        boolean hasNoOutgoingEdges = cv.getCr().getOutDegree(traversalColor) == 0;
 
         return hasNoIncomingEdges || hasNoOutgoingEdges;
     }
