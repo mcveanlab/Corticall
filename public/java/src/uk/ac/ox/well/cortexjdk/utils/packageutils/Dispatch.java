@@ -74,12 +74,11 @@ public class Dispatch {
             String cortexJdkCmd = instance.getClass().getSimpleName();
             String modArgs = Joiner.on(" ").join(moduleArgs);
             String defArgs = Joiner.on(" ").join(defaultArgs);
-            String fullCmd = Joiner.on(" ").join("java", jvmArgs, "-jar", jar, cortexJdkCmd, modArgs, defArgs);
+            //String fullCmd = Joiner.on(" ").join("java", jvmArgs, "-jar", jar, cortexJdkCmd, modArgs, defArgs);
 
             instance.init();
 
             Main.getLogger().info("{}", getBanner());
-            //Main.getLogger().info("Invocation: {}", fullCmd);
             Main.getLogger().info("");
 
             Date startTime = new Date();
@@ -115,9 +114,7 @@ public class Dispatch {
             String gitDate = (String) prop.get("git.date");
             String buildDate = (String) prop.get("build.date");
             String dates = "(repo) " + gitDate + "; (build) " + buildDate;
-            String banner = Main.progName + " " + version + "; " + dates;
-
-            return banner;
+            return Main.progName + " " + version + "; " + dates;
         } else {
             return Main.progName + " unknown version; unknown build time";
         }

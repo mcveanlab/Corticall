@@ -224,7 +224,7 @@ public class ArgumentHandler {
                         if (keyvalue.length == 2) {
                             pairs.put(keyvalue[0], keyvalue[1]);
                         } else {
-                            throw new CortexJDKException("Argument for map types must be formatted as key value pairs");
+                            throw new CortexJDKException("Argument for map types must be formatted as key:value pairs");
                         }
                     }
                 }
@@ -239,7 +239,6 @@ public class ArgumentHandler {
                     String v = pairs.get(k);
 
                     Method put = Map.class.getDeclaredMethod("put", Object.class, Object.class);
-                    //put.invoke(o, k, handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
                     put.invoke(o, handleArgumentTypes(Class.forName(keyvalueTypes[0]), k), handleArgumentTypes(Class.forName(keyvalueTypes[1]), v));
                 }
 
