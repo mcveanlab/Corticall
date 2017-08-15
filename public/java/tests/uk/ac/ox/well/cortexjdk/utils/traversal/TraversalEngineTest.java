@@ -187,7 +187,7 @@ public class TraversalEngineTest {
     public void testVarGeneReconstruction() {
         FastaSequenceFile f = new FastaSequenceFile(new File("testdata/var.fasta"), true);
         CortexGraph g = new CortexGraph("testdata/var.ctx");
-        CortexLinks l = new CortexLinks("testdata/var.ctp.gz");
+        CortexLinks l = new CortexLinks("testdata/var.ctp.gz.linkdb");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("var"))
@@ -196,7 +196,7 @@ public class TraversalEngineTest {
                 .connectAllNeighbors(false)
                 .stopper(CycleCollapsingContigStopper.class)
                 .graph(g)
-                .links("var", l)
+                .links(l)
                 .make();
 
         String varSequence = f.nextSequence().getBaseString().toUpperCase();
@@ -301,7 +301,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
                 e.getConfiguration().setPreviousTraversal(p);
@@ -389,7 +389,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
                 e.getConfiguration().setPreviousTraversal(p);
@@ -477,7 +477,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
                 e.getConfiguration().setPreviousTraversal(p);
@@ -563,7 +563,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
                 e.getConfiguration().setPreviousTraversal(p);
@@ -751,14 +751,14 @@ public class TraversalEngineTest {
     @Test
     public void testSinglePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
+        CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz.linkdb");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
                 .graph(g)
-                .links("3D7", l)
+                .links(l)
                 .make();
 
         for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
@@ -776,18 +776,16 @@ public class TraversalEngineTest {
     @Test
     public void testMultiplePathBasedAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
-        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz");
-        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz");
-        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz");
+        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz.linkdb");
+        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz.linkdb");
+        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz.linkdb");
 
         Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
                 .graph(g)
-                .links("3D7", l0)
-                .links("HB3", l1)
-                .links("reads", l2)
+                .links(l0, l1, l2)
                 .make();
 
         for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
@@ -796,7 +794,7 @@ public class TraversalEngineTest {
             String contigFwd = TraversalEngine.toContig(e.walk(seed));
             String contigRev = SequenceUtils.reverseComplement(contigFwd);
 
-            String expectedContig = seedsAndExpectedContigs.get(new CortexKmer(seed));
+            String expectedContig = seedsAndExpectedContigs.get(ck);
 
             Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
         }

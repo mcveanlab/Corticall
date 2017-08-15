@@ -1,39 +1,44 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.cortexjdk.utils.sequence.CortexUtils;
-import uk.ac.ox.well.cortexjdk.utils.traversal.AnnotatedEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.AnnotatedVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
 import java.util.Set;
 
-public class DustStopper extends AbstractTraversalStopper<AnnotatedVertex, AnnotatedEdge> {
+public class DustStopper extends AbstractTraversalStopper<CortexVertex, CortexEdge> {
     private int sinceLastLowComplexity = 0;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
+    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         // We've succeeded if we reach the parents or we run out of edges to traverse
-        boolean hasNoIncomingEdges = cr.getInDegree(childColor) == 0;
-        boolean hasNoOutgoingEdges = cr.getOutDegree(childColor) == 0;
+        boolean hasNoIncomingEdges = cv.getCr().getInDegree(traversalColor) == 0;
+        boolean hasNoOutgoingEdges = cv.getCr().getOutDegree(traversalColor) == 0;
 
         boolean reunion = false;
-        for (int c : parentColors) {
-            reunion |= cr.getCoverage(c) > 0;
+        for (int c : joiningColors) {
+            reunion |= cv.getCr().getCoverage(c) > 0;
         }
 
         return hasNoIncomingEdges || hasNoOutgoingEdges || reunion;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexRecord cr, DirectedGraph<AnnotatedVertex, AnnotatedEdge> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
+    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, CortexGraph rois) {
         // We've failed if we end up seeing a lot of non low-complexity kmers
-        if (CortexUtils.isLowComplexity(cr, childColor)) {
+        if (isLowComplexity(cv.getCr(), traversalColor)) {
             sinceLastLowComplexity = 0;
         } else {
             sinceLastLowComplexity++;
         }
 
-        return sinceLastLowComplexity >= cr.getKmerSize();
+        return sinceLastLowComplexity >= cv.getCr().getKmerSize();
+    }
+
+    private boolean isLowComplexity(CortexRecord cr, int traversalColor) {
+        return cr.getInDegree(traversalColor) + cr.getOutDegree(traversalColor) > 4;
     }
 }

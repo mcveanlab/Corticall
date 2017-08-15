@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import htsjdk.samtools.util.Interval;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.ByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 
@@ -11,30 +11,30 @@ import java.util.Set;
  * Created by kiran on 10/05/2017.
  */
 public class CortexVertex {
-    private ByteKmer sk;
+    private CortexByteKmer sk;
     //private String sk;
     private CortexRecord cr;
     private Interval locus;
     private Set<String> kmerSources;
 
-    public CortexVertex(ByteKmer sk, CortexRecord cr) {
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr) {
         this.sk = sk;
         this.cr = cr;
     }
 
-    public CortexVertex(ByteKmer sk, CortexRecord cr, Interval locus) {
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Interval locus) {
         this.sk = sk;
         this.cr = cr;
         this.locus = locus;
     }
 
-    public CortexVertex(ByteKmer sk, CortexRecord cr, Set<String> kmerSources) {
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Set<String> kmerSources) {
         this.sk = sk;
         this.cr = cr;
         this.kmerSources = kmerSources;
     }
 
-    public CortexVertex(ByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources) {
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources) {
         this.sk = sk;
         this.cr = cr;
         this.locus = locus;
@@ -43,7 +43,7 @@ public class CortexVertex {
 
     public String getSk() { return new String(sk.getKmer()); }
 
-    public ByteKmer getBk() { return sk; }
+    public CortexByteKmer getBk() { return sk; }
 
     public CortexRecord getCr() { return cr; }
 

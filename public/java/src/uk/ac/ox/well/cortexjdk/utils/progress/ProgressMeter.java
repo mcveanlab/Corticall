@@ -32,7 +32,7 @@ public class ProgressMeter {
     }
 
     public void update(String newMessage) {
-        if (currentRecord % updateRecord == 0 || isTimeToUpdate()) {
+        if (currentRecord % updateRecord == 0 || currentRecord == maxRecord || isTimeToUpdate()) {
             if (maxRecord > 0) {
                 log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, String.format("%.2f", 100.0*((double)currentRecord)/((double)maxRecord)), newMessage);
             } else {
@@ -40,6 +40,7 @@ public class ProgressMeter {
             }
         }
 
+        startTime = System.currentTimeMillis();
         currentRecord++;
     }
 
@@ -53,12 +54,6 @@ public class ProgressMeter {
         if (updateTime <= 0) { return false; }
 
         long currentTime = System.currentTimeMillis();
-        boolean isTimeToUpdate = (currentTime - startTime) / 1000 >= updateTime;
-
-        if (isTimeToUpdate) {
-            startTime = currentTime;
-        }
-
-        return isTimeToUpdate;
+        return (currentTime - startTime) / 1000 >= updateTime;
     }
 }

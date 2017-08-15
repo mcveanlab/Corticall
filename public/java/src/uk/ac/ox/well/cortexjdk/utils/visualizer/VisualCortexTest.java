@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.visualizer;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.ByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
@@ -37,7 +37,7 @@ public class VisualCortexTest extends Module {
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 String kmer = seq.substring(i, i + kmerSize);
 
-                CortexVertex cv = new CortexVertex(new ByteKmer(kmer.getBytes()), null);
+                CortexVertex cv = new CortexVertex(new CortexByteKmer(kmer.getBytes()), null);
                 g.addVertex(cv);
 
                 if (lv != null) {

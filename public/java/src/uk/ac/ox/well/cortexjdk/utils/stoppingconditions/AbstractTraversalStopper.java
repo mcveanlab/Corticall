@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingconditions;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
@@ -8,44 +9,27 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import java.util.Set;
 
 public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper<V, E> {
-    private boolean anyTraversalSucceeded = false;
     private boolean traversalSucceeded = false;
     private boolean traversalFailed = false;
 
-    public boolean keepGoing(CortexRecord cr, DirectedGraph<V, E> g, int junctions, int size, int edges, int childColor, Set<Integer> parentColors) {
-        traversalSucceeded = hasTraversalSucceeded(cr, g, junctions, size, edges, childColor, parentColors);
-        traversalFailed = hasTraversalFailed(cr, g, junctions, size, edges, childColor, parentColors);
-
-        if (traversalSucceeded) {
-            anyTraversalSucceeded = true;
-        }
-
-        return !traversalSucceeded && !traversalFailed;
-    }
-
     @Override
-    public boolean keepGoing(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+    public boolean keepGoing(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, CortexGraph rois) {
         traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
         traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
 
-        if (traversalSucceeded) {
-            anyTraversalSucceeded = true;
-        }
-
         return !traversalSucceeded && !traversalFailed;
     }
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+    public boolean hasTraversalSucceeded(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, CortexGraph rois) {
         return false;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedGraph<V, E> previousGraph, CortexGraph rois) {
+    public boolean hasTraversalFailed(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, CortexGraph rois) {
         return true;
     }
 
-    public boolean anyTraversalSucceeded() { return anyTraversalSucceeded; }
     public boolean traversalSucceeded() { return traversalSucceeded; }
     public boolean traversalFailed() { return traversalFailed; }
 }

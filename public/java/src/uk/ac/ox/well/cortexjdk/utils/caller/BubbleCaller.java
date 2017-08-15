@@ -49,7 +49,7 @@ public class BubbleCaller {
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
-                DirectedGraph<CortexVertex, CortexEdge> p = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
                 e.getConfiguration().setPreviousTraversal(p);
