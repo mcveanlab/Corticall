@@ -28,8 +28,8 @@ public class Main {
     private static Logger log = configureLogger();
 
     public static String progName;
-    public static String progDesc;
-    public static String rootPackage;
+    private static String progDesc;
+    private static String rootPackage;
 
     /**
      * Main method for CortexJDK.  First argument must be the module to run.  All other arguments are passed through to the module for processing.
@@ -59,7 +59,6 @@ public class Main {
                     Dispatch.main(module.getName(), moduleArgs);
                 }
             }
-
         }
     }
 
@@ -164,7 +163,7 @@ public class Main {
         String buildDate = ((String) prop.get("build.date")).trim();
 
         System.out.println();
-        System.out.println("Program: " + progName + ", " + progDesc);
+        System.out.println("Program: " + progName + ", " + progDesc + ".");
         System.out.println();
         System.out.format("Version: %s.%s.%s (%s)%n", prop.get("major.version"), prop.get("minor.version"), prop.get("git.version"), prop.getProperty("git.version.long"));
         System.out.println("Times:   (repo) " + gitDate + "; (build) " + buildDate);
@@ -174,7 +173,7 @@ public class Main {
         System.out.println("Usage:   java -jar " + progName.toLowerCase() + ".jar <command> [options]");
         System.out.println();
 
-        Map<String, Class<? extends Command>> commands = new PackageInspector<Command>(Command.class, rootPackage).getExtendingClassesMap();
+        Map<String, Class<? extends Command>> commands = new PackageInspector<>(Command.class, rootPackage).getExtendingClassesMap();
 
         System.out.print("Command:");
         int padwidth = 1;
