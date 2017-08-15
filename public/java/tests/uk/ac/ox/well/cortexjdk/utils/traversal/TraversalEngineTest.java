@@ -4,10 +4,8 @@ import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -616,7 +614,7 @@ public class TraversalEngineTest {
         StringBuilder sb = new StringBuilder();
         sb.append(sk);
 
-        e.setCursor(sk, true);
+        e.seek(sk);
         while (e.hasNext()) {
             CortexVertex cv = e.next();
             sk = cv.getSk();
@@ -643,7 +641,7 @@ public class TraversalEngineTest {
         StringBuilder sb = new StringBuilder();
         sb.append(sk);
 
-        e.setCursor(sk, false);
+        e.seek(sk);
         while (e.hasPrevious()) {
             CortexVertex cv = e.previous();
             sk = cv.getSk();
@@ -670,7 +668,7 @@ public class TraversalEngineTest {
         StringBuilder sb = new StringBuilder();
         sb.append(sk);
 
-        e.setCursor(sk, true);
+        e.seek(sk);
         while (e.hasNext()) {
             CortexVertex cv = e.next();
             sk = cv.getSk();
@@ -697,7 +695,7 @@ public class TraversalEngineTest {
         StringBuilder sb = new StringBuilder();
         sb.append(sk);
 
-        e.setCursor(sk, false);
+        e.seek(sk);
         while (e.hasPrevious()) {
             CortexVertex cv = e.previous();
             sk = cv.getSk();
@@ -770,6 +768,34 @@ public class TraversalEngineTest {
             String expectedContig = seedsAndExpectedContigs.get(ck);
 
             Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
+        }
+    }
+
+    @Test
+    public void testGoForwardAndBackward() {
+        String hap = "AGTTCGAATCTGAGCTATATGCT";
+        int kmerSize = 7;
+
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("kid", Arrays.asList(hap));
+
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, kmerSize);
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(g.getColorForSampleName("kid"))
+                .graph(g)
+                .make();
+
+        for (int i = 1; i < hap.length() - kmerSize; i++) {
+            String sk = hap.substring(i, i + kmerSize);
+
+            e.seek(sk);
+            if (e.hasPrevious() && e.hasNext()) {
+                e.next();
+                CortexVertex cv = e.previous();
+
+                Assert.assertEquals(cv.getSk(), sk);
+            }
         }
     }
 
