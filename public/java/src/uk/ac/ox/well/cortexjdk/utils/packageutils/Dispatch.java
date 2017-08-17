@@ -2,12 +2,14 @@ package uk.ac.ox.well.cortexjdk.utils.packageutils;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.performance.PerformanceUtils;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
@@ -67,18 +69,10 @@ public class Dispatch {
                 }
             }
 
-            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-            List<String> arguments = runtimeMxBean.getInputArguments();
-            String jvmArgs = Joiner.on(" ").join(arguments);
-            String jar = System.getProperty("sun.java.command").split("\\s+")[0];
-            String cortexJdkCmd = instance.getClass().getSimpleName();
-            String modArgs = Joiner.on(" ").join(moduleArgs);
-            String defArgs = Joiner.on(" ").join(defaultArgs);
-            //String fullCmd = Joiner.on(" ").join("java", jvmArgs, "-jar", jar, cortexJdkCmd, modArgs, defArgs);
-
             instance.init();
 
             Main.getLogger().info("{}", getBanner());
+            Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
             Main.getLogger().info("");
 
             Date startTime = new Date();
@@ -104,6 +98,36 @@ public class Dispatch {
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
         }
+    }
+
+    @NotNull
+    private static String getFullCommand(String[] moduleArgs, Module instance, List<String> defaultArgs) {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+        String jvmArgs = Joiner.on(" ").join(arguments);
+        String jar = System.getProperty("sun.java.command").split("\\s+")[0];
+        String cortexJdkCmd = instance.getClass().getSimpleName();
+
+        List<String> pieces = new ArrayList<>();
+        pieces.add(jar);
+        pieces.add(cortexJdkCmd);
+        pieces.addAll(Arrays.asList(moduleArgs));
+        pieces.addAll(defaultArgs);
+
+        /*
+        List<String> modPieces = new ArrayList<>();
+
+        for (String piece : pieces) {
+            File f = new File(piece);
+            if (f.isFile()) {
+                modPieces.add(f.getAbsolutePath());
+            } else {
+                modPieces.add(piece);
+            }
+        }
+        */
+
+        return Joiner.on(" ").join("java", jvmArgs, "-jar", Joiner.on(" ").join(pieces)).replaceAll("\\s+", " ");
     }
 
     private static String getBanner() {

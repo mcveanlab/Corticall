@@ -43,6 +43,9 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         if (sk.length() != ec.getGraph().getKmerSize()) {
             throw new CortexJDKException("Graph traversal starting kmer is not equal to graph kmer size (" + sk.length() + " vs " + ec.getGraph().getKmerSize() + ")");
         }
+        if (ec.getStoppingRule() == null) {
+            throw new CortexJDKException("A stopping rule must be specified for depth-first searches");
+        }
 
         DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
         DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
@@ -160,8 +163,8 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
-        //seek(sk);
-        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(sk));
+        seek(sk);
+        CortexRecord cr = ec.getGraph().findRecord(sk);
 
         if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
 
@@ -176,13 +179,24 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
             Set<CortexVertex> nvs = getNextVertices(cv.getBk());
             avs = goForward ? nvs : pvs;
 
+            CortexVertex qv = null;
+            if (goForward && hasNext()) {
+                qv = next();
+            } else if (!goForward && hasPrevious()) {
+                qv = previous();
+            }
+
+            if (qv != null) {
+                avs = Collections.singleton(qv);
+            }
+
             // Connect the new vertices to the graph
             if (ec.connectAllNeighbors()) {
                 connectVertex(g, cv, pvs,  nvs);
             } else if (goForward) {
-                connectVertex(g, cv, null, nvs);
+                connectVertex(g, cv, null, avs);
             } else {
-                connectVertex(g, cv, pvs,  null);
+                connectVertex(g, cv, avs,  null);
             }
 
             visited.add(cv);

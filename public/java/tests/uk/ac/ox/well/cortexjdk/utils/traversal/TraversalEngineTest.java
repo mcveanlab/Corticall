@@ -23,6 +23,9 @@ import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ExplorationStopper;
 import java.io.File;
 import java.util.*;
 
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
+
 /**
  * Created by kiran on 10/05/2017.
  */
@@ -140,7 +143,7 @@ public class TraversalEngineTest {
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("kid"))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(ContigStopper.class)
                 .graph(g)
@@ -190,7 +193,7 @@ public class TraversalEngineTest {
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("var"))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(CycleCollapsingContigStopper.class)
                 .graph(g)
@@ -271,7 +274,7 @@ public class TraversalEngineTest {
                 .traversalColor(g.getColorForSampleName("kid"))
                 .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(ExplorationStopper.class)
                 .graph(g)
@@ -295,7 +298,7 @@ public class TraversalEngineTest {
         }
 
         e.getConfiguration().setStoppingRule(DestinationStopper.class);
-        e.getConfiguration().setGraphCombinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR);
+        e.getConfiguration().setGraphCombinationOperator(OR);
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
@@ -359,7 +362,7 @@ public class TraversalEngineTest {
                 .traversalColor(g.getColorForSampleName("kid"))
                 .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(ExplorationStopper.class)
                 .graph(g)
@@ -383,7 +386,7 @@ public class TraversalEngineTest {
         }
 
         e.getConfiguration().setStoppingRule(DestinationStopper.class);
-        e.getConfiguration().setGraphCombinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR);
+        e.getConfiguration().setGraphCombinationOperator(OR);
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
@@ -447,7 +450,7 @@ public class TraversalEngineTest {
                 .traversalColor(g.getColorForSampleName("kid"))
                 .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(ExplorationStopper.class)
                 .graph(g)
@@ -471,7 +474,7 @@ public class TraversalEngineTest {
         }
 
         e.getConfiguration().setStoppingRule(DestinationStopper.class);
-        e.getConfiguration().setGraphCombinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR);
+        e.getConfiguration().setGraphCombinationOperator(OR);
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
@@ -535,7 +538,7 @@ public class TraversalEngineTest {
                 .traversalColor(g.getColorForSampleName("kid"))
                 .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
-                .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
+                .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
                 .stopper(ExplorationStopper.class)
                 .graph(g)
@@ -557,7 +560,7 @@ public class TraversalEngineTest {
         }
 
         e.getConfiguration().setStoppingRule(DestinationStopper.class);
-        e.getConfiguration().setGraphCombinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR);
+        e.getConfiguration().setGraphCombinationOperator(OR);
 
         for (CortexVertex is : iss) {
             for (CortexVertex os : oss) {
@@ -823,6 +826,51 @@ public class TraversalEngineTest {
             String expectedContig = seedsAndExpectedContigs.get(ck);
 
             Assert.assertTrue(contigFwd.equals(expectedContig) || contigRev.equals(expectedContig), "Contig mismatch (act=" + contigFwd.length() + " vs exp=" + expectedContig.length() + ") for seed " + seed);
+        }
+    }
+
+    @Test
+    public void testLinkInformedDepthFirstSearch() {
+        CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
+        CortexLinks l0 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz.linkdb");
+        CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz.linkdb");
+        CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz.linkdb");
+
+        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(0)
+                .traversalDirection(BOTH)
+                .combinationOperator(OR)
+                .stopper(ContigStopper.class)
+                .graph(g)
+                .links(l0, l1, l2)
+                .make();
+
+        Set<CortexKmer> seedsToTry = new HashSet<>();
+        Iterator<CortexKmer> its = seedsAndExpectedContigs.keySet().iterator();
+        for (int i = 0; i < 50 && its.hasNext(); i++) {
+            seedsToTry.add(its.next());
+        }
+
+        for (CortexKmer ck : seedsToTry) {
+            String seed = ck.getKmerAsString();
+
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = e.dfs(seed);
+
+            Set<String> act = new HashSet<>();
+            for (CortexVertex cv : sg.vertexSet()) {
+                act.add(cv.getSk());
+            }
+
+            String expectedContig = seedsAndExpectedContigs.get(ck);
+            for (int i = 0; i <= expectedContig.length() - g.getKmerSize(); i++) {
+                String sk = expectedContig.substring(i, i + g.getKmerSize());
+
+                Assert.assertTrue(act.contains(sk) || act.contains(SequenceUtils.reverseComplement(sk)));
+            }
+
+            Assert.assertTrue(act.size() >= expectedContig.length() - g.getKmerSize());
         }
     }
 

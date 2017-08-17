@@ -12,6 +12,9 @@ public class CortexRecord implements Comparable<CortexRecord> {
     private int[] coverages;
     private byte[] edges;
 
+    private byte[][] lazyLoadedEdgesTable = null;
+    private String[] lazyLoadedEdgeStrings = null;
+
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
         this.binaryKmer = new long[binaryKmer.length];
         this.coverages = new int[coverages.length];
@@ -107,37 +110,42 @@ public class CortexRecord implements Comparable<CortexRecord> {
     public byte[] getEdges() { return edges; }
 
     public byte[][] getEdgesAsBytes() {
-        int numColors = edges.length;
-        byte[] str = {'a', 'c', 'g', 't', 'A', 'C', 'G', 'T'};
+        if (lazyLoadedEdgesTable == null) {
+            int numColors = edges.length;
+            byte[] str = {'a', 'c', 'g', 't', 'A', 'C', 'G', 'T'};
 
-        byte[][] edgesTable = new byte[numColors][8];
-        for (int color = 0; color < numColors; color++) {
-            byte edge = edges[color];
+            lazyLoadedEdgesTable = new byte[numColors][8];
+            for (int color = 0; color < numColors; color++) {
+                byte edge = edges[color];
 
-            int left = (edge >> 4);
-            int right = (edge & 0xf);
+                int left = (edge >> 4);
+                int right = (edge & 0xf);
 
-            for (int i = 0; i < 4; i++) {
-                int leftEdge = (left & (0x1 << (3-i)));
-                edgesTable[color][i] = (byte) ((leftEdge != 0) ? str[i] : '.');
+                for (int i = 0; i < 4; i++) {
+                    int leftEdge = (left & (0x1 << (3 - i)));
+                    lazyLoadedEdgesTable[color][i] = (byte) ((leftEdge != 0) ? str[i] : '.');
 
-                int rightEdge = (right & (0x1 << i));
-                edgesTable[color][i+4] = (byte) ((rightEdge != 0) ? str[i+4] : '.');
+                    int rightEdge = (right & (0x1 << i));
+                    lazyLoadedEdgesTable[color][i + 4] = (byte) ((rightEdge != 0) ? str[i + 4] : '.');
+                }
             }
         }
 
-        return edgesTable;
+        return lazyLoadedEdgesTable;
     }
 
     public String[] getEdgeAsStrings() {
         byte[][] edgesTable = getEdgesAsBytes();
-        String[] edgesStrings = new String[edges.length];
 
-        for (int i = 0; i < edges.length; i++) {
-            edgesStrings[i] = new String(edgesTable[i]);
+        if (lazyLoadedEdgeStrings == null) {
+            lazyLoadedEdgeStrings = new String[edges.length];
+
+            for (int i = 0; i < edges.length; i++) {
+                lazyLoadedEdgeStrings[i] = new String(edgesTable[i]);
+            }
         }
 
-        return edgesStrings;
+        return lazyLoadedEdgeStrings;
     }
 
     public int[] getCoverages() { return coverages; }

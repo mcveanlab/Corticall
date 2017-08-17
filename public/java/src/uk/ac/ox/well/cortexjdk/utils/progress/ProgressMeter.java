@@ -4,13 +4,13 @@ import org.slf4j.Logger;
 
 public class ProgressMeter {
     private Logger log;
-    private long currentRecord = 0;
-    private long updateRecord = 1;
+    private long currentRecord = 1;
+    private long updateRecord = 0;
     private long maxRecord = 0;
     private String header = "";
     private String message = "";
     private String indent = "";
-    private int updateTime = 60;
+    private int updateTime = 120;
 
     private long startTime = System.currentTimeMillis();
 
@@ -32,21 +32,20 @@ public class ProgressMeter {
     }
 
     public void update(String newMessage) {
-        if (currentRecord % updateRecord == 0 || currentRecord == maxRecord || isTimeToUpdate()) {
+        if (currentRecord % updateRecord == 0 || currentRecord == 1 || currentRecord == maxRecord || isTimeToUpdate()) {
             if (maxRecord > 0) {
                 log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, String.format("%.2f", 100.0*((double)currentRecord)/((double)maxRecord)), newMessage);
             } else {
                 log.info("{}{} {} ", indent, currentRecord, newMessage);
             }
+
+            startTime = System.currentTimeMillis();
         }
 
-        startTime = System.currentTimeMillis();
         currentRecord++;
     }
 
-    public void reset() {
-        currentRecord = 0;
-    }
+    public void reset() { currentRecord = 1; }
 
     public long pos() { return currentRecord; }
 
