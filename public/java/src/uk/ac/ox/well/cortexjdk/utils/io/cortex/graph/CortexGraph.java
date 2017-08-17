@@ -149,10 +149,12 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            long maxMem = Runtime.getRuntime().maxMemory();
-            long memPortion = maxMem / 2;
-            int numItems = (int) (memPortion / recordSize);
-            cache = new LRUMap(numItems);
+//            long maxMem = Runtime.getRuntime().maxMemory();
+//            long memPortion = maxMem / 2;
+//            int numItems = (int) (memPortion / recordSize);
+//            cache = new LRUMap(numItems);
+
+            cache = new LRUMap(10000);
 
             position(0);
         } catch (FileNotFoundException e) {
