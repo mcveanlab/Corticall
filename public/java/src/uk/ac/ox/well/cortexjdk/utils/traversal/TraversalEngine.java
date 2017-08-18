@@ -39,16 +39,25 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
 
     public TraversalEngineConfiguration getConfiguration() { return ec; }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk) {
-        if (sk.length() != ec.getGraph().getKmerSize()) {
-            throw new CortexJDKException("Graph traversal starting kmer is not equal to graph kmer size (" + sk.length() + " vs " + ec.getGraph().getKmerSize() + ")");
+    private void validateConfiguration(String seed) {
+        if (seed.length() != ec.getGraph().getKmerSize()) {
+            throw new CortexJDKException("Graph traversal starting kmer is not equal to graph kmer size (" + seed.length() + " vs " + ec.getGraph().getKmerSize() + ")");
         }
+
         if (ec.getStoppingRule() == null) {
             throw new CortexJDKException("A stopping rule must be specified for depth-first searches");
         }
 
-        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(sk, false, 0, new HashSet<>()) : null;
-        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(sk, true,  0, new HashSet<>()) : null;
+        if (ec.getTraversalColor() == -1 || ec.getTraversalColor() >= ec.getGraph().getNumColors()) {
+            throw new CortexJDKException("Traversal color '" + ec.getTraversalColor() + "' is invalid.");
+        }
+    }
+
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String seed) {
+        validateConfiguration(seed);
+
+        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(seed, false, 0, new HashSet<>()) : null;
+        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(seed, true,  0, new HashSet<>()) : null;
 
         DirectedGraph<CortexVertex, CortexEdge> dfs = null;
 
@@ -76,6 +85,8 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     }
 
     public List<CortexVertex> walk(String seed) {
+        validateConfiguration(seed);
+
         List<CortexVertex> contig = new ArrayList<>();
 
         CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
@@ -163,7 +174,10 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
-        seek(sk);
+        if (!ec.getLinks().isEmpty()) {
+            seek(sk);
+        }
+
         CortexRecord cr = ec.getGraph().findRecord(sk);
 
         if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
@@ -179,15 +193,17 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
             Set<CortexVertex> nvs = getNextVertices(cv.getBk());
             avs = goForward ? nvs : pvs;
 
-            CortexVertex qv = null;
-            if (goForward && hasNext()) {
-                qv = next();
-            } else if (!goForward && hasPrevious()) {
-                qv = previous();
-            }
+            if (!ec.getLinks().isEmpty()) {
+                CortexVertex qv = null;
+                if (goForward && hasNext()) {
+                    qv = next();
+                } else if (!goForward && hasPrevious()) {
+                    qv = previous();
+                }
 
-            if (qv != null) {
-                avs = Collections.singleton(qv);
+                if (qv != null) {
+                    avs = Collections.singleton(qv);
+                }
             }
 
             // Connect the new vertices to the graph
