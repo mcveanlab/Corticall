@@ -1,19 +1,24 @@
 package uk.ac.ox.well.cortexjdk.commands.inheritance;
 
 import htsjdk.samtools.util.Interval;
+import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
+import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.BubbleOpeningStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
@@ -21,6 +26,9 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.PrintStream;
 import java.util.*;
+
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 08/08/2017.
@@ -48,28 +56,65 @@ public class CallVariants extends Module {
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(REFERENCES.keySet())));
         Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
 
+        log.info("Colors:");
+        log.info("  - parents:  {}", parentColors);
+        log.info("  - children: {}", childColors);
+        log.info("  - refs:     {}", draftColors);
+
+        Set<CortexKmer> seeds = getVariantSeeds(refColor, parentColors, draftColors);
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .combinationOperator(AND)
+                .traversalDirection(BOTH)
+                .joiningColors(parentColors)
+                .stopper(ContigStopper.class)
+                .graph(GRAPH)
+                .links(LINKS)
+                .make();
+
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Processing records")
-                .message("records processed")
-                .maxRecord(GRAPH.getNumRecords())
-                .updateRecord(GRAPH.getNumRecords() / 10)
+                .header("Building contigs")
+                .message("seeds processed")
+                .maxRecord(seeds.size())
                 .make(log);
 
-        Map<CortexRecord, Integer> seeds = new HashMap<>();
+        for (CortexKmer ck : seeds) {
+            for (int c : childColors) {
+                CortexRecord cr = GRAPH.findRecord(ck);
+                if (cr.getCoverage(c) > 0) {
+                    e.getConfiguration().setTraversalColor(c);
 
-        for (CortexRecord cr : GRAPH) {
-            if (isSinglyConnected(cr) &&
-                    isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
-                    isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
-                    hasUniqueCoordinates(cr, draftColors)) {
+                    List<CortexVertex> cvs = e.walk(ck.getKmerAsString());
 
-                seeds.put(cr, -1);
+                    for (CortexVertex cv : cvs) {
+                    }
+
+                    break;
+                }
             }
 
             pm.update();
+
+            /*
+            CortexRecord cr = seeds.get(ck);
+
+            for (int c : childColors) {
+                if (cr.getCoverage(c) > 0) {
+                    Collection<String> inEdges = cr.getInEdgesAsStrings(c, false);
+                    for (String inEdge : inEdges) {
+                        CortexKmer inKmer = new CortexKmer(inEdge + cr.getKmerAsString().substring(0, GRAPH.getKmerSize() - 1));
+
+
+                    }
+
+                    Collection<String> outEdges = cr.getOutEdgesAsStrings(c, false);
+                }
+            }
+            */
         }
 
-        log.info("Found {} seed kmers for putative variants.", seeds.size());
+
+
 
                 //sg.addVertex(new CortexVertex(new CortexByteKmer(cr.getKmerAsBytes()), cr));
 
@@ -142,6 +187,92 @@ public class CallVariants extends Module {
 //        }
     }
 
+    @NotNull
+    private Set<CortexKmer> getVariantSeeds(int refColor, Set<Integer> parentColors, Set<Integer> draftColors) {
+        Set<CortexKmer> seeds = new HashSet<>();
+
+        DirectedGraph<String, DefaultEdge> sg = new DefaultDirectedGraph<>(DefaultEdge.class);
+
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing records")
+                .message("records processed")
+                .maxRecord(GRAPH.getNumRecords())
+                .updateRecord(GRAPH.getNumRecords() / 10)
+                .make(log);
+
+        for (CortexRecord cr : GRAPH) {
+            if (isSinglyConnected(cr) &&
+                isSharedWithOnlyOneParent(cr, parentColors, draftColors) &&
+                isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
+                hasUniqueCoordinates(cr, draftColors)) {
+
+                seeds.add(cr.getCortexKmer());
+
+                String skFwd = cr.getKmerAsString();
+                String skRev = SequenceUtils.reverseComplement(cr.getKmerAsString());
+                sg.addVertex(skFwd);
+                sg.addVertex(skRev);
+
+                for (int c = 0; c < cr.getNumColors(); c++) {
+                    if (cr.getCoverage(c) > 0) {
+                        Collection<String> ies = cr.getInEdgesAsStrings(c, false);
+                        for (String ie : ies) {
+                            String inEdgeFwd = ie + skFwd.substring(0, skFwd.length() - 1);
+                            String outEdgeRev = SequenceUtils.reverseComplement(inEdgeFwd);
+
+                            sg.addVertex(inEdgeFwd);
+                            sg.addEdge(inEdgeFwd, skFwd);
+
+                            sg.addVertex(outEdgeRev);
+                            sg.addEdge(skRev, outEdgeRev);
+                        }
+
+                        Collection<String> oes = cr.getOutEdgesAsStrings(c, false);
+                        for (String oe : oes) {
+                            String outEdgeFwd = skFwd.substring(1, skFwd.length()) + oe;
+                            String inEdgeRev = SequenceUtils.reverseComplement(outEdgeFwd);
+
+                            sg.addVertex(outEdgeFwd);
+                            sg.addEdge(skFwd, outEdgeFwd);
+
+                            sg.addVertex(inEdgeRev);
+                            sg.addEdge(inEdgeRev, skRev);
+                        }
+                    }
+                }
+            }
+
+            pm.update();
+        }
+
+        Set<String> uniqueSeeds = new HashSet<>();
+        Set<CortexKmer> goodSeeds = new HashSet<>();
+        for (String sk : sg.vertexSet()) {
+            if (sg.inDegreeOf(sk) == 0 && sg.outDegreeOf(sk) == 1) {
+                uniqueSeeds.add(sk);
+
+                List<String> contig = new ArrayList<>();
+                contig.add(sk);
+
+                String v = sk;
+                while (sg.outDegreeOf(v) == 1) {
+                    List<String> out = Graphs.successorListOf(sg, v);
+                    v = out.get(0);
+
+                    contig.add(v);
+                }
+
+                if (contig.size() > 3) {
+                    goodSeeds.add(new CortexKmer(sk));
+                }
+            }
+        }
+
+        log.info("Found {} seed kmers for putative variants, {} unique, {} good", seeds.size(), uniqueSeeds.size(), goodSeeds.size());
+
+        return goodSeeds;
+    }
+
     /*
     private int getBubbleColor(Set<Integer> draftColors, int draftColor) {
         int bubbleColor = draftColor;
@@ -199,7 +330,7 @@ public class CallVariants extends Module {
             }
         }
 
-        return numChildrenWithCoverage > 1 && numChildrenWithCoverage < numChildren;
+        return numChildrenWithCoverage > 1; // && numChildrenWithCoverage < numChildren;
     }
 
     private boolean isSinglyConnected(CortexRecord cr) {

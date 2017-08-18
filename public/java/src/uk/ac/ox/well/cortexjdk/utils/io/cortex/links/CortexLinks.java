@@ -7,6 +7,7 @@ import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArrayTuple;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 
 import java.io.File;
@@ -20,6 +21,7 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     private HTreeMap<Integer, String> linkSources;
     private HTreeMap<Integer, String> linkColors;
     private Map<String, Integer> linkSamples;
+    //private Set<CortexKmer> linkKeys;
 
     public CortexLinks(String linksFilePath) {
         loadLinks(new File(linksFilePath));
@@ -67,6 +69,15 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
                     .serializer(new SerializerArrayTuple(Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY))
                     .counterEnable()
                     .open();
+
+//            linkKeys = new HashSet<>();
+//
+//            for (Object[] o : linkIndex) {
+//                byte[] o0 = (byte[]) o[0];
+//                //CortexKmer ck = new CortexKmer(o0);
+//
+//                linkKeys.add(new CortexKmer(o0));
+//            }
         } else {
             clm = new CortexLinksMap(linksFile);
         }
@@ -98,28 +109,54 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
         return clm == null ? linkIndex.size() == 0 : clm.size() == 0;
     }
 
+    public boolean containsKey(byte[] bk) {
+        if (clm == null) {
+            Set subset = linkIndex.subSet(
+                    new Object[]{bk},
+                    new Object[]{bk, null, null});
+
+            return subset.size() > 0;
+
+//            return linkKeys.contains(new CortexKmer(sk));
+        } else {
+            return clm.containsKey(bk);
+        }
+    }
+
     public boolean containsKey(String sk) {
+        return containsKey(sk.getBytes());
+
+        /*
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{sk.getBytes()},
                     new Object[]{sk.getBytes(), null, null});
 
             return subset.size() > 0;
+
+//            return linkKeys.contains(new CortexKmer(sk));
         } else {
             return clm.containsKey(sk);
         }
+        */
     }
 
     public boolean containsKey(CortexKmer ck) {
+        return containsKey(ck.getKmerAsBytes());
+
+        /*
         if (clm == null) {
             Set subset = linkIndex.subSet(
                     new Object[]{ck.getKmerAsBytes()},
                     new Object[]{ck.getKmerAsBytes(), null, null});
 
             return subset.size() > 0;
+
+//            return linkKeys.contains(ck);
         } else {
             return clm.containsKey(ck);
         }
+        */
     }
 
     public CortexLinksRecord get(String sk) {
@@ -127,7 +164,6 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
             Set subset = linkIndex.subSet(
                     new Object[]{sk.getBytes()},
                     new Object[]{sk.getBytes(), null, null});
-
 
             List<CortexJunctionsRecord> cjrs = new ArrayList<>();
             for (Object o : subset) {
@@ -147,7 +183,6 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
             Set subset = linkIndex.subSet(
                     new Object[]{ck.getKmerAsBytes()},
                     new Object[]{ck.getKmerAsBytes(), null, null});
-
 
             List<CortexJunctionsRecord> cjrs = new ArrayList<>();
             for (Object o : subset) {
@@ -211,6 +246,8 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
             }
 
             return keys;
+
+//            return linkKeys;
         } else {
             return clm.keySet();
         }
