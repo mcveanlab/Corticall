@@ -28,7 +28,7 @@ Additionally CortexJDK also contains the graph-based de novo mutation calling so
 Availability
 ------------
 
-CortexJDK is released under the ![https://opensource.org/licenses/MIT](MIT) license.  The latest code is ![https://github.com/mcveanlab/CortexJDK](freely available at Github).
+CortexJDK is released under the [MIT](https://opensource.org/licenses/MIT) license.  The latest code is [freely available at Github](https://github.com/mcveanlab/CortexJDK).
 
 
 Dependencies
@@ -36,9 +36,9 @@ Dependencies
 
 CortexJDK has the following dependencies:
 
-* ![http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html](Java8): needed for runtime and dev kit
-* ![http://ant.apache.org](Apache Ant): for dependency fetching and compilation
-* ![https://github.com/mcveanlab/mccortex](McCortex): for building Cortex graphs and link annotations
+* [Java8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html): needed for runtime and dev kit
+* [Apache Ant](http://ant.apache.org): for dependency fetching and compilation
+* [McCortex](https://github.com/mcveanlab/mccortex): for building Cortex graphs and link annotations
 
 
 Installation
