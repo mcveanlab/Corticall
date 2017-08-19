@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.inheritance;
 
 import htsjdk.samtools.util.Interval;
+import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
@@ -12,6 +13,7 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.caller.Bubble;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
@@ -19,6 +21,7 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.BubbleOpeningStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ContigStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
@@ -69,7 +72,7 @@ public class CallVariants extends Module {
                 .joiningColors(parentColors)
                 .stopper(ContigStopper.class)
                 .graph(GRAPH)
-                .links(LINKS)
+                //.links(LINKS)
                 .make();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -78,113 +81,98 @@ public class CallVariants extends Module {
                 .maxRecord(seeds.size())
                 .make(log);
 
+        int numVariants = 0;
         for (CortexKmer ck : seeds) {
             for (int c : childColors) {
                 CortexRecord cr = GRAPH.findRecord(ck);
                 if (cr.getCoverage(c) > 0) {
                     e.getConfiguration().setTraversalColor(c);
 
-                    List<CortexVertex> cvs = e.walk(ck.getKmerAsString());
+                    int thisParent = -1;
+                    int otherParent = -1;
+                    for (int pc : parentColors) {
+                        if (cr.getCoverage(pc) == 1) {
+                            thisParent = pc;
+                        } else if (cr.getCoverage(pc) == 0) {
+                            otherParent = pc;
+                        }
+                    }
 
-                    for (CortexVertex cv : cvs) {
+                    String sk = ck.getKmerAsString();
+                    List<CortexVertex> contigChild = new ArrayList<>();
+                    contigChild.add(new CortexVertex(new CortexByteKmer(sk), GRAPH.findRecord(sk)));
+
+                    CortexVertex source = null;
+                    e.seek(sk);
+                    while (e.hasPrevious()) {
+                        CortexVertex cv = e.previous();
+                        contigChild.add(0, cv);
+
+                        if (cv.getCr().getCoverage(otherParent) > 0) {
+                            source = cv;
+                            break;
+                        }
+                    }
+
+                    CortexVertex destination = null;
+                    e.seek(sk);
+                    while (e.hasNext()) {
+                        CortexVertex cv = e.next();
+                        contigChild.add(cv);
+
+                        if (cv.getCr().getCoverage(otherParent) > 0) {
+                            destination = cv;
+                            break;
+                        }
+                    }
+
+                    if (source != null && destination != null) {
+                        e.getConfiguration().setTraversalColor(otherParent);
+
+                        List<CortexVertex> contigParent = new ArrayList<>();
+                        contigParent.add(source);
+
+                        boolean destinationReached = false;
+
+                        e.seek(source.getSk());
+                        while (e.hasNext()) {
+                            CortexVertex cv = e.next();
+                            contigParent.add(cv);
+
+                            if (cv.equals(destination)) {
+                                destinationReached = true;
+                                break;
+                            }
+                        }
+
+                        if (destinationReached) {
+                            Set<Interval> sourceIntervals = REFERENCES.get("ref").findKmer(source.getSk());
+                            Set<Interval> destinationIntervals = REFERENCES.get("ref").findKmer(destination.getSk());
+
+                            if (sourceIntervals.size() == 1 && destinationIntervals.size() == 1) {
+                                Interval sourceInterval = sourceIntervals.iterator().next();
+                                Interval destinationInterval = destinationIntervals.iterator().next();
+
+                                if (sourceInterval.getContig().equals(destinationInterval.getContig())) {
+                                    log.debug("{}", TraversalEngine.toContig(contigChild));
+                                    log.debug("{}", TraversalEngine.toContig(contigParent));
+                                    log.debug("{}", trimToAlleles(TraversalEngine.toContig(contigChild), TraversalEngine.toContig(contigParent)));
+                                    log.debug("{}", sourceIntervals);
+                                    log.debug("{}", destinationIntervals);
+                                    log.debug("");
+
+                                    numVariants++;
+                                }
+                            }
+                        }
                     }
 
                     break;
                 }
             }
 
-            pm.update();
-
-            /*
-            CortexRecord cr = seeds.get(ck);
-
-            for (int c : childColors) {
-                if (cr.getCoverage(c) > 0) {
-                    Collection<String> inEdges = cr.getInEdgesAsStrings(c, false);
-                    for (String inEdge : inEdges) {
-                        CortexKmer inKmer = new CortexKmer(inEdge + cr.getKmerAsString().substring(0, GRAPH.getKmerSize() - 1));
-
-
-                    }
-
-                    Collection<String> outEdges = cr.getOutEdgesAsStrings(c, false);
-                }
-            }
-            */
+            pm.update("seeds processed, " + numVariants + " variants found");
         }
-
-
-
-
-                //sg.addVertex(new CortexVertex(new CortexByteKmer(cr.getKmerAsBytes()), cr));
-
-                //canWalkToCanonicalReference(cr, childColors, refColor)) {
-
-////                int draftColor = getDraftColor(cr, draftColors);
-////                KmerLookup kl = REFERENCES.get(GRAPH.getSampleName(draftColor));
-////
-////                log.info("{} {}", cr.getKmerAsString(), kl.findKmer(cr.getKmerAsString()));
-//
-//                seeds++;
-//
-//                /*
-//                List<Interval> intervals = getCanonicalReferenceCoordinates(cr, childColors, refColor);
-//
-//                if (intervals != null) {
-//                    int draftColor = getDraftColor(cr, draftColors);
-//                    int bubbleColor = getBubbleColor(draftColors, draftColor);
-//
-//                    Set<String> childAllele = new HashSet<>();
-//                    Set<String> draftAllele = new HashSet<>();
-//                    Set<Interval> locus = new HashSet<>();
-//                    Set<Integer> colors = new HashSet<>();
-//
-//                    for (int cc : childColors) {
-//                        if (cr.getCoverage(cc) > 0) {
-//                            Pair<String, String> bubbleB = callSimpleBubble(cr, cc, bubbleColor);
-//                            //Pair<String, String> bubbleD = callSimpleBubble(cr, cc, draftColor);
-//
-//                            if (bubbleB != null) {
-//                                Interval coords = getBubbleCanonicalCoordinates(bubbleB.getFirst(), cc, refColor);
-//
-//                                if (coords != null) {
-//                                    Pair<String, String> alleles = trimToAlleles(bubbleB);
-//
-//                                    //log.info("  - {} {} {} {}", cr.getKmerAsString(), alleles.getFirst(), alleles.getSecond(), coords);
-//                                    if (alleles.getFirst().length() == alleles.getSecond().length() && alleles.getFirst().length() == 1) {
-//                                        childAllele.add(alleles.getFirst());
-//                                        draftAllele.add(alleles.getSecond());
-//                                        locus.add(coords);
-//                                        colors.add(cc);
-//
-//                                        for (int i = 0; i <= bubbleB.getFirst().length() - GRAPH.getKmerSize(); i++) {
-//                                            String sk = bubbleB.getFirst().substring(i, i + GRAPH.getKmerSize());
-//                                            seen.add(new CortexBinaryKmer(CortexRecord.encodeBinaryKmer(sk.getBytes())));
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    if (childAllele.size() == 1) {
-//                        numVariants++;
-//                        log.info("  call: {} {} {} {} {} {}", GRAPH.position(), GRAPH.getSampleName(draftColor), childAllele, draftAllele, locus, colors);
-//
-//                        Interval loc = locus.iterator().next();
-//
-//                        out.println(Joiner.on(" ").join(loc.getContig(), loc.getStart(), loc.getEnd(), draftColor, GRAPH.getSampleName(draftColor), childAllele, draftAllele, colors));
-//                    }
-//                }
-//                */
-//            }
-//
-//            pm.update("records processed, " + seeds + " seeds, " + numVariants + " variants, " + seen.size() + " kmers from variants");
-//            pm.update();
-//
-//            pos++;
-//            if (pos >= CHUNKSIZE) { break; }
-//        }
     }
 
     @NotNull
@@ -263,7 +251,7 @@ public class CallVariants extends Module {
                 }
 
                 if (contig.size() > 3) {
-                    goodSeeds.add(new CortexKmer(sk));
+                    goodSeeds.add(new CortexKmer(contig.get(1)));
                 }
             }
         }
@@ -272,18 +260,6 @@ public class CallVariants extends Module {
 
         return goodSeeds;
     }
-
-    /*
-    private int getBubbleColor(Set<Integer> draftColors, int draftColor) {
-        int bubbleColor = draftColor;
-        for (int dc : draftColors) {
-            if (dc != draftColor) {
-                bubbleColor = dc;
-            }
-        }
-        return bubbleColor;
-    }
-    */
 
     private Set<Integer> getChildColors(Set<Integer> parentColors, Set<Integer> draftColors, int refColor) {
         Set<Integer> childColors = new TreeSet<>();
@@ -320,17 +296,17 @@ public class CallVariants extends Module {
         ignoreColors.add(refColor);
 
         int numChildrenWithCoverage = 0;
-        int numChildren = 0;
+        //int numChildren = 0;
         for (int c = 0; c < cr.getNumColors(); c++) {
             if (!ignoreColors.contains(c)) {
                 if (cr.getCoverage(c) > 0) {
                     numChildrenWithCoverage++;
                 }
-                numChildren++;
+                //numChildren++;
             }
         }
 
-        return numChildrenWithCoverage > 1; // && numChildrenWithCoverage < numChildren;
+        return numChildrenWithCoverage >= 1; // && numChildrenWithCoverage < numChildren;
     }
 
     private boolean isSinglyConnected(CortexRecord cr) {
@@ -367,137 +343,7 @@ public class CallVariants extends Module {
         return false;
     }
 
-    private boolean canWalkToCanonicalReference(CortexRecord cr, Set<Integer> childColors, int refColor) {
-        TraversalEngine e = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .make();
-
-        for (int cc : childColors) {
-            e.getConfiguration().setTraversalColor(cc);
-
-            int found = 0;
-
-            for (boolean goForward : Arrays.asList(true, false)) {
-                e.seek(cr.getKmerAsString());
-                while (goForward ? e.hasNext() : e.hasPrevious()) {
-                    CortexVertex cv = goForward ? e.next() : e.previous();
-
-                    if (cv.getCr().getCoverage(refColor) > 0) {
-                        found++;
-                        break;
-                    }
-                }
-            }
-
-            if (found == 2) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-/*
-    private List<Interval> getCanonicalReferenceCoordinates(CortexRecord cr, Set<Integer> childColors, int refColor) {
-        TraversalEngine e = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .make();
-
-        for (int cc : childColors) {
-            e.getConfiguration().setTraversalColor(cc);
-
-            List<Interval> intervals = new ArrayList<>();
-
-            for (boolean goForward : Arrays.asList(true, false)) {
-                e.seek(cr.getKmerAsString());
-                while (goForward ? e.hasNext() : e.hasPrevious()) {
-                    CortexVertex cv = goForward ? e.next() : e.previous();
-
-                    if (cv.getCr().getCoverage(refColor) > 0) {
-                        Set<Interval> its = REFERENCE.findKmer(cv.getSk());
-                        if (its != null && its.size() == 1) {
-                            intervals.add(its.iterator().next());
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            if (intervals.size() == 2) {
-                Interval it0 = intervals.get(0);
-                Interval it1 = intervals.get(1);
-
-                if (it0.getContig().equals(it1.getContig())) {
-                    return intervals;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private int getDraftColor(CortexRecord cr, Set<Integer> draftColors) {
-        for (int dc : draftColors) {
-            if (cr.getCoverage(dc) > 0) {
-                return dc;
-            }
-        }
-
-        return -1;
-    }
-
-    private Pair<String, String> callSimpleBubble(CortexRecord cr, int childColor, int bubbleColor) {
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(childColor)
-                .graph(GRAPH)
-                .make();
-
-        List<CortexVertex> childVertices = new ArrayList<>();
-        childVertices.add(new CortexVertex(cr.getKmerAsByteKmer(), cr));
-
-        for (boolean goForward : Arrays.asList(false, true)) {
-            e.seek(cr.getKmerAsString());
-            while (goForward ? e.hasNext() : e.hasPrevious()) {
-                CortexVertex cv = goForward ? e.next() : e.previous();
-
-                if (goForward) { childVertices.add(cv); }
-                else { childVertices.add(0, cv); }
-
-                if (cv.getCr().getCoverage(bubbleColor) > 0) { break; }
-            }
-        }
-
-        if (childVertices.get(0).getCr().getCoverage(bubbleColor) > 0) {
-            e = new TraversalEngineFactory()
-                    .traversalColor(bubbleColor)
-                    .graph(GRAPH)
-                    .make();
-
-            List<CortexVertex> draftVertices = new ArrayList<>();
-            draftVertices.add(childVertices.get(0));
-
-            e.seek(childVertices.get(0).getSk());
-            while (e.hasNext()) {
-                CortexVertex cv = e.next();
-
-                draftVertices.add(cv);
-
-                if (cv.getCr().getCoverage(childColor) > 0) { break; }
-            }
-
-            if (draftVertices.get(draftVertices.size() - 1).getSk().equals(childVertices.get(childVertices.size() - 1).getSk())) {
-                return new Pair<>(TraversalEngine.toContig(childVertices), TraversalEngine.toContig(draftVertices));
-            }
-        }
-
-        return null;
-    }
-
-    private Pair<String, String> trimToAlleles(Pair<String, String> haplotypes) {
-        String s0 = haplotypes.getFirst();
-        String s1 = haplotypes.getSecond();
-
+    private Pair<String, String> trimToAlleles(String s0, String s1) {
         int s0start = 0, s0end = s0.length();
         int s1start = 0, s1end = s1.length();
 
@@ -525,44 +371,4 @@ public class CallVariants extends Module {
 
         return new Pair<>(pieces[1], pieces[2]);
     }
-
-    private Interval getBubbleCanonicalCoordinates(String childHaplotype, int childColor, int refColor) {
-        Interval is = null, ie = null;
-
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(childColor)
-                .graph(GRAPH)
-                .make();
-
-        String firstKmer = childHaplotype.substring(0, GRAPH.getKmerSize());
-        String lastKmer = childHaplotype.substring(childHaplotype.length() - GRAPH.getKmerSize(), childHaplotype.length());
-
-        for (boolean goForward : Arrays.asList(false, true)) {
-            e.seek(goForward ? lastKmer : firstKmer);
-            while (goForward ? e.hasNext() : e.hasPrevious()) {
-                CortexVertex cv = goForward ? e.next() : e.previous();
-
-                if (cv.getCr().getCoverage(refColor) > 0) {
-                    Set<Interval> intervals = REFERENCE.findKmer(cv.getSk());
-
-                    if (intervals != null && intervals.size() == 1) {
-                        if (goForward) {
-                            ie = intervals.iterator().next();
-                        } else {
-                            is = intervals.iterator().next();
-                        }
-
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (is != null && ie != null) {
-            return is.getStart() < ie.getStart() ? is : ie;
-        }
-
-        return null;
-    }
-    */
 }

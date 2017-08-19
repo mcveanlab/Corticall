@@ -22,7 +22,7 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
-public class TraversalEngine implements ListIterator<CortexVertex> {
+public class TraversalEngine {
     private TraversalEngineConfiguration ec;
 
     public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
@@ -460,7 +460,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return vs.size();
     }
 
-    @Override
+    //@Override
     public CortexVertex next() {
         if (nextKmer == null) { throw new NoSuchElementException("No single next kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || !goForward) {
@@ -504,7 +504,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         return cv;
     }
 
-    @Override
+    //@Override
     public CortexVertex previous() {
         if (prevKmer == null) { throw new NoSuchElementException("No single prev kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || goForward) {
@@ -610,6 +610,11 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
         }
     }
 
+    public boolean hasNext() { return nextKmer != null; }
+
+    public boolean hasPrevious() { return prevKmer != null; }
+
+    /*
     @Override public boolean hasNext() { return nextKmer != null; }
 
     @Override public boolean hasPrevious() { return prevKmer != null; }
@@ -623,6 +628,7 @@ public class TraversalEngine implements ListIterator<CortexVertex> {
     @Override public void set(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot set elements in CortexGraph iterator"); }
 
     @Override public void add(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot add elements to CortexGraph iterator"); }
+    */
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
