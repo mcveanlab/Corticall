@@ -1,26 +1,75 @@
-CortexJDK
+CortexJDK: A Java API for manipulating (Mc)Cortex de novo assembly graph and link data.
 =========
 
-Author: Kiran Garimella <kiran@well.ox.ac.uk>
+Quick start
+-----------
 
-A library for manipulating (Mc)Cortex de-novo assembly graph and link data.
+    git clone https://github.com/mcveanlab/CortexJDK
+    cd CortexJDK
+    ant
+    java -jar dist/cortexjdk.jar
+
+
+Introduction
+------------
+
+CortexJDK is a Java class library for performing efficient, low-memory traversals on multi-color linked de Bruijn graphs (LdBG) produced by McCortex.  The most important functionalities provided are:
+
+* iterating over records in a Cortex graphs
+* random access (by binary search) to Cortex graph records
+* performing simple walks (i.e. extracting a contig, optionally using link information to disambiguate junction choices)
+* performing depth-first searches with custom stopping rules (useful for finding interesting graph motifs)
+
+CortexJDK handles the heavy lifting when operating with these data structures, permitting developers to concentrate on the genome analysis and variant calling tools that can be written on top of this API.
+
+Additionally CortexJDK also contains the graph-based de novo mutation calling software developed during my D.Phil.  These tools may be split into their own repository at a later date.  For now, they serve as a useful example for other developers on how to use the API.
+
+
+Availability
+------------
+
+CortexJDK is released under the ![https://opensource.org/licenses/MIT](MIT) license.  The latest code is ![https://github.com/mcveanlab/CortexJDK](freely available at Github).
+
 
 Dependencies
 ------------
 
-You must have Apache Ant (http://ant.apache.org) installed to build CortexJDK. Other dependencies are fetched via Ivy at compile time.
+CortexJDK has the following dependencies:
 
-McCortex is required for building assemblies and creating link annotations.
+* ![http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html](Java8): needed for runtime and dev kit
+* ![http://ant.apache.org](Apache Ant): for dependency fetching and compilation
+* ![https://github.com/mcveanlab/mccortex](McCortex): for building Cortex graphs and link annotations
+
 
 Installation
 ------------
 
-To download dependencies and compile
+To download and compile:
 
-    git clone https://github.com/kvg/CortexJDK.git
+    git clone https://github.com/mcveanlab/CortexJDK
     cd CortexJDK
     ant
 
-To run:
+To run (and get a listing of available commands):
 
     java -jar dist/cortexjdk.jar
+
+To get help for a specific command (e.g. "Print"):
+
+	java -jar dist/cortexjdk.jar Print
+
+
+Support
+-------
+
+Please contact Kiran Garimella (<kiran@well.ox.ac.uk>) with any questions/comments/concerns/cake.
+
+
+Citing CortexJDK
+----------------
+
+A manuscript is currently being prepared.  Other Cortex-related publications are as follows:
+
+* Integrating long-range connectivity information into de Bruijn graphs, Turner, Garimella, Iqbal, McVean (Biorxiv Preprint) (2017) (doi:10.1101/147777) http://www.biorxiv.org/content/early/2017/06/09/147777
+
+* De novo assembly and genotyping of variants using colored de Bruijn graphs, Iqbal, Caccamo, Turner, Flicek, McVean (Nature Genetics) (2012) (doi:10.1038/ng.1028) http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3272472
