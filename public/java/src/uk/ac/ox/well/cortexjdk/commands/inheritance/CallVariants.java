@@ -1,6 +1,11 @@
 package uk.ac.ox.well.cortexjdk.commands.inheritance;
 
 import htsjdk.samtools.util.Interval;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.vcf.VCFEncoder;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
@@ -16,6 +21,7 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.caller.Bubble;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -27,6 +33,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -81,98 +88,138 @@ public class CallVariants extends Module {
                 .maxRecord(seeds.size())
                 .make(log);
 
+        Map<Interval, Map<String, String>> entries = new TreeMap<>();
+
         int numVariants = 0;
         for (CortexKmer ck : seeds) {
-            for (int c : childColors) {
-                CortexRecord cr = GRAPH.findRecord(ck);
-                if (cr.getCoverage(c) > 0) {
-                    e.getConfiguration().setTraversalColor(c);
+            Map<String, String> te = callVariant(parentColors, childColors, e, ck);
 
-                    int thisParent = -1;
-                    int otherParent = -1;
-                    for (int pc : parentColors) {
-                        if (cr.getCoverage(pc) == 1) {
-                            thisParent = pc;
-                        } else if (cr.getCoverage(pc) == 0) {
-                            otherParent = pc;
-                        }
-                    }
+            if (te != null) {
+                Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("pos")), Integer.valueOf(te.get("pos")));
+                entries.put(it, te);
 
-                    String sk = ck.getKmerAsString();
-                    List<CortexVertex> contigChild = new ArrayList<>();
-                    contigChild.add(new CortexVertex(new CortexByteKmer(sk), GRAPH.findRecord(sk)));
-
-                    CortexVertex source = null;
-                    e.seek(sk);
-                    while (e.hasPrevious()) {
-                        CortexVertex cv = e.previous();
-                        contigChild.add(0, cv);
-
-                        if (cv.getCr().getCoverage(otherParent) > 0) {
-                            source = cv;
-                            break;
-                        }
-                    }
-
-                    CortexVertex destination = null;
-                    e.seek(sk);
-                    while (e.hasNext()) {
-                        CortexVertex cv = e.next();
-                        contigChild.add(cv);
-
-                        if (cv.getCr().getCoverage(otherParent) > 0) {
-                            destination = cv;
-                            break;
-                        }
-                    }
-
-                    if (source != null && destination != null) {
-                        e.getConfiguration().setTraversalColor(otherParent);
-
-                        List<CortexVertex> contigParent = new ArrayList<>();
-                        contigParent.add(source);
-
-                        boolean destinationReached = false;
-
-                        e.seek(source.getSk());
-                        while (e.hasNext()) {
-                            CortexVertex cv = e.next();
-                            contigParent.add(cv);
-
-                            if (cv.equals(destination)) {
-                                destinationReached = true;
-                                break;
-                            }
-                        }
-
-                        if (destinationReached) {
-                            Set<Interval> sourceIntervals = REFERENCES.get("ref").findKmer(source.getSk());
-                            Set<Interval> destinationIntervals = REFERENCES.get("ref").findKmer(destination.getSk());
-
-                            if (sourceIntervals.size() == 1 && destinationIntervals.size() == 1) {
-                                Interval sourceInterval = sourceIntervals.iterator().next();
-                                Interval destinationInterval = destinationIntervals.iterator().next();
-
-                                if (sourceInterval.getContig().equals(destinationInterval.getContig())) {
-                                    log.debug("{}", TraversalEngine.toContig(contigChild));
-                                    log.debug("{}", TraversalEngine.toContig(contigParent));
-                                    log.debug("{}", trimToAlleles(TraversalEngine.toContig(contigChild), TraversalEngine.toContig(contigParent)));
-                                    log.debug("{}", sourceIntervals);
-                                    log.debug("{}", destinationIntervals);
-                                    log.debug("");
-
-                                    numVariants++;
-                                }
-                            }
-                        }
-                    }
-
-                    break;
-                }
+                numVariants++;
             }
 
             pm.update("seeds processed, " + numVariants + " variants found");
         }
+
+        TableWriter tw = new TableWriter(out);
+
+        for (Interval it : entries.keySet()) {
+            tw.addEntry(entries.get(it));
+        }
+    }
+
+    private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngine e, CortexKmer ck) {
+        for (int c : childColors) {
+            CortexRecord cr = GRAPH.findRecord(ck);
+            if (cr.getCoverage(c) > 0) {
+                e.getConfiguration().setTraversalColor(c);
+
+                int parentThatSharesChildAllele = -1;
+                int parentThatDoesNotShareChildAllele = -1;
+                for (int pc : parentColors) {
+                    if (cr.getCoverage(pc) > 0) {
+                        parentThatSharesChildAllele = pc;
+                    } else if (cr.getCoverage(pc) == 0) {
+                        parentThatDoesNotShareChildAllele = pc;
+                    }
+                }
+
+                String sk = ck.getKmerAsString();
+                List<CortexVertex> contigChild = new ArrayList<>();
+                contigChild.add(new CortexVertex(new CortexByteKmer(sk), GRAPH.findRecord(sk)));
+
+                CortexVertex source = null;
+                e.seek(sk);
+                while (e.hasPrevious()) {
+                    CortexVertex cv = e.previous();
+                    contigChild.add(0, cv);
+
+                    if (cv.getCr().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
+                        source = cv;
+                        break;
+                    }
+                }
+
+                CortexVertex destination = null;
+                e.seek(sk);
+                while (e.hasNext()) {
+                    CortexVertex cv = e.next();
+                    contigChild.add(cv);
+
+                    if (cv.getCr().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
+                        destination = cv;
+                        break;
+                    }
+                }
+
+                if (source != null && destination != null) {
+                    e.getConfiguration().setTraversalColor(parentThatDoesNotShareChildAllele);
+
+                    List<CortexVertex> contigParent = new ArrayList<>();
+                    contigParent.add(source);
+
+                    boolean destinationReached = false;
+
+                    e.seek(source.getSk());
+                    while (e.hasNext()) {
+                        CortexVertex cv = e.next();
+                        contigParent.add(cv);
+
+                        if (cv.equals(destination)) {
+                            destinationReached = true;
+                            break;
+                        }
+                    }
+
+                    if (destinationReached) {
+                        Set<Interval> sourceIntervals = REFERENCES.get("ref").findKmer(source.getSk());
+                        Set<Interval> destinationIntervals = REFERENCES.get("ref").findKmer(destination.getSk());
+
+                        if (sourceIntervals.size() == 1 && destinationIntervals.size() == 1) {
+                            Interval sourceInterval = sourceIntervals.iterator().next();
+                            Interval destinationInterval = destinationIntervals.iterator().next();
+
+                            if (sourceInterval.getContig().equals(destinationInterval.getContig())) {
+                                Pair<String, String> alleles = trimToAlleles(TraversalEngine.toContig(contigChild), TraversalEngine.toContig(contigParent));
+
+                                Map<String, String> te = new LinkedHashMap<>();
+                                te.put("chrom", sourceInterval.getContig());
+                                te.put("pos", String.valueOf(sourceInterval.getStart()));
+
+                                if (alleles.getFirst().length() == 1 && alleles.getSecond().length() == 1) {
+                                    te.put("type", "SNP");
+                                } else if (alleles.getFirst().length() == alleles.getSecond().length()) {
+                                    te.put("type", "MNP");
+                                } else if (alleles.getFirst().length() < alleles.getSecond().length()) {
+                                    te.put("type", "DEL");
+                                } else if (alleles.getFirst().length() > alleles.getSecond().length()) {
+                                    te.put("type", "INS");
+                                } else {
+                                    te.put("type", "UKN");
+                                }
+
+                                for (int cc : childColors) {
+                                    if (cr.getCoverage(cc) == 0) {
+                                        te.put(GRAPH.getSampleName(cc), GRAPH.getSampleName(parentThatDoesNotShareChildAllele));
+                                    } else {
+                                        te.put(GRAPH.getSampleName(cc), GRAPH.getSampleName(parentThatSharesChildAllele));
+                                    }
+                                }
+
+                                te.put("alleles", String.format("%s/%s", alleles.getFirst(), alleles.getSecond()));
+
+                                return te;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     @NotNull
