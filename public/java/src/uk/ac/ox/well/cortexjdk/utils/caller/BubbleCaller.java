@@ -1,9 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.DestinationStopper;
@@ -28,7 +26,7 @@ public class BubbleCaller {
             .stopper(DestinationStopper.class)
             .make();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = TraversalEngine.toPseudograph(config.getGraph(), lwalk, altColor, refColor);
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = TraversalEngine.toGraph(config.getGraph(), lwalk, altColor, refColor);
 
         Set<CortexVertex> iss = new HashSet<>();
         Set<CortexVertex> oss = new HashSet<>();

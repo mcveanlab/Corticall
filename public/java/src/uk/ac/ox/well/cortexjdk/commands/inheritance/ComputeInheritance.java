@@ -1,54 +1,37 @@
 package uk.ac.ox.well.cortexjdk.commands.inheritance;
 
 import htsjdk.samtools.util.Interval;
-import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
-import htsjdk.variant.vcf.VCFEncoder;
-import htsjdk.variant.vcf.VCFHeader;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.caller.Bubble;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.BubbleOpeningStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ContigStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.DestinationStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
-
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 /**
  * Created by kiran on 08/08/2017.
  */
-public class CallVariants extends Module {
+public class ComputeInheritance extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
-
-    @Argument(fullName="links", shortName="l", doc="Links")
-    public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName="references", shortName="r", doc="References")
     public HashMap<String, KmerLookup> REFERENCES;
@@ -73,13 +56,14 @@ public class CallVariants extends Module {
 
         Set<CortexKmer> seeds = getVariantSeeds(refColor, parentColors, draftColors);
 
+        int numVariants = callVariants(parentColors, childColors, seeds);
+
+        log.info("Found {} variants", numVariants);
+    }
+
+    private int callVariants(Set<Integer> parentColors, Set<Integer> childColors, Set<CortexKmer> seeds) {
         TraversalEngine e = new TraversalEngineFactory()
-                .combinationOperator(AND)
-                .traversalDirection(BOTH)
-                .joiningColors(parentColors)
-                .stopper(ContigStopper.class)
                 .graph(GRAPH)
-                //.links(LINKS)
                 .make();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -101,7 +85,7 @@ public class CallVariants extends Module {
                 numVariants++;
             }
 
-            pm.update("seeds processed, " + numVariants + " variants found");
+            pm.update();
         }
 
         TableWriter tw = new TableWriter(out);
@@ -109,6 +93,8 @@ public class CallVariants extends Module {
         for (Interval it : entries.keySet()) {
             tw.addEntry(entries.get(it));
         }
+
+        return numVariants;
     }
 
     private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngine e, CortexKmer ck) {
@@ -178,6 +164,12 @@ public class CallVariants extends Module {
                         Set<Interval> sourceIntervals = REFERENCES.get("ref").findKmer(source.getSk());
                         Set<Interval> destinationIntervals = REFERENCES.get("ref").findKmer(destination.getSk());
 
+                        float parentCoverage = 0.0f;
+                        for (CortexVertex cv : contigParent) {
+                            parentCoverage += cv.getCr().getCoverage(parentThatDoesNotShareChildAllele);
+                        }
+                        parentCoverage /= (float) contigParent.size();
+
                         if (sourceIntervals.size() == 1 && destinationIntervals.size() == 1) {
                             Interval sourceInterval = sourceIntervals.iterator().next();
                             Interval destinationInterval = destinationIntervals.iterator().next();
@@ -201,11 +193,29 @@ public class CallVariants extends Module {
                                     te.put("type", "UKN");
                                 }
 
+                                te.put("cov_parent", String.valueOf((int) parentCoverage));
+
                                 for (int cc : childColors) {
+                                    float childCoverage = 0.0f;
+                                    for (CortexVertex cv : contigChild) {
+                                        childCoverage += cv.getCr().getCoverage(cc);
+                                    }
+                                    childCoverage /= (float) contigChild.size();
+
                                     if (cr.getCoverage(cc) == 0) {
-                                        te.put(GRAPH.getSampleName(cc), GRAPH.getSampleName(parentThatDoesNotShareChildAllele));
+                                        for (String refName : PARENTS.keySet()) {
+                                            if (PARENTS.get(refName).equals(GRAPH.getSampleName(parentThatDoesNotShareChildAllele))) {
+                                                te.put(GRAPH.getSampleName(cc), String.format("%s:%d", refName, (int) childCoverage));
+                                                break;
+                                            }
+                                        }
                                     } else {
-                                        te.put(GRAPH.getSampleName(cc), GRAPH.getSampleName(parentThatSharesChildAllele));
+                                        for (String refName : PARENTS.keySet()) {
+                                            if (PARENTS.get(refName).equals(GRAPH.getSampleName(parentThatSharesChildAllele))) {
+                                                te.put(GRAPH.getSampleName(cc), String.format("%s:%d", refName, (int) childCoverage));
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
 
@@ -343,17 +353,17 @@ public class CallVariants extends Module {
         ignoreColors.add(refColor);
 
         int numChildrenWithCoverage = 0;
-        //int numChildren = 0;
+        int numChildren = 0;
         for (int c = 0; c < cr.getNumColors(); c++) {
             if (!ignoreColors.contains(c)) {
                 if (cr.getCoverage(c) > 0) {
                     numChildrenWithCoverage++;
                 }
-                //numChildren++;
+                numChildren++;
             }
         }
 
-        return numChildrenWithCoverage >= 1; // && numChildrenWithCoverage < numChildren;
+        return numChildrenWithCoverage > 1 && numChildrenWithCoverage < numChildren;
     }
 
     private boolean isSinglyConnected(CortexRecord cr) {
