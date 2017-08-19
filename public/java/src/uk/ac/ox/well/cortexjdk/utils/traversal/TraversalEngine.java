@@ -123,7 +123,7 @@ public class TraversalEngine {
         return sb.toString();
     }
 
-    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toPseudograph(CortexGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(CortexGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dwp = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         dwp.addVertex(walk.get(0));
