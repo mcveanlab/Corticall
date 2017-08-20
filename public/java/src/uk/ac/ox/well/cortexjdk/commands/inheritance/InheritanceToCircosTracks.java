@@ -126,7 +126,7 @@ public class InheritanceToCircosTracks extends Module {
                 for (int i = 1; i < l.size(); i++) {
                     Pair<Integer, Boolean> p = l.get(i);
 
-                    if (t.get(t.size() - 1).getSecond() != p.getSecond()) {
+                    if (t.get(t.size() - 1).getSecond() != p.getSecond() || i == l.size() - 1) {
                         t.add(p);
                     }
                 }
