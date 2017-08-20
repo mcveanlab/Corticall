@@ -104,6 +104,8 @@ public class InheritanceToCircosTracks extends Module {
                     }
                 }
             }
+
+            out.close();
         }
     }
 
