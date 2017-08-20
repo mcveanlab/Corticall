@@ -48,7 +48,7 @@ public class SubGraphHandler extends BaseHandler {
                     .graph(graph)
                     .rois(rois)
                     .traversalColor(0)
-                    .stopper(ExplorationStopper.class)
+                    .stoppingRule(ExplorationStopper.class)
                     .make();
         }
 

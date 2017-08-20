@@ -23,7 +23,7 @@ public class BubbleCaller {
             .traversalColor(refColor)
             .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
             .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
-            .stopper(DestinationStopper.class)
+            .stoppingRule(DestinationStopper.class)
             .make();
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = TraversalEngine.toGraph(config.getGraph(), lwalk, altColor, refColor);

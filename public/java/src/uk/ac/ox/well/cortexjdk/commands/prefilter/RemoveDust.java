@@ -1,6 +1,5 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -69,7 +68,7 @@ public class RemoveDust extends Module {
                 .combinationOperator(AND)
                 .traversalColor(childColor)
                 .joiningColors(parentColors)
-                .stopper(DustStopper.class)
+                .stoppingRule(DustStopper.class)
                 .rois(ROI)
                 .graph(GRAPH)
                 .make();

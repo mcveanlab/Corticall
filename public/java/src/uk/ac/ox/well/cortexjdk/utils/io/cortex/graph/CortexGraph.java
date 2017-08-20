@@ -4,6 +4,7 @@ import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
 import org.apache.commons.collections.map.LRUMap;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryUtils;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -18,7 +19,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecord> {
+public class CortexGraph implements DeBruijnGraph {
     private File cortexFile;
     private BinaryFile in;
 
@@ -168,7 +169,7 @@ public class CortexGraph implements Iterable<CortexRecord>, Iterator<CortexRecor
 
     public void position(long i) {
         if (i < 0 || i >= numRecords) {
-            throw new CortexJDKException("Record index is out of range (" + i + " vs 0-" + (numRecords - 1) + ")");
+            throw new CortexJDKException("Record index is prefix of range (" + i + " vs 0-" + (numRecords - 1) + ")");
         }
 
         long offset = dataOffset + i*recordSize;

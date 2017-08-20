@@ -7,7 +7,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
@@ -44,10 +44,6 @@ public class TraversalEngine {
             throw new CortexJDKException("Graph traversal starting kmer is not equal to graph kmer size (" + seed.length() + " vs " + ec.getGraph().getKmerSize() + ")");
         }
 
-        if (ec.getStoppingRule() == null) {
-            throw new CortexJDKException("A stopping rule must be specified for depth-first searches");
-        }
-
         if (ec.getTraversalColor() == -1 || ec.getTraversalColor() >= ec.getGraph().getNumColors()) {
             throw new CortexJDKException("Traversal color '" + ec.getTraversalColor() + "' is invalid.");
         }
@@ -78,7 +74,7 @@ public class TraversalEngine {
         }
 
         if (dfs != null) {
-            return addDisplayColors(dfs);
+            return addSecondaryColors(dfs);
         }
 
         return null;
@@ -123,7 +119,7 @@ public class TraversalEngine {
         return sb.toString();
     }
 
-    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(CortexGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(DeBruijnGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dwp = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         dwp.addVertex(walk.get(0));
@@ -164,9 +160,9 @@ public class TraversalEngine {
         try {
             return stopperClass.newInstance();
         } catch (InstantiationException e) {
-            throw new CortexJDKException("Could not instantiate stopper: ", e);
+            throw new CortexJDKException("Could not instantiate stoppingRule: ", e);
         } catch (IllegalAccessException e) {
-            throw new CortexJDKException("Illegal access while trying to instantiate stopper: ", e);
+            throw new CortexJDKException("Illegal access while trying to instantiate stoppingRule: ", e);
         }
     }
 
@@ -460,7 +456,6 @@ public class TraversalEngine {
         return vs.size();
     }
 
-    //@Override
     public CortexVertex next() {
         if (nextKmer == null) { throw new NoSuchElementException("No single next kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || !goForward) {
@@ -504,7 +499,6 @@ public class TraversalEngine {
         return cv;
     }
 
-    //@Override
     public CortexVertex previous() {
         if (prevKmer == null) { throw new NoSuchElementException("No single prev kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || goForward) {
@@ -614,26 +608,10 @@ public class TraversalEngine {
 
     public boolean hasPrevious() { return prevKmer != null; }
 
-    /*
-    @Override public boolean hasNext() { return nextKmer != null; }
-
-    @Override public boolean hasPrevious() { return prevKmer != null; }
-
-    @Override public int nextIndex() { return 0; }
-
-    @Override public int previousIndex() { return 0; }
-
-    @Override public void remove() { throw new UnsupportedOperationException("Cannot remove elements from CortexGraph iterator"); }
-
-    @Override public void set(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot set elements in CortexGraph iterator"); }
-
-    @Override public void add(CortexVertex cortexVertex) { throw new UnsupportedOperationException("Cannot add elements to CortexGraph iterator"); }
-    */
-
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addDisplayColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addSecondaryColors(DirectedGraph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
-        Set<Integer> displayColors = new HashSet<>(ec.getDisplayColors());
+        Set<Integer> displayColors = new HashSet<>(ec.getSecondaryColors());
         if (displayColors.isEmpty()) {
             Graphs.addGraph(m, g);
         } else {

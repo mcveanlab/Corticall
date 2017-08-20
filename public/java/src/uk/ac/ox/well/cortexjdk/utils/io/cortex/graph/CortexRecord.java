@@ -30,7 +30,7 @@ public class CortexRecord implements Comparable<CortexRecord> {
 
     public CortexRecord(String sk, List<Integer> coverageList, List<Set<String>> inEdgesList, List<Set<String>> outEdgesList) {
         if (coverageList.size() != inEdgesList.size() && coverageList.size() != outEdgesList.size()) {
-            throw new CortexJDKException("Coverage, in-edge, and out-edge lists must be equal length.");
+            throw new CortexJDKException("Coverage, in-edge, and prefix-edge lists must be equal length.");
         }
 
         constructRecord(sk, coverageList, inEdgesList, outEdgesList);
