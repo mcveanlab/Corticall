@@ -115,10 +115,9 @@ public class InheritanceToCircosTracks extends Module {
         Map<String, Map<String, List<Pair<Integer, Boolean>>>> simplifiedTracks = new HashMap<>();
 
         for (String sampleName : tracks.keySet()) {
-            for (String chrom : tracks.get(sampleName).keySet()) {
-                simplifiedTracks.put(sampleName, new TreeMap<>());
-                simplifiedTracks.get(sampleName).put(chrom, new ArrayList<>());
+            simplifiedTracks.put(sampleName, new TreeMap<>());
 
+            for (String chrom : tracks.get(sampleName).keySet()) {
                 List<Pair<Integer, Boolean>> l = tracks.get(sampleName).get(chrom);
                 List<Pair<Integer, Boolean>> t = new ArrayList<>();
 
@@ -145,10 +144,9 @@ public class InheritanceToCircosTracks extends Module {
         Map<String, Map<String, List<Pair<Integer, Boolean>>>> smoothTracks = new HashMap<>();
 
         for (String sampleName : tracks.keySet()) {
-            for (String chrom : tracks.get(sampleName).keySet()) {
-                smoothTracks.put(sampleName, new TreeMap<>());
-                smoothTracks.get(sampleName).put(chrom, new ArrayList<>());
+            smoothTracks.put(sampleName, new TreeMap<>());
 
+            for (String chrom : tracks.get(sampleName).keySet()) {
                 List<Pair<Integer, Boolean>> l = tracks.get(sampleName).get(chrom);
                 List<Pair<Integer, Boolean>> t = new ArrayList<>();
 
