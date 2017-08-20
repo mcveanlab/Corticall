@@ -17,7 +17,7 @@ CortexJDK is a Java class library for performing efficient, low-memory traversal
 
 * iterating over records in a Cortex graphs
 * random access (by binary search) to Cortex graph records
-* performing simple walks (i.e. extracting a contig, optionally using link information to disambiguate junction choices)
+* performing simple walks (i.e. extracting a contig, optionally using links to disambiguate junction choices)
 * performing depth-first searches with custom stopping rules (useful for finding interesting graph motifs)
 
 CortexJDK handles the heavy lifting when operating with these data structures, permitting developers to concentrate on the genome analysis and variant calling tools that can be written on top of this API.
@@ -36,7 +36,7 @@ Dependencies
 
 CortexJDK has the following dependencies:
 
-* [Java8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html): needed for runtime and dev kit
+* [Java8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html): needed for runtime and development kit
 * [Apache Ant](http://ant.apache.org): for dependency fetching and compilation
 * [McCortex](https://github.com/mcveanlab/mccortex): for building Cortex graphs and link annotations
 
@@ -62,7 +62,7 @@ To get help for a specific command (e.g. "Print"):
 Support
 -------
 
-Please contact Kiran Garimella (<kiran@well.ox.ac.uk>) with any questions/comments/concerns/cake.
+Please contact Kiran Garimella (<kiran@well.ox.ac.uk>) with any questions/comments/concerns/cake.  Feedback, bug reports, and pull requests are welcome.
 
 
 Citing CortexJDK

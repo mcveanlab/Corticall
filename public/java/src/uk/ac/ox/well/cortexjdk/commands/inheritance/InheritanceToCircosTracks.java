@@ -129,6 +129,8 @@ public class InheritanceToCircosTracks extends Module {
                         t.add(p);
                     }
                 }
+
+                simplifiedTracks.get(sampleName).put(chrom, t);
             }
         }
 
@@ -147,6 +149,7 @@ public class InheritanceToCircosTracks extends Module {
 
                 List<Pair<Integer, Boolean>> l = tracks.get(sampleName).get(chrom);
                 List<Pair<Integer, Boolean>> t = new ArrayList<>();
+
                 t.add(l.get(0));
 
                 for (int i = 1; i < l.size() - 1; i++) {
@@ -162,6 +165,8 @@ public class InheritanceToCircosTracks extends Module {
                 }
 
                 t.add(l.get(l.size() - 1));
+
+                smoothTracks.get(sampleName).put(chrom, t);
             }
         }
 
