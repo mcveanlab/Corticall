@@ -98,7 +98,7 @@ public class InheritanceToCircosTracks extends Module {
                     Pair<Integer, Boolean> pi = l.get(i);
 
                     if (p.getSecond() != pi.getSecond() || i == l.size() - 1) {
-                        out.println(Joiner.on(" ").join(chrom, p.getFirst(), pi.getFirst() - 1, p.getSecond()));
+                        out.println(Joiner.on(" ").join(chrom, p.getFirst(), pi.getFirst() - 1, p.getSecond() ? 1 : 0));
 
                         p = pi;
                     }
