@@ -66,7 +66,7 @@ public class RemoveUnanchored extends Module {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .rois(ROI)
-                .stopper(ContigStopper.class)
+                .stoppingRule(ContigStopper.class)
                 .graph(GRAPH)
                 .make();
 

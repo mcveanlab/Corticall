@@ -1,7 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
 import org.jetbrains.annotations.NotNull;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -21,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
@@ -76,7 +74,7 @@ public class RemoveContamination extends Module {
                 .combinationOperator(OR)
                 .traversalColor(childColor)
                 .joiningColors(parentColors)
-                .stopper(ContaminantStopper.class)
+                .stoppingRule(ContaminantStopper.class)
                 .rois(ROI)
                 .graph(GRAPH)
                 .make();

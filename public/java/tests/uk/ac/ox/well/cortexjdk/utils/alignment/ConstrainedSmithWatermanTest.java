@@ -21,13 +21,13 @@ public class ConstrainedSmithWatermanTest {
 
         for (int[] aScoreTable : scoreTable) {
             for (int j = 0; j < aScoreTable.length; j++) {
-                System.out.print(aScoreTable[j] + " ");
+                System.prefix.print(aScoreTable[j] + " ");
             }
-            System.out.println();
+            System.prefix.println();
         }
 
         String[] alignment = csw.getAlignment();
-        System.out.println(alignment[0] + " " + alignment[1]);
+        System.prefix.println(alignment[0] + " " + alignment[1]);
         */
 
         SmithWaterman sw = new SmithWaterman(ref, query, 2, -1, -1);

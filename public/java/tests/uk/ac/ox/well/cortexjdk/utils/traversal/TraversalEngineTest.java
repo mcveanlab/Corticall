@@ -145,7 +145,7 @@ public class TraversalEngineTest {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(ContigStopper.class)
+                .stoppingRule(ContigStopper.class)
                 .graph(g)
                 .make();
 
@@ -175,7 +175,7 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("test"))
-                .stopper(CycleCollapsingContigStopper.class)
+                .stoppingRule(CycleCollapsingContigStopper.class)
                 .graph(g)
                 .make();
 
@@ -195,7 +195,7 @@ public class TraversalEngineTest {
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(CycleCollapsingContigStopper.class)
+                .stoppingRule(CycleCollapsingContigStopper.class)
                 .graph(g)
                 .links(l)
                 .make();
@@ -272,11 +272,11 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("kid"))
-                .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
+                .secondaryColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(ExplorationStopper.class)
+                .stoppingRule(ExplorationStopper.class)
                 .graph(g)
                 .make();
 
@@ -360,11 +360,11 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("kid"))
-                .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
+                .secondaryColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(ExplorationStopper.class)
+                .stoppingRule(ExplorationStopper.class)
                 .graph(g)
                 .make();
 
@@ -448,11 +448,11 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("kid"))
-                .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
+                .secondaryColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(ExplorationStopper.class)
+                .stoppingRule(ExplorationStopper.class)
                 .graph(g)
                 .make();
 
@@ -536,11 +536,11 @@ public class TraversalEngineTest {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(g.getColorForSampleName("kid"))
-                .displayColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
+                .secondaryColors(g.getColorsForSampleNames(Arrays.asList("mom", "dad", "kid")))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
-                .stopper(ExplorationStopper.class)
+                .stoppingRule(ExplorationStopper.class)
                 .graph(g)
                 .make();
 
@@ -842,7 +842,7 @@ public class TraversalEngineTest {
                 .traversalColor(0)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
-                .stopper(ContigStopper.class)
+                .stoppingRule(ContigStopper.class)
                 .graph(g)
                 .links(l0, l1, l2)
                 .make();

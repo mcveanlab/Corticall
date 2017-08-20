@@ -49,7 +49,7 @@ public class AnnotateContigs extends Module {
         List<Integer> recruitColors = GRAPH.getColorsForSampleNames(new ArrayList<>(LOOKUPS.keySet()));
         int refColor = GRAPH.getColorForSampleName("ref");
 
-        out.println(Joiner.on("\t").join("name", "index", "sk", "ck", "in", "out", "cov_" + CHILD, "cov_" + Joiner.on("\tcov_").join(PARENTS), "cov_" + Joiner.on("\tcov_").join(LOOKUPS.keySet()), "cov_ref", "is_novel", "is_filled_gap", "is_recovered_kmer", Joiner.on("\t").join(LOOKUPS.keySet())));
+        out.println(Joiner.on("\t").join("name", "index", "sk", "ck", "in", "prefix", "cov_" + CHILD, "cov_" + Joiner.on("\tcov_").join(PARENTS), "cov_" + Joiner.on("\tcov_").join(LOOKUPS.keySet()), "cov_ref", "is_novel", "is_filled_gap", "is_recovered_kmer", Joiner.on("\t").join(LOOKUPS.keySet())));
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence aseq;

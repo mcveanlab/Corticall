@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.TraversalStopper;
@@ -22,12 +23,13 @@ public class TraversalEngineConfiguration {
     private int traversalColor = -1;
     private Set<Integer> joiningColors = new TreeSet<>();
     private Set<Integer> recruitmentColors = new TreeSet<>();
+    private Set<Integer> secondaryColors = new TreeSet<>();
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
     private Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule;
 
-    private CortexGraph graph;
-    private CortexGraph rois;
+    private DeBruijnGraph graph;
+    private DeBruijnGraph rois;
     private Set<CortexLinks> links = new HashSet<>();
 
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
@@ -51,9 +53,9 @@ public class TraversalEngineConfiguration {
     public void setRecruitmentColors(Collection<Integer> recruitmentColors) { this.recruitmentColors = new TreeSet<>(recruitmentColors); }
     public void setRecruitmentColors() { this.recruitmentColors.clear(); }
 
-    public Set<Integer> getDisplayColors() { return recruitmentColors; }
-    public void setDisplayColors(Collection<Integer> recruitmentColors) { this.recruitmentColors = new TreeSet<>(recruitmentColors); }
-    public void setDisplayColors() { this.recruitmentColors.clear(); }
+    public Set<Integer> getSecondaryColors() { return secondaryColors; }
+    public void setSecondaryColors(Collection<Integer> secondaryColors) { this.secondaryColors = new TreeSet<>(secondaryColors); }
+    public void setSecondaryColors() { this.secondaryColors.clear(); }
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getPreviousTraversal() { return previousTraversal; }
     public void setPreviousTraversal(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
@@ -64,9 +66,9 @@ public class TraversalEngineConfiguration {
     public Set<CortexLinks> getLinks() { return links; }
     public void setLinks(Set<CortexLinks> links) { this.links = links; }
 
-    public CortexGraph getGraph() { return graph; }
-    public void setGraph(CortexGraph graph) { this.graph = graph; }
+    public DeBruijnGraph getGraph() { return graph; }
+    public void setGraph(DeBruijnGraph graph) { this.graph = graph; }
 
-    public CortexGraph getRois() { return rois; }
-    public void setRois(CortexGraph rois) { this.rois = rois; }
+    public DeBruijnGraph getRois() { return rois; }
+    public void setRois(DeBruijnGraph rois) { this.rois = rois; }
 }

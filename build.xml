@@ -16,6 +16,7 @@
     <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
     <property name="testng.dir" value="test" />
+    <property name="doc.dir" value="doc" />
     <property name="out.dir" value="out" />
     <property name="report.dir" value="report" />
     <property name="release.dir" value="release" />
@@ -59,6 +60,7 @@
         <mkdir dir="${build.dir}" />
         <mkdir dir="${jars.dir}" />
         <mkdir dir="${dist.dir}" />
+        <mkdir dir="${doc.dir}" />
 
         <copy todir="${jars.dir}">
             <fileset dir="${lib.dir}" includes="*.jar"/>
@@ -212,6 +214,17 @@
 
         <copy file="${dist.dir}/cortexjdk.jar" tofile="${release.dir}/cortexjdk-${git.version.output}.jar" />
     </target>
+
+	<!-- Build Javadocs -->
+	<target name="doc" depends="init">
+		<javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
+            <classpath>  
+                <fileset dir="${lib.dir}">  
+                    <include name="**/*.jar" />  
+                </fileset>
+            </classpath>
+		</javadoc>
+	</target>
 
     <!-- Tidy a little bit up -->
     <target name="tidy" description="tidy the project up a little bit">

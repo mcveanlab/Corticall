@@ -1,10 +1,8 @@
 package uk.ac.ox.well.cortexjdk.commands.call.call;
 
 import org.apache.commons.math3.util.Pair;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
@@ -74,7 +72,7 @@ public class Call extends Module {
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
                 .joiningColors(childColor)
-                .stopper(BubbleClosingStopper.class)
+                .stoppingRule(BubbleClosingStopper.class)
                 .graph(GRAPH)
                 .rois(ROI)
                 .make();

@@ -3,7 +3,6 @@ package uk.ac.ox.well.cortexjdk.commands.prefilter;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -29,7 +28,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
@@ -84,7 +82,7 @@ public class RemoveTips extends Module {
                             .combinationOperator(AND)
                             .traversalColor(childColor)
                             .joiningColors(parentColors)
-                            .stopper(TipBeginningStopper.class)
+                            .stoppingRule(TipBeginningStopper.class)
                             .rois(ROI)
                             .graph(GRAPH)
                             .make();
@@ -94,7 +92,7 @@ public class RemoveTips extends Module {
                             .combinationOperator(AND)
                             .traversalColor(childColor)
                             .joiningColors(parentColors)
-                            .stopper(TipEndStopper.class)
+                            .stoppingRule(TipEndStopper.class)
                             .rois(ROI)
                             .graph(GRAPH)
                             .make();

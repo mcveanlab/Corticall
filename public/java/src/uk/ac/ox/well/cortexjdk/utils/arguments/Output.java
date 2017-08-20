@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface Output {
     String shortName() default "o";
-    String fullName() default "out";
+    String fullName() default "prefix";
     String doc() default "The output file";
     //boolean required() default false;
 }

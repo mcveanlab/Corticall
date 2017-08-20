@@ -3,16 +3,14 @@ package uk.ac.ox.well.cortexjdk.utils.io.cortex.collection;
 import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexColor;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexHeader;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
 
 import java.io.File;
 import java.util.*;
 
-public class CortexCollection implements Iterable<CortexRecord>, Iterator<CortexRecord> {
+public class CortexCollection implements DeBruijnGraph {
     private CortexRecord[] nextRecs;
 
     private List<CortexGraph> graphList = new ArrayList<>();
@@ -22,7 +20,35 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
     private int kmerSize = 0;
     private int kmerBits = 0;
 
-    private Map<Integer, String> colorList = new HashMap<>();
+    //private Map<Integer, String> colorList = new HashMap<>();
+
+    public CortexCollection(CortexGraph... graphCollection) {
+        int ac = 0;
+
+        for (CortexGraph g : graphCollection) {
+            if (kmerSize == 0) {
+                kmerSize = g.getKmerSize();
+                kmerBits = g.getKmerBits();
+            }
+
+            if (kmerSize != g.getKmerSize()) {
+                throw new CortexJDKException("Graph kmer sizes are not equal.  Expected k=" + kmerSize + ", but found k=" + g.getKmerSize() + " in graph " + g.getCortexFile().getAbsolutePath());
+            }
+
+            List<Integer> accessColors = new ArrayList<>();
+            List<Integer> loadingColors = new ArrayList<>();
+
+            for (int lc = 0; lc < g.getNumColors(); lc++, ac++) {
+                accessColors.add(ac);
+                loadingColors.add(lc);
+            }
+
+            graphs.put(g, new Pair<>(accessColors, loadingColors));
+            graphList.add(g);
+
+            numColors += accessColors.size();
+        }
+    }
 
     public CortexCollection(String collectionFileString) {
         if (!collectionFileString.endsWith(".ctx") && new File(collectionFileString).exists()) {
@@ -169,6 +195,36 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
 
     public int getNumColors() { return numColors; }
 
+    @Override
+    public long getNumRecords() {
+        return 0;
+    }
+
+    @Override
+    public List<CortexColor> getColors() {
+        return null;
+    }
+
+    @Override
+    public boolean hasColor(int color) {
+        return false;
+    }
+
+    @Override
+    public CortexColor getColor(int color) {
+        return null;
+    }
+
+    @Override
+    public int getColorForSampleName(String sampleName) {
+        return 0;
+    }
+
+    @Override
+    public List<Integer> getColorsForSampleNames(List<String> sampleNames) {
+        return null;
+    }
+
     public int getKmerSize() { return kmerSize; }
 
     public int getKmerBits() { return kmerBits; }
@@ -187,14 +243,20 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
         return ch;
     }
 
-    public CortexRecord findRecord(String kmer) {
+    @Override
+    public int getVersion() {
+        return 0;
+    }
+
+    @Override
+    public CortexRecord findRecord(byte[] bk) {
         long[] binaryKmer = null;
         int[] coverages = new int[numColors];
         byte[] edges = new byte[numColors];
 
         for (int assignmentColor = 0; assignmentColor <= numColors; assignmentColor++) {
             for (CortexGraph g : graphs.keySet()) {
-                CortexRecord cr = g.findRecord(kmer);
+                CortexRecord cr = g.findRecord(bk);
 
                 if (cr != null) {
                     binaryKmer = cr.getBinaryKmer();
@@ -217,6 +279,25 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
         return (binaryKmer == null) ? null : new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
     }
 
+    @Override
+    public CortexRecord findRecord(CortexByteKmer bk) {
+        return findRecord(bk.getKmer());
+    }
+
+    @Override
+    public CortexRecord findRecord(CortexKmer ck) {
+        return findRecord(ck.getKmerAsBytes());
+    }
+
+    public CortexRecord findRecord(String kmer) {
+        return findRecord(kmer.getBytes());
+    }
+
+    @Override
+    public File getCortexFile() {
+        throw new UnsupportedOperationException();
+    }
+
     private void moveToBeginningOfRecordsSection() {
         nextRecs = new CortexRecord[graphs.keySet().size() + 1];
 
@@ -225,6 +306,16 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
             nextRecs[i] = g.next();
             i++;
         }
+    }
+
+    @Override
+    public long position() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void position(long i) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -294,5 +385,22 @@ public class CortexCollection implements Iterable<CortexRecord>, Iterator<Cortex
         }
 
         return null;
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() {
+        for (CortexGraph g : graphList) {
+            g.close();
+        }
+    }
+
+    @Override
+    public CortexRecord getRecord(long i) {
+        throw new UnsupportedOperationException();
     }
 }
