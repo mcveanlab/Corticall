@@ -15,6 +15,7 @@ public class CortexCollection implements DeBruijnGraph {
 
     private List<CortexGraph> graphList = new ArrayList<>();
     private Map<CortexGraph, Pair<List<Integer>, List<Integer>>> graphs = new HashMap<>();
+    private Map<CortexGraph, Pair<List<Integer>, List<Integer>>> fgraphs = new HashMap<>();
 
     private int numColors = 0;
     private int kmerSize = 0;
@@ -44,6 +45,7 @@ public class CortexCollection implements DeBruijnGraph {
             }
 
             graphs.put(g, new Pair<>(accessColors, loadingColors));
+            fgraphs.put(new CortexGraph(g.getCortexFile()), new Pair<>(accessColors, loadingColors));
             graphList.add(g);
 
             numColors += accessColors.size();
@@ -248,20 +250,19 @@ public class CortexCollection implements DeBruijnGraph {
         return 0;
     }
 
-    @Override
     public CortexRecord findRecord(byte[] bk) {
         long[] binaryKmer = null;
         int[] coverages = new int[numColors];
         byte[] edges = new byte[numColors];
 
         for (int assignmentColor = 0; assignmentColor <= numColors; assignmentColor++) {
-            for (CortexGraph g : graphs.keySet()) {
+            for (CortexGraph g : fgraphs.keySet()) {
                 CortexRecord cr = g.findRecord(bk);
 
                 if (cr != null) {
                     binaryKmer = cr.getBinaryKmer();
 
-                    Pair<List<Integer>, List<Integer>> p = graphs.get(g);
+                    Pair<List<Integer>, List<Integer>> p = fgraphs.get(g);
                     List<Integer> accessColors = p.getFirst();
                     List<Integer> loadingColors = p.getSecond();
 
@@ -279,16 +280,12 @@ public class CortexCollection implements DeBruijnGraph {
         return (binaryKmer == null) ? null : new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
     }
 
-    @Override
     public CortexRecord findRecord(CortexByteKmer bk) {
         return findRecord(bk.getKmer());
     }
-
-    @Override
     public CortexRecord findRecord(CortexKmer ck) {
         return findRecord(ck.getKmerAsBytes());
     }
-
     public CortexRecord findRecord(String kmer) {
         return findRecord(kmer.getBytes());
     }
