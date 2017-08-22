@@ -260,7 +260,8 @@ public class ComputeAssemblyQuality extends Module {
             if (sg.inDegreeOf(sk) == 0 && sg.outDegreeOf(sk) == 1) {
                 uniqueSeeds.add(sk);
 
-                List<String> contig = new ArrayList<>();
+
+                Set<String> contig = new LinkedHashSet<>();
                 contig.add(sk);
 
                 String v = sk;
@@ -268,11 +269,16 @@ public class ComputeAssemblyQuality extends Module {
                     List<String> out = Graphs.successorListOf(sg, v);
                     v = out.get(0);
 
+                    if (contig.contains(v)) {
+                        break;
+                    }
+
                     contig.add(v);
                 }
 
                 if (contig.size() > 3) {
-                    goodSeeds.add(new CortexKmer(contig.get(1)));
+                    List<String> linContig = new ArrayList<>(contig);
+                    goodSeeds.add(new CortexKmer(linContig.get(1)));
                 }
             }
         }
