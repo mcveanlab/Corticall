@@ -72,7 +72,7 @@ public class Dispatch {
             instance.init();
 
             Main.getLogger().info("{}", getBanner());
-            Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
+            //Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
             Main.getLogger().info("");
 
             Date startTime = new Date();
