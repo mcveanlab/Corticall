@@ -6,7 +6,7 @@ import org.apache.commons.math3.util.Pair;
 import org.jgrapht.DirectedGraph;
 import org.json.JSONObject;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ExplorationStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ExplorationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;

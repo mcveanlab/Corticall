@@ -1,11 +1,10 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.TraversalStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
 import java.util.*;
 
@@ -19,6 +18,8 @@ public class TraversalEngineConfiguration {
     private GraphCombinationOperator gco = GraphCombinationOperator.AND;
     private TraversalDirection td = TraversalDirection.BOTH;
     private boolean connectAllNeighbors = false;
+    private boolean discardFailedBranches = true;
+    private boolean markFailedBranches = false;
 
     private int traversalColor = -1;
     private Set<Integer> joiningColors = new TreeSet<>();
@@ -26,11 +27,12 @@ public class TraversalEngineConfiguration {
     private Set<Integer> secondaryColors = new TreeSet<>();
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
-    private Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule;
+    private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule;
 
     private DeBruijnGraph graph;
     private DeBruijnGraph rois;
     private Set<CortexLinks> links = new HashSet<>();
+//    private Set<KmerLookup> kls = new HashSet<>();
 
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
     public void setGraphCombinationOperator(GraphCombinationOperator gco) { this.gco = gco; }
@@ -40,6 +42,12 @@ public class TraversalEngineConfiguration {
 
     public boolean connectAllNeighbors() { return connectAllNeighbors; }
     public void setConnectAllNeighbors(boolean connectAllNeighbors) { this.connectAllNeighbors = connectAllNeighbors; }
+
+    public boolean discardFailedBranches() { return discardFailedBranches; }
+    public void setDiscardFailedBranches(boolean discardFailedBranches) { this.discardFailedBranches = discardFailedBranches; }
+
+    public boolean markFailedBranches() { return markFailedBranches; }
+    public void setMarkFailedBranches(boolean markFailedBranches) { this.markFailedBranches = markFailedBranches; }
 
     public int getTraversalColor() { return traversalColor; }
     public void setTraversalColor(int traversalColor) { this.traversalColor = traversalColor; }
@@ -60,8 +68,8 @@ public class TraversalEngineConfiguration {
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getPreviousTraversal() { return previousTraversal; }
     public void setPreviousTraversal(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
 
-    public Class<? extends TraversalStopper<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
-    public void setStoppingRule(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }
+    public Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
+    public void setStoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }
 
     public Set<CortexLinks> getLinks() { return links; }
     public void setLinks(Set<CortexLinks> links) { this.links = links; }
@@ -71,4 +79,7 @@ public class TraversalEngineConfiguration {
 
     public DeBruijnGraph getRois() { return rois; }
     public void setRois(DeBruijnGraph rois) { this.rois = rois; }
+
+//    public Set<KmerLookup> getReferences() { return kls; }
+//    public void setReferences(Set<KmerLookup> kls) { this.kls = kls; }
 }

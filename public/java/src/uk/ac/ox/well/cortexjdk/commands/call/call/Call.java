@@ -15,7 +15,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.BubbleClosingStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.File;

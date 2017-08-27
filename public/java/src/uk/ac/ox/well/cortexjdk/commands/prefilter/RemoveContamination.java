@@ -9,7 +9,7 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ContaminantStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContaminantStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;

@@ -15,10 +15,10 @@ import uk.ac.ox.well.cortexjdk.utils.caller.BubbleCaller;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ContigStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.CycleCollapsingContigStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.DestinationStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.ExplorationStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.CycleCollapsingContigStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ExplorationStopper;
 
 import java.io.File;
 import java.util.*;

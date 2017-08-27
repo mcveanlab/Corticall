@@ -35,5 +35,7 @@ public class Join extends Module {
 
             pm.update();
         }
+
+        cgw.close();
     }
 }
