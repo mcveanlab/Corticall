@@ -168,7 +168,7 @@ public class CortexGraph implements DeBruijnGraph {
     public long position() { return recordsSeen; }
 
     public void position(long i) {
-        if (i < 0 || i >= numRecords) {
+        if (i < 0) { // || i >= numRecords) {
             throw new CortexJDKException("Record index is prefix of range (" + i + " vs 0-" + (numRecords - 1) + ")");
         }
 
