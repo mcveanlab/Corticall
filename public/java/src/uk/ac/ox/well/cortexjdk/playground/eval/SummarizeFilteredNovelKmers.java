@@ -22,13 +22,19 @@ public class SummarizeFilteredNovelKmers extends Module {
         for (CortexGraph cg : GRAPHS) {
             String filterName = cg.getCortexFile().getName();
             filterName = filterName.replaceFirst(".+rois.", "");
-            filterName = filterName.replaceAll(".ctx", "");
+            filterName = filterName.replaceAll("ctx", "");
 
             counts.put(cg.getNumRecords(), filterName);
         }
 
         for (long l : counts.keySet()) {
-            log.info("{} {}", counts.get(l), l);
+            String[] s = counts.get(l).split("\\.");
+
+            if (s.length > 1) {
+                log.info("{} {}", s[0], l);
+            } else {
+                log.info("{} {}", "unfiltered", l);
+            }
         }
     }
 }
