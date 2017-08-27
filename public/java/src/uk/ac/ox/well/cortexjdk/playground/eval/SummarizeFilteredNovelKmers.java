@@ -2,8 +2,10 @@ package uk.ac.ox.well.cortexjdk.playground.eval;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
@@ -14,6 +16,9 @@ import java.util.TreeMap;
 public class SummarizeFilteredNovelKmers extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public ArrayList<CortexGraph> GRAPHS;
+
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -27,14 +32,18 @@ public class SummarizeFilteredNovelKmers extends Module {
             counts.put(cg.getNumRecords(), filterName);
         }
 
+        out.println("\t" + GRAPHS.get(0).getSampleName(0));
+
         for (long l : counts.keySet()) {
             String[] s = counts.get(l).split("\\.");
 
-            if (s.length > 1) {
-                log.info("{} {}", s[0], l);
-            } else {
-                log.info("{} {}", "unfiltered", l);
+            if (s.length == 1) {
+                s[0] = "Unfiltered";
             }
+
+            //log.info("{} {}", s[0], l);
+
+            out.println(s[0] + "\t" + l);
         }
     }
 }
