@@ -67,8 +67,8 @@ public class AssembleWithReferenceAssist extends Module {
     }
 
     private List<CortexVertex> annotateContig(List<CortexVertex> cvs) {
-
-
         List<CortexVertex> cvas = new ArrayList<>();
+
+        return null;
     }
 }
