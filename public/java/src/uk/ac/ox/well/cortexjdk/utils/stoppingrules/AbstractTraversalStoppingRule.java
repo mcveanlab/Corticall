@@ -1,11 +1,11 @@
-package uk.ac.ox.well.cortexjdk.utils.stoppingconditions;
+package uk.ac.ox.well.cortexjdk.utils.stoppingrules;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 
 import java.util.Set;
 
-public abstract class AbstractTraversalStopper<V, E> implements TraversalStopper<V, E> {
+public abstract class AbstractTraversalStoppingRule<V, E> implements TraversalStoppingRule<V, E> {
     private boolean traversalSucceeded = false;
     private boolean traversalFailed = false;
 

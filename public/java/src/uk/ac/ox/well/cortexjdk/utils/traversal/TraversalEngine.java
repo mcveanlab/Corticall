@@ -13,7 +13,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.stoppingconditions.TraversalStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
 import java.util.*;
 
@@ -156,7 +156,7 @@ public class TraversalEngine {
         return dwp;
     }
 
-    private static TraversalStopper<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStopper<CortexVertex, CortexEdge>> stopperClass) {
+    private static TraversalStoppingRule<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stopperClass) {
         try {
             return stopperClass.newInstance();
         } catch (InstantiationException e) {
@@ -182,7 +182,7 @@ public class TraversalEngine {
 
         Set<CortexVertex> avs;
 
-        TraversalStopper<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
+        TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         do {
             Set<CortexVertex> pvs = getPrevVertices(cv.getBk());

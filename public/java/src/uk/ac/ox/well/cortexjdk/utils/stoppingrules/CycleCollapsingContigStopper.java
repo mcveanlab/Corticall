@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.utils.stoppingconditions;
+package uk.ac.ox.well.cortexjdk.utils.stoppingrules;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
@@ -8,28 +8,16 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import java.util.Set;
 
 /**
- * Created by kiran on 08/05/2017.
+ * Created by kiran on 14/05/2017.
  */
-public class NahrStopper extends AbstractTraversalStopper<CortexVertex, CortexEdge> {
-    private boolean foundNovels = false;
-    private int distanceFromLastNovel = 0;
-
+public class CycleCollapsingContigStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        if (foundNovels) {
-            distanceFromLastNovel++;
-        }
-
-        if (rois.findRecord(cv.getCr().getCortexKmer()) != null) {
-            foundNovels = true;
-            distanceFromLastNovel++;
-        }
-
-        return foundNovels && (distanceFromLastNovel >= 1000 || currentTraversalDepth >= 5 || numAdjacentEdges == 0 || childrenAlreadyTraversed);
+        return numAdjacentEdges == 0;
     }
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return !foundNovels && (currentGraphSize >= 1000 || currentTraversalDepth >= 2 || numAdjacentEdges == 0);
+        return false;
     }
 }
