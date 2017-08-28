@@ -22,18 +22,26 @@ public class RemoveLowCoverage extends Module {
     @Output
     public File out;
 
+    @Output(fullName="lowcoverage_out", shortName="co", doc="Low coverage output file")
+    public File lowcoverage_out;
+
     @Override
     public void execute() {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
+        CortexGraphWriter lgw = new CortexGraphWriter(lowcoverage_out);
 
         cgw.setHeader(ROI.getHeader());
+        lgw.setHeader(ROI.getHeader());
 
         for (CortexRecord cr : ROI) {
             if (cr.getCoverage(0) >= MIN_COVERAGE) {
                 cgw.addRecord(cr);
+            } else {
+                lgw.addRecord(cr);
             }
         }
 
         cgw.close();
+        lgw.close();
     }
 }
