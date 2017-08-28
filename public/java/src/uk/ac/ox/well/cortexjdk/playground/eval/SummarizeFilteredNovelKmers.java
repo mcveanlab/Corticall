@@ -22,20 +22,21 @@ public class SummarizeFilteredNovelKmers extends Module {
 
     @Override
     public void execute() {
-        Map<Long, String> counts = new TreeMap<>();
+        Map<String, Long> counts = new TreeMap<>();
 
         for (CortexGraph cg : GRAPHS) {
             String filterName = cg.getCortexFile().getName();
             filterName = filterName.replaceFirst(".+rois.", "");
             filterName = filterName.replaceAll("ctx", "");
 
-            counts.put(cg.getNumRecords(), filterName);
+            //counts.put(cg.getNumRecords(), filterName);
+            counts.put(filterName, cg.getNumRecords());
         }
 
         out.println("\t" + GRAPHS.get(0).getSampleName(0));
 
-        for (long l : counts.keySet()) {
-            String[] s = counts.get(l).split("\\.");
+        for (String name : counts.keySet()) {
+            String[] s = name.split("\\.");
 
             if (s.length == 1) {
                 s[0] = "Unfiltered";
@@ -43,7 +44,7 @@ public class SummarizeFilteredNovelKmers extends Module {
 
             //log.info("{} {}", s[0], l);
 
-            out.println(s[0] + "\t" + l);
+            out.println(s[0] + "\t" + counts.get(name));
         }
     }
 }
