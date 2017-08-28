@@ -27,6 +27,7 @@ public class SummarizeFilteredNovelKmers extends Module {
         for (CortexGraph cg : GRAPHS) {
             String filterName = cg.getCortexFile().getName();
             filterName = filterName.replaceFirst(".+rois.", "");
+            filterName = filterName.replaceAll(".ctx", "");
             filterName = filterName.replaceAll("ctx", "");
 
             //counts.put(cg.getNumRecords(), filterName);
@@ -38,7 +39,7 @@ public class SummarizeFilteredNovelKmers extends Module {
         for (String name : counts.keySet()) {
             String[] s = name.split("\\.");
 
-            if (s.length == 1) {
+            if (s[0].equals("")) {
                 s[0] = "Unfiltered";
             }
 
