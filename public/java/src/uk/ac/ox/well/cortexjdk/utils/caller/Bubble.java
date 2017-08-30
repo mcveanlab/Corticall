@@ -80,7 +80,7 @@ public class Bubble {
     }
 
     public VariantContext.Type getType() {
-        if (refAllele.length() == altAllele.length()) {
+        if (refAllele.length() == altAllele.length() && !refAllele.equals(altAllele)) {
             if (refAllele.length() == 1) {
                 return VariantContext.Type.SNP;
             }

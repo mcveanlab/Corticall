@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.commands.call.call;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
@@ -153,7 +154,10 @@ public class CallBubbles extends Module {
                                             }
 
                                             Bubble b = new Bubble(dgp, dgc, REFERENCES.get(GRAPH.getSampleName(pc)), novelKmersInBubble);
-                                            bubbles.add(b);
+
+                                            if (!b.getType().equals(VariantContext.Type.NO_VARIATION)) {
+                                                bubbles.add(b);
+                                            }
                                         }
                                     }
                                 }
