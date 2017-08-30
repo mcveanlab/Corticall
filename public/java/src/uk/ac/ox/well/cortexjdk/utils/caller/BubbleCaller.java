@@ -71,7 +71,7 @@ public class BubbleCaller {
                     GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
                     GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
-                    bubbles.add(new Bubble(pRef, pAlt));
+                    bubbles.add(new Bubble(pRef, pAlt, null, null));
                 }
             }
         }

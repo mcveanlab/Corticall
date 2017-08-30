@@ -85,7 +85,7 @@ public class CortexVertex {
     @Override
     public String toString() {
         return "CortexVertex{" +
-                "sk='" + sk + '\'' +
+                "sk='" + new String(sk.getKmer()) + '\'' +
                 ", cr=" + cr +
                 ", locus=" + locus +
                 ", kmerSources=" + kmerSources +

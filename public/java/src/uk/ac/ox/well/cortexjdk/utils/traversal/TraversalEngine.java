@@ -198,7 +198,9 @@ public class TraversalEngine {
                 }
 
                 if (qv != null) {
-                    avs = Collections.singleton(qv);
+                    //avs = Collections.singleton(qv);
+                    avs = new HashSet<>();
+                    avs.add(qv);
                 }
             }
 
