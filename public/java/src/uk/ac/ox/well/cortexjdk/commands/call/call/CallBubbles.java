@@ -84,7 +84,7 @@ public class CallBubbles extends Module {
         List<TraversalEngine> eCloses = new ArrayList<>();
         for (int pc : parentColors) {
             TraversalEngine eClose = new TraversalEngineFactory()
-                    .traversalColor(parentColors.get(pc))
+                    .traversalColor(pc)
                     .joiningColors(childColor)
                     .traversalDirection(FORWARD)
                     .combinationOperator(OR)
