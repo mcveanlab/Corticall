@@ -108,67 +108,69 @@ public class CallBubbles extends Module {
             if (!used.get(rk)) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gc = eOpen.dfs(rk.getKmerAsString());
 
-                DepthFirstIterator<CortexVertex, CortexEdge> dFwd = null;
-                DepthFirstIterator<CortexVertex, CortexEdge> dRev = null;
+                if (gc != null) {
+                    DepthFirstIterator<CortexVertex, CortexEdge> dFwd = null;
+                    DepthFirstIterator<CortexVertex, CortexEdge> dRev = null;
 
-                for (CortexVertex cv : gc.vertexSet()) {
-                    if (cv.getCk().equals(rk)) {
-                        dFwd = new DepthFirstIterator<>(gc, cv);
-                        dRev = new DepthFirstIterator<>(new EdgeReversedGraph<>(gc), cv);
+                    for (CortexVertex cv : gc.vertexSet()) {
+                        if (cv.getCk().equals(rk)) {
+                            dFwd = new DepthFirstIterator<>(gc, cv);
+                            dRev = new DepthFirstIterator<>(new EdgeReversedGraph<>(gc), cv);
+                        }
                     }
-                }
 
-                Set<CortexVertex> sources = getCandidates(dRev);
-                Set<CortexVertex> sinks = getCandidates(dFwd);
+                    Set<CortexVertex> sources = getCandidates(dRev);
+                    Set<CortexVertex> sinks = getCandidates(dFwd);
 
-                Set<Bubble> bubbles = new HashSet<>();
-                for (CortexVertex so : sources) {
-                    for (CortexVertex si : sinks) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                        s.addVertex(si);
+                    Set<Bubble> bubbles = new HashSet<>();
+                    for (CortexVertex so : sources) {
+                        for (CortexVertex si : sinks) {
+                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                            s.addVertex(si);
 
-                        for (int pc : parentColors) {
-                            Set<Interval> soIntervals = REFERENCES.get(GRAPH.getSampleName(pc)).findKmer(so.getSk());
-                            Set<Interval> siIntervals = REFERENCES.get(GRAPH.getSampleName(pc)).findKmer(si.getSk());
+                            for (int pc : parentColors) {
+                                Set<Interval> soIntervals = REFERENCES.get(GRAPH.getSampleName(pc)).findKmer(so.getSk());
+                                Set<Interval> siIntervals = REFERENCES.get(GRAPH.getSampleName(pc)).findKmer(si.getSk());
 
-                            if (so.getCr().getCoverage(pc) > 0 && si.getCr().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
-                                Interval soInterval = soIntervals.iterator().next();
-                                Interval siInterval = siIntervals.iterator().next();
+                                if (so.getCr().getCoverage(pc) > 0 && si.getCr().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
+                                    Interval soInterval = soIntervals.iterator().next();
+                                    Interval siInterval = siIntervals.iterator().next();
 
-                                if (soInterval.getContig().equals(siInterval.getContig())) {
-                                    eCloses.get(pc).getConfiguration().setPreviousTraversal(s);
+                                    if (soInterval.getContig().equals(siInterval.getContig())) {
+                                        eCloses.get(pc).getConfiguration().setPreviousTraversal(s);
 
-                                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getSk());
+                                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getSk());
 
-                                    if (gp != null) {
-                                        GraphPath<CortexVertex, CortexEdge> dgc = DijkstraShortestPath.findPathBetween(gc, so, si);
-                                        GraphPath<CortexVertex, CortexEdge> dgp = DijkstraShortestPath.findPathBetween(gp, so, si);
+                                        if (gp != null) {
+                                            GraphPath<CortexVertex, CortexEdge> dgc = DijkstraShortestPath.findPathBetween(gc, so, si);
+                                            GraphPath<CortexVertex, CortexEdge> dgp = DijkstraShortestPath.findPathBetween(gp, so, si);
 
-                                        Set<CortexKmer> novelKmersInBubble = new HashSet<>();
-                                        for (CortexVertex cv : dgc.getVertexList()) {
-                                            if (used.containsKey(cv.getCk())) {
-                                                novelKmersInBubble.add(cv.getCk());
+                                            Set<CortexKmer> novelKmersInBubble = new HashSet<>();
+                                            for (CortexVertex cv : dgc.getVertexList()) {
+                                                if (used.containsKey(cv.getCk())) {
+                                                    novelKmersInBubble.add(cv.getCk());
+                                                }
                                             }
-                                        }
 
-                                        Bubble b = new Bubble(dgp, dgc, REFERENCES.get(GRAPH.getSampleName(pc)), novelKmersInBubble);
-                                        bubbles.add(b);
+                                            Bubble b = new Bubble(dgp, dgc, REFERENCES.get(GRAPH.getSampleName(pc)), novelKmersInBubble);
+                                            bubbles.add(b);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                for (Bubble b : bubbles) {
-                    for (CortexKmer ck : b.getNovelKmers()) {
-                        used.put(ck, true);
-                        numNovelKmersInVariants++;
+                    for (Bubble b : bubbles) {
+                        for (CortexKmer ck : b.getNovelKmers()) {
+                            used.put(ck, true);
+                            numNovelKmersInVariants++;
+                        }
+
+                        out.println(Joiner.on("\t").join(b.getLocus().getContig(), b.getLocus().getStart(), b.getType(), "'" + b.getRefAllele() + "'", "'" + b.getAltAllele() + "'", b.getFlank5p(), b.getFlank3p(), b.getNovelKmers().size(), rk, Joiner.on(",").join(b.getNovelKmers())));
+
+                        numBubbles++;
                     }
-
-                    out.println(Joiner.on("\t").join(b.getLocus().getContig(), b.getLocus().getStart(), b.getType(), "'" + b.getRefAllele() + "'", "'" + b.getAltAllele() + "'", b.getFlank5p(), b.getFlank3p(), b.getNovelKmers().size(), rk, Joiner.on(",").join(b.getNovelKmers())));
-
-                    numBubbles++;
                 }
             }
 
