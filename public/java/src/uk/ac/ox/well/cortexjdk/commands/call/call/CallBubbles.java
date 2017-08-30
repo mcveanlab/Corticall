@@ -81,7 +81,7 @@ public class CallBubbles extends Module {
                 .rois(ROI)
                 .make();
 
-        List<TraversalEngine> eCloses = new ArrayList<>();
+        Map<Integer, TraversalEngine> eCloses = new HashMap<>();
         for (int pc : parentColors) {
             TraversalEngine eClose = new TraversalEngineFactory()
                     .traversalColor(pc)
@@ -94,7 +94,7 @@ public class CallBubbles extends Module {
                     .rois(ROI)
                     .make();
 
-            eCloses.add(eClose);
+            eCloses.put(pc, eClose);
         }
 
         out.println(Joiner.on("\t").join("contig", "start", "type", "ref", "alt", "flank5p", "flank3p", "nkCount", "nk", "nks"));
