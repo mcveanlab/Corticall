@@ -66,6 +66,10 @@ public class CallBubbles extends Module {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         List<Integer> parentColors = GRAPH.getColorsForSampleNames(new ArrayList<>(REFERENCES.keySet()));
 
+        log.info("Colors:");
+        log.info("  {}", childColor);
+        log.info("  {}", parentColors);
+
         TraversalEngine eOpen = new TraversalEngineFactory()
                 .traversalColor(childColor)
                 .joiningColors(parentColors)
