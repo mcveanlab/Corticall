@@ -151,7 +151,7 @@ public class Call extends Module {
                                             GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
                                             GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
 
-                                            Bubble b = new Bubble(pRef, pAlt);
+                                            Bubble b = new Bubble(pRef, pAlt, null, null);
 
                                             if (b.getRefAllele().length() > 0 || b.getAltAllele().length() > 0) {
                                                 log.info("  b: {} {} {}", b, os.getSk(), is.getSk());

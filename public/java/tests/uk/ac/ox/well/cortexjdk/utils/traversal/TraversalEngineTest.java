@@ -210,6 +210,7 @@ public class TraversalEngineTest {
         }
     }
 
+    /*
     @Test
     public void testCallBubble() {
         List<String> refAlleles = Arrays.asList("A", "",  "C", "",       "CCATA");
@@ -260,6 +261,7 @@ public class TraversalEngineTest {
             }
         }
     }
+    */
 
     @Test
     public void testCallSNV() {

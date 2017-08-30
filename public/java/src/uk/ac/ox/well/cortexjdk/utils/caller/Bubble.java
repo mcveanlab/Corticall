@@ -1,6 +1,9 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
+import htsjdk.samtools.util.Interval;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.GraphPath;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
@@ -8,48 +11,95 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import java.util.Set;
 
 public class Bubble {
-    private int contigPos;
-    private Set<CortexKmer> usedNovelKmers;
-
     private String flank5p;
     private String refAllele;
     private String altAllele;
     private String flank3p;
 
-    private int refColor;
-    private int altColor;
+    private Set<CortexKmer> novelKmers;
+    private Interval locus;
 
-    public Bubble(String flank5p, String refAllele, String altAllele, String flank3p) {
-        this.flank5p = flank5p;
-        this.refAllele = refAllele;
-        this.altAllele = altAllele;
-        this.flank3p = flank3p;
-    }
-
-    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt) {
+    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CortexKmer> novelKmers) {
         String[] pieces = pathsToAlleles(pRef, pAlt);
 
         this.flank5p = pieces[0];
         this.refAllele = pieces[1];
         this.altAllele = pieces[2];
         this.flank3p = pieces[3];
+        this.novelKmers = novelKmers;
+
+        Interval li5p = null, li3p = null;
+
+        for (int i = 0; i <= flank5p.length() - kl.getKmerSize(); i++) {
+            String sk = flank5p.substring(i, i + kl.getKmerSize());
+            Set<Interval> lis = kl.findKmer(sk);
+
+            if (lis.size() == 1) {
+                Interval li = lis.iterator().next();
+                int offset = flank5p.length() - i;
+
+                if (li.isNegativeStrand()) {
+                    offset += refAllele.length();
+                    offset *= -1;
+                }
+
+                String contig = li.getContig();
+                int pos = li.getStart() + offset;
+
+                li5p = new Interval(contig, pos, pos);
+                break;
+            }
+        }
+
+        for (int i = 0; i <= flank3p.length() - kl.getKmerSize(); i++) {
+            String sk = flank3p.substring(i, i + kl.getKmerSize());
+            Set<Interval> lis = kl.findKmer(sk);
+
+            if (lis.size() == 1) {
+                Interval li = lis.iterator().next();
+                int offset = i;
+
+                if (li.isPositiveStrand()) {
+                    offset += refAllele.length();
+                    offset *= -1;
+                }
+
+                String contig = li.getContig();
+                int pos = li.getStart() + offset;
+
+                li3p = new Interval(contig, pos, pos);
+                break;
+            }
+        }
+
+        if (li5p != null) {
+            locus = li5p;
+        } else if (li3p != null) {
+            locus = li3p;
+        }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public VariantContext.Type getType() {
+        if (refAllele.length() == altAllele.length()) {
+            if (refAllele.length() == 1) {
+                return VariantContext.Type.SNP;
+            }
 
-        Bubble bubble = (Bubble) o;
+            return VariantContext.Type.MNP;
+        } else if (refAllele.length() != altAllele.length()) {
+            if (refAllele.length() == 0 || altAllele.length() == 0) {
+                return VariantContext.Type.INDEL;
+            }
 
-        CortexKmer thisRefHaplotypeFw = new CortexKmer(getRefHaplotype());
-        CortexKmer thisAltHaplotypeFw = new CortexKmer(getAltHaplotype());
+            return VariantContext.Type.MNP;
+        }
 
-        CortexKmer thatRefHaplotypeFw = new CortexKmer(bubble.getRefHaplotype());
-        CortexKmer thatAltHaplotypeFw = new CortexKmer(bubble.getAltHaplotype());
-
-        return thisRefHaplotypeFw.equals(thatRefHaplotypeFw) && thisAltHaplotypeFw.equals(thatAltHaplotypeFw);
+        return VariantContext.Type.NO_VARIATION;
     }
+
+    public String getFlank5p() { return flank5p; }
+
+    public String getFlank3p() { return flank3p; }
 
     public String getRefAllele() {
         return refAllele;
@@ -59,27 +109,22 @@ public class Bubble {
         return altAllele;
     }
 
-    public String getRefHaplotype() {
-        //return flank5p + refAllele + flank3p;
-        return refAllele;
-    }
+    public String getRefHaplotype() { return refAllele; }
 
     public String getAltHaplotype() {
         return altAllele;
     }
 
-    @Override
-    public int hashCode() {
-        int result = refAllele != null ? (new CortexKmer(refAllele)).hashCode() : 0;
-        result = 31 * result + (altAllele != null ? (new CortexKmer(altAllele)).hashCode() : 0);
-        return result;
-    }
+    public Set<CortexKmer> getNovelKmers() { return novelKmers; }
+
+    public Interval getLocus() { return locus; }
 
     @Override
     public String toString() {
         return "Bubble{" +
                 "refAllele='" + refAllele + '\'' +
                 ", altAllele='" + altAllele + '\'' +
+                ", locus='" + locus + '\'' +
                 '}';
     }
 
@@ -127,5 +172,28 @@ public class Bubble {
             }
         }
         return sbk.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Bubble bubble = (Bubble) o;
+
+        if (refAllele != null ? !refAllele.equals(bubble.refAllele) : bubble.refAllele != null) return false;
+        if (altAllele != null ? !altAllele.equals(bubble.altAllele) : bubble.altAllele != null) return false;
+        if (novelKmers != null ? !novelKmers.equals(bubble.novelKmers) : bubble.novelKmers != null) return false;
+        return locus != null ? locus.equals(bubble.locus) : bubble.locus == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = refAllele != null ? refAllele.hashCode() : 0;
+        result = 31 * result + (altAllele != null ? altAllele.hashCode() : 0);
+        result = 31 * result + (novelKmers != null ? novelKmers.hashCode() : 0);
+        result = 31 * result + (locus != null ? locus.hashCode() : 0);
+        return result;
     }
 }

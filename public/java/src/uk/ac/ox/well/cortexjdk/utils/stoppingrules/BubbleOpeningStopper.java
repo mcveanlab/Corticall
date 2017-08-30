@@ -11,19 +11,29 @@ import java.util.Set;
  * Created by kiran on 07/05/2017.
  */
 public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
+    private int novelKmersSeen = 0;
+    private int distanceSinceJoin = 0;
+    private boolean hasJoined = false;
+
     @Override
     public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        boolean hasJoined = false;
+        if (rois.findRecord(cv.getBk()) != null) {
+            novelKmersSeen++;
+        }
+
+        if (hasJoined) {
+            distanceSinceJoin++;
+        }
 
         for (int c : joiningColors) {
             hasJoined |= (cv.getCr().getCoverage(c) > 0);
         }
 
-        return hasJoined;
+        return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || numAdjacentEdges != 1);
     }
 
     @Override
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return currentGraphSize > 1000 || currentTraversalDepth >= 5 || numAdjacentEdges == 0;
+        return novelKmersSeen == 0 && (currentTraversalDepth >= 5 || numAdjacentEdges == 0);
     }
 }

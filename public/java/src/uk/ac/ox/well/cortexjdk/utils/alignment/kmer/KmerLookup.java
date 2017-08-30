@@ -69,6 +69,8 @@ public class KmerLookup {
         return ref;
     }
 
+    public int getKmerSize() { return kmerSize; }
+
     public String findKmer(Interval interval) {
         if (interval.getStart() > 0 && interval.getEnd() < ref.getSequenceDictionary().getSequence(interval.getContig()).getSequenceLength()) {
             ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
