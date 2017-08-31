@@ -10,8 +10,6 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.assembler.TempGraphAssembler;
-import uk.ac.ox.well.cortexjdk.utils.caller.Bubble;
-import uk.ac.ox.well.cortexjdk.utils.caller.BubbleCaller;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;

@@ -1,81 +1,155 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
+import htsjdk.samtools.util.Interval;
 import org.jgrapht.GraphPath;
-import org.jgrapht.Graphs;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import org.jgrapht.graph.EdgeReversedGraph;
+import org.jgrapht.traverse.DepthFirstIterator;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.*;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleOpeningStopper;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
+
 /**
- * Created by kiran on 30/07/2017.
+ * Created by kiran on 30/08/2017.
  */
 public class BubbleCaller {
-    private BubbleCaller() {}
+    private BubbleCallerConfiguration bc;
 
-    static public Bubble call(TraversalEngineConfiguration config, List<CortexVertex> lwalk, int refColor, int altColor, CortexKmer novelKmer) {
-        TraversalEngine e = new TraversalEngineFactory()
-            .configuration(config)
-            .traversalColor(refColor)
-            .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
-            .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
-            .stoppingRule(DestinationStopper.class)
-            .make();
+    private TraversalEngine eOpen;
+    private Map<Integer, TraversalEngine> eCloses = new HashMap<>();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = TraversalEngine.toGraph(config.getGraph(), lwalk, altColor, refColor);
+    private Set<CortexKmer> rois = new HashSet<>();
 
-        Set<CortexVertex> iss = new HashSet<>();
-        Set<CortexVertex> oss = new HashSet<>();
+    public BubbleCaller(BubbleCallerConfiguration bc) {
+        this.bc = bc;
 
-        for (CortexVertex v : lwalk) {
-            if (TraversalEngine.inDegree(sg, v) > 1) {
-                iss.add(v);
-            }
+        eOpen = new TraversalEngineFactory()
+                .traversalColor(bc.getAlternateColor())
+                .joiningColors(bc.getReferenceColors())
+                .traversalDirection(BOTH)
+                .combinationOperator(AND)
+                .stoppingRule(BubbleOpeningStopper.class)
+                .graph(bc.getGraph())
+                .links(bc.getLinks())
+                .rois(bc.getRois())
+                .make();
 
-            if (TraversalEngine.outDegree(sg, v) > 1) {
-                oss.add(v);
-            }
+        for (int pc : bc.getReferenceColors()) {
+            TraversalEngine eClose = new TraversalEngineFactory()
+                    .traversalColor(pc)
+                    .joiningColors(bc.getReferenceColors())
+                    .traversalDirection(FORWARD)
+                    .combinationOperator(OR)
+                    .stoppingRule(BubbleClosingStopper.class)
+                    .graph(bc.getGraph())
+                    .links(bc.getLinks())
+                    .rois(bc.getRois())
+                    .make();
+
+            eCloses.put(pc, eClose);
         }
 
-        if (iss.size() == 0 || oss.size() == 0) {
-            return null;
+        for (CortexRecord rr : bc.getRois()) {
+            rois.add(rr.getCortexKmer());
         }
+    }
 
-        for (CortexVertex is : iss) {
-            for (CortexVertex os : oss) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                p.addVertex(os);
-
-                e.getConfiguration().setPreviousTraversal(p);
-
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
-
-                if (w != null) {
-                    Graphs.addGraph(sg, w);
-                }
-            }
-        }
-
-        PathFinder dspRef = new PathFinder(sg, refColor);
-        PathFinder dspAlt = new PathFinder(sg, altColor);
+    public Set<Bubble> call(String seed) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gc = eOpen.dfs(seed);
 
         Set<Bubble> bubbles = new HashSet<>();
+        if (gc != null) {
+            DepthFirstIterator<CortexVertex, CortexEdge> dFwd = null;
+            DepthFirstIterator<CortexVertex, CortexEdge> dRev = null;
 
-        for (CortexVertex os : oss) {
-            for (CortexVertex is : iss) {
-                if (!os.equals(is)) {
-                    GraphPath<CortexVertex, CortexEdge> pRef = dspRef.getPathFinder(os, is);
-                    GraphPath<CortexVertex, CortexEdge> pAlt = dspAlt.getPathFinder(os, is, novelKmer, true);
+            for (CortexVertex cv : gc.vertexSet()) {
+                if (cv.getSk().equals(seed)) {
+                    dFwd = new DepthFirstIterator<>(gc, cv);
+                    dRev = new DepthFirstIterator<>(new EdgeReversedGraph<>(gc), cv);
+                }
+            }
 
-                    bubbles.add(new Bubble(pRef, pAlt, null, null));
+            Set<CortexVertex> sources = getCandidates(dRev);
+            Set<CortexVertex> sinks = getCandidates(dFwd);
+
+            for (CortexVertex so : sources) {
+                for (CortexVertex si : sinks) {
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                    s.addVertex(si);
+
+                    for (int pc : bc.getReferenceColors()) {
+                        Set<Interval> soIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).findKmer(so.getSk());
+                        Set<Interval> siIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).findKmer(si.getSk());
+
+                        if (so.getCr().getCoverage(pc) > 0 && si.getCr().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
+                            Interval soInterval = soIntervals.iterator().next();
+                            Interval siInterval = siIntervals.iterator().next();
+
+                            if (soInterval.getContig().equals(siInterval.getContig())) {
+                                eCloses.get(pc).getConfiguration().setPreviousTraversal(s);
+
+                                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getSk());
+
+                                if (gp != null) {
+                                    GraphPath<CortexVertex, CortexEdge> dgc = DijkstraShortestPath.findPathBetween(gc, so, si);
+                                    GraphPath<CortexVertex, CortexEdge> dgp = DijkstraShortestPath.findPathBetween(gp, so, si);
+
+                                    Set<CortexKmer> novelKmersInBubble = new HashSet<>();
+                                    for (CortexVertex cv : dgc.getVertexList()) {
+                                        if (rois.contains(cv.getCk())) {
+                                            novelKmersInBubble.add(cv.getCk());
+                                        }
+                                    }
+
+                                    Bubble b = new Bubble(dgp, dgc, bc.getReferences().get(bc.getGraph().getSampleName(pc)), novelKmersInBubble);
+
+                                    bubbles.add(b);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        return bubbles.iterator().next();
+        return bubbles;
+    }
+
+    private Set<CortexVertex> getCandidates(DepthFirstIterator<CortexVertex, CortexEdge> d) {
+        Set<CortexVertex> candidates = new HashSet<>();
+        if (d != null) {
+            while (d.hasNext()) {
+                CortexVertex cv = d.next();
+                Set<Interval> allIntervals = new HashSet<>();
+                for (KmerLookup kl : bc.getReferences().values()) {
+                    Set<Interval> intervals = kl.findKmer(cv.getSk());
+                    if (intervals != null) {
+                        allIntervals.addAll(intervals);
+                    }
+                }
+
+                if (allIntervals.size() == 1) {
+                    candidates.add(cv);
+                }
+            }
+        }
+        return candidates;
     }
 }
