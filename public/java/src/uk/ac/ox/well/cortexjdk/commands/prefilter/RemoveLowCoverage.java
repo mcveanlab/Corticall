@@ -6,6 +6,8 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraphWriter;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 
@@ -33,15 +35,31 @@ public class RemoveLowCoverage extends Module {
         cgw.setHeader(ROI.getHeader());
         lgw.setHeader(ROI.getHeader());
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Removing low-coverage records (< " + MIN_COVERAGE + ")")
+                .message("records processed")
+                .maxRecord(ROI.getNumRecords())
+                .make(log);
+
+        int numKept = 0, numExcluded = 0;
         for (CortexRecord cr : ROI) {
             if (cr.getCoverage(0) >= MIN_COVERAGE) {
                 cgw.addRecord(cr);
+                numKept++;
             } else {
                 lgw.addRecord(cr);
+                numExcluded++;
             }
+
+            pm.update();
         }
 
         cgw.close();
         lgw.close();
+
+        log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
+                numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
+                numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
+        );
     }
 }
