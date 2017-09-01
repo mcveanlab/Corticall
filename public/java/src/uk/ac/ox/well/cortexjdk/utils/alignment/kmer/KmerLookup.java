@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 
 public class KmerLookup {
+    private File refFile;
     private IndexedFastaSequenceFile ref;
     private String source;
     private Map<Integer, BTreeMap<long[], int[]>> kmerIndices = new HashMap<>();
@@ -29,6 +30,7 @@ public class KmerLookup {
 
     private void initialize(File refFile) {
         try {
+            this.refFile = refFile;
             this.ref = new IndexedFastaSequenceFile(refFile);
 
             if (this.ref.getSequenceDictionary() == null) {
@@ -64,12 +66,12 @@ public class KmerLookup {
 
                 int version = db.atomicInteger("version").open().get();
                 if (version != 1) {
-                    throw new CortexJDKException("Expected kmerdb file of version=1, found version=" + version);
+                    throw new CortexJDKException("Expected .kmerdb file of version=1, found version=" + version);
                 }
 
                 String source = db.atomicString("source").open().get();
                 if (this.source != null && !this.source.equals(source)) {
-                    throw new CortexJDKException("Source specified in '" + refFile.getAbsolutePath() + "' does not match previous kmerdb sources.");
+                    throw new CortexJDKException("Source specified in '" + refFile.getAbsolutePath() + "' does not match previous .kmerdb sources.");
                 }
                 this.source = source;
 
@@ -91,6 +93,10 @@ public class KmerLookup {
     }
 
     public String findKmer(Interval interval) {
+        if (ref.getSequenceDictionary().getSequenceIndex(interval.getContig()) == -1) {
+            throw new CortexJDKException("Contig '" + interval.getContig() + "' was not found in reference '" + refFile.getAbsolutePath() + "'");
+        }
+
         if (interval.getStart() > 0 && interval.getEnd() <= ref.getSequenceDictionary().getSequence(interval.getContig()).getSequenceLength()) {
             ReferenceSequence rseq = ref.getSubsequenceAt(interval.getContig(), interval.getStart(), interval.getEnd());
 
@@ -107,6 +113,10 @@ public class KmerLookup {
     }
 
     public Set<Interval> findKmer(String sk) {
+        if (!kmerIndices.containsKey(sk.length())) {
+            throw new CortexJDKException("No index at k=" + sk.length() + " for '" + refFile.getAbsolutePath() + "'");
+        }
+
         Set<Interval> intervals = new HashSet<>();
 
         int[] l = kmerIndices.get(sk.length()).get(new CortexBinaryKmer(sk.getBytes()).getBinaryKmer());

@@ -85,34 +85,49 @@ public class KmerLookupTest {
         }
     }
 
-    @Test()
+    @Test
     public void testKmerSizes() {
         Assert.assertEquals(kl.getKmerSizes(), new HashSet<>(Arrays.asList(3, 5)));
     }
 
-    @Test()
+    @Test
     public void testSource() {
         Assert.assertEquals(kl.getSource(), "test");
     }
 
-    @Test()
+    @Test
     public void findKmerBySequence() {
         for (String sk : expectedIntervals.keySet()) {
             Assert.assertEquals(expectedIntervals.get(sk), kl.findKmer(sk));
         }
     }
 
-    @Test()
+    @Test
     public void findKmerByIntervalFwd() {
         for (Interval it : expectedKmersFwd.keySet()) {
             Assert.assertEquals(expectedKmersFwd.get(it), kl.findKmer(it));
         }
     }
 
-    @Test()
+    @Test
     public void findKmerByIntervalRev() {
         for (Interval it : expectedKmersRev.keySet()) {
             Assert.assertEquals(expectedKmersRev.get(it), kl.findKmer(it));
         }
+    }
+
+    @Test
+    public void findMissingKmerReturnsEmptyList() {
+        Assert.assertEquals(0, kl.findKmer("GTACC").size());
+    }
+
+    @Test(expectedExceptions = CortexJDKException.class)
+    public void findKmerSizeWithNoCorrespondingKmerdbThrowsException() {
+        kl.findKmer("TCTGCATATGA");
+    }
+
+    @Test(expectedExceptions = CortexJDKException.class)
+    public void findIntervalOnNonExistentContigThrowsException() {
+        kl.findKmer(new Interval("3", 1, 2));
     }
 }
