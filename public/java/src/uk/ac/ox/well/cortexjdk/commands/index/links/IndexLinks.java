@@ -25,7 +25,7 @@ public class IndexLinks extends Module {
 
     @Override
     public void execute() {
-        File dbFile = new File(LINKS.getCortexLinksFile().getAbsolutePath() + ".linkdb");
+        File dbFile = new File(LINKS.getCortexLinksFile().getAbsolutePath() + ".k" + LINKS.getKmerSize() + ".linkdb");
 
         DB db = DBMaker
                 .fileDB(dbFile)

@@ -22,6 +22,8 @@ public class Bubble {
     public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CortexKmer> novelKmers) {
         String[] pieces = pathsToAlleles(pRef, pAlt);
 
+        int kmerSize = pRef.getStartVertex().getCk().length();
+
         this.flank5p = pieces[0];
         this.refAllele = pieces[1];
         this.altAllele = pieces[2];
@@ -30,8 +32,8 @@ public class Bubble {
 
         Interval li5p = null, li3p = null;
 
-        for (int i = 0; i <= flank5p.length() - kl.getKmerSize(); i++) {
-            String sk = flank5p.substring(i, i + kl.getKmerSize());
+        for (int i = 0; i <= flank5p.length() - kmerSize; i++) {
+            String sk = flank5p.substring(i, i + kmerSize);
             Set<Interval> lis = kl.findKmer(sk);
 
             if (lis.size() == 1) {
@@ -51,8 +53,8 @@ public class Bubble {
             }
         }
 
-        for (int i = 0; i <= flank3p.length() - kl.getKmerSize(); i++) {
-            String sk = flank3p.substring(i, i + kl.getKmerSize());
+        for (int i = 0; i <= flank3p.length() - kmerSize; i++) {
+            String sk = flank3p.substring(i, i + kmerSize);
             Set<Interval> lis = kl.findKmer(sk);
 
             if (lis.size() == 1) {
