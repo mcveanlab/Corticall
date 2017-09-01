@@ -208,59 +208,6 @@ public class TraversalEngineTest {
         }
     }
 
-    /*
-    @Test
-    public void testCallBubble() {
-        List<String> refAlleles = Arrays.asList("A", "",  "C", "",       "CCATA");
-        List<String> altAlleles = Arrays.asList("C", "C", "",  "CTAAAG", "ATGCG");
-
-        String flank5p = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(6));
-        String flank3p = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(6));
-
-        for (int i = 0; i < refAlleles.size(); i++) {
-            String refAllele = refAlleles.get(i);
-            String altAllele = altAlleles.get(i);
-
-            Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
-            haplotypes.put("ref", Collections.singletonList(flank5p + refAllele + flank3p));
-            haplotypes.put("alt", Collections.singletonList(flank5p + altAllele + flank3p));
-
-            CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 5);
-
-            int refColor = g.getColorForSampleName("ref");
-            int altColor = g.getColorForSampleName("alt");
-
-            Set<CortexKmer> novelKmers = new HashSet<>();
-            for (CortexRecord cr : g) {
-                if (cr.getCoverage(refColor) == 0 && cr.getCoverage(altColor) > 0) {
-                    novelKmers.add(cr.getCortexKmer());
-                }
-            }
-
-            String expFlank5p = flank5p.substring(flank5p.length() - g.getKmerSize(), flank5p.length());
-            String expFlank3p = flank3p.substring(0, g.getKmerSize());
-
-            for (CortexKmer nk : novelKmers) {
-                TraversalEngine e = new TraversalEngineFactory()
-                        .traversalColor(altColor)
-                        .graph(g)
-                        .make();
-
-                List<CortexVertex> walk = e.walk(nk.getKmerAsString());
-
-                String contigFw = TraversalEngine.toContig(walk);
-                String contigRc = SequenceUtils.reverseComplement(contigFw);
-
-                if (haplotypes.get("alt").iterator().next().equals(contigFw) || haplotypes.get("alt").iterator().next().equals(contigRc)) {
-                    Bubble bubble = BubbleCaller.call(e.getConfiguration(), walk, refColor, altColor, nk);
-
-                    Assert.assertEquals(new Bubble(expFlank5p, refAllele, altAllele, expFlank3p), bubble);
-                }
-            }
-        }
-    }
-    */
-
     @Test
     public void testCallSNV() {
         Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();

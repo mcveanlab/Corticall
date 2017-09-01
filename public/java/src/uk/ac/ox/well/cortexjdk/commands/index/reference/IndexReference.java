@@ -1,11 +1,8 @@
 package uk.ac.ox.well.cortexjdk.commands.index.reference;
 
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
-import org.mapdb.*;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
 
 import java.io.File;
 
@@ -13,55 +10,18 @@ public class IndexReference extends Module {
     @Argument(fullName="reference", shortName="r", doc="Reference sequence")
     public File REF_FILE;
 
+    @Argument(fullName="source", shortName="s", doc="Link source")
+    public String SOURCE;
+
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
     public Integer KMER_SIZE = 47;
 
     @Override
     public void execute() {
-        File dbFile = new File(REF_FILE.getAbsoluteFile() + ".kmerdb");
+        log.info("Indexing reference");
 
-        DB db = DBMaker
-                .fileDB(dbFile)
-                .fileMmapEnable()
-                .make();
+        File dbFile = KmerLookup.createIndex(REF_FILE, SOURCE, KMER_SIZE, log);
 
-        BTreeMap<long[], int[]> kmerIndex = db.treeMap("index")
-                .keySerializer(Serializer.LONG_ARRAY)
-                .valueSerializer(Serializer.INT_ARRAY)
-                .create();
-
-        FastaSequenceFile ref = new FastaSequenceFile(REF_FILE, true);
-        ReferenceSequence rseq;
-        while ((rseq = ref.nextSequence()) != null) {
-            log.info("  {}", rseq.getName());
-
-            String seq = new String(rseq.getBases());
-
-            for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
-                String sk = seq.substring(i, i + KMER_SIZE);
-
-                if (!sk.contains("N") && !sk.contains(".")) {
-                    CortexBinaryKmer cbk = new CortexBinaryKmer(sk.getBytes());
-
-                    int[] l = {rseq.getContigIndex(), i};
-
-                    if (!kmerIndex.containsKey(cbk.getBinaryKmer())) {
-                        kmerIndex.put(cbk.getBinaryKmer(), l);
-                    } else {
-                        int[] l1 = kmerIndex.get(cbk.getBinaryKmer());
-                        int[] l2 = new int[l1.length + 2];
-
-                        System.arraycopy(l1, 0, l2, 0, l1.length);
-                        System.arraycopy(l, 0, l2, l1.length, l.length);
-
-                        kmerIndex.put(cbk.getBinaryKmer(), l2);
-                    }
-                }
-            }
-
-            db.commit();
-        }
-
-        db.close();
+        log.info("  index written to {}", dbFile);
     }
 }
