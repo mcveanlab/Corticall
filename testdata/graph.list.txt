@@ -1,2 +1,0 @@
-0:testdata/PG0051-C.ERR019061.chr1.infer.sorted.ctx:0
-1:testdata/PG0063-C.ERR019060.chr3.md.infer.sorted.ctx:0
