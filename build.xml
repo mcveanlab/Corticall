@@ -216,14 +216,10 @@
     </target>
 
 	<!-- Build Javadocs -->
-	<target name="doc" depends="init">
-		<javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
-            <classpath>  
-                <fileset dir="${lib.dir}">  
-                    <include name="**/*.jar" />  
-                </fileset>
-            </classpath>
-		</javadoc>
+    <target name="doc">
+        <exec executable="javadoc" failonerror="false">
+            <arg line="-sourcepath public/java/src/ -d ./docs -subpackages . -exclude uk.ac.ox.well.cortexjdk.commands:uk.ac.ox.well.cortexjdk.playground" />
+        </exec>
 	</target>
 
     <!-- Tidy a little bit up -->

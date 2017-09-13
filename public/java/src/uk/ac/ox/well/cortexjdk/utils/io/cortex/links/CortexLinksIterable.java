@@ -15,6 +15,9 @@ import java.util.zip.GZIPInputStream;
 public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterator<CortexLinksRecord> {
     private File linksFile;
 
+    private String headerStr;
+    private String commentsStr;
+
     private int version;
     private int kmerSize;
     private int numColors;
@@ -56,10 +59,11 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
                 recordsStart += line.length() + 1;
 
                 if (line.equals("{")) { inHeader = true; }
-                if (inHeader) { headerBuilder.append(line); }
+                if (inHeader) { headerBuilder.append(line).append("\n"); }
                 if (line.equals("}")) { break; }
             }
 
+            headerStr = headerBuilder.toString();
             JSONObject header = new JSONObject(headerBuilder.toString());
 
             if (!header.has("formatVersion") && !header.has("format_version")) {
@@ -116,14 +120,19 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
                 }
             }
 
+            StringBuilder commentsBuilder = new StringBuilder();
             while ((line = buffered.readLine()) != null) {
-                if (!line.isEmpty() && !line.startsWith("#")) {
+                if (line.startsWith("#")) {
+                    commentsBuilder.append(line).append("\n");
+                } else if (!line.isEmpty() && !line.startsWith("#")) {
                     break;
                 }
 
                 recordsStart += line.length() + 1;
                 buffered.mark(100);
             }
+
+            commentsStr = commentsBuilder.toString();
         } catch (IOException e) {
             throw new CortexJDKException("Unable to load Cortex links file '" + linksFile.getAbsolutePath() + "'", e);
         }
@@ -163,7 +172,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
                 List<CortexJunctionsRecord> cjs = new ArrayList<>();
 
                 for (int i = 0; i < numLinks; i++) {
-                    String[] linkLine = buffered.readLine().split("\\s+");
+                    String[] linkLine = buffered.readLine().split("[,\\s]+");
 
                     String orientation = linkLine[0];
                     int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
@@ -257,6 +266,8 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
         return out.toString();
     }
 
+    public String getHeader() { return headerStr; }
+    public String getComments() { return commentsStr; }
     public int getVersion() { return version; }
     public int getKmerSize() { return kmerSize; }
     public int getNumColors() { return numColors; }
