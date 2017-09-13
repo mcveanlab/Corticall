@@ -7,9 +7,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexColor;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterator<CortexLinksRecord> {
@@ -27,6 +25,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     private long linkBytes;
 
     private List<CortexColor> colors = new ArrayList<>();
+    private Map<String, Integer> sampleColorMap = new HashMap<>();
 
     private BufferedReader buffered;
 
@@ -118,6 +117,12 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
 
                     this.colors.add(color);
                 }
+            }
+
+            sampleColorMap = new HashMap<>();
+            for (int c = 0; c < colors.size(); c++) {
+                CortexColor color = colors.get(c);
+                sampleColorMap.put(color.getSampleName(), c);
             }
 
             StringBuilder commentsBuilder = new StringBuilder();

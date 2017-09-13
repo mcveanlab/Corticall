@@ -73,20 +73,40 @@ public class CortexLinks implements Map<CortexKmer, CortexLinksRecord> {
     }
 
     public int getNumSources() {
-        return linkSources.size();
+        return linkSources == null ? 0 : linkSources.size();
     }
 
     public String getSourceForIndex(int index) {
+        if (linkSources == null) {
+            return "unknown";
+        }
+
         return linkSources.get(index);
     }
 
     public Collection<String> getSources() {
+        if (linkSources == null) {
+            return new ArrayList<>();
+        }
+
         return linkSources.values();
     }
 
-    public Integer getColorForSampleName(String sampleName) { return linkSamples.get(sampleName); }
+    public Integer getColorForSampleName(String sampleName) {
+        if (linkSamples == null) {
+            return clm.getCortexGraphLinks().getColorForSampleName(sampleName);
+        }
 
-    public String getSampleNameForColor(int c) { return linkColors.get(c); }
+        return linkSamples.get(sampleName);
+    }
+
+    public String getSampleNameForColor(int c) {
+        if (linkColors == null) {
+            return clm.getCortexGraphLinks().getColor(c).getSampleName();
+        }
+
+        return linkColors.get(c);
+    }
 
     @Override
     public int size() {
