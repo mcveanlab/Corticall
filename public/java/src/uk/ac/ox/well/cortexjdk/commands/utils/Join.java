@@ -27,6 +27,11 @@ public class Join extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(cc.getHeader());
 
+        log.info("Joining graphs:");
+        for (int c = 0; c < cc.getNumColors(); c++) {
+            log.info("  {}: {} ({} kmers)", c, cc.getSampleName(c), cc.getGraph(c).getNumRecords());
+        }
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
