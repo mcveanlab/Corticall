@@ -23,7 +23,15 @@ public class CortexCollection implements DeBruijnGraph {
 
     //private Map<Integer, String> colorList = new HashMap<>();
 
+    public CortexCollection(List<CortexGraph> graphCollection) {
+        loadCollection(graphCollection);
+    }
+
     public CortexCollection(CortexGraph... graphCollection) {
+        loadCollection(Arrays.asList(graphCollection));
+    }
+
+    private void loadCollection(List<CortexGraph> graphCollection) {
         int ac = 0;
 
         for (CortexGraph g : graphCollection) {
