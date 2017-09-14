@@ -28,12 +28,12 @@ public class VisualCortex extends Module {
             .logger(log);
 
         if (GRAPH != null) {
-            log.info("Graph: {} {}", GRAPH.getNumRecords(), GRAPH.getCortexFile());
+            log.info("Graph: {} {}", GRAPH.getNumRecords(), GRAPH.getFile());
 
             gvf = gvf.graph(GRAPH);
         }
         if (ROIS != null) {
-            log.info("Rois:  {} {}", ROIS.getNumRecords(), ROIS.getCortexFile());
+            log.info("Rois:  {} {}", ROIS.getNumRecords(), ROIS.getFile());
 
             gvf = gvf.rois(ROIS);
         }

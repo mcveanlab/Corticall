@@ -271,7 +271,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
         return out.toString();
     }
 
-    public String getHeader() { return headerStr; }
+    public String getJSONHeader() { return headerStr; }
     public String getComments() { return commentsStr; }
     public int getVersion() { return version; }
     public int getKmerSize() { return kmerSize; }

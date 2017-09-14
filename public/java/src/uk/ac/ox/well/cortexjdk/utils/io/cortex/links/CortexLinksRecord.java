@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.cortex.links;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CortexLinksRecord {
@@ -12,6 +13,35 @@ public class CortexLinksRecord {
     public CortexLinksRecord(String skmer, List<CortexJunctionsRecord> cjs) {
         this.kmer = skmer;
         this.cjs = cjs;
+    }
+
+    public CortexLinksRecord(byte[] block) {
+        String[] lines = new String(block).split("\\n");
+
+        String[] kmerLine = lines[0].split("\\s+");
+
+        kmer = kmerLine[0];
+        int numLinks = Integer.valueOf(kmerLine[1]);
+
+        cjs = new ArrayList<>();
+        for (int i = 0; i < numLinks; i++) {
+            String[] linkLine = lines[i + 1].split("\\s+");
+
+            String orientation = linkLine[0];
+            int numKmers = Integer.valueOf(linkLine[1]);
+
+            String[] covStrs = linkLine[2].split(",");
+            int[] coverages = new int[covStrs.length];
+
+            for (int c = 0; c < coverages.length; c++) {
+                coverages[c] = Integer.valueOf(covStrs[c]);
+            }
+
+            String junctions = linkLine[3];
+
+            CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, junctions.length(), coverages, junctions);
+            cjs.add(cj);
+        }
     }
 
     public String toString() {

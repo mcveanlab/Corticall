@@ -318,7 +318,7 @@ public class CortexGraph implements DeBruijnGraph {
     public CortexRecord findRecord(CortexKmer ck) { return findRecord(ck.getKmerAsBytes()); }
     public CortexRecord findRecord(String sk) { return findRecord(sk.getBytes()); }
 
-    public File getCortexFile() { return cortexFile; }
+    public File getFile() { return cortexFile; }
     public CortexHeader getHeader() { return header; }
     public int getVersion() { return header.getVersion(); }
     public int getKmerSize() { return header.getKmerSize(); }

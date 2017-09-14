@@ -41,7 +41,7 @@ public class CortexCollection implements DeBruijnGraph {
             }
 
             if (kmerSize != g.getKmerSize()) {
-                throw new CortexJDKException("Graph kmer sizes are not equal.  Expected k=" + kmerSize + ", but found k=" + g.getKmerSize() + " in graph " + g.getCortexFile().getAbsolutePath());
+                throw new CortexJDKException("Graph kmer sizes are not equal.  Expected k=" + kmerSize + ", but found k=" + g.getKmerSize() + " in graph " + g.getFile().getAbsolutePath());
             }
 
             List<Integer> accessColors = new ArrayList<>();
@@ -53,7 +53,7 @@ public class CortexCollection implements DeBruijnGraph {
             }
 
             graphs.put(g, new Pair<>(accessColors, loadingColors));
-            fgraphs.put(new CortexGraph(g.getCortexFile()), new Pair<>(accessColors, loadingColors));
+            fgraphs.put(new CortexGraph(g.getFile()), new Pair<>(accessColors, loadingColors));
             graphList.add(g);
 
             numColors += accessColors.size();
@@ -299,7 +299,7 @@ public class CortexCollection implements DeBruijnGraph {
     }
 
     @Override
-    public File getCortexFile() {
+    public File getFile() {
         throw new UnsupportedOperationException();
     }
 

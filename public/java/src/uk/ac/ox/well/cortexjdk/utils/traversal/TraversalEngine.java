@@ -493,7 +493,7 @@ public class TraversalEngine {
             for (CortexLinks lm : specificLinksFiles) {
                 CortexKmer ck = new CortexKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
-                    linkStore.add(curKmer, lm.get(ck), true, lm.getSourceForIndex(0));
+                    linkStore.add(curKmer, lm.get(ck), true, lm.getSource());
                 }
             }
         }
@@ -536,7 +536,7 @@ public class TraversalEngine {
             for (CortexLinks lm : specificLinksFiles) {
                 CortexKmer ck = new CortexKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
-                    linkStore.add(curKmer, lm.get(ck), false, lm.getSourceForIndex(0));
+                    linkStore.add(curKmer, lm.get(ck), false, lm.getSource());
                 }
             }
         }
@@ -578,12 +578,12 @@ public class TraversalEngine {
         specificLinksFiles = new HashSet<>();
         if (!ec.getLinks().isEmpty()) {
             for (CortexLinks lm : ec.getLinks()) {
-                if (lm.getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
+                if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
                     specificLinksFiles.add(lm);
 
                     CortexKmer ck = new CortexKmer(curKmer.getKmer());
                     if (lm.containsKey(ck)) {
-                        linkStore.add(curKmer, lm.get(ck), goForward, lm.getSourceForIndex(0));
+                        linkStore.add(curKmer, lm.get(ck), goForward, lm.getSource());
                     }
                 }
             }

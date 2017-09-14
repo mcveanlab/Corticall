@@ -29,7 +29,7 @@ public interface DeBruijnGraph extends Iterable<CortexRecord>, Iterator<CortexRe
     CortexRecord findRecord(String sk);
 
     // Graph information
-    File getCortexFile();
+    File getFile();
     CortexHeader getHeader();
     int getVersion();
     int getKmerSize();

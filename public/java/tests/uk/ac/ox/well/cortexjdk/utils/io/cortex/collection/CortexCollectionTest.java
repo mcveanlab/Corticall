@@ -14,8 +14,8 @@ public class CortexCollectionTest {
     public void testDynamicGraphMerging() {
         CortexCollection cc = new CortexCollection("testdata/graph.list.txt");
 
-        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getCortexFile());
-        CortexGraph g1 = new CortexGraph(cc.getGraph(1).getCortexFile());
+        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getFile());
+        CortexGraph g1 = new CortexGraph(cc.getGraph(1).getFile());
 
         for (CortexRecord c0 : g0) {
             CortexRecord c1 = g1.findRecord(c0.getKmerAsString());
@@ -42,7 +42,7 @@ public class CortexCollectionTest {
 
         Assert.assertEquals(2, cc.getNumColors());
 
-        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getCortexFile());
+        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getFile());
 
         for (CortexRecord c0 : g0) {
             CortexRecord cm = cc.findRecord(c0.getKmerAsString());
@@ -61,8 +61,8 @@ public class CortexCollectionTest {
     public void testIteration() {
         CortexCollection cc = new CortexCollection("testdata/graph.list.txt");
 
-        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getCortexFile());
-        CortexGraph g1 = new CortexGraph(cc.getGraph(1).getCortexFile());
+        CortexGraph g0 = new CortexGraph(cc.getGraph(0).getFile());
+        CortexGraph g1 = new CortexGraph(cc.getGraph(1).getFile());
 
         Set<String> kmers = new TreeSet<>();
         for (CortexRecord cr : g0) { kmers.add(cr.getKmerAsString()); }

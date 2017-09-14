@@ -25,7 +25,7 @@ public class SummarizeFilteredNovelKmers extends Module {
         Map<String, Long> counts = new TreeMap<>();
 
         for (CortexGraph cg : GRAPHS) {
-            String filterName = cg.getCortexFile().getName();
+            String filterName = cg.getFile().getName();
             filterName = filterName.replaceFirst(".+rois.", "");
             filterName = filterName.replaceAll(".ctx", "");
             filterName = filterName.replaceAll("ctx", "");
