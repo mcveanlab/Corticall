@@ -31,9 +31,6 @@ public class SendToVisualizer extends Module {
     @Argument(fullName="kmer", shortName="k", doc="Kmer")
     public String KMER;
 
-    @Argument(fullName="joiningColors", shortName="j", doc="Joining colors")
-    public HashSet<Integer> JOINING_COLORS;
-
     @Argument(fullName="traversalColor", shortName="t", doc="Traversal color")
     public Integer TRAVERSAL_COLOR;
 
@@ -47,7 +44,7 @@ public class SendToVisualizer extends Module {
     public void execute() {
         Collection<Integer> secondaryColors = new ArrayList<>();
         for (int c = 0; c < GRAPH.getNumColors(); c++) {
-            if (c != TRAVERSAL_COLOR && !JOINING_COLORS.contains(c)) {
+            if (c != TRAVERSAL_COLOR) {
                 secondaryColors.add(c);
             }
         }
@@ -55,7 +52,6 @@ public class SendToVisualizer extends Module {
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
                 .traversalColor(TRAVERSAL_COLOR)
-                .joiningColors(JOINING_COLORS)
                 .secondaryColors(secondaryColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
