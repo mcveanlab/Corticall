@@ -56,7 +56,7 @@ public class TempGraphAssembler {
         return new CortexGraph(tempFile);
     }
 
-    public static void updateRecord(Map<CortexKmer, CortexRecord> crs, int numColors, int color, String sk, String prevBase, String nextBase) {
+    private static void updateRecord(Map<CortexKmer, CortexRecord> crs, int numColors, int color, String sk, String prevBase, String nextBase) {
         CortexKmer ck = new CortexKmer(sk);
 
         List<Integer> coverageList = new ArrayList<>();
@@ -98,7 +98,7 @@ public class TempGraphAssembler {
     }
 
     @NotNull
-    public static CortexHeader constructCortexHeader(Set<String> colors, int kmerSize) {
+    private static CortexHeader constructCortexHeader(Set<String> colors, int kmerSize) {
         CortexHeader ch = new CortexHeader();
         ch.setVersion(6);
         ch.setNumColors(colors.size());

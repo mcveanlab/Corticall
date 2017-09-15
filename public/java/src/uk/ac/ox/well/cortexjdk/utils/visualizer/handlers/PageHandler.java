@@ -19,7 +19,7 @@ public class PageHandler extends BaseHandler {
     }
 
     public Pair<Integer, String> respond(HttpExchange httpExchange) throws IOException {
-        String page = "/html/" + httpExchange.getRequestURI();
+        String page = httpExchange.getRequestURI().toString().equals("/") || httpExchange.getRequestURI().toString().equals("") ? "/html/index.html" : ("/html/" + httpExchange.getRequestURI());
         File f = new File("./public" + page);
 
         int code = HttpStatusCodes.STATUS_CODE_OK;
