@@ -1,8 +1,11 @@
 package uk.ac.ox.well.cortexjdk.commands.visualizer;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import org.json.JSONObject;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ExplorationStopper;
@@ -13,6 +16,9 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.GraphVisualizer;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +46,9 @@ public class SendToVisualizer extends Module {
     @Argument(fullName="port", shortName="p", doc="Port")
     public Integer PORT = 9000;
 
+    @Output
+    public File out;
+
     @Override
     public void execute() {
         Collection<Integer> secondaryColors = new ArrayList<>();
@@ -61,6 +70,15 @@ public class SendToVisualizer extends Module {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(KMER);
 
         GraphVisualizer gv = new GraphVisualizer(PORT);
-        gv.display(g, NAME);
+        JSONObject jo = gv.display(g, NAME);
+
+        try {
+            PrintStream jout = new PrintStream(out);
+
+            jout.println(jo.toString(4));
+            jout.flush();
+        } catch (FileNotFoundException e1) {
+            throw new CortexJDKException("File not found", e1);
+        }
     }
 }

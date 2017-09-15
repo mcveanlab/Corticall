@@ -45,7 +45,7 @@ public class GraphVisualizer {
         vcc.setPort(port);
     }
 
-    public int display(DirectedGraph<CortexVertex, CortexEdge> g, String name) {
+    public JSONObject display(DirectedGraph<CortexVertex, CortexEdge> g, String name) {
         JSONObject jo = new JSONObject();
 
         Set<Map<String, Object>> vs = new HashSet<>();
@@ -95,12 +95,14 @@ public class GraphVisualizer {
             wr.flush();
             wr.close();
 
-            return con.getResponseCode();
+            //return con.getResponseCode();
         } catch (MalformedURLException e) {
             throw new CortexJDKException("Malformed URL", e);
         } catch (IOException e) {
             throw new CortexJDKException("IOException", e);
         }
+
+        return jo;
     }
 
     public int display(DirectedGraph<CortexVertex, CortexEdge> g, List<ReferenceSequence> refs, String name) {
