@@ -8,7 +8,7 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 | Offset        | Size (Bytes) | Type/Contents | Description                                           |
 |---------------|--------------|---------------|-------------------------------------------------------|
 | 0             | 6            | "CORTEX"      | Signature                                             |
-| 6             | 4            | 6             | The graph format version                              |
+| 6             | 4            | `0x6`             | The graph format version                              |
 | 10            | 4            | uint32_t      | The kmer size, `k`                                    |
 | 14            | 4            | uint32_t      | The kmer container size, `s`                          |
 | 18            | 4            | uint32_t      | Number of colors, `c`, in the graph                   |
@@ -51,6 +51,17 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 | 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian) |
 | 8*`s`         | 4*`c`        | uint32_t[`c`] | Coverage per color       |
 | 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color          |
+
+### Binary kmer specification
+The binary kmer is a big endian representation of a fixed size string of the letters A, C, G, and T.
+Each letter is represented by two bits.  The conversion table is:
+
+| Bit value | Letter |
+| --------- | ------ |
+| `0x0` | A |
+| `0x1` | C |
+| `0x2` | G |
+| `0x3` | T |
 
 ## Pseudocode for decoding a binary kmer
 ```java
