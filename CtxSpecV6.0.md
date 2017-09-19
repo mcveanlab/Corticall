@@ -4,7 +4,7 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 
 ## Header
 
-### Table 1. Cortex header
+#### Table 1. Cortex header
 | Offset        | Size (Bytes) | Type/Contents | Description                                           |
 |---------------|--------------|---------------|-------------------------------------------------------|
 | 0             | 6            | "CORTEX"      | Signature                                             |
@@ -19,13 +19,13 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 | 38+(12*`c`)+? | ?            | Block[]       | `c` color information blocks (see Table 3)            |
 | 38+(12*`c`)+? | 6            | "CORTEX"      | Trailer                                               |
 
-### Table 2. Color name block: color name lengths and color names for each color
+#### Table 2. Color name block: color name lengths and color names for each color
 | Offset | Size (Bytes) | Type/Contents | Description               |
 |--------|--------------|---------------|---------------------------|
 | 0      | 4            | uint32_t      | Length of color name, `L` |
 | 4      | `L`          | char[`L`]     | Color name                |
 
-### Table 3. Color information block
+#### Table 3. Color information block
 | Offset | Size (Bytes) | Type/Contents | Description                                                           |
 |--------|--------------|---------------|-----------------------------------------------------------------------|
 | 0      | 1            | _Bool         | Is tip-clipping applied?                                              |
@@ -40,15 +40,15 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 ## Body
 Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer records in the file is calculated as `N = (file_size - header_size)/S`.
 
-### Table 4. Records
+#### Table 4. Records
 | Offset | Size (Bytes)      | Type/Contents | Description        |
 |--------|-------------------|---------------|--------------------|
 | 0      | N*S               | Block[]       | Kmer record blocks |
 
-### Table 5. Record block
+#### Table 5. Record block
 | Offset        | Size (Bytes) | Type/Contents | Description              |
 |---------------|--------------|---------------|--------------------------|
-| 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian) |
+| 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian). See table 6. |
 | 8*`s`         | 4*`c`        | uint32_t[`c`] | Coverage per color       |
 | 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color          |
 
@@ -56,6 +56,7 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 The binary kmer is a big endian representation of a fixed size string of the letters A, C, G, and T.
 Each letter is represented by two bits.  The conversion table is:
 
+#### Table 6
 | Bit value | Letter |
 | --------- | ------ |
 | `0x0` | A |
