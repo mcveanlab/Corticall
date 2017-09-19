@@ -54,64 +54,6 @@ public class IndexLinks extends Module {
         } catch (IOException e) {
             throw new CortexJDKException("IOException", e);
         }
-
-        /*
-        log.info("Verifying index");
-
-        try {
-            BlockCompressedInputStream bi = new BlockCompressedInputStream(bgzipPath.toFile().getAbsoluteFile());
-
-            BinaryFile bf = new BinaryFile(indexPath.toFile(), "r");
-
-            byte[] magicWordStart = new byte[6];
-            bf.read(magicWordStart);
-
-            int numColors = bf.readInt();
-            int kmerSize = bf.readInt();
-            long numKmersInGraph = bf.readLong();
-            long numKmersWithLinks = bf.readLong();
-            long numLinkBytes = bf.readLong();
-
-            byte[] source = new byte[bf.readInt()];
-            bf.read(source);
-
-            for (int c = 0; c < numColors; c++) {
-                byte[] sn = new byte[bf.readInt()];
-                bf.read(sn);
-            }
-
-            byte[] magicWordEnd = new byte[6];
-            bf.read(magicWordEnd);
-
-            log.info("{} {} {}", magicWordStart, magicWordEnd, Arrays.equals(magicWordStart, magicWordEnd));
-            log.info("  kmerSize: {}", kmerSize);
-            log.info("  numKmersInGraph: {}", numKmersInGraph);
-            log.info("  numKmersWithLinks: {}", numKmersWithLinks);
-            log.info("  numLinkBytes: {}", numLinkBytes);
-
-            int numKmerBits = CortexRecord.getKmerBits(kmerSize);
-            for (int i = 0; i < numKmersWithLinks; i++) {
-                long[] kmer = new long[numKmerBits];
-                for (int j = 0; j < numKmerBits; j++) {
-                    kmer[j] = bf.readLong();
-                }
-
-                long pos = bf.readLong();
-                int length = bf.readInt();
-
-                String sk = new String(CortexRecord.decodeBinaryKmer(kmer, kmerSize, numKmerBits));
-
-                bi.seek(pos);
-                byte[] recbuf = new byte[length];
-                bi.read(recbuf);
-                CortexLinksRecord clr = new CortexLinksRecord(recbuf);
-
-                log.info("{} {} {} {} {} {}", numKmersWithLinks, i, sk, pos, length, clr);
-            }
-        } catch (IOException e) {
-            throw new CortexJDKException("IOException", e);
-        }
-        */
     }
 
     private void storeHeader(FileChannel fc, CortexLinksIterable links, String source) throws IOException {

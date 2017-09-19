@@ -76,7 +76,7 @@ public class KmerLookupTest {
             tempDict.deleteOnExit();
 
             for (int kmerSize : expectedKmerSizes) {
-                KmerLookup.createIndex(tempFa, expectedSource, kmerSize, null).deleteOnExit();
+                KmerLookup.createIndex(tempFa, kmerSize, expectedSource, 1, null).deleteOnExit();
             }
 
             kl = new KmerLookup(tempFa);

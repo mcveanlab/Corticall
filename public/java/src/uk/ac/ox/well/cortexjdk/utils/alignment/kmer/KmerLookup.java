@@ -4,17 +4,23 @@ import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
+import org.apache.tools.ant.taskdefs.Exec;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -140,66 +146,143 @@ public class KmerLookup {
         return intervals;
     }
 
-    public static File createIndex(File reference, String source, int kmerSize, Logger log) {
-        File dbFile = new File(reference.getAbsoluteFile() + ".k" + kmerSize + ".kmerdb");
+    public static File createIndex(File reference, final int kmerSize, final String source, int nThreads, Logger log) {
+        try {
+            FastaSequenceFile fsf = new FastaSequenceFile(reference, true);
+            ReferenceSequence rseq;
 
-        DB db = DBMaker
-                .fileDB(dbFile)
-                .fileMmapEnable()
-                .make();
+            ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+            //List<Callable<Map<Integer, Map<CortexBinaryKmer, List<Integer>>>>> results = new ArrayList<>();
+            List<Future<Map<Integer, Map<CortexBinaryKmer, List<Integer>>>>> results = new ArrayList<>();
 
-        storeAtoms(db, 1, source, kmerSize);
-        storeKmers(db, reference, kmerSize, log);
+            while ((rseq = fsf.nextSequence()) != null) {
+                final int contigIndex = rseq.getContigIndex();
+                final String rname = rseq.getName();
+                final byte[] seq = rseq.getBases();
 
-        db.close();
+                Callable<Map<Integer, Map<CortexBinaryKmer, List<Integer>>>> task = () -> {
+                    String threadName = Thread.currentThread().getName();
 
-        return dbFile;
-    }
+                    ProgressMeter pm = new ProgressMeterFactory()
+                            .header("Processing contig (" + threadName + ", " + rname + ")")
+                            .message("processed (" + threadName + ", " + rname + ")")
+                            .maxRecord(seq.length - kmerSize)
+                            .updateRecord((seq.length - kmerSize)/2)
+                            .make(log);
 
-    private static void storeAtoms(DB db, int version, String source, int kmerSize) {
-        db.atomicInteger("version", version).create();
-        db.atomicInteger("kmerSize", kmerSize).create();
-        db.atomicString("source", source).create();
+                    Map<Integer, Map<CortexBinaryKmer, List<Integer>>> kmerPos = new TreeMap<>();
+                    kmerPos.put(contigIndex, new TreeMap<>());
 
-        db.commit();
-    }
+                    for (int i = 0; i <= seq.length - kmerSize; i++) {
+                        byte[] kmer = new byte[kmerSize];
+                        System.arraycopy(seq, i, kmer, 0, kmerSize);
+                        CortexBinaryKmer cbk = new CortexBinaryKmer(kmer);
 
-    private static void storeKmers(DB db, File reference, int kmerSize, Logger log) {
-        BTreeMap<long[], int[]> kmerIndex = db.treeMap("index")
-                .keySerializer(Serializer.LONG_ARRAY)
-                .valueSerializer(Serializer.INT_ARRAY)
-                .create();
+                        if (!kmerPos.get(contigIndex).containsKey(cbk)) {
+                            kmerPos.get(contigIndex).put(cbk, new ArrayList<>());
+                        }
 
-        FastaSequenceFile ref = new FastaSequenceFile(reference, true);
-        ReferenceSequence rseq;
-        while ((rseq = ref.nextSequence()) != null) {
-            if (log != null) { log.info("  {}", rseq.getName()); }
+                        kmerPos.get(contigIndex).get(cbk).add(i);
 
-            String seq = new String(rseq.getBases());
-
-            for (int i = 0; i <= seq.length() - kmerSize; i++) {
-                String sk = seq.substring(i, i + kmerSize);
-
-                if (sk.matches("^[ACGTacgt]+$")) {
-                    CortexBinaryKmer cbk = new CortexBinaryKmer(sk.getBytes());
-
-                    int[] l = {rseq.getContigIndex(), i};
-
-                    if (!kmerIndex.containsKey(cbk.getBinaryKmer())) {
-                        kmerIndex.put(cbk.getBinaryKmer(), l);
-                    } else {
-                        int[] l1 = kmerIndex.get(cbk.getBinaryKmer());
-                        int[] l2 = new int[l1.length + 2];
-
-                        System.arraycopy(l1, 0, l2, 0, l1.length);
-                        System.arraycopy(l, 0, l2, l1.length, l.length);
-
-                        kmerIndex.put(cbk.getBinaryKmer(), l2);
+                        pm.update();
                     }
-                }
+
+                    return kmerPos;
+                };
+
+                results.add(executor.submit(task));
             }
 
-            db.commit();
+            try {
+                Map<CortexBinaryKmer, List<int[]>> kmers = new TreeMap<>();
+                boolean isFinished;
+
+                do {
+                    isFinished = true;
+                    for (Future<Map<Integer, Map<CortexBinaryKmer, List<Integer>>>> future : results) {
+                        if (future.isDone()) {
+                            for (int contigIndex : future.get().keySet()) {
+                                for (CortexBinaryKmer cbk : future.get().get(contigIndex).keySet()) {
+                                    if (!kmers.containsKey(cbk)) {
+                                        kmers.put(cbk, new ArrayList<>());
+                                    }
+
+                                    for (int p : future.get().get(contigIndex).get(cbk)) {
+                                        int[] l = new int[]{ contigIndex, p };
+
+                                        kmers.get(cbk).add(l);
+                                    }
+                                }
+                            }
+                        }
+
+                        isFinished &= future.isDone();
+                    }
+                } while (!isFinished);
+
+                executor.shutdownNow();
+
+                File dbFile = new File(reference.getAbsolutePath() + ".idx");
+                BinaryFile bf = new BinaryFile(dbFile, "rw");
+
+                storeAtoms(bf, 1, kmerSize, source);
+                storeKmers(bf, kmers, log);
+
+                /*
+                for (CortexBinaryKmer cbk : kmers.keySet()) {
+                    log.info("{} {}", cbk, kmers.get(cbk));
+                }
+                */
+
+                bf.close();
+
+                return dbFile;
+            } catch (InterruptedException e) {
+                throw new CortexJDKException("Interrupted");
+            } catch (ExecutionException e) {
+                throw new CortexJDKException("Execution problem");
+            }
+        } catch (FileNotFoundException e) {
+            throw new CortexJDKException("File not found", e);
+        } catch (IOException e) {
+            throw new CortexJDKException("IOException", e);
         }
+    }
+
+    private static void storeAtoms(BinaryFile bf, int version, int kmerSize, String source) throws IOException {
+        bf.writeBytes("KMRIDX");
+        bf.writeInt(version);
+        bf.writeInt(kmerSize);
+        bf.writeInt(source.length());
+        bf.writeBytes(source);
+        bf.writeBytes("KMRIDX");
+    }
+
+    private static void storeKmers(BinaryFile bf, Map<CortexBinaryKmer, List<int[]>> kmers, Logger log) throws IOException {
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Writing index")
+                .message("records written")
+                .maxRecord(kmers.size())
+                .make(log);
+
+        int numLoci = 0;
+        for (CortexBinaryKmer cbk : kmers.keySet()) {
+            for (int[] l : kmers.get(cbk)) {
+                long[] k = cbk.getBinaryKmer();
+
+                for (int i = 0; i < k.length; i++) {
+                    bf.writeLong(k[i]);
+                }
+
+                bf.writeInt(l[0]);
+                bf.writeInt(l[1]);
+
+                numLoci++;
+            }
+
+            pm.update();
+        }
+
+        log.info("Wrote {} kmers from {} loci", kmers.size(), numLoci);
     }
 }

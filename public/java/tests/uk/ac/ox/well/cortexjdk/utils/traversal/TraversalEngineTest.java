@@ -10,6 +10,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.assembler.TempGraphAssembler;
+import uk.ac.ox.well.cortexjdk.utils.assembler.TempLinksAssembler;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -99,6 +100,17 @@ public class TraversalEngineTest {
         cge.hasRecord("GCCCA 1 1 1 a.....G. a.....G. a.....G.");
         cge.hasRecord("GGCTA 1 1 1 ..g....T ..g....T ..g....T");
         cge.hasRecord("TCAGA 1 1 1 a...A... a...A... a...A...");
+    }
+
+    @Test
+    public void testArbitraryLinksConstruction() {
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("test", Collections.singletonList("ACTGATTTCGATGCGATGCGATGCCACGGTGG"));
+
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 5);
+        CortexLinks l = TempLinksAssembler.buildLinks(g, haplotypes, "test");
+
+        System.out.println();
     }
 
     @Test

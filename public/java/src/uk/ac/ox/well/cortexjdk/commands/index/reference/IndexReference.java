@@ -14,13 +14,16 @@ public class IndexReference extends Module {
     public String SOURCE;
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
-    public Integer KMER_SIZE = 47;
+    public Integer KMER_SIZE = 15;
+
+    @Argument(fullName="nThreads", shortName="t", doc="Number of threads")
+    public Integer NUM_THREADS = 2;
 
     @Override
     public void execute() {
         log.info("Indexing reference");
 
-        File dbFile = KmerLookup.createIndex(REF_FILE, SOURCE, KMER_SIZE, log);
+        File dbFile = KmerLookup.createIndex(REF_FILE, KMER_SIZE, SOURCE, NUM_THREADS, log);
 
         log.info("  index written to {}", dbFile);
     }
