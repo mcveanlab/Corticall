@@ -176,13 +176,16 @@ public class KmerLookup {
                     for (int i = 0; i <= seq.length - kmerSize; i++) {
                         byte[] kmer = new byte[kmerSize];
                         System.arraycopy(seq, i, kmer, 0, kmerSize);
-                        CortexBinaryKmer cbk = new CortexBinaryKmer(kmer);
 
-                        if (!kmerPos.get(contigIndex).containsKey(cbk)) {
-                            kmerPos.get(contigIndex).put(cbk, new ArrayList<>());
+                        if (SequenceUtils.isValidNucleotideSequence(kmer)) {
+                            CortexBinaryKmer cbk = new CortexBinaryKmer(kmer);
+
+                            if (!kmerPos.get(contigIndex).containsKey(cbk)) {
+                                kmerPos.get(contigIndex).put(cbk, new ArrayList<>());
+                            }
+
+                            kmerPos.get(contigIndex).get(cbk).add(i);
                         }
-
-                        kmerPos.get(contigIndex).get(cbk).add(i);
 
                         pm.update();
                     }

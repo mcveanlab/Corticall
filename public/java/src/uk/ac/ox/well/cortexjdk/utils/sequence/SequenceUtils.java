@@ -773,4 +773,17 @@ public class SequenceUtils {
 
         return pieces;
     }
+
+    public static boolean isValidNucleotide(byte b) {
+        return b == 'A' || b == 'C' || b == 'G' || b == 'T' || b == 'a' || b == 'c' || b == 'g' || b == 't';
+    }
+
+    public static boolean isValidNucleotideSequence(byte[] bs) {
+        boolean isValid = true;
+        for (byte b : bs) {
+            isValid &= isValidNucleotide(b);
+        }
+
+        return isValid;
+    }
 }
