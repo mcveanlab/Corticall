@@ -167,7 +167,7 @@ public class KmerLookup {
                             .header("Processing contig (" + threadName + ", " + rname + ")")
                             .message("processed (" + threadName + ", " + rname + ")")
                             .maxRecord(seq.length - kmerSize)
-                            .updateRecord((seq.length - kmerSize)/2)
+                            //.updateRecord((seq.length - kmerSize)/2)
                             .make(log);
 
                     Map<Integer, Map<CortexBinaryKmer, List<Integer>>> kmerPos = new TreeMap<>();
