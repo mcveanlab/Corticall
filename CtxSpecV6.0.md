@@ -48,9 +48,9 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 #### Table 5. Record block
 | Offset        | Size (Bytes) | Type/Contents | Description              |
 |---------------|--------------|---------------|--------------------------|
-| 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian). See table 6. |
+| 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian, See table 6) |
 | 8*`s`         | 4*`c`        | uint32_t[`c`] | Coverage per color       |
-| 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color          |
+| 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color (see table 7) |
 
 ### Binary kmer specification
 The binary kmer is a big endian representation of a fixed size string of the letters A, C, G, and T.
@@ -63,6 +63,11 @@ Each letter is represented by two bits.  The conversion table is:
 | `0x1` | C |
 | `0x2` | G |
 | `0x3` | T |
+
+### Edge specification
+An edge is a bit mask that determines the existence of incoming and outgoing edges. 
+From highest to lowest order bit (little endian), the edges are `acgtACGT`, 
+where lower-case letters represent incoming edges, and upper-case letters represent outgoing edges.
 
 ## Pseudocode for decoding a binary kmer
 ```java
