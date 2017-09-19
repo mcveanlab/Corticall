@@ -121,11 +121,9 @@ void shiftBinaryKmerByOneBase(long[] binaryKmer, int containerSize) {
 ```java
 // decode binary edge into byte[] array (lowercase for incoming edges, 
 // uppercase for outgoing edges, '.' for absent edge)
-byte[] decodeBinaryEdge(byte binaryEdge) {
+byte[] decodeBinaryEdge(byte edge) {
     byte[] edges = new byte[8];
     byte[] str = {'a', 'c', 'g', 't', 'A', 'C', 'G', 'T'};
-
-    byte edge = edges[color];
 
     int left = (edge >> 4);
     int right = (edge & 0xf);
