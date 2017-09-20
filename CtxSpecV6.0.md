@@ -8,9 +8,9 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 | Offset        | Size (Bytes) | Type/Contents | Description                                           |
 |---------------|--------------|---------------|-------------------------------------------------------|
 | 0             | 6            | "CORTEX"      | Signature                                             |
-| 6             | 4            | `0x6`             | The graph format version                              |
+| 6             | 4            | `0x6`         | The graph format version                              |
 | 10            | 4            | uint32_t      | The kmer size, `k`                                    |
-| 14            | 4            | uint32_t      | The kmer container size, `s`                          |
+| 14            | 4            | uint32_t      | The kmer container size in uint64_t's, `s`            |
 | 18            | 4            | uint32_t      | Number of colors, `c`, in the graph                   |
 | 22            | 4*`c`        | uint32_t[`c`] | The mean read length for each color                   |
 | 22+(4*`c`)    | 8*`c`        | uint64_t[`c`] | Total sequence for each color (definition is unclear) |
