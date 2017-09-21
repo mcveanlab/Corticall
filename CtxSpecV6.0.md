@@ -59,10 +59,10 @@ Each letter is represented by two bits.  The conversion table is:
 #### Table 6
 | Bit value | Letter |
 | --------- | ------ |
-| `0x0` | A |
-| `0x1` | C |
-| `0x2` | G |
-| `0x3` | T |
+| `0b00` | A |
+| `0b01` | C |
+| `0b10` | G |
+| `0b11` | T |
 
 ### Edge specification
 An edge is a bit mask that determines the presence of incoming and outgoing edges. 
