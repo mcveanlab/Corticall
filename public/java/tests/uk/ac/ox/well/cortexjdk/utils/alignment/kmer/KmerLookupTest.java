@@ -75,19 +75,12 @@ public class KmerLookupTest {
             tempFai.deleteOnExit();
             tempDict.deleteOnExit();
 
-            for (int kmerSize : expectedKmerSizes) {
-                KmerLookup.createIndex(tempFa, kmerSize, expectedSource, 1, null).deleteOnExit();
-            }
+            KmerLookup.createIndex(tempFa, 3, expectedSource, 2, null).deleteOnExit();
 
             kl = new KmerLookup(tempFa);
         } catch (IOException e) {
             throw new CortexJDKException("Could not write KmerLookupTest files to temp directory");
         }
-    }
-
-    @Test
-    public void testKmerSizes() {
-        Assert.assertEquals(kl.getKmerSizes(), new HashSet<>(Arrays.asList(3, 5)));
     }
 
     @Test
@@ -98,6 +91,7 @@ public class KmerLookupTest {
     @Test
     public void findKmerBySequence() {
         for (String sk : expectedIntervals.keySet()) {
+            System.out.println(sk + " " + expectedIntervals.get(sk) + " " + kl.findKmer(sk));
             Assert.assertEquals(expectedIntervals.get(sk), kl.findKmer(sk));
         }
     }
@@ -119,11 +113,6 @@ public class KmerLookupTest {
     @Test
     public void findMissingKmerReturnsEmptyList() {
         Assert.assertEquals(0, kl.findKmer("GTACC").size());
-    }
-
-    @Test(expectedExceptions = CortexJDKException.class)
-    public void findKmerSizeWithNoCorrespondingKmerdbThrowsException() {
-        kl.findKmer("TCTGCATATGA");
     }
 
     @Test(expectedExceptions = CortexJDKException.class)

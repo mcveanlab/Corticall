@@ -459,7 +459,7 @@ public class TraversalEngine {
     }
 
     public CortexVertex next() {
-        if (nextKmer == null) { throw new NoSuchElementException("No single next kmer from cursor '" + curKmer + "'"); }
+        if (nextKmer == null) { throw new NoSuchElementException("No single advance kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || !goForward) {
             if (!goForward) { seek(new String(curKmer.getKmer())); }
 

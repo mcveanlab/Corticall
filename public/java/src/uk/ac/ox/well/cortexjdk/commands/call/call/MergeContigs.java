@@ -78,7 +78,7 @@ public class MergeContigs extends Module {
 
                 String adjFwd = extend(e, g, rseq, true);
                 if (adjFwd != null) {
-                    log.info("    - joined next {}", adjFwd);
+                    log.info("    - joined advance {}", adjFwd);
                 }
             } else {
                 toRemove.add(rseq);

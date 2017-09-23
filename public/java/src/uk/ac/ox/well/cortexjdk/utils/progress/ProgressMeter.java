@@ -24,7 +24,9 @@ public class ProgressMeter {
         this.message = message;
         this.indent = indent;
 
-        log.info("{}", this.header);
+        if (log != null) {
+            log.info("{}", this.header);
+        }
     }
 
     public void update() {
@@ -34,9 +36,13 @@ public class ProgressMeter {
     public void update(String newMessage) {
         if (currentRecord % updateRecord == 0 || currentRecord == 1 || currentRecord == maxRecord || isTimeToUpdate()) {
             if (maxRecord > 0) {
-                log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, String.format("%.2f", 100.0*((double)currentRecord)/((double)maxRecord)), newMessage);
+                if (log != null) {
+                    log.info("{}{}/{} ({}%) {}", indent, currentRecord, maxRecord, String.format("%.2f", 100.0 * ((double) currentRecord) / ((double) maxRecord)), newMessage);
+                }
             } else {
-                log.info("{}{} {} ", indent, currentRecord, newMessage);
+                if (log != null) {
+                    log.info("{}{} {} ", indent, currentRecord, newMessage);
+                }
             }
 
             startTime = System.currentTimeMillis();
