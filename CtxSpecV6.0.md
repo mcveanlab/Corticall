@@ -54,7 +54,9 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 
 ### Binary kmer specification
 The binary kmer is a big endian representation of a fixed size string of the letters A, C, G, and T.
-Each letter is represented by two bits.  The conversion table is:
+Each letter is represented by two bits. 
+However, if the last byte of the kmer is not completely filled with bits, then kmer bits are right-aligned. 
+The conversion of bits to letters is described in table 6.
 
 #### Table 6
 | Bit value | Letter |
