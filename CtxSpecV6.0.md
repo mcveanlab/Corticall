@@ -53,10 +53,13 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 | 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color |
 
 ### Binary kmer specification
-The binary kmer is a big endian representation of a fixed size string of the letters A, C, G, and T.
-Each letter is represented by two bits. 
-However, if the last byte of the kmer is not completely filled with bits, then kmer bits are right-aligned in that byte. 
-The conversion of bits to letters is described in table 6.
+The binary kmer is a bit-packed representation of a fixed size string of the letters A, C, G, and T.
+Each letter is represented by two bits. The conversion of bits to letters is described in table 6.
+
+Bits are stored in an array of little-endian **uint64_t**s, a kmer_container, such that the lowest order bit of the last 
+**uint64_t** is the second bit of the last kmer letter.
+Letters are right-aligned in the kmer_container. The first **uint64_t** of a kmer_container is always 
+partially empty unless the stored kmer fits exactly into the kmer_container.
 
 #### Table 6
 | Bit value | Letter |
