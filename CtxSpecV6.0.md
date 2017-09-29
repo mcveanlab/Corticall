@@ -68,7 +68,8 @@ The conversion of bits to letters is described in table 6.
 
 ### Edge specification
 An edge is a bit mask that determines the presence of incoming and outgoing edges. 
-From highest to lowest order bit (little endian), the edges are `acgtACGT`, 
+From highest to lowest order bit (little endian), the edges are `acgtTGCA` 
+(please note the inverse order of incoming and outgoing edges), 
 where lower-case letters represent incoming edges, and upper-case letters represent outgoing edges.
 
 ## Pseudocode for decoding a binary kmer
