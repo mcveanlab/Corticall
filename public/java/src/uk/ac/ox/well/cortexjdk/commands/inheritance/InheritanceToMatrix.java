@@ -1,6 +1,5 @@
 package uk.ac.ox.well.cortexjdk.commands.inheritance;
 
-import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;

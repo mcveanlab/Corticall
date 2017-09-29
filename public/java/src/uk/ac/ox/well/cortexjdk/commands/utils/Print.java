@@ -53,7 +53,7 @@ public class Print extends Module {
 
         Set<String> lss = new TreeSet<>();
         if (LOOKUP != null) {
-            Set<Interval> loci = LOOKUP.findKmer(kmer);
+            Set<Interval> loci = LOOKUP.find(kmer);
 
             if (loci != null && loci.size() > 0) {
                 for (Interval locus : loci) {

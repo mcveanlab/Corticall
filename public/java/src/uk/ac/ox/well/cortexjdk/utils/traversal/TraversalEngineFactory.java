@@ -1,7 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;

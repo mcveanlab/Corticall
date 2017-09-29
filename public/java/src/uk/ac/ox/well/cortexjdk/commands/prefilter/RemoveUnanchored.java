@@ -13,7 +13,9 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.*;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.util.*;
@@ -96,7 +98,7 @@ public class RemoveUnanchored extends Module {
                     } else {
                         String code = "?";
                         for (String background : LOOKUPS.keySet()) {
-                            Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+                            Set<Interval> intervals = LOOKUPS.get(background).find(sk);
 
                             if (intervals.size() == 1) {
                                 code = "1";

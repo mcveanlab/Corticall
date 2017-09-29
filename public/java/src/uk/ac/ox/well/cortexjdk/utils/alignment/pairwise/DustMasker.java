@@ -7,7 +7,9 @@ import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DustMasker {
     private File dustmaskerPath = new File("/Users/kiran/opt/ncbi-blast-2.5.0+/bin/dustmasker");

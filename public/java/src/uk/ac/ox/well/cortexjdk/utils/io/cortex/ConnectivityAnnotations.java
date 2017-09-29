@@ -1,11 +1,11 @@
 package uk.ac.ox.well.cortexjdk.utils.io.cortex;
 
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexHeader;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksRecord;
-
-import java.io.File;
-import java.util.List;
 
 /**
  * Created by kiran on 14/09/2017.

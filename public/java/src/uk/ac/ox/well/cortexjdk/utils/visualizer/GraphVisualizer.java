@@ -13,7 +13,8 @@ import uk.ac.ox.well.cortexjdk.utils.visualizer.handlers.PageHandler;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.handlers.SubGraphHandler;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.handlers.SubGraphListener;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;

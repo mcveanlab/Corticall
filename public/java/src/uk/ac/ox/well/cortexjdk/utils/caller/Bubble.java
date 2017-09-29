@@ -34,7 +34,7 @@ public class Bubble {
 
         for (int i = 0; i <= flank5p.length() - kmerSize; i++) {
             String sk = flank5p.substring(i, i + kmerSize);
-            Set<Interval> lis = kl.findKmer(sk);
+            Set<Interval> lis = kl.find(sk);
 
             if (lis.size() == 1) {
                 Interval li = lis.iterator().next();
@@ -55,7 +55,7 @@ public class Bubble {
 
         for (int i = 0; i <= flank3p.length() - kmerSize; i++) {
             String sk = flank3p.substring(i, i + kmerSize);
-            Set<Interval> lis = kl.findKmer(sk);
+            Set<Interval> lis = kl.find(sk);
 
             if (lis.size() == 1) {
                 Interval li = lis.iterator().next();

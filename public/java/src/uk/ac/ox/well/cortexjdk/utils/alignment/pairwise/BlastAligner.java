@@ -4,8 +4,12 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.ProcessExecutor;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BlastAligner {
     private File blastPath = new File("/Users/kiran/opt/ncbi-blast-2.5.0+/bin/blastn");

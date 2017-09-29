@@ -1,12 +1,14 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Created by kiran on 05/05/2017.

@@ -80,7 +80,7 @@ public class AnnotateContigs extends Module {
 
                 List<String> allIntervals = new ArrayList<>();
                 for (String background : LOOKUPS.keySet()) {
-                    Set<Interval> its = new TreeSet<>(LOOKUPS.get(background).findKmer(sk));
+                    Set<Interval> its = new TreeSet<>(LOOKUPS.get(background).find(sk));
                     List<String> intervalStrings = new ArrayList<>();
 
                     if (its.size() > 0) {

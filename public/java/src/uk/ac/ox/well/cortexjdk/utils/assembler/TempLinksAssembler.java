@@ -3,24 +3,13 @@ package uk.ac.ox.well.cortexjdk.utils.assembler;
 import com.google.common.base.Joiner;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.GraphPath;
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraphWriter;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 /**

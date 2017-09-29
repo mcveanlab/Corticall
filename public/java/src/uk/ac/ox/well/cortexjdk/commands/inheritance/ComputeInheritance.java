@@ -161,8 +161,8 @@ public class ComputeInheritance extends Module {
                     }
 
                     if (destinationReached) {
-                        Set<Interval> sourceIntervals = REFERENCES.get("ref").findKmer(source.getSk());
-                        Set<Interval> destinationIntervals = REFERENCES.get("ref").findKmer(destination.getSk());
+                        Set<Interval> sourceIntervals = REFERENCES.get("ref").find(source.getSk());
+                        Set<Interval> destinationIntervals = REFERENCES.get("ref").find(destination.getSk());
 
                         float parentCoverage = 0.0f;
                         for (CortexVertex cv : contigParent) {
@@ -392,7 +392,7 @@ public class ComputeInheritance extends Module {
         if (numDraftsWithCoverage == 1 && draftColor > -1) {
             KmerLookup kl = REFERENCES.get(GRAPH.getSampleName(draftColor));
 
-            Set<Interval> its = kl.findKmer(cr.getKmerAsString());
+            Set<Interval> its = kl.find(cr.getKmerAsString());
 
             return its != null && its.size() == 1;
         }

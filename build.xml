@@ -22,6 +22,9 @@
     <property name="release.dir" value="release" />
     <property name="testdata.dir" value="testdata" />
 
+	<property name="bwa.version" value="8e2da1e407972170d1a660286f07a3a3a71ee6fb" />
+	<property name="bwa.dir" value="build/bwa" />
+
     <property name="ivy.install.version" value="2.3.0-rc1" />
     <property name="ivy.jar.dir" value="${lib.dir}" />
     <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
@@ -98,6 +101,8 @@
                 <include name="**/*.html" />
                 <include name="**/*.js" />
                 <include name="**/*.css" />
+                <include name="**/*.so" />
+                <include name="**/*.jnilib" />
             </fileset>
 
             <manifest>
@@ -131,6 +136,8 @@
 
             <fileset dir="${staging.dir}">
                 <include name="**/*.class" />
+                <include name="**/*.so" />
+                <include name="**/*.jnilib" />
             </fileset>
 
             <manifest>
@@ -207,6 +214,18 @@
         </tstamp>
         <echo message="${build.date.output}" />
     </target>
+
+	<!-- BWA bindings -->
+	<!--
+	<target name="bwalib">
+        <mkdir dir="${bwa.dir}" />
+		<exec executable="wget" failonerror="true">
+			<arg line="-O '${bwa.dir}/bwa.zip' 'https://github.com/lh3/bwa/archive/${bwa.version}.zip'" />
+		</exec>
+		<unzip src="${bwa.dir}/bwa.zip" dest="${bwa.dir}"/>
+		<exec executable="make" dir="${bwa.dir}/bwa-${bwa.version}" />
+	</target>
+	-->
 
     <!-- Make a fully tested release jar -->
     <target name="release" depends="clean,test,git.version,dist">

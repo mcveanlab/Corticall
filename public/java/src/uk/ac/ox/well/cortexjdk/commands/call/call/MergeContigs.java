@@ -172,7 +172,7 @@ public class MergeContigs extends Module {
             String sk = rseq.getSequence().substring(i, i + GRAPH.getKmerSize());
 
             for (String background : LOOKUPS.keySet()) {
-                Set<Interval> intervals = LOOKUPS.get(background).findKmer(sk);
+                Set<Interval> intervals = LOOKUPS.get(background).find(sk);
 
                 if (intervals.size() == 1 && !mostRecentConfidentInterval.containsKey(background)) {
                     Interval it = intervals.iterator().next();
@@ -225,7 +225,7 @@ public class MergeContigs extends Module {
                         Set<String> adj = new HashSet<>();
                         for (CortexVertex av : avs) {
                             for (String background : LOOKUPS.keySet()) {
-                                Set<Interval> its = LOOKUPS.get(background).findKmer(av.getSk());
+                                Set<Interval> its = LOOKUPS.get(background).find(av.getSk());
 
                                 if (its.size() == 1) {
                                     Interval it = its.iterator().next();
@@ -255,7 +255,7 @@ public class MergeContigs extends Module {
 
                             int intersectionLength = -1;
                             for (String background : LOOKUPS.keySet()) {
-                                Set<Interval> its = LOOKUPS.get(background).findKmer(sk);
+                                Set<Interval> its = LOOKUPS.get(background).find(sk);
                                 if (its.size() == 1 && mostRecentConfidentInterval.containsKey(background)) {
                                     Interval it1 = mostRecentConfidentInterval.get(background);
                                     Interval it2 = its.iterator().next();

@@ -9,7 +9,6 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.performance.PerformanceUtils;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;

@@ -95,8 +95,8 @@ public class BubbleCaller {
                     s.addVertex(si);
 
                     for (int pc : bc.getReferenceColors()) {
-                        Set<Interval> soIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).findKmer(so.getSk());
-                        Set<Interval> siIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).findKmer(si.getSk());
+                        Set<Interval> soIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(so.getSk());
+                        Set<Interval> siIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(si.getSk());
 
                         if (so.getCr().getCoverage(pc) > 0 && si.getCr().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
                             Interval soInterval = soIntervals.iterator().next();
@@ -139,7 +139,7 @@ public class BubbleCaller {
                 CortexVertex cv = d.next();
                 Set<Interval> allIntervals = new HashSet<>();
                 for (KmerLookup kl : bc.getReferences().values()) {
-                    Set<Interval> intervals = kl.findKmer(cv.getSk());
+                    Set<Interval> intervals = kl.find(cv.getSk());
                     if (intervals != null) {
                         allIntervals.addAll(intervals);
                     }

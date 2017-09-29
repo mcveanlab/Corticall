@@ -1,132 +1,82 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.pairwise;
 
-import htsjdk.samtools.*;
+import com.github.lindenb.jbwa.jni.AlnRgn;
+import com.github.lindenb.jbwa.jni.BwaIndex;
+import com.github.lindenb.jbwa.jni.BwaMem;
+import com.github.lindenb.jbwa.jni.ShortRead;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.util.ProcessExecutor;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.packageutils.InternalLibraryResource;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BwaAligner implements ExternalAligner {
-    private final String bwaPath = System.getProperty("user.home") + "/bin/bwa";
+public class BwaAligner {
+    private static final InternalLibraryResource bwajni = new InternalLibraryResource("/libbwajni.jnilib");
+    private static final InternalLibraryResource bwaso = new InternalLibraryResource("/libbwajni.so");
 
-    public List<SAMRecord> align(List<ReferenceSequence> queries, File targets) {
+    private final BwaIndex index;
+    private final BwaMem mem;
+    private final SAMFileHeader header;
+
+    public BwaAligner(String ref) {
+        System.loadLibrary("bwajni");
+
         try {
-            File tempQuery = File.createTempFile("query", ".fa");
+            index = new BwaIndex(new File(ref));
 
-            PrintStream qw = new PrintStream(tempQuery);
-            for (ReferenceSequence query : queries) {
-                qw.println(">" + query.getName());
-                qw.println(new String(query.getBases()));
-            }
-            qw.close();
+            FastaSequenceFile fa = new FastaSequenceFile(new File(ref), true);
+            header = new SAMFileHeader();
+            header.setSequenceDictionary(fa.getSequenceDictionary());
 
-            String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, targets.getAbsolutePath(), tempQuery.getAbsolutePath()));
-
-            tempQuery.delete();
-
-            List<SAMRecord> recs = new ArrayList<>();
-
-            FastaSequenceFile fa = new FastaSequenceFile(targets, true);
-            SAMFileHeader sfh = new SAMFileHeader();
-            sfh.setSequenceDictionary(fa.getSequenceDictionary());
-            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-
-            for (String samLine : result.split("\\n")) {
-                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
-                    //System.prefix.println("samLine: '" + samLine + "'");
-
-                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
-                }
-            }
-
-            return recs;
+            mem = new BwaMem(index);
         } catch (IOException e) {
-            throw new CortexJDKException("IOException: " + e);
+            throw new CortexJDKException("Could not initialize bwajni library");
         }
     }
 
-    public List<SAMRecord> align(String query, String target) {
+    public List<SAMRecord> align(String query) {
+        ShortRead read = new ShortRead("unknown", query.getBytes(), new byte[0]);
+
+        List<SAMRecord> alignments = new ArrayList<>();
         try {
-            File tempQuery = File.createTempFile("query", ".fa");
+            for (AlnRgn a : mem.align(read)) {
+                SAMRecord rec = new SAMRecord(header);
 
-            PrintStream qw = new PrintStream(tempQuery);
-            qw.println(">query");
-            qw.println(query);
-            qw.close();
+                rec.setReadName(read.getName());
+                rec.setReadBases(read.getBases());
+                rec.setBaseQualities(read.getQualities());
+                rec.setReadNegativeStrandFlag(a.getStrand() == '-');
+                rec.setReferenceName(a.getChrom());
+                rec.setAlignmentStart((int) a.getPos());
+                rec.setMappingQuality(a.getMQual());
+                rec.setCigarString(a.getCigar());
+                rec.setAttribute("NM", a.getNm());
+                rec.setSupplementaryAlignmentFlag(a.getSecondary() >= 0);
 
-            File tempTarget = File.createTempFile("target", ".fa");
-
-            PrintStream tw = new PrintStream(tempTarget);
-            tw.println(">target");
-            tw.println(target);
-            tw.close();
-
-            File tempTargetIdx = File.createTempFile("target", ".fa.fai");
-
-            ProcessExecutor.executeAndReturnResult(String.format("%s index %s", bwaPath, tempTarget.getAbsolutePath()));
-            String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, tempTarget.getAbsolutePath(), tempQuery.getAbsolutePath()));
-
-            List<SAMRecord> recs = new ArrayList<>();
-
-            SAMFileHeader sfh = new SAMFileHeader();
-            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-            SAMSequenceDictionary ssd = new SAMSequenceDictionary();
-            ssd.addSequence(new SAMSequenceRecord("target", target.length()));
-            sfh.setSequenceDictionary(ssd);
-
-            for (String samLine : result.split("\n")) {
-                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
-                    System.out.println("test: '" + samLine + "'");
-
-                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
-                }
+                alignments.add(rec);
             }
-
-            tempQuery.delete();
-            tempTarget.delete();
-            tempTargetIdx.delete();
-
-            return recs;
         } catch (IOException e) {
-            throw new CortexJDKException("IOException: " + e);
+            throw new CortexJDKException("Failed when aligning '" + query + "'");
         }
+
+        return alignments;
     }
 
-    public List<SAMRecord> align(String query, File targets) {
-        try {
-            File tempQuery = File.createTempFile("query", ".fa");
+    public List<SAMRecord> align(List<String> queries) {
+        List<SAMRecord> alignments = new ArrayList<>();
 
-            PrintStream qw = new PrintStream(tempQuery);
-            qw.println(">query");
-            qw.println(query);
-            qw.close();
+        queries.forEach(q -> alignments.addAll(align(q)));
 
-            String result = ProcessExecutor.executeAndReturnResult(String.format("%s mem %s %s", bwaPath, targets.getAbsolutePath(), tempQuery.getAbsolutePath()));
+        return alignments;
+    }
 
-            List<SAMRecord> recs = new ArrayList<>();
-
-            FastaSequenceFile fa = new FastaSequenceFile(targets, true);
-            SAMFileHeader sfh = new SAMFileHeader();
-            sfh.setSequenceDictionary(fa.getSequenceDictionary());
-            sfh.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-
-            for (String samLine : result.split("\n")) {
-                if (!samLine.isEmpty() && !samLine.startsWith("@")) {
-                    recs.add(new SAMLineParser(sfh).parseLine(samLine));
-                }
-            }
-
-            tempQuery.delete();
-
-            return recs;
-        } catch (IOException e) {
-            throw new CortexJDKException("IOException: " + e);
-        }
+    public void close() {
+        index.close();
+        mem.dispose();
     }
 }

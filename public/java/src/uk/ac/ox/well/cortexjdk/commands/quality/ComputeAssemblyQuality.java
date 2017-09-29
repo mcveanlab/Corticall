@@ -152,8 +152,8 @@ public class ComputeAssemblyQuality extends Module {
                 }
 
                 if (destinationReached) {
-                    Set<Interval> sourceIntervals = REF.findKmer(source.getSk());
-                    Set<Interval> destinationIntervals = REF.findKmer(destination.getSk());
+                    Set<Interval> sourceIntervals = REF.find(source.getSk());
+                    Set<Interval> destinationIntervals = REF.find(destination.getSk());
 
                     float compCoverage = 0.0f;
                     for (CortexVertex cv : contigComp) {
@@ -306,7 +306,7 @@ public class ComputeAssemblyQuality extends Module {
     }
 
     private boolean hasUniqueCoordinates(CortexRecord cr) {
-        Set<Interval> its = REF.findKmer(cr.getKmerAsString());
+        Set<Interval> its = REF.find(cr.getKmerAsString());
 
         return its != null && its.size() == 1;
     }

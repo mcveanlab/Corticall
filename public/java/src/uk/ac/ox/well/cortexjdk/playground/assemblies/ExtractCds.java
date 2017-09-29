@@ -11,7 +11,9 @@ import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Created by kiran on 05/07/2017.

@@ -24,13 +24,19 @@ public class KmerLookupTest {
     private Map<String, Set<Interval>> expectedIntervals = new HashMap<>();
     private Map<Interval, String> expectedKmersFwd = new HashMap<>();
     private Map<Interval, String> expectedKmersRev = new HashMap<>();
-    private int[] expectedKmerSizes = { 3, 5 };
+    private int[] expectedKmerSizes = { 31, 47 };
     private String expectedSource = "test";
 
     public KmerLookupTest() {
         File testFa = new File("tests/two_short_contigs.fa");
         File testFai = new File(testFa.getAbsolutePath() + ".fai");
         File testDict = new File(testFa.getAbsolutePath() + ".dict");
+
+        File testAmb = new File(testFa.getAbsolutePath() + ".amb");
+        File testAnn = new File(testFa.getAbsolutePath() + ".ann");
+        File testBwt = new File(testFa.getAbsolutePath() + ".bwt");
+        File testPac = new File(testFa.getAbsolutePath() + ".pac");
+        File testSa  = new File(testFa.getAbsolutePath() + ".sa");
 
         try {
             IndexedFastaSequenceFile ref = new IndexedFastaSequenceFile(testFa);
@@ -67,15 +73,27 @@ public class KmerLookupTest {
             File tempFai = new File(tempFa.getAbsolutePath() + ".fai");
             File tempDict = new File(tempFa.getAbsolutePath() + ".dict");
 
+            File tempAmb = new File(tempFa.getAbsolutePath() + ".amb");
+            File tempAnn = new File(tempFa.getAbsolutePath() + ".ann");
+            File tempBwt = new File(tempFa.getAbsolutePath() + ".bwt");
+            File tempPac = new File(tempFa.getAbsolutePath() + ".pac");
+            File tempSa  = new File(tempFa.getAbsolutePath() + ".sa");
+
             FileUtils.copyFile(testFa, tempFa);
             FileUtils.copyFile(testFai, tempFai);
             FileUtils.copyFile(testDict, tempDict);
+
+            FileUtils.copyFile(testAmb, tempAmb);
+            FileUtils.copyFile(testAnn, tempAnn);
+            FileUtils.copyFile(testBwt, tempBwt);
+            FileUtils.copyFile(testPac, tempPac);
+            FileUtils.copyFile(testSa, tempSa);
 
             tempFa.deleteOnExit();
             tempFai.deleteOnExit();
             tempDict.deleteOnExit();
 
-            KmerLookup.createIndex(tempFa, 3, expectedSource, 2, null).deleteOnExit();
+            KmerLookup.createIndex(tempFa, expectedSource).deleteOnExit();
 
             kl = new KmerLookup(tempFa);
         } catch (IOException e) {
@@ -85,38 +103,33 @@ public class KmerLookupTest {
 
     @Test
     public void testSource() {
-        Assert.assertEquals(kl.getSource(), "test");
+        Assert.assertTrue(kl.getSources().contains("test"));
     }
 
     @Test
     public void findKmerBySequence() {
         for (String sk : expectedIntervals.keySet()) {
-            System.out.println(sk + " " + expectedIntervals.get(sk) + " " + kl.findKmer(sk));
-            Assert.assertEquals(expectedIntervals.get(sk), kl.findKmer(sk));
+            System.out.println(sk + " " + expectedIntervals.get(sk) + " " + kl.find(sk));
+            Assert.assertEquals(expectedIntervals.get(sk), kl.find(sk));
         }
     }
 
     @Test
     public void findKmerByIntervalFwd() {
         for (Interval it : expectedKmersFwd.keySet()) {
-            Assert.assertEquals(expectedKmersFwd.get(it), kl.findKmer(it));
+            Assert.assertEquals(expectedKmersFwd.get(it), kl.find(it));
         }
     }
 
     @Test
     public void findKmerByIntervalRev() {
         for (Interval it : expectedKmersRev.keySet()) {
-            Assert.assertEquals(expectedKmersRev.get(it), kl.findKmer(it));
+            Assert.assertEquals(expectedKmersRev.get(it), kl.find(it));
         }
     }
 
     @Test
     public void findMissingKmerReturnsEmptyList() {
-        Assert.assertEquals(0, kl.findKmer("GTACC").size());
-    }
-
-    @Test(expectedExceptions = CortexJDKException.class)
-    public void findIntervalOnNonExistentContigThrowsException() {
-        kl.findKmer(new Interval("3", 1, 2));
+        Assert.assertEquals(0, kl.find("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT").size());
     }
 }

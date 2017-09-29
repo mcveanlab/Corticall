@@ -2,15 +2,19 @@ package uk.ac.ox.well.cortexjdk.utils.io.cortex.links;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import org.apache.commons.math3.util.Pair;
-import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexColor;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexHeader;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by kiran on 14/09/2017.

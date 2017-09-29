@@ -1,13 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.call.call;
 
 import com.google.common.base.Joiner;
-import htsjdk.samtools.util.Interval;
-import htsjdk.variant.variantcontext.VariantContext;
-import org.jgrapht.GraphPath;
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
-import org.jgrapht.graph.EdgeReversedGraph;
-import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -22,21 +15,10 @@ import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleOpeningStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
-
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 
 /**
  * Created by kiran on 29/08/2017.

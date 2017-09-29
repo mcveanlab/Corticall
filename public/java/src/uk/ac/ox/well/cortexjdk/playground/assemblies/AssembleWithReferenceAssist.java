@@ -58,7 +58,7 @@ public class AssembleWithReferenceAssist extends Module {
                         log.info("{}", wl.get(wl.size() - 1));
 
                         for (CortexVertex cv : wl) {
-                            log.info("{} {} {}", cv.getSk(), cv.getSources(), REF.findKmer(cv.getSk()));
+                            log.info("{} {} {}", cv.getSk(), cv.getSources(), REF.find(cv.getSk()));
                         }
                     }
                 }

@@ -11,7 +11,10 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class IndexBam extends Module {
     @Argument(fullName="bam", shortName="b", doc="BAM")
