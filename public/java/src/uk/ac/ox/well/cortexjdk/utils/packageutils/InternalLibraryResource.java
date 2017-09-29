@@ -14,7 +14,6 @@ import java.util.Arrays;
  * Created by kiran on 29/09/2017.
  */
 public class InternalLibraryResource {
-    private final String rootTmpDir = System.getProperty("java.io.tmpdir", "./");
     private final File tempResource;
 
     public InternalLibraryResource(String resourcePath) {
@@ -41,6 +40,7 @@ public class InternalLibraryResource {
 
     public File getFile() { return tempResource; }
 
+    // From: http://fahdshariff.blogspot.co.uk/2011/08/changing-java-library-path-at-runtime.html
     public static void addLibraryPath(String pathToAdd) throws Exception{
         final Field usrPathsField = ClassLoader.class.getDeclaredField("usr_paths");
         usrPathsField.setAccessible(true);
