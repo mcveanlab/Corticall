@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Print extends Module {
+public class View extends Module {
     @Argument(fullName="graph", shortName="g", doc="Cortex graph")
     public CortexGraph GRAPH;
 

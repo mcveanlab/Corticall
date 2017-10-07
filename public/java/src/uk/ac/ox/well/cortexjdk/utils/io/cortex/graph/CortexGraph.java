@@ -14,10 +14,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class CortexGraph implements DeBruijnGraph {
     private File cortexFile;
@@ -351,7 +348,7 @@ public class CortexGraph implements DeBruijnGraph {
         return (sampleCopies == 1) ? sampleColor : -1;
     }
 
-    public List<Integer> getColorsForSampleNames(List<String> sampleNames) {
+    public List<Integer> getColorsForSampleNames(Collection<String> sampleNames) {
         List<Integer> colors = new ArrayList<>();
 
         if (sampleNames != null && !sampleNames.isEmpty()) {

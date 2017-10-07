@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.cortex;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public interface DeBruijnGraph extends Iterable<CortexRecord>, Iterator<CortexRe
     boolean hasColor(int color);
     CortexColor getColor(int color);
     int getColorForSampleName(String sampleName);
-    List<Integer> getColorsForSampleNames(List<String> sampleNames);
+    List<Integer> getColorsForSampleNames(Collection<String> sampleNames);
     String getSampleName(int color);
 
     String toString();

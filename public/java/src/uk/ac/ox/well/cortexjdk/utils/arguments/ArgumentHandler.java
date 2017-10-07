@@ -151,13 +151,15 @@ public class ArgumentHandler {
 
                             if (value == null) {
                                 if (field.getType().equals(PrintStream.class)) {
-                                    value = "/dev/stdout";
+                                    //value = "/dev/stdout";
+                                    field.set(instance, System.out);
                                 } else {
-                                    value = "/dev/null";
+                                    //value = "/dev/null";
+                                    processArgument(instance, field, "/dev/null");
                                 }
+                            } else {
+                                processArgument(instance, field, value);
                             }
-
-                            processArgument(instance, field, value);
                         } else {
                             String value = cmd.getOptionValue(out.fullName());
 

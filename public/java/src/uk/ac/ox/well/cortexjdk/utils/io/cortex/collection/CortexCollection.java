@@ -231,7 +231,7 @@ public class CortexCollection implements DeBruijnGraph {
     }
 
     @Override
-    public List<Integer> getColorsForSampleNames(List<String> sampleNames) {
+    public List<Integer> getColorsForSampleNames(Collection<String> sampleNames) {
         return null;
     }
 
