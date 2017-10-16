@@ -7,6 +7,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
@@ -31,7 +32,7 @@ public class TraversalEngine {
     private Set<CortexByteKmer> seen;
 
     private Set<String> kmerSources;
-    private Set<CortexLinks> specificLinksFiles;
+    private Set<ConnectivityAnnotations> specificLinksFiles;
     private LinkStore linkStore;
     private boolean goForward;
 
@@ -488,7 +489,7 @@ public class TraversalEngine {
         }
 
         if (!ec.getLinks().isEmpty()) {
-            for (CortexLinks lm : specificLinksFiles) {
+            for (ConnectivityAnnotations lm : specificLinksFiles) {
                 CortexKmer ck = new CortexKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
                     linkStore.add(curKmer, lm.get(ck), true, lm.getSource());
@@ -531,7 +532,7 @@ public class TraversalEngine {
         }
 
         if (!ec.getLinks().isEmpty()) {
-            for (CortexLinks lm : specificLinksFiles) {
+            for (ConnectivityAnnotations lm : specificLinksFiles) {
                 CortexKmer ck = new CortexKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
                     linkStore.add(curKmer, lm.get(ck), false, lm.getSource());
@@ -575,7 +576,7 @@ public class TraversalEngine {
     private void initializeLinkStore(boolean goForward) {
         specificLinksFiles = new HashSet<>();
         if (!ec.getLinks().isEmpty()) {
-            for (CortexLinks lm : ec.getLinks()) {
+            for (ConnectivityAnnotations lm : ec.getLinks()) {
                 if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
                     specificLinksFiles.add(lm);
 

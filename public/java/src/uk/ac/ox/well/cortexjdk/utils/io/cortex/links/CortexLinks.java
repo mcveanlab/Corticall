@@ -46,4 +46,7 @@ public class CortexLinks implements ConnectivityAnnotations {
     public CortexHeader getHeader() {
         return links.getHeader();
     }
+
+    @Override
+    public String getSource() { return links.getSource(); }
 }

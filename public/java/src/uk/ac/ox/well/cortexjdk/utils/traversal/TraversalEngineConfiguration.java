@@ -1,6 +1,8 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
@@ -33,8 +35,8 @@ public class TraversalEngineConfiguration {
 
     private DeBruijnGraph graph;
     private DeBruijnGraph rois;
-    private Set<CortexLinks> links = new HashSet<>();
-//    private Set<KmerLookup> kls = new HashSet<>();
+    private Set<ConnectivityAnnotations> links = new HashSet<>();
+    private Set<KmerLookup> kls = new HashSet<>();
 
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
     public void setGraphCombinationOperator(GraphCombinationOperator gco) { this.gco = gco; }
@@ -73,8 +75,8 @@ public class TraversalEngineConfiguration {
     public Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
     public void setStoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }
 
-    public Set<CortexLinks> getLinks() { return links; }
-    public void setLinks(Set<CortexLinks> links) { this.links = links; }
+    public Set<ConnectivityAnnotations> getLinks() { return links; }
+    public void setLinks(Set<ConnectivityAnnotations> links) { this.links = links; }
 
     public DeBruijnGraph getGraph() { return graph; }
     public void setGraph(DeBruijnGraph graph) { this.graph = graph; }
@@ -82,6 +84,6 @@ public class TraversalEngineConfiguration {
     public DeBruijnGraph getRois() { return rois; }
     public void setRois(DeBruijnGraph rois) { this.rois = rois; }
 
-//    public Set<KmerLookup> getReferences() { return kls; }
-//    public void setReferences(Set<KmerLookup> kls) { this.kls = kls; }
+    public Set<KmerLookup> getReferences() { return kls; }
+    public void setReferences(Set<KmerLookup> kls) { this.kls = kls; }
 }

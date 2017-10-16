@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
 

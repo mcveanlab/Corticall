@@ -111,7 +111,7 @@ public class CortexLinksRandomAccess implements ConnectivityAnnotations {
     }
 
     @Override
-    public CortexHeader getHeader() { return null; }
+    public CortexHeader getHeader() { return header; }
 
     @Override
     public String getSource() { return source; }

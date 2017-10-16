@@ -4,6 +4,7 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
@@ -42,20 +43,33 @@ public class CallBreakpoints extends Module {
     @Override
     public void execute() {
         Map<CortexKmer, Boolean> seen = new HashMap<>();
+        /*
         for (CortexRecord cr : ROI) {
             seen.put(cr.getCortexKmer(), false);
         }
+        */
+        seen.put(new CortexKmer("AACCCAAAAAAGTATATCCTTAACCCTGAGAGATGGGAACCCTAAAC"), false);
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .joiningColors(GRAPH.getColorsForSampleNames(REFERENCES.keySet()))
                 .graph(GRAPH)
                 .links(LINKS)
+                .references(REFERENCES.values())
                 .make();
 
         for (CortexKmer ck : seen.keySet()) {
-            if (!seen.containsKey(ck)) {
+            if (!seen.get(ck)) {
                 List<CortexVertex> w = e.walk(ck.getKmerAsString());
+
+                log.info("{}", ck);
+                for (CortexVertex v : w) {
+                    log.info("\t{} {}", v, REFERENCES.get("PG0051-C.ERR019061").find(v.getSk()));
+
+                    if (seen.containsKey(v.getCk())) {
+                        seen.put(v.getCk(), true);
+                    }
+                }
             }
         }
     }

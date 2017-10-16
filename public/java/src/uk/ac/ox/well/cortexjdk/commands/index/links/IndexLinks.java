@@ -111,6 +111,7 @@ public class IndexLinks extends Module {
             kmerTable.put(cbk, new Pair<>(bc.getPosition(), clr.toString().length()));
 
             bc.write(clr.toString().getBytes());
+            bc.write("\n".getBytes());
 
             pm.update();
         }
