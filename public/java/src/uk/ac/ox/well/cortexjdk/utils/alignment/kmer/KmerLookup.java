@@ -57,6 +57,8 @@ public class KmerLookup {
         return ref;
     }
 
+    public BwaAligner getAligner() { return bwa; }
+
     public String find(Interval interval) {
         if (ref.getSequenceDictionary().getSequenceIndex(interval.getContig()) == -1) {
             throw new CortexJDKException("Contig '" + interval.getContig() + "' was not found in reference '" + refFile.getAbsolutePath() + "'");

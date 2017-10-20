@@ -33,9 +33,7 @@ public class CortexLinks implements ConnectivityAnnotations {
     }
 
     @Override
-    public boolean containsKey(Object key) {
-        return links.containsKey(key);
-    }
+    public boolean containsKey(Object key) { return links.containsKey(key); }
 
     @Override
     public CortexLinksRecord get(Object key) {

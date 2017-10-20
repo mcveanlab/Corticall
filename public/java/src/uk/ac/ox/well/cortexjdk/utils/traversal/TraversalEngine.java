@@ -83,10 +83,13 @@ public class TraversalEngine {
         validateConfiguration(seed);
 
         List<CortexVertex> contig = new ArrayList<>();
-
         CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
         contig.add(sv);
 
+        contig.addAll(walk(seed, true));
+        contig.addAll(0, walk(seed, false));
+
+        /*
         seek(seed);
         while (hasNext()) {
             CortexVertex cv = next();
@@ -97,6 +100,30 @@ public class TraversalEngine {
         while (hasPrevious()) {
             CortexVertex cv = previous();
             contig.add(0, cv);
+        }
+        */
+
+        return contig;
+    }
+
+    public List<CortexVertex> walk(String seed, boolean goForward) {
+        validateConfiguration(seed);
+
+        List<CortexVertex> contig = new ArrayList<>();
+        //CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
+        //contig.add(sv);
+
+        seek(seed);
+        if (goForward) {
+            while (hasNext()) {
+                CortexVertex cv = next();
+                contig.add(cv);
+            }
+        } else {
+            while (hasPrevious()) {
+                CortexVertex cv = previous();
+                contig.add(0, cv);
+            }
         }
 
         return contig;
@@ -276,7 +303,7 @@ public class TraversalEngine {
         }
     }
 
-    private Set<CortexVertex> getPrevVertices(CortexByteKmer sk) {
+    public Set<CortexVertex> getPrevVertices(CortexByteKmer sk) {
         Set<CortexVertex> prevVertices = new HashSet<>();
 
         Map<Integer, Set<CortexByteKmer>> prevKmers = getAllPrevKmers(sk);
@@ -308,7 +335,7 @@ public class TraversalEngine {
         return prevVertices;
     }
 
-    private Set<CortexVertex> getNextVertices(CortexByteKmer sk) {
+    public Set<CortexVertex> getNextVertices(CortexByteKmer sk) {
         Set<CortexVertex> nextVertices = new HashSet<>();
 
         Map<Integer, Set<CortexByteKmer>> nextKmers = getAllNextKmers(sk);

@@ -72,6 +72,15 @@ public class BubbleCaller {
     }
 
     public Set<Bubble> call(String seed) {
+        Set<Bubble> bubbles = new HashSet<>();
+
+
+
+        return bubbles;
+    }
+
+    /*
+    public Set<Bubble> call(String seed) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> gc = eOpen.dfs(seed);
 
         Set<Bubble> bubbles = new HashSet<>();
@@ -131,6 +140,7 @@ public class BubbleCaller {
 
         return bubbles;
     }
+    */
 
     private Set<CortexVertex> getCandidates(DepthFirstIterator<CortexVertex, CortexEdge> d) {
         Set<CortexVertex> candidates = new HashSet<>();
