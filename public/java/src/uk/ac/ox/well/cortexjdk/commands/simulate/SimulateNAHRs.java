@@ -37,7 +37,10 @@ public class SimulateNAHRs extends Module {
     public HashSet<String> IDS2;
 
     @Argument(fullName="seed", shortName="s", doc="Seed")
-    public Integer SEED = 0;
+    public Long SEED = System.currentTimeMillis();
+
+    @Argument(fullName="num", shortName="n", doc="Number of events to simulate")
+    public Integer NUM = 1;
 
     @Output
     public PrintStream out;
@@ -50,7 +53,7 @@ public class SimulateNAHRs extends Module {
         vars.addAll(loadVars(REF1, GFF1, IDS1));
         vars.addAll(loadVars(REF2, GFF2, IDS2));
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < NUM; i++) {
             int idx1 = 0, idx2 = 0;
             while (idx1 == idx2) {
                 idx1 = rng.nextInt(vars.size());
