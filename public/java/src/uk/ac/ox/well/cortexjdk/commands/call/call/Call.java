@@ -535,6 +535,14 @@ public class Call extends Module {
             }
         }
 
+        for (LittleBubble lb : l.values()) {
+            log.info("lb: {}", lb);
+            List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(lb.refContig);
+            for (SAMRecord sr : srs) {
+                log.info("  {}", sr.getSAMString().trim());
+            }
+        }
+
         List<CortexVertex> wp = new ArrayList<>();
 
         for (int i = 0; i < w.size(); i++) {
@@ -548,7 +556,6 @@ public class Call extends Module {
 
                 i = lb.stop;
             }
-
         }
 
         log.info("  closed {} bubbles", l.size());
