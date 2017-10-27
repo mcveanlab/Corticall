@@ -118,13 +118,15 @@ public class Call extends Module {
 
                 aout.println(w.size() + "\t" + l.size());
 
-                log.info("  short walk: {}, long walk: {}", w.size(), l.size());
+                log.info("  short walk: {}, long walk: {}, num novels: {}", w.size(), l.size(), numNovels(l, seen));
 
                 List<List<CortexVertex>> contigsWithClosedBubbles = null;
                 int numNovelsRemaining = Integer.MAX_VALUE;
 
                 for (String parent : REFERENCES.keySet()) {
                     List<CortexVertex> p = closeBubbles(l, parent, seen);
+
+                    log.info("  num novels: {}", numNovels(p, seen));
 
                     List<List<CortexVertex>> s = breakContigs(p, parent, seen);
 
