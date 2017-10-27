@@ -539,7 +539,9 @@ public class Call extends Module {
             log.info("lb: {}", lb);
             List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(lb.refContig);
             for (SAMRecord sr : srs) {
-                log.info("  {}", sr.getSAMString().trim());
+                if (sr.getMappingQuality() > 0) {
+                    log.info("  {}", sr.getSAMString().trim());
+                }
             }
         }
 
