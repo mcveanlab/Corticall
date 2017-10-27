@@ -105,12 +105,20 @@ public class Call extends Module {
                 .rois(ROI)
                 .make();
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing novel kmers")
+                .message("processed")
+                .maxRecord(seen.size())
+                .make(log);
+
         for (CortexKmer ck : seen.keySet()) {
             if (!seen.get(ck)) {
                 List<CortexVertex> w = eo.walk(ck.getKmerAsString());
                 List<CortexVertex> l = longWalk(seen, e, ck);
 
                 aout.println(w.size() + "\t" + l.size());
+
+                log.info("  short walk: {}, long walk: {}", w.size(), l.size());
 
                 List<List<CortexVertex>> contigsWithClosedBubbles = null;
                 int numNovelsRemaining = Integer.MAX_VALUE;
@@ -183,6 +191,7 @@ public class Call extends Module {
                 for (CortexVertex v : l) {
                     if (seen.containsKey(v.getCk())) {
                         seen.put(v.getCk(), true);
+                        pm.update();
                     }
                 }
             }
@@ -508,16 +517,6 @@ public class Call extends Module {
                         String refContig = TraversalEngine.toContig(refPath);
                         String altContig = TraversalEngine.toContig(altPath);
 
-                        /*
-                        String[] pieces = contigsToAlleles(refContig, altContig);
-
-                        log.info("  {}", refContig);
-                        log.info("  {}", altContig);
-                        log.info("  {}", indices.get(root));
-                        log.info("  {}", indices.get(sink));
-                        log.info("  {}", Joiner.on(", ").join(contigsToAlleles(refContig, altContig)));
-                        */
-
                         LittleBubble lb = new LittleBubble();
                         lb.refContig = refContig;
                         lb.altContig = altContig;
@@ -549,6 +548,8 @@ public class Call extends Module {
             }
 
         }
+
+        log.info("  closed {} bubbles", l.size());
 
         return wp;
     }
