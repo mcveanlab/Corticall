@@ -126,6 +126,8 @@ public class Call extends Module {
                 for (String parent : REFERENCES.keySet()) {
                     List<CortexVertex> p = closeBubbles(l, parent, seen);
 
+                    log.info("  closed: {}", TraversalEngine.toContig(p));
+
                     log.info("  num novels: {}", numNovels(p, seen));
 
                     List<List<CortexVertex>> s = breakContigs(p, parent, seen);
@@ -137,6 +139,7 @@ public class Call extends Module {
                         numNovelsRemaining = numNovels(p, seen);
                     }
                 }
+
 
                 if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
                     List<SAMRecord> srs = new ArrayList<>();
