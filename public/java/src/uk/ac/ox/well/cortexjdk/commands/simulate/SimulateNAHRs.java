@@ -45,6 +45,9 @@ public class SimulateNAHRs extends Module {
     @Output
     public PrintStream out;
 
+    @Output(fullName="mout", shortName="mo", doc="M out")
+    public PrintStream mout;
+
     private Random rng = new Random(SEED);
 
     @Override
@@ -63,8 +66,11 @@ public class SimulateNAHRs extends Module {
             Pair<String, Set<Integer>> newVar = recombine(vars, idx1, idx2);
             Pair<String, Set<Integer>> newVarMod = addSNVs(newVar.getFirst());
 
-            out.println(">var" + i + "\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()) + "_snvs=" + Joiner.on(",").join(newVarMod.getSecond()));
-            out.println(newVarMod.getFirst());
+            out.println(">var_orig" + i + "\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()));
+            out.println(newVar.getFirst());
+
+            mout.println(">var_mod" + i + "\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()) + "_snvs=" + Joiner.on(",").join(newVarMod.getSecond()));
+            mout.println(newVarMod.getFirst());
         }
     }
 
