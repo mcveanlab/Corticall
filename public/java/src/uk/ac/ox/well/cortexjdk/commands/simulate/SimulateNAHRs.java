@@ -112,15 +112,20 @@ public class SimulateNAHRs extends Module {
             int pos;
             do {
                 pos = rng.nextInt(var1.length() < var2.length() ? var1.length() : var2.length());
-            } while (withinWindow(recombPos, pos, 200));
+            } while (withinWindow(recombPos, pos, 300));
 
             recombPos.add(pos);
-            recombPos.add(pos + rng.nextInt(30) + 10);
+            recombPos.add(pos + rng.nextInt(200) + 50);
         }
 
         StringBuilder sb = new StringBuilder();
         while (p < var1.length() && p < var2.length()) {
-            sb.append(seqs[s].charAt(p));
+            if (s == 0) {
+                sb.append(Character.toUpperCase(seqs[s].charAt(p)));
+            } else {
+                sb.append(Character.toLowerCase(seqs[s].charAt(p)));
+            }
+
             p++;
 
             if (recombPos.contains(p)) {
