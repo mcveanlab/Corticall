@@ -39,9 +39,6 @@ public class SimulateNAHRs extends Module {
     @Argument(fullName="seed", shortName="s", doc="Seed")
     public Long SEED = System.currentTimeMillis();
 
-    @Argument(fullName="num", shortName="n", doc="Number of events to simulate")
-    public Integer NUM = 1;
-
     @Output
     public PrintStream out;
 
@@ -56,21 +53,37 @@ public class SimulateNAHRs extends Module {
         vars.addAll(loadVars(REF1, GFF1, IDS1));
         vars.addAll(loadVars(REF2, GFF2, IDS2));
 
-        for (int i = 0; i < NUM; i++) {
-            int idx1 = 0, idx2 = 0;
-            while (idx1 == idx2) {
-                idx1 = rng.nextInt(vars.size());
-                idx2 = rng.nextInt(vars.size());
-            }
+        int idx1 = 0, idx2 = 0;
+        while (idx1 == idx2) {
+            idx1 = rng.nextInt(vars.size());
+            idx2 = rng.nextInt(vars.size());
+        }
 
-            Pair<String, Set<Integer>> newVar = recombine(vars, idx1, idx2);
-            Pair<String, Set<Integer>> newVarMod = addSNVs(newVar.getFirst());
+        Pair<String, Set<Integer>> newVar = recombine(vars, idx1, idx2);
+        Pair<String, Set<Integer>> newVarMod = addSNVs(newVar.getFirst());
 
-            out.println(">var_orig" + i + "\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()));
-            out.println(newVar.getFirst());
+        out.println(">var_clean\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()));
+        out.println(newVar.getFirst());
 
-            mout.println(">var_mod" + i + "\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()) + "_snvs=" + Joiner.on(",").join(newVarMod.getSecond()));
-            mout.println(newVarMod.getFirst());
+        mout.println(">var_dirty\tvar1=" + vars.get(idx1).getFirst() + "_var2=" + vars.get(idx2).getFirst() + "_bks=" + Joiner.on(",").join(newVar.getSecond()) + "_snvs=" + Joiner.on(",").join(newVarMod.getSecond()));
+        mout.println(newVarMod.getFirst());
+
+        Set<Integer> usedIdxs = new HashSet<>();
+        usedIdxs.add(idx1);
+        usedIdxs.add(idx2);
+        for (int i = 0; i < 59; i++) {
+            int idx3;
+            do {
+                idx3 = rng.nextInt(vars.size());
+            } while (usedIdxs.contains(idx3));
+
+            Pair<String, String> var = vars.get(idx3);
+
+            out.println(">" + var.getFirst() + "_clean");
+            out.println(var.getSecond());
+
+            mout.println(">" + var.getFirst() + "_dirty");
+            mout.println(addSNVs(var.getSecond()));
         }
     }
 
@@ -112,7 +125,7 @@ public class SimulateNAHRs extends Module {
         int p = 0;
         int s = 0;
 
-        int numRecombs = rng.nextInt(5) + 1;
+        int numRecombs = rng.nextInt(4) + 2;
         Set<Integer> recombPos = new TreeSet<>();
         for (int i = 0; i < numRecombs; i++) {
             int pos;
