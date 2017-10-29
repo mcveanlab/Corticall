@@ -93,14 +93,18 @@ public class Call extends Module {
             pm.update();
         }
 
-        Set<String> longContigs = new HashSet<>();
-
+        Map<String, List<CortexVertex>> longContigs = new HashMap<>();
         for (List<CortexVertex> l : longWalks.values()) {
             String longContig = SequenceUtils.alphanumericallyLowestOrientation(TraversalEngine.toContig(l));
-            longContigs.add(longContig);
+            longContigs.put(longContig, l);
         }
 
-        log.info("contigs: {}", longContigs.size());
+        log.info("Contigs:");
+        int contigIndex = 0;
+        for (String longContig : longContigs.keySet()) {
+            log.info("  {} {}", contigIndex, longContig.length());
+            contigIndex++;
+        }
 
         /*
         for (CortexKmer ck : seen.keySet()) {
