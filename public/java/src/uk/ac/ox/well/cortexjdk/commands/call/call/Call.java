@@ -84,7 +84,7 @@ public class Call extends Module {
 
             for (CortexVertex v : l) {
                 if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
-                    if (longWalks.get(v.getCk()).size() < l.size()) {
+                    if (longWalks.containsKey(v.getCk()) && longWalks.get(v.getCk()).size() < l.size()) {
                         log.info("  {} {} {} longer", v.getCk(), longWalks.get(v.getCk()).size(), l.size());
                     }
 
