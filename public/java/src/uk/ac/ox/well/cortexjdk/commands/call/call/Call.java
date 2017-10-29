@@ -88,11 +88,10 @@ public class Call extends Module {
                 }
             }
 
-            //log.info("  {} {}", ck, l.size());
-
             pm.update();
         }
 
+        log.info("Reducing contig set...");
         Map<String, List<CortexVertex>> longContigs = new HashMap<>();
         for (List<CortexVertex> l : longWalks.values()) {
             String longContig = SequenceUtils.alphanumericallyLowestOrientation(TraversalEngine.toContig(l));
@@ -102,7 +101,7 @@ public class Call extends Module {
         log.info("Contigs:");
         int contigIndex = 0;
         for (String longContig : longContigs.keySet()) {
-            log.info("  {} {}", contigIndex, longContig.length());
+            log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
             contigIndex++;
         }
 
