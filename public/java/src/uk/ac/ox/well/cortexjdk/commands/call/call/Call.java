@@ -84,11 +84,11 @@ public class Call extends Module {
                 List<CortexVertex> l = longWalk(seen, e, ck);
 
                 for (CortexVertex v : l) {
-                    if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
-                        longWalks.put(v.getCk(), l);
-                    }
-
                     if (seen.containsKey(v.getCk())) {
+                        if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
+                            longWalks.put(v.getCk(), l);
+                        }
+
                         seen.put(v.getCk(), true);
                     }
                 }
@@ -97,11 +97,18 @@ public class Call extends Module {
             pm.update();
         }
 
-        log.info("Reducing contig set...");
+        pm = new ProgressMeterFactory()
+                .header("Reducing contig set...")
+                .message("processed")
+                .maxRecord(longWalks.size())
+                .make(log);
+
         Map<String, List<CortexVertex>> longContigs = new HashMap<>();
         for (List<CortexVertex> l : longWalks.values()) {
             String longContig = SequenceUtils.alphanumericallyLowestOrientation(TraversalEngine.toContig(l));
             longContigs.put(longContig, l);
+
+            pm.update();
         }
 
         log.info("Contigs:");
