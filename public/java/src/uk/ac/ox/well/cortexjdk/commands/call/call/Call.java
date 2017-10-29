@@ -111,6 +111,46 @@ public class Call extends Module {
                 .maxRecord(seen.size())
                 .make(log);
 
+        Map<CortexKmer, List<CortexVertex>> shortWalks = new HashMap<>();
+        Map<CortexKmer, List<CortexVertex>> longWalks = new HashMap<>();
+
+        for (CortexKmer ck : seen.keySet()) {
+            List<CortexVertex> w = eo.walk(ck.getKmerAsString());
+            List<CortexVertex> l = longWalk(seen, e, ck);
+
+            for (CortexVertex v : w) {
+                if (seen.containsKey(v.getCk())) {
+                    if (!shortWalks.containsKey(v.getCk()) || shortWalks.get(v.getCk()).size() < w.size()) {
+                        shortWalks.put(v.getCk(), w);
+                    }
+                }
+            }
+
+            for (CortexVertex v : l) {
+                if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
+                    longWalks.put(v.getCk(), l);
+                }
+            }
+
+            pm.update();
+        }
+
+        Set<String> shortContigs = new HashSet<>();
+        Set<String> longContigs = new HashSet<>();
+
+        for (List<CortexVertex> w : shortWalks.values()) {
+            String shortContig = SequenceUtils.alphanumericallyLowestOrientation(TraversalEngine.toContig(w));
+            shortContigs.add(shortContig);
+        }
+
+        for (List<CortexVertex> l : longWalks.values()) {
+            String longContig = SequenceUtils.alphanumericallyLowestOrientation(TraversalEngine.toContig(l));
+            longContigs.add(longContig);
+        }
+
+        log.info("{} {}", shortContigs.size(), longContigs.size());
+
+        /*
         for (CortexKmer ck : seen.keySet()) {
             if (!seen.get(ck)) {
                 List<CortexVertex> w = eo.walk(ck.getKmerAsString());
@@ -204,6 +244,7 @@ public class Call extends Module {
                 }
             }
         }
+        */
     }
 
     private List<List<CortexVertex>> breakContigs(List<CortexVertex> w, String parent, Map<CortexKmer, Boolean> seen) {
