@@ -80,11 +80,15 @@ public class Call extends Module {
         Map<CortexKmer, List<CortexVertex>> longWalks = new HashMap<>();
 
         for (CortexKmer ck : seen.keySet()) {
-            List<CortexVertex> l = longWalk(seen, e, ck);
+            if (!seen.get(ck)) {
+                List<CortexVertex> l = longWalk(seen, e, ck);
 
-            for (CortexVertex v : l) {
-                if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
-                    longWalks.put(v.getCk(), l);
+                for (CortexVertex v : l) {
+                    if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
+                        longWalks.put(v.getCk(), l);
+                    }
+
+                    seen.put(ck, true);
                 }
             }
 
