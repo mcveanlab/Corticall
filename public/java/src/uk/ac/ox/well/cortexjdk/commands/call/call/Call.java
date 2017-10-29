@@ -132,6 +132,8 @@ public class Call extends Module {
                 }
             }
 
+            log.info("  {} {}", w.size(), l.size());
+
             pm.update();
         }
 
