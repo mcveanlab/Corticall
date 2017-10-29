@@ -88,7 +88,9 @@ public class Call extends Module {
                         longWalks.put(v.getCk(), l);
                     }
 
-                    seen.put(ck, true);
+                    if (seen.containsKey(v.getCk())) {
+                        seen.put(v.getCk(), true);
+                    }
                 }
             }
 
