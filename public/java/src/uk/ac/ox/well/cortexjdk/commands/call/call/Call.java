@@ -116,8 +116,8 @@ public class Call extends Module {
                 List<CortexVertex> w = eo.walk(ck.getKmerAsString());
                 List<CortexVertex> l = longWalk(seen, e, ck);
 
-                log.info("    orig: {}", TraversalEngine.toContig(w));
-                log.info("    open: {}", TraversalEngine.toContig(l));
+                //log.info("    orig: {}", TraversalEngine.toContig(w));
+                //log.info("    open: {}", TraversalEngine.toContig(l));
 
                 aout.println(w.size() + "\t" + l.size());
 
