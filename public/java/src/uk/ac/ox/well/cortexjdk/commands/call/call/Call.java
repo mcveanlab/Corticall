@@ -129,9 +129,9 @@ public class Call extends Module {
                 for (String parent : REFERENCES.keySet()) {
                     List<CortexVertex> p = closeBubbles(l, parent, seen);
 
-                    log.info("  closed: {}", TraversalEngine.toContig(p));
+                    //log.info("  closed: {}", TraversalEngine.toContig(p));
 
-                    log.info("  num novels: {}", numNovels(p, seen));
+                    //log.info("  num novels: {}", numNovels(p, seen));
 
                     List<List<CortexVertex>> s = breakContigs(p, parent, seen);
 
@@ -542,11 +542,11 @@ public class Call extends Module {
         }
 
         for (LittleBubble lb : l.values()) {
-            log.info("lb: {}", lb);
+            //log.info("lb: {}", lb);
             List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(lb.refContig);
             for (SAMRecord sr : srs) {
                 if (sr.getMappingQuality() > 0) {
-                    log.info("  {}", sr.getSAMString().trim());
+                    //log.info("  {}", sr.getSAMString().trim());
                 }
             }
         }
@@ -566,7 +566,7 @@ public class Call extends Module {
             }
         }
 
-        log.info("  closed {} bubbles", l.size());
+        //log.info("  closed {} bubbles", l.size());
 
         return wp;
     }
