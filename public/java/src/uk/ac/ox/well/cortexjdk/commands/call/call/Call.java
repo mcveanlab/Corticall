@@ -132,6 +132,8 @@ public class Call extends Module {
                 }
             }
 
+            log.info("  remaining: {}", numNovelsRemaining);
+
             if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
                 List<SAMRecord> srs = new ArrayList<>();
                 int numGoodAlignments = 0;
@@ -533,7 +535,7 @@ public class Call extends Module {
             }
         }
 
-        log.info("  closed {} bubbles", l.size());
+        log.info("  - {} closed {} bubbles", parent, l.size());
 
         return wp;
     }
