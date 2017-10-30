@@ -110,6 +110,7 @@ public class Call extends Module {
 
             pm.update();
         }
+        log.info("  {} contigs remaining", longContigs.size());
 
         log.info("Contigs:");
         int contigIndex = 0;
@@ -119,21 +120,36 @@ public class Call extends Module {
             log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
             contigIndex++;
 
+//            if (longContig.length() == 114) {
+//                for (CortexVertex v : longContigs.get(longContig)) {
+//                    log.info("  open {} {} {}", v.getSk(), seen.containsKey(v.getCk()) ? "*" : " ", REFERENCES.get("PG0051-C.ERR019061").find(v.getSk()));
+//                }
+//            }
+
             List<List<CortexVertex>> contigsWithClosedBubbles = null;
-            int numNovelsRemaining = Integer.MAX_VALUE;
 
             for (String parent : REFERENCES.keySet()) {
                 List<CortexVertex> p = closeBubbles(l, parent, seen);
+
+//                if (longContig.length() == 114) {
+//                    for (CortexVertex v : p) {
+//                        log.info("  closed {} {} {} {}", v.getSk(), seen.containsKey(v.getCk()) ? "*" : " ", REFERENCES.get(parent).find(v.getSk()), parent);
+//                    }
+//                }
+
+                log.info("  - {} novels after bubble closing {}/{}", parent, numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
+
+                /*
                 List<List<CortexVertex>> s = breakContigs(p, parent, seen);
 
                 if (numNovels(p, seen) < numNovelsRemaining) {
                     contigsWithClosedBubbles = s;
                     numNovelsRemaining = numNovels(p, seen);
                 }
+                */
             }
 
-            log.info("  remaining: {}", numNovelsRemaining);
-
+            /*
             if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
                 List<SAMRecord> srs = new ArrayList<>();
                 int numGoodAlignments = 0;
@@ -182,6 +198,7 @@ public class Call extends Module {
                     }
                 }
             }
+            */
         }
     }
 
@@ -464,9 +481,17 @@ public class Call extends Module {
                 }
 
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> sinks = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                for (int j = i + 1; j < w.size(); j++) {
+                int distanceFromLastNovel = 0;
+                for (int j = i + 1; j < w.size() && distanceFromLastNovel < 3*vi.getCr().getKmerSize(); j++) {
+                //for (int j = i + 1; j < w.size(); j++) {
                     CortexVertex vj = w.get(j);
                     sinks.addVertex(vj);
+
+                    if (seen.containsKey(vj.getCk())) {
+                        distanceFromLastNovel = 0;
+                    } else {
+                        distanceFromLastNovel++;
+                    }
                 }
                 e.getConfiguration().setPreviousTraversal(sinks);
 
