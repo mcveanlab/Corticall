@@ -114,15 +114,23 @@ public class Call extends Module {
         log.info("Contigs:");
         int contigIndex = 0;
         for (String longContig : longContigs.keySet()) {
+            List<CortexVertex> l = longContigs.get(longContig);
+
             log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
             contigIndex++;
 
             for (String parent : REFERENCES.keySet()) {
-                List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(longContig);
+                List<CortexVertex> p = closeBubbles(l, parent, seen);
+                List<List<CortexVertex>> s = breakContigs(p, parent, seen);
 
-                for (SAMRecord sr : srs) {
-                    if (sr.getMappingQuality() > 0) {
-                        log.info("  - {} {}", parent, sr.getSAMString().trim());
+                for (int i = 0; i < s.size(); i++) {
+                    List<CortexVertex> c = s.get(i);
+                    List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(TraversalEngine.toContig(c));
+
+                    for (SAMRecord sr : srs) {
+                        if (sr.getMappingQuality() > 0) {
+                            log.info("  - {} {} {}", i, parent, sr.getSAMString().trim());
+                        }
                     }
                 }
             }
