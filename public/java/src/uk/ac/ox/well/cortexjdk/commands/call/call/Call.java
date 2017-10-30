@@ -38,16 +38,16 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
  * Created by kiran on 30/08/2017.
  */
 public class Call extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
+    @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName="links", shortName="l", doc="Links")
+    @Argument(fullName = "links", shortName = "l", doc = "Links")
     public ArrayList<CortexLinks> LINKS;
 
-    @Argument(fullName="references", shortName="R", doc="References")
+    @Argument(fullName = "references", shortName = "R", doc = "References")
     public HashMap<String, KmerLookup> REFERENCES;
 
-    @Argument(fullName="roi", shortName="r", doc="ROI")
+    @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROI;
 
     @Output
@@ -118,26 +118,14 @@ public class Call extends Module {
             List<CortexVertex> l = longContigs.get(longContig);
 
             log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
-            contigIndex++;
 
-//            if (longContig.length() == 114) {
-//                for (CortexVertex v : longContigs.get(longContig)) {
-//                    log.info("  open {} {} {}", v.getSk(), seen.containsKey(v.getCk()) ? "*" : " ", REFERENCES.get("PG0051-C.ERR019061").find(v.getSk()));
-//                }
-//            }
+            List<CortexVertex> p = closeBubbles(l, seen);
+            log.info("  - novels after bubble closing {}/{}", numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
 
-            List<List<CortexVertex>> contigsWithClosedBubbles = null;
+            //List<List<CortexVertex>> contigsWithClosedBubbles = null;
 
-            for (String parent : REFERENCES.keySet()) {
-                List<CortexVertex> p = closeBubbles(l, parent, seen);
+            //for (String parent : REFERENCES.keySet()) {
 
-//                if (longContig.length() == 114) {
-//                    for (CortexVertex v : p) {
-//                        log.info("  closed {} {} {} {}", v.getSk(), seen.containsKey(v.getCk()) ? "*" : " ", REFERENCES.get(parent).find(v.getSk()), parent);
-//                    }
-//                }
-
-                log.info("  - {} novels after bubble closing {}/{}", parent, numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
 
                 /*
                 List<List<CortexVertex>> s = breakContigs(p, parent, seen);
@@ -147,7 +135,9 @@ public class Call extends Module {
                     numNovelsRemaining = numNovels(p, seen);
                 }
                 */
-            }
+            //}
+
+            contigIndex++;
 
             /*
             if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
@@ -423,9 +413,21 @@ public class Call extends Module {
         public int compareTo(@NotNull LittleBubble o) {
             return start.compareTo(o.start);
         }
+
+        @Override
+        public String toString() {
+            return "LittleBubble{" +
+                    "refContig='" + refContig + '\'' +
+                    ", altContig='" + altContig + '\'' +
+                    ", refPath=" + refPath +
+                    ", altPath=" + altPath +
+                    ", start=" + start +
+                    ", stop=" + stop +
+                    '}';
+        }
     }
 
-    private List<CortexVertex> closeBubbles(List<CortexVertex> w, String parent, Map<CortexKmer, Boolean> seen) {
+    private List<CortexVertex> closeBubbles(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
         Map<CortexVertex, Integer> indices = new HashMap<>();
         indices.put(w.get(0), 0);
@@ -442,9 +444,9 @@ public class Call extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(parent))
+                //.traversalColor(GRAPH.getColorForSampleName(parent))
+                //.recruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()))
                 .joiningColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
-                .recruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()))
                 .traversalDirection(FORWARD)
                 .combinationOperator(OR)
                 .stoppingRule(BubbleClosingStopper.class)
@@ -456,90 +458,95 @@ public class Call extends Module {
 
         Map<Integer, LittleBubble> l = new TreeMap<>();
 
-        for (int i = 0; i < w.size() - 1; i++) {
-            CortexVertex vi = w.get(i);
+        for (String parent : REFERENCES.keySet()) {
+            e.getConfiguration().setTraversalColor(GRAPH.getColorForSampleName(parent));
+            e.getConfiguration().setRecruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()));
 
-            if (seen.containsKey(vi.getCk())) {
-                List<CortexVertex> roots = new ArrayList<>();
-                List<CortexVertex> sources = new ArrayList<>();
+            for (int i = 0; i < w.size() - 1; i++) {
+                CortexVertex vi = w.get(i);
 
-                int lowerLimit = i - 3*vi.getCr().getKmerSize() >= 0 ? i - 3*vi.getCr().getKmerSize() : 0;
-                for (int j = i - 1; j >= lowerLimit; j--) {
-                    CortexVertex vj = w.get(j);
-                    CortexVertex vk = w.get(j+1);
+                if (seen.containsKey(vi.getCk())) {
+                    List<CortexVertex> roots = new ArrayList<>();
+                    List<CortexVertex> sources = new ArrayList<>();
 
-                    if (!seen.containsKey(vj.getCk())) {
-                        Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getSk()));
+                    int lowerLimit = i - 3 * vi.getCr().getKmerSize() >= 0 ? i - 3 * vi.getCr().getKmerSize() : 0;
+                    for (int j = i - 1; j >= lowerLimit; j--) {
+                        CortexVertex vj = w.get(j);
+                        CortexVertex vk = w.get(j + 1);
 
-                        for (CortexVertex cv : nvs) {
-                            if (!cv.equals(vk)) {
-                                roots.add(vj);
-                                sources.add(cv);
+                        if (!seen.containsKey(vj.getCk())) {
+                            Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getSk()));
+
+                            for (CortexVertex cv : nvs) {
+                                if (!cv.equals(vk)) {
+                                    roots.add(vj);
+                                    sources.add(cv);
+                                }
                             }
                         }
                     }
-                }
 
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> sinks = new DirectedWeightedPseudograph<>(CortexEdge.class);
-                int distanceFromLastNovel = 0;
-                for (int j = i + 1; j < w.size() && distanceFromLastNovel < 3*vi.getCr().getKmerSize(); j++) {
-                //for (int j = i + 1; j < w.size(); j++) {
-                    CortexVertex vj = w.get(j);
-                    sinks.addVertex(vj);
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> sinks = new DirectedWeightedPseudograph<>(CortexEdge.class);
+                    int distanceFromLastNovel = 0;
+                    for (int j = i + 1; j < w.size() && distanceFromLastNovel < 3 * vi.getCr().getKmerSize(); j++) {
+                        CortexVertex vj = w.get(j);
+                        sinks.addVertex(vj);
 
-                    if (seen.containsKey(vj.getCk())) {
-                        distanceFromLastNovel = 0;
-                    } else {
-                        distanceFromLastNovel++;
+                        if (seen.containsKey(vj.getCk())) {
+                            distanceFromLastNovel = 0;
+                        } else {
+                            distanceFromLastNovel++;
+                        }
                     }
-                }
-                e.getConfiguration().setPreviousTraversal(sinks);
 
-                for (int q = 0; q < sources.size(); q++) {
-                    CortexVertex root = roots.get(q);
-                    CortexVertex source = sources.get(q);
+                    e.getConfiguration().setPreviousTraversal(sinks);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getSk());
+                    for (int q = 0; q < sources.size(); q++) {
+                        CortexVertex root = roots.get(q);
+                        CortexVertex source = sources.get(q);
 
-                    if (b != null) {
-                        CortexVertex sink = null;
-                        int sinkIndex = -1;
-                        for (CortexVertex v : b.vertexSet()) {
-                            if (indices.containsKey(v) && indices.get(v) > sinkIndex) {
-                                sink = v;
-                                sinkIndex = indices.get(sink);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getSk());
+
+                        if (b != null) {
+                            CortexVertex sink = null;
+                            int sinkIndex = -1;
+                            for (CortexVertex v : b.vertexSet()) {
+                                if (indices.containsKey(v) && indices.get(v) > sinkIndex) {
+                                    sink = v;
+                                    sinkIndex = indices.get(sink);
+                                }
                             }
+
+                            GraphPath<CortexVertex, CortexEdge> gp = DijkstraShortestPath.findPathBetween(b, source, sink);
+
+                            List<CortexVertex> refPath = new ArrayList<>();
+                            refPath.add(root);
+
+                            for (CortexVertex v : gp.getVertexList()) {
+                                refPath.add(v);
+                            }
+
+                            List<CortexVertex> altPath = new ArrayList<>();
+
+                            for (int j = indices.get(root); j <= indices.get(sink); j++) {
+                                altPath.add(w.get(j));
+                            }
+
+                            String refContig = TraversalEngine.toContig(refPath);
+                            String altContig = TraversalEngine.toContig(altPath);
+
+                            LittleBubble lb = new LittleBubble();
+                            lb.refContig = refContig;
+                            lb.altContig = altContig;
+                            lb.refPath = refPath;
+                            lb.altPath = altPath;
+                            lb.start = indices.get(root);
+                            lb.stop = indices.get(sink);
+
+                            l.put(lb.start, lb);
+
+                            i = lb.stop - 1;
                         }
-
-                        GraphPath<CortexVertex, CortexEdge> gp = DijkstraShortestPath.findPathBetween(b, source, sink);
-
-                        List<CortexVertex> refPath = new ArrayList<>();
-                        refPath.add(root);
-
-                        for (CortexVertex v : gp.getVertexList()) {
-                            refPath.add(v);
-                        }
-
-                        List<CortexVertex> altPath = new ArrayList<>();
-
-                        for (int j = indices.get(root); j <= indices.get(sink); j++) {
-                            altPath.add(w.get(j));
-                        }
-
-                        String refContig = TraversalEngine.toContig(refPath);
-                        String altContig = TraversalEngine.toContig(altPath);
-
-                        LittleBubble lb = new LittleBubble();
-                        lb.refContig = refContig;
-                        lb.altContig = altContig;
-                        lb.refPath = refPath;
-                        lb.altPath = altPath;
-                        lb.start = indices.get(root);
-                        lb.stop = indices.get(sink);
-
-                        l.put(lb.start, lb);
-
-                        i = lb.stop - 1;
                     }
                 }
             }
@@ -552,6 +559,9 @@ public class Call extends Module {
                 wp.add(w.get(i));
             } else {
                 LittleBubble lb = l.get(i);
+
+                log.info("  lb: {} {}", i, lb);
+
                 for (CortexVertex v : lb.refPath) {
                     wp.add(v);
                 }
@@ -560,7 +570,7 @@ public class Call extends Module {
             }
         }
 
-        log.info("  - {} closed {} bubbles", parent, l.size());
+        log.info("  - closed {} bubbles", l.size());
 
         return wp;
     }
@@ -598,8 +608,8 @@ public class Call extends Module {
 
         for (CigarElement ce : record.getCigar()) {
             if (ce.getOperator().equals(CigarOperator.SOFT_CLIP) ||
-                ce.getOperator().equals(CigarOperator.INSERTION) ||
-                ce.getOperator().equals(CigarOperator.DELETION)) {
+                    ce.getOperator().equals(CigarOperator.INSERTION) ||
+                    ce.getOperator().equals(CigarOperator.DELETION)) {
                 basesChanged += ce.getLength();
             }
         }

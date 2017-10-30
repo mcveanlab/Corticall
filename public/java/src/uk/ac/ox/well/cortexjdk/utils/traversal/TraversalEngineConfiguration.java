@@ -63,6 +63,7 @@ public class TraversalEngineConfiguration {
 
     public Set<Integer> getRecruitmentColors() { return recruitmentColors; }
     public void setRecruitmentColors(Collection<Integer> recruitmentColors) { this.recruitmentColors = new TreeSet<>(recruitmentColors); }
+    public void setRecruitmentColors(int recruitmentColor) { this.recruitmentColors = new TreeSet<>(); this.recruitmentColors.add(recruitmentColor); }
     public void setRecruitmentColors() { this.recruitmentColors.clear(); }
 
     public Set<Integer> getSecondaryColors() { return secondaryColors; }
