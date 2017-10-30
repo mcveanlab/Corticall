@@ -116,6 +116,16 @@ public class Call extends Module {
         for (String longContig : longContigs.keySet()) {
             log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
             contigIndex++;
+
+            for (String parent : REFERENCES.keySet()) {
+                List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(longContig);
+
+                for (SAMRecord sr : srs) {
+                    if (sr.getMappingQuality() > 0) {
+                        log.info("  - {} {}", parent, sr.getSAMString().trim());
+                    }
+                }
+            }
         }
 
         /*
