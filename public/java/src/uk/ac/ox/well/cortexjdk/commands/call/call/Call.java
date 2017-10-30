@@ -541,6 +541,8 @@ public class Call extends Module {
                     wp.add(v);
                 }
 
+                log.info("  {} {}", i, lb.stop);
+
                 i = lb.stop;
             }
         }
