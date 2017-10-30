@@ -518,18 +518,6 @@ public class Call extends Module {
             }
         }
 
-        for (LittleBubble lb : l.values()) {
-            //log.info("lb: {}", lb);
-            List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(lb.refContig);
-            for (SAMRecord sr : srs) {
-                if (sr.getMappingQuality() > 0) {
-                    //log.info("  {}", sr.getSAMString().trim());
-                }
-            }
-        }
-
-        log.info("l={}", l.size());
-
         List<CortexVertex> wp = new ArrayList<>();
 
         for (int i = 0; i < w.size(); i++) {
@@ -541,13 +529,11 @@ public class Call extends Module {
                     wp.add(v);
                 }
 
-                log.info("  {} {}", i, lb.stop);
-
                 i = lb.stop;
             }
         }
 
-        //log.info("  closed {} bubbles", l.size());
+        log.info("  closed {} bubbles", l.size());
 
         return wp;
     }
