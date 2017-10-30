@@ -119,118 +119,68 @@ public class Call extends Module {
             log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
             contigIndex++;
 
+            List<List<CortexVertex>> contigsWithClosedBubbles = null;
+            int numNovelsRemaining = Integer.MAX_VALUE;
+
             for (String parent : REFERENCES.keySet()) {
                 List<CortexVertex> p = closeBubbles(l, parent, seen);
                 List<List<CortexVertex>> s = breakContigs(p, parent, seen);
 
-                for (int i = 0; i < s.size(); i++) {
-                    List<CortexVertex> c = s.get(i);
-                    List<SAMRecord> srs = REFERENCES.get(parent).getAligner().align(TraversalEngine.toContig(c));
+                if (numNovels(p, seen) < numNovelsRemaining) {
+                    contigsWithClosedBubbles = s;
+                    numNovelsRemaining = numNovels(p, seen);
+                }
+            }
 
-                    for (SAMRecord sr : srs) {
-                        if (sr.getMappingQuality() > 0) {
-                            log.info("  - {} {} {}", i, parent, sr.getSAMString().trim());
+            if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
+                List<SAMRecord> srs = new ArrayList<>();
+                int numGoodAlignments = 0;
+
+                for (int i = 0; i < contigsWithClosedBubbles.size(); i++) {
+                    List<CortexVertex> p = contigsWithClosedBubbles.get(i);
+                    String contig = TraversalEngine.toContig(p);
+
+                    SAMRecord sr = chooseBestAlignment(contig, 10);
+                    srs.add(sr);
+
+                    if (sr != null) {
+                        numGoodAlignments++;
+                    }
+                }
+
+                if (numGoodAlignments > 1) {
+                    for (int i = 0; i < srs.size(); i++) {
+                        SAMRecord sr = srs.get(i);
+
+                        if (sr == null) {
+                            out.println(Joiner.on("\t").join(
+                                    i,
+                                    contigsWithClosedBubbles.get(i).size(),
+                                    ".",
+                                    ".",
+                                    ".",
+                                    ".",
+                                    ".",
+                                    "."
+                                    )
+                            );
+                        } else {
+                            out.println(Joiner.on("\t").join(
+                                    i,
+                                    contigsWithClosedBubbles.get(i).size(),
+                                    sr.getReferenceName(),
+                                    sr.getAlignmentStart(),
+                                    sr.getAlignmentEnd(),
+                                    sr.getReadNegativeStrandFlag() ? "-" : "+",
+                                    sr.getIntegerAttribute("NM"),
+                                    sr.getCigarString()
+                                    )
+                            );
                         }
                     }
                 }
             }
         }
-
-        /*
-        for (CortexKmer ck : seen.keySet()) {
-            if (!seen.get(ck)) {
-                List<CortexVertex> w = eo.walk(ck.getKmerAsString());
-                List<CortexVertex> l = longWalk(seen, e, ck);
-
-                //log.info("    orig: {}", TraversalEngine.toContig(w));
-                //log.info("    open: {}", TraversalEngine.toContig(l));
-
-                aout.println(w.size() + "\t" + l.size());
-
-                log.info("  short walk: {}, long walk: {}, num novels: {}", w.size(), l.size(), numNovels(l, seen));
-
-                List<List<CortexVertex>> contigsWithClosedBubbles = null;
-                int numNovelsRemaining = Integer.MAX_VALUE;
-
-                for (String parent : REFERENCES.keySet()) {
-                    List<CortexVertex> p = closeBubbles(l, parent, seen);
-
-                    //log.info("  closed: {}", TraversalEngine.toContig(p));
-
-                    //log.info("  num novels: {}", numNovels(p, seen));
-
-                    List<List<CortexVertex>> s = breakContigs(p, parent, seen);
-
-                    //log.info("{} {} {} {} {} {} {} {} {}", ck, parent, w.size(), l.size(), p.size(), numNovels(w, seen), numNovels(l, seen), numNovels(p, seen), s.size());
-
-                    if (numNovels(p, seen) < numNovelsRemaining) {
-                        contigsWithClosedBubbles = s;
-                        numNovelsRemaining = numNovels(p, seen);
-                    }
-                }
-
-
-                if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
-                    List<SAMRecord> srs = new ArrayList<>();
-                    int numGoodAlignments = 0;
-
-                    for (int i = 0; i < contigsWithClosedBubbles.size(); i++) {
-                        List<CortexVertex> p = contigsWithClosedBubbles.get(i);
-                        String contig = TraversalEngine.toContig(p);
-
-                        SAMRecord sr = chooseBestAlignment(contig, MQ_THRESHOLD);
-                        srs.add(sr);
-
-                        if (sr != null) {
-                            numGoodAlignments++;
-                        }
-                    }
-
-                    if (numGoodAlignments > 1) {
-                        for (int i = 0; i < srs.size(); i++) {
-                            SAMRecord sr = srs.get(i);
-                            //log.info("{}", sr.getSAMString().trim());
-
-                            if (sr == null) {
-                                out.println(Joiner.on("\t").join(
-                                        ck,
-                                        i,
-                                        contigsWithClosedBubbles.get(i).size(),
-                                        ".",
-                                        ".",
-                                        ".",
-                                        ".",
-                                        ".",
-                                        "."
-                                        )
-                                );
-                            } else {
-                                out.println(Joiner.on("\t").join(
-                                        ck,
-                                        i,
-                                        contigsWithClosedBubbles.get(i).size(),
-                                        sr.getReferenceName(),
-                                        sr.getAlignmentStart(),
-                                        sr.getAlignmentEnd(),
-                                        sr.getReadNegativeStrandFlag() ? "-" : "+",
-                                        sr.getIntegerAttribute("NM"),
-                                        sr.getCigarString()
-                                        )
-                                );
-                            }
-                        }
-                    }
-                }
-
-                for (CortexVertex v : l) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
-                        pm.update();
-                    }
-                }
-            }
-        }
-        */
     }
 
     private List<List<CortexVertex>> breakContigs(List<CortexVertex> w, String parent, Map<CortexKmer, Boolean> seen) {
