@@ -528,6 +528,8 @@ public class Call extends Module {
             }
         }
 
+        log.info("l={}", l.size());
+
         List<CortexVertex> wp = new ArrayList<>();
 
         for (int i = 0; i < w.size(); i++) {
