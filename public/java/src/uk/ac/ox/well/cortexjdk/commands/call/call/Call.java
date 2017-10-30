@@ -533,7 +533,7 @@ public class Call extends Module {
         List<CortexVertex> wp = new ArrayList<>();
 
         for (int i = 0; i < w.size(); i++) {
-            if (!l.containsKey(i)) {
+            if (!l.containsKey(i) || l.get(i).stop < i) {
                 wp.add(w.get(i));
             } else {
                 LittleBubble lb = l.get(i);
