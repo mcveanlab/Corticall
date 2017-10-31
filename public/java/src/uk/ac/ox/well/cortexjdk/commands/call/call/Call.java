@@ -122,79 +122,45 @@ public class Call extends Module {
             List<CortexVertex> p = closeBubbles(l, seen);
             log.info("  - novels after bubble closing {}/{}", numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
 
-            //List<List<CortexVertex>> contigsWithClosedBubbles = null;
+            if (numNovels(p, seen) > 10) {
+                List<List<CortexVertex>> s = breakContigs(p, seen);
 
-            //for (String parent : REFERENCES.keySet()) {
-
-
-                /*
-                List<List<CortexVertex>> s = breakContigs(p, parent, seen);
-
-                if (numNovels(p, seen) < numNovelsRemaining) {
-                    contigsWithClosedBubbles = s;
-                    numNovelsRemaining = numNovels(p, seen);
-                }
-                */
-            //}
-
-            contigIndex++;
-
-            /*
-            if (contigsWithClosedBubbles != null && numNovelsRemaining >= 10) {
                 List<SAMRecord> srs = new ArrayList<>();
-                int numGoodAlignments = 0;
-
-                for (int i = 0; i < contigsWithClosedBubbles.size(); i++) {
-                    List<CortexVertex> p = contigsWithClosedBubbles.get(i);
-                    String contig = TraversalEngine.toContig(p);
+                Set<String> chrs = new HashSet<>();
+                int numPieces = 0;
+                int maxLength = 0;
+                for (int i = 0; i < s.size(); i++) {
+                    List<CortexVertex> q = s.get(i);
+                    String contig = TraversalEngine.toContig(q);
 
                     SAMRecord sr = chooseBestAlignment(contig, 10);
                     srs.add(sr);
 
                     if (sr != null) {
-                        numGoodAlignments++;
+                        chrs.add(sr.getReferenceName());
+                        numPieces++;
+                        if (contig.length() > maxLength) {
+                            maxLength = contig.length();
+                        }
                     }
+
                 }
 
-                if (numGoodAlignments > 1) {
-                    for (int i = 0; i < srs.size(); i++) {
+                if (chrs.size() > 1 && numPieces > 1 && maxLength >= GRAPH.getKmerSize() + 1) {
+                    for (int i = 0; i < s.size(); i++) {
                         SAMRecord sr = srs.get(i);
 
-                        if (sr == null) {
-                            out.println(Joiner.on("\t").join(
-                                    i,
-                                    contigsWithClosedBubbles.get(i).size(),
-                                    ".",
-                                    ".",
-                                    ".",
-                                    ".",
-                                    ".",
-                                    "."
-                                    )
-                            );
-                        } else {
-                            out.println(Joiner.on("\t").join(
-                                    i,
-                                    contigsWithClosedBubbles.get(i).size(),
-                                    sr.getReferenceName(),
-                                    sr.getAlignmentStart(),
-                                    sr.getAlignmentEnd(),
-                                    sr.getReadNegativeStrandFlag() ? "-" : "+",
-                                    sr.getIntegerAttribute("NM"),
-                                    sr.getCigarString()
-                                    )
-                            );
-                        }
+                        log.info("  {} {}", i, sr == null ? "null" : sr.getSAMString().trim());
                     }
                 }
             }
-            */
+
+            contigIndex++;
         }
     }
 
-    private List<List<CortexVertex>> breakContigs(List<CortexVertex> w, String parent, Map<CortexKmer, Boolean> seen) {
+    private List<List<CortexVertex>> breakContigs(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
         Set<CortexKmer> breakpoints = new HashSet<>();
-        List<Set<Interval>> intervals = new ArrayList<>();
 
         boolean inNovelRun = false;
         for (CortexVertex v : w) {
@@ -204,78 +170,39 @@ public class Call extends Module {
                 }
                 inNovelRun = true;
             } else {
+                if (inNovelRun) {
+                    breakpoints.add(v.getCk());
+                }
                 inNovelRun = false;
-            }
-
-            intervals.add(REFERENCES.get(parent).find(v.getSk()));
-        }
-
-        for (int i = 0; i < intervals.size(); i++) {
-            if (intervals.get(i).size() == 2) {
-                Interval leftInterval = null;
-                int leftIndex = -1;
-                for (int j = i - 1; j >= 0; j--) {
-                    if (intervals.get(j).size() == 1) {
-                        leftInterval = intervals.get(j).iterator().next();
-                        leftIndex = j;
-                        break;
-                    }
-                }
-
-                Interval rightInterval = null;
-                int rightIndex = -1;
-                int lastMultiAlignmentIndex = -1;
-                for (int j = i; j < intervals.size(); j++) {
-                    if (intervals.get(j).size() > 1) {
-                        lastMultiAlignmentIndex = j;
-                    } else if (intervals.get(j).size() == 1) {
-                        rightInterval = intervals.get(j).iterator().next();
-                        rightIndex = j;
-                        break;
-                    }
-                }
-
-                if (leftInterval != null && rightInterval != null && !leftInterval.intersects(rightInterval)) {
-                    boolean leftFound = false;
-                    for (Interval it : intervals.get(i)) {
-                        if (leftInterval.intersects(it)) {
-                            leftFound = true;
-                        }
-                    }
-
-                    boolean rightFound = false;
-                    for (Interval it : intervals.get(lastMultiAlignmentIndex)) {
-                        if (rightInterval.intersects(it)) {
-                            rightFound = true;
-                        }
-                    }
-
-                    if (leftFound && rightFound) {
-                        breakpoints.add(w.get(i).getCk());
-
-                        i = rightIndex;
-                    }
-                }
             }
         }
 
         List<List<CortexVertex>> s = new ArrayList<>();
 
         List<CortexVertex> a = new ArrayList<>();
-        for (CortexVertex v : w) {
-            a.add(v);
+        for (int i = 0; i < w.size(); i++) {
+            CortexVertex v = w.get(i);
 
             if (breakpoints.contains(v.getCk())) {
                 s.add(a);
                 a = new ArrayList<>();
             }
+
+            a.add(v);
         }
 
         if (a.size() > 0) {
             s.add(a);
         }
 
-        return s;
+        List<List<CortexVertex>> r = new ArrayList<>();
+        for (List<CortexVertex> q : s) {
+            if (q.size() > 0 && !seen.containsKey(q.get(0).getCk())) {
+                r.add(q);
+            }
+        }
+
+        return r;
     }
 
     private int numNovels(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
@@ -294,9 +221,7 @@ public class Call extends Module {
     private List<CortexVertex> longWalk(Map<CortexKmer, Boolean> seen, TraversalEngine e, CortexKmer ck) {
         List<CortexVertex> w = e.walk(ck.getKmerAsString());
 
-        //int wOldSize = w.size();
-
-        boolean extended = false;
+        boolean extended;
         do {
             extended = false;
             List<List<CortexVertex>> extFwd = new ArrayList<>();
@@ -366,8 +291,6 @@ public class Call extends Module {
                 }
             }
         } while (extended);
-
-        //int wNewSize = w.size();
 
         return w;
     }
@@ -444,13 +367,10 @@ public class Call extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                //.traversalColor(GRAPH.getColorForSampleName(parent))
-                //.recruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()))
                 .joiningColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .traversalDirection(FORWARD)
                 .combinationOperator(OR)
                 .stoppingRule(BubbleClosingStopper.class)
-                //.previousTraversal(g)
                 .graph(GRAPH)
                 .links(LINKS)
                 .references(REFERENCES.values())
@@ -553,6 +473,7 @@ public class Call extends Module {
         }
 
         List<CortexVertex> wp = new ArrayList<>();
+        int usedBubbles = 0;
 
         for (int i = 0; i < w.size(); i++) {
             if (!l.containsKey(i) || l.get(i).stop < i) {
@@ -560,7 +481,7 @@ public class Call extends Module {
             } else {
                 LittleBubble lb = l.get(i);
 
-                log.info("  lb: {} {}", i, lb);
+                usedBubbles++;
 
                 for (CortexVertex v : lb.refPath) {
                     wp.add(v);
@@ -570,7 +491,7 @@ public class Call extends Module {
             }
         }
 
-        log.info("  - closed {} bubbles", l.size());
+        log.info("  - closed {}/{} bubbles", usedBubbles, l.size());
 
         return wp;
     }
