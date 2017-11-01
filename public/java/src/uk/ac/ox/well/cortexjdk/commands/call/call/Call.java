@@ -158,7 +158,7 @@ public class Call extends Module {
                         int stop = 0;
                         String type = "BRK";
                         String refAllele = ".";
-                        String altAllele = ".";
+                        String cigar = ".";
                         String strand = "+";
 
                         if (sr != null) {
@@ -166,12 +166,12 @@ public class Call extends Module {
                             start = sr.getAlignmentStart();
                             stop = sr.getAlignmentEnd();
                             refAllele = sr.getReadString();
-                            altAllele = sr.getCigarString();
+                            cigar = sr.getCigarString();
                             strand = sr.getReadNegativeStrandFlag() ? "-" : "+";
                         }
 
-                        log.info("      brk {} {} {} {} {} {} {} {} {}", contigIndex, s.get(i).size(), chr, start, stop, strand, type, altAllele, refAllele);
-                        out.println(Joiner.on("\t").join(contigIndex, s.get(i).size(), chr, start, stop, strand, type, altAllele, refAllele));
+                        log.info("      brk {} {} {} {} {} {} {} {}", contigIndex, s.get(i).size(), chr, start, stop, strand, type, cigar);
+                        out.println(Joiner.on("\t").join(contigIndex, s.get(i).size(), chr, start, stop, strand, type, cigar, refAllele));
                     }
                 }
             }
