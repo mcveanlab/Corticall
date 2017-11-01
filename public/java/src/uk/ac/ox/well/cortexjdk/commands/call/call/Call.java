@@ -5,12 +5,15 @@ import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
+import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.pairwise.GlobalAligner;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
@@ -112,14 +115,15 @@ public class Call extends Module {
         }
         log.info("  {} contigs remaining", longContigs.size());
 
-        log.info("Contigs:");
+        log.info("Calling mutations in contigs:");
         int contigIndex = 0;
         for (String longContig : longContigs.keySet()) {
             List<CortexVertex> l = longContigs.get(longContig);
 
-            log.info("  {} {} {}", contigIndex, longContig.length(), numNovels(longContigs.get(longContig), seen));
+            log.info("  index={} length={}", contigIndex, longContig.length());
 
-            List<CortexVertex> p = closeBubbles(l, seen);
+            log.info("  - novels before bubble closing {}/{}", numNovels(l, seen), numNovels(longContigs.get(longContig), seen));
+            List<CortexVertex> p = closeBubbles(l, seen, contigIndex);
             log.info("  - novels after bubble closing {}/{}", numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
 
             if (numNovels(p, seen) > 10) {
@@ -143,14 +147,31 @@ public class Call extends Module {
                             maxLength = contig.length();
                         }
                     }
-
                 }
 
                 if (chrs.size() > 1 && numPieces > 1 && maxLength >= GRAPH.getKmerSize() + 1) {
                     for (int i = 0; i < s.size(); i++) {
                         SAMRecord sr = srs.get(i);
 
-                        log.info("  {} {}", i, sr == null ? "null" : sr.getSAMString().trim());
+                        String chr = "unknown";
+                        int start = 0;
+                        int stop = 0;
+                        String type = "BRK";
+                        String refAllele = ".";
+                        String altAllele = ".";
+                        String strand = "+";
+
+                        if (sr != null) {
+                            chr = sr.getReferenceName();
+                            start = sr.getAlignmentStart();
+                            stop = sr.getAlignmentEnd();
+                            refAllele = sr.getReadString();
+                            altAllele = sr.getCigarString();
+                            strand = sr.getReadNegativeStrandFlag() ? "-" : "+";
+                        }
+
+                        log.info("      brk {} {} {} {} {} {} {} {} {}", contigIndex, s.get(i).size(), chr, start, stop, strand, type, altAllele, refAllele);
+                        out.println(Joiner.on("\t").join(contigIndex, s.get(i).size(), chr, start, stop, strand, type, altAllele, refAllele));
                     }
                 }
             }
@@ -350,7 +371,7 @@ public class Call extends Module {
         }
     }
 
-    private List<CortexVertex> closeBubbles(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
+    private List<CortexVertex> closeBubbles(List<CortexVertex> w, Map<CortexKmer, Boolean> seen, int contigIndex) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
         Map<CortexVertex, Integer> indices = new HashMap<>();
         indices.put(w.get(0), 0);
@@ -487,11 +508,47 @@ public class Call extends Module {
                     wp.add(v);
                 }
 
+                SAMRecord sr = chooseBestAlignment(lb.refContig, 10);
+
+                //log.info("  {}", lb);
+                //log.info("  - {}", sr == null ? "null" : sr.getSAMString().trim());
+
+                if (sr != null) {
+                    String[] pieces = contigsToAlleles(lb.refContig, lb.altContig);
+                    String refAllele = pieces[1];
+                    String altAllele = pieces[2];
+                    int start = sr.getAlignmentStart() + pieces[0].length();
+                    if (sr.getReadNegativeStrandFlag()) {
+                        refAllele = SequenceUtils.reverseComplement(pieces[1]);
+                        altAllele = SequenceUtils.reverseComplement(pieces[2]);
+                        start = sr.getAlignmentStart() + pieces[3].length();
+                    }
+                    int stop = start + altAllele.length();
+
+                    String type = "UKN";
+                    if (refAllele.length() == 1 && altAllele.length() == 1) {
+                        type = "SNV";
+                    } else if (refAllele.length() > 1 && altAllele.length() > 1) {
+                        type = "MNP";
+                    } else if (refAllele.length() == 0 && altAllele.length() > 0) {
+                        type = "INS";
+                    } else if (refAllele.length() > 0 && altAllele.length() == 0) {
+                        type = "DEL";
+                    }
+                    String strand = "+";
+
+                    if (refAllele.isEmpty()) { refAllele = "."; }
+                    if (altAllele.isEmpty()) { altAllele = "."; }
+
+                    log.info("      bub {} {} {} {} {} {} {} {} {}", contigIndex, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele);
+                    out.println(Joiner.on("\t").join(contigIndex, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele));
+                }
+
                 i = lb.stop;
             }
         }
 
-        log.info("  - closed {}/{} bubbles", usedBubbles, l.size());
+        //log.info("  - closed {}/{} bubbles", usedBubbles, l.size());
 
         return wp;
     }
