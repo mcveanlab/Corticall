@@ -127,7 +127,9 @@ public class Call extends Module {
             log.info("  - novels after bubble closing {}/{}", numNovels(p, seen), numNovels(longContigs.get(longContig), seen));
 
             if (numNovels(p, seen) > 10) {
-                List<List<CortexVertex>> s = breakContigs(p, seen);
+                Pair<List<List<CortexVertex>>, List<Pair<Integer, Integer>>> m = breakContigs(p, seen);
+                List<List<CortexVertex>> s = m.getFirst();
+                List<Pair<Integer, Integer>> b = m.getSecond();
 
                 List<SAMRecord> srs = new ArrayList<>();
                 Set<String> chrs = new HashSet<>();
@@ -170,8 +172,8 @@ public class Call extends Module {
                             strand = sr.getReadNegativeStrandFlag() ? "-" : "+";
                         }
 
-                        log.info("      brk {} {} {} {} {} {} {} {}", contigIndex, s.get(i).size(), chr, start, stop, strand, type, cigar);
-                        out.println(Joiner.on("\t").join(contigIndex, s.get(i).size(), chr, start, stop, strand, type, cigar, refAllele));
+                        log.info("      brk {} {} {} {} {} {} {} {} {} {} {}", contigIndex, l.size(), s.get(i).size(), b.get(i).getFirst(), b.get(i).getSecond(), chr, start, stop, strand, type, cigar);
+                        out.println(Joiner.on("\t").join(contigIndex, l.size(), s.get(i).size(), b.get(i).getFirst(), b.get(i).getSecond(), chr, start, stop, strand, type, cigar, refAllele));
                     }
                 }
             }
@@ -180,7 +182,7 @@ public class Call extends Module {
         }
     }
 
-    private List<List<CortexVertex>> breakContigs(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
+    private Pair<List<List<CortexVertex>>, List<Pair<Integer, Integer>>> breakContigs(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
         Set<CortexKmer> breakpoints = new HashSet<>();
 
         boolean inNovelRun = false;
@@ -217,13 +219,20 @@ public class Call extends Module {
         }
 
         List<List<CortexVertex>> r = new ArrayList<>();
+        List<Pair<Integer, Integer>> e = new ArrayList<>();
+        int start = 0;
         for (List<CortexVertex> q : s) {
             if (q.size() > 0 && !seen.containsKey(q.get(0).getCk())) {
                 r.add(q);
+                e.add(new Pair<>(start, start + q.size()));
             }
+
+            start += q.size();
         }
 
-        return r;
+        //log.info("    {} {}", r.size(), e.size());
+
+        return new Pair<>(r, e);
     }
 
     private int numNovels(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
@@ -540,8 +549,8 @@ public class Call extends Module {
                     if (refAllele.isEmpty()) { refAllele = "."; }
                     if (altAllele.isEmpty()) { altAllele = "."; }
 
-                    log.info("      bub {} {} {} {} {} {} {} {} {}", contigIndex, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele);
-                    out.println(Joiner.on("\t").join(contigIndex, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele));
+                    log.info("      bub {} {} {} {} {} {} {} {} {} {} {} {}", contigIndex, w.size(), w.size(), 0, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele);
+                    out.println(Joiner.on("\t").join(contigIndex, w.size(), w.size(), 0, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele));
                 }
 
                 i = lb.stop;
