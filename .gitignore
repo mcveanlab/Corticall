@@ -432,3 +432,5 @@ vc.txt
 serverdata/
 .vc_cache
 report/
+docs/
+example/
