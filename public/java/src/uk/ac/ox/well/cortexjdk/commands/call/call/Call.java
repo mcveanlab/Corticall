@@ -44,7 +44,7 @@ public class Call extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName = "links", shortName = "l", doc = "Links")
+    @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
     public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName = "references", shortName = "R", doc = "References")
@@ -55,6 +55,9 @@ public class Call extends Module {
 
     @Output
     public PrintStream out;
+
+    @Output(fullName="fout", shortName="fo", doc="Fasta out")
+    public PrintStream fout;
 
     @Override
     public void execute() {
@@ -118,6 +121,9 @@ public class Call extends Module {
         log.info("Calling mutations in contigs:");
         int contigIndex = 0;
         for (String longContig : longContigs.keySet()) {
+            fout.println(">" + contigIndex);
+            fout.println(longContig);
+
             List<CortexVertex> l = longContigs.get(longContig);
 
             log.info("  index={} length={}", contigIndex, longContig.length());
@@ -549,8 +555,8 @@ public class Call extends Module {
                     if (refAllele.isEmpty()) { refAllele = "."; }
                     if (altAllele.isEmpty()) { altAllele = "."; }
 
-                    log.info("      bub {} {} {} {} {} {} {} {} {} {} {} {}", contigIndex, w.size(), w.size(), 0, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele);
-                    out.println(Joiner.on("\t").join(contigIndex, w.size(), w.size(), 0, w.size(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele));
+                    log.info("      bub {} {} {} {} {} {} {} {} {} {} {} {}", contigIndex, w.size(), altAllele.length(), i, i + altAllele.length(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele);
+                    out.println(Joiner.on("\t").join(contigIndex, w.size(), w.size(), i, i + altAllele.length(), sr.getReferenceName(), start, stop, strand, type, altAllele, refAllele));
                 }
 
                 i = lb.stop;
