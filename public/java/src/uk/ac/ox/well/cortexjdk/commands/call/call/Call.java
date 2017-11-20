@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.GraphPath;
@@ -12,15 +11,13 @@ import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
-import uk.ac.ox.well.cortexjdk.utils.alignment.pairwise.GlobalAligner;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -61,7 +58,7 @@ public class Call extends Module {
 
     @Override
     public void execute() {
-        Map<CortexKmer, Boolean> seen = new HashMap<>();
+        Map<CanonicalKmer, Boolean> seen = new HashMap<>();
         for (CortexRecord cr : ROI) {
             seen.put(cr.getCortexKmer(), false);
         }
@@ -83,9 +80,9 @@ public class Call extends Module {
                 .maxRecord(seen.size())
                 .make(log);
 
-        Map<CortexKmer, List<CortexVertex>> longWalks = new HashMap<>();
+        Map<CanonicalKmer, List<CortexVertex>> longWalks = new HashMap<>();
 
-        for (CortexKmer ck : seen.keySet()) {
+        for (CanonicalKmer ck : seen.keySet()) {
             if (!seen.get(ck)) {
                 List<CortexVertex> l = longWalk(seen, e, ck);
 
@@ -188,8 +185,8 @@ public class Call extends Module {
         }
     }
 
-    private Pair<List<List<CortexVertex>>, List<Pair<Integer, Integer>>> breakContigs(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
-        Set<CortexKmer> breakpoints = new HashSet<>();
+    private Pair<List<List<CortexVertex>>, List<Pair<Integer, Integer>>> breakContigs(List<CortexVertex> w, Map<CanonicalKmer, Boolean> seen) {
+        Set<CanonicalKmer> breakpoints = new HashSet<>();
 
         boolean inNovelRun = false;
         for (CortexVertex v : w) {
@@ -241,7 +238,7 @@ public class Call extends Module {
         return new Pair<>(r, e);
     }
 
-    private int numNovels(List<CortexVertex> w, Map<CortexKmer, Boolean> seen) {
+    private int numNovels(List<CortexVertex> w, Map<CanonicalKmer, Boolean> seen) {
         int numNovels = 0;
 
         for (CortexVertex v : w) {
@@ -254,7 +251,7 @@ public class Call extends Module {
     }
 
     @NotNull
-    private List<CortexVertex> longWalk(Map<CortexKmer, Boolean> seen, TraversalEngine e, CortexKmer ck) {
+    private List<CortexVertex> longWalk(Map<CanonicalKmer, Boolean> seen, TraversalEngine e, CanonicalKmer ck) {
         List<CortexVertex> w = e.walk(ck.getKmerAsString());
 
         boolean extended;
@@ -386,7 +383,7 @@ public class Call extends Module {
         }
     }
 
-    private List<CortexVertex> closeBubbles(List<CortexVertex> w, Map<CortexKmer, Boolean> seen, int contigIndex) {
+    private List<CortexVertex> closeBubbles(List<CortexVertex> w, Map<CanonicalKmer, Boolean> seen, int contigIndex) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
         Map<CortexVertex, Integer> indices = new HashMap<>();
         indices.put(w.get(0), 0);

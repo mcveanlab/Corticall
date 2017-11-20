@@ -3,9 +3,9 @@ package uk.ac.ox.well.cortexjdk.commands.call.verify;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -28,9 +28,9 @@ public class CompareROIs extends Module {
 
     @Override
     public void execute() {
-        Map<CortexKmer, CortexRecord> trs = new HashMap<>();
-        Map<CortexKmer, CortexRecord> ers = new HashMap<>();
-        Set<CortexKmer> all = new HashSet<>();
+        Map<CanonicalKmer, CortexRecord> trs = new HashMap<>();
+        Map<CanonicalKmer, CortexRecord> ers = new HashMap<>();
+        Set<CanonicalKmer> all = new HashSet<>();
 
         for (CortexRecord tr : TRUTH) {
             trs.put(tr.getCortexKmer(), tr);
@@ -44,7 +44,7 @@ public class CompareROIs extends Module {
 
         int privateToTruth = 0, privateToEval = 0, overlap = 0;
 
-        for (CortexKmer ck : all) {
+        for (CanonicalKmer ck : all) {
             if (trs.containsKey(ck)) {
                 if (ers.containsKey(ck)) {
                     overlap++;

@@ -5,7 +5,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
 
@@ -86,14 +86,14 @@ public class SequenceUtilsTest {
 
         Assert.assertEquals(4, n50);
 
-        List<CortexKmer> csequences = new ArrayList<>();
-        csequences.add(new CortexKmer("AAGCTTA"));
-        csequences.add(new CortexKmer("TTGA"));
-        csequences.add(new CortexKmer("AAC"));
-        csequences.add(new CortexKmer("TT"));
-        csequences.add(new CortexKmer("AA"));
-        csequences.add(new CortexKmer("C"));
-        csequences.add(new CortexKmer("G"));
+        List<CanonicalKmer> csequences = new ArrayList<>();
+        csequences.add(new CanonicalKmer("AAGCTTA"));
+        csequences.add(new CanonicalKmer("TTGA"));
+        csequences.add(new CanonicalKmer("AAC"));
+        csequences.add(new CanonicalKmer("TT"));
+        csequences.add(new CanonicalKmer("AA"));
+        csequences.add(new CanonicalKmer("C"));
+        csequences.add(new CanonicalKmer("G"));
 
         int cn50 = SequenceUtils.computeN50Value(csequences);
 

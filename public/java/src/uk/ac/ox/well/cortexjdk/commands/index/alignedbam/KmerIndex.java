@@ -2,9 +2,9 @@ package uk.ac.ox.well.cortexjdk.commands.index.alignedbam;
 
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 
 import java.io.File;
 import java.io.IOException;
@@ -252,7 +252,7 @@ public class KmerIndex {
         return find(new CortexBinaryKmer(kmer));
     }
 
-    public List<long[]> find(CortexKmer ck) {
+    public List<long[]> find(CanonicalKmer ck) {
         return find(ck.getKmerAsBytes());
     }
 

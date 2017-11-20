@@ -4,7 +4,7 @@ import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.KShortestPaths;
 import org.jgrapht.graph.DefaultDirectedGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +34,7 @@ public class PathFinder {
         return getPathFinder(startVertex, endVertex, null, true);
     }
 
-    public GraphPath<CortexVertex, CortexEdge> getPathFinder(CortexVertex startVertex, CortexVertex endVertex, CortexKmer constraint, boolean accept) {
+    public GraphPath<CortexVertex, CortexEdge> getPathFinder(CortexVertex startVertex, CortexVertex endVertex, CanonicalKmer constraint, boolean accept) {
         KShortestPaths<CortexVertex, CortexEdge> ksp = new KShortestPaths<>(g, 10);
 
         List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = null;
@@ -51,7 +51,7 @@ public class PathFinder {
                     boolean constraintFound = false;
 
                     for (CortexVertex cv : gp.getVertexList()) {
-                        CortexKmer ck = new CortexKmer(cv.getSk());
+                        CanonicalKmer ck = new CanonicalKmer(cv.getSk());
 
                         if (ck.equals(constraint)) {
                             constraintFound = true;

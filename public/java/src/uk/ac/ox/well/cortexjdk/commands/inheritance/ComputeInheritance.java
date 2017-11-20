@@ -11,10 +11,10 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
@@ -54,14 +54,14 @@ public class ComputeInheritance extends Module {
         log.info("  - children: {}", childColors);
         log.info("  - refs:     {}", draftColors);
 
-        Set<CortexKmer> seeds = getVariantSeeds(refColor, parentColors, draftColors);
+        Set<CanonicalKmer> seeds = getVariantSeeds(refColor, parentColors, draftColors);
 
         int numVariants = callVariants(parentColors, childColors, seeds);
 
         log.info("Found {} variants", numVariants);
     }
 
-    private int callVariants(Set<Integer> parentColors, Set<Integer> childColors, Set<CortexKmer> seeds) {
+    private int callVariants(Set<Integer> parentColors, Set<Integer> childColors, Set<CanonicalKmer> seeds) {
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
                 .make();
@@ -75,7 +75,7 @@ public class ComputeInheritance extends Module {
         Map<Interval, Map<String, String>> entries = new TreeMap<>();
 
         int numVariants = 0;
-        for (CortexKmer ck : seeds) {
+        for (CanonicalKmer ck : seeds) {
             Map<String, String> te = callVariant(parentColors, childColors, e, ck);
 
             if (te != null) {
@@ -97,7 +97,7 @@ public class ComputeInheritance extends Module {
         return numVariants;
     }
 
-    private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngine e, CortexKmer ck) {
+    private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngine e, CanonicalKmer ck) {
         for (int c : childColors) {
             CortexRecord cr = GRAPH.findRecord(ck);
             if (cr.getCoverage(c) > 0) {
@@ -233,8 +233,8 @@ public class ComputeInheritance extends Module {
     }
 
     @NotNull
-    private Set<CortexKmer> getVariantSeeds(int refColor, Set<Integer> parentColors, Set<Integer> draftColors) {
-        Set<CortexKmer> seeds = new HashSet<>();
+    private Set<CanonicalKmer> getVariantSeeds(int refColor, Set<Integer> parentColors, Set<Integer> draftColors) {
+        Set<CanonicalKmer> seeds = new HashSet<>();
 
         DirectedGraph<String, DefaultEdge> sg = new DefaultDirectedGraph<>(DefaultEdge.class);
 
@@ -291,7 +291,7 @@ public class ComputeInheritance extends Module {
         }
 
         Set<String> uniqueSeeds = new HashSet<>();
-        Set<CortexKmer> goodSeeds = new HashSet<>();
+        Set<CanonicalKmer> goodSeeds = new HashSet<>();
         for (String sk : sg.vertexSet()) {
             if (sg.inDegreeOf(sk) == 0 && sg.outDegreeOf(sk) == 1) {
                 uniqueSeeds.add(sk);
@@ -308,7 +308,7 @@ public class ComputeInheritance extends Module {
                 }
 
                 if (contig.size() > 3) {
-                    goodSeeds.add(new CortexKmer(contig.get(1)));
+                    goodSeeds.add(new CanonicalKmer(contig.get(1)));
                 }
             }
         }

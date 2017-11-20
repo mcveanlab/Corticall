@@ -4,7 +4,7 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.GraphPath;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
@@ -16,10 +16,10 @@ public class Bubble {
     private String altAllele;
     private String flank3p;
 
-    private Set<CortexKmer> novelKmers;
+    private Set<CanonicalKmer> novelKmers;
     private Interval locus;
 
-    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CortexKmer> novelKmers) {
+    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CanonicalKmer> novelKmers) {
         String[] pieces = pathsToAlleles(pRef, pAlt);
 
         int kmerSize = pRef.getStartVertex().getCk().length();
@@ -117,7 +117,7 @@ public class Bubble {
         return altAllele;
     }
 
-    public Set<CortexKmer> getNovelKmers() { return novelKmers; }
+    public Set<CanonicalKmer> getNovelKmers() { return novelKmers; }
 
     public Interval getLocus() { return locus; }
 

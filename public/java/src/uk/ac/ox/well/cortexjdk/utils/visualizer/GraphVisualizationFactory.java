@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.visualizer;
 import org.jgrapht.DirectedGraph;
 import org.slf4j.Logger;
 import uk.ac.ox.well.cortexjdk.Main;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 

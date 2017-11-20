@@ -6,7 +6,7 @@ package uk.ac.ox.well.cortexjdk.commands.visualizer;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.GraphVisualizationFactory;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.GraphVisualizer;
 

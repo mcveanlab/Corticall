@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingrules;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 
 import java.util.Set;
 

@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.commands.index.alignedbam;
 import htsjdk.samtools.*;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.util.List;
@@ -16,7 +16,7 @@ public class QueryIndex extends Module {
     public Integer KMER_SIZE = 47;
 
     @Argument(fullName="seq", shortName="s", doc="Kmer sequence")
-    public CortexKmer KMER;
+    public CanonicalKmer KMER;
 
     @Override
     public void execute() {

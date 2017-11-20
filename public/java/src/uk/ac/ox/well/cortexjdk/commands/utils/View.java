@@ -6,9 +6,9 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
@@ -77,7 +77,7 @@ public class View extends Module {
                     for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
                         String kmer = seq.substring(i, i + GRAPH.getKmerSize());
 
-                        CortexKmer ck = new CortexKmer(kmer);
+                        CanonicalKmer ck = new CanonicalKmer(kmer);
                         CortexRecord cr = GRAPH.findRecord(ck);
 
                         if (cr != null) {

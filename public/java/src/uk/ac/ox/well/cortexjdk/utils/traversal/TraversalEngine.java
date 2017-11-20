@@ -7,12 +7,11 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.ConnectivityAnnotations;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
@@ -89,20 +88,6 @@ public class TraversalEngine {
         contig.addAll(walk(seed, true));
         contig.addAll(0, walk(seed, false));
 
-        /*
-        seek(seed);
-        while (hasNext()) {
-            CortexVertex cv = next();
-            contig.add(cv);
-        }
-
-        seek(seed);
-        while (hasPrevious()) {
-            CortexVertex cv = previous();
-            contig.add(0, cv);
-        }
-        */
-
         return contig;
     }
 
@@ -110,8 +95,6 @@ public class TraversalEngine {
         validateConfiguration(seed);
 
         List<CortexVertex> contig = new ArrayList<>();
-        //CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
-        //contig.add(sv);
 
         seek(seed);
         if (goForward) {
@@ -143,6 +126,38 @@ public class TraversalEngine {
         }
 
         return sb.toString();
+    }
+
+    public static List<CortexVertex> toWalk(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String sk) {
+        List<CortexVertex> w = new ArrayList<>();
+
+        CortexVertex seed = null;
+        for (CortexVertex v : g.vertexSet()) {
+            if (v.getSk().equals(sk)) {
+                seed = v;
+                break;
+            }
+        }
+
+        if (seed != null) {
+            CortexVertex cv = seed;
+            while (g.outDegreeOf(cv) == 1) {
+                CortexVertex nv = Graphs.successorListOf(g, cv).iterator().next();
+                w.add(nv);
+
+                cv = nv;
+            }
+
+            cv = seed;
+            while (g.inDegreeOf(cv) == 1) {
+                CortexVertex pv = Graphs.predecessorListOf(g, cv).iterator().next();
+                w.add(0, pv);
+
+                cv = pv;
+            }
+        }
+
+        return w;
     }
 
     public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(DeBruijnGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
@@ -392,7 +407,7 @@ public class TraversalEngine {
     }
 
     private Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexByteKmer sk) {
-        CortexKmer ck = new CortexKmer(sk.getKmer());
+        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllPrevKmers(cr, ck.isFlipped());
@@ -424,7 +439,7 @@ public class TraversalEngine {
     }
 
     private Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexByteKmer sk) {
-        CortexKmer ck = new CortexKmer(sk.getKmer());
+        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllNextKmers(cr, ck.isFlipped());
@@ -517,7 +532,7 @@ public class TraversalEngine {
 
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : specificLinksFiles) {
-                CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
                     linkStore.add(curKmer, lm.get(ck), true, lm.getSource());
                 }
@@ -538,7 +553,7 @@ public class TraversalEngine {
 
         linkStore.incrementAge();
 
-        CortexRecord cr = ec.getGraph().findRecord(new CortexKmer(prevKmer.getKmer()));
+        CortexRecord cr = ec.getGraph().findRecord(new CanonicalKmer(prevKmer.getKmer()));
         CortexVertex cv = new CortexVertex(prevKmer, cr, kmerSources);
 
         nextKmer = curKmer;
@@ -560,7 +575,7 @@ public class TraversalEngine {
 
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : specificLinksFiles) {
-                CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
                     linkStore.add(curKmer, lm.get(ck), false, lm.getSource());
                 }
@@ -607,7 +622,7 @@ public class TraversalEngine {
                 if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
                     specificLinksFiles.add(lm);
 
-                    CortexKmer ck = new CortexKmer(curKmer.getKmer());
+                    CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
                     if (lm.containsKey(ck)) {
                         linkStore.add(curKmer, lm.get(ck), goForward, lm.getSource());
                     }

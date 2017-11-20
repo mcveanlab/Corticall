@@ -15,13 +15,13 @@ import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.cortexjdk.commands.Command;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.collection.CortexCollection;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraphWriter;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksIterable;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksMap;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksMap;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.xmfa.XMFASequenceFile;
 
@@ -265,8 +265,8 @@ public class ArgumentHandler {
                 return Double.valueOf(value);
             } else if (type.equals(String.class)) {
                 return value;
-            } else if (type.equals(CortexKmer.class)) {
-                return new CortexKmer(value);
+            } else if (type.equals(CanonicalKmer.class)) {
+                return new CanonicalKmer(value);
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
             } else if (type.equals(CortexLinksIterable.class)) {

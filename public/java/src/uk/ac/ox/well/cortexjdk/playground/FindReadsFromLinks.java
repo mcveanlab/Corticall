@@ -4,10 +4,10 @@ import htsjdk.samtools.*;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.index.alignedbam.KmerIndex;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexJunctionsRecord;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksIterable;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinksRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexJunctionsRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksRecord;
 
 import java.io.File;
 import java.util.*;
@@ -37,7 +37,7 @@ public class FindReadsFromLinks extends Module {
 
                 Map<String, SAMRecord> srs = new HashMap<>();
 
-                if (clr.getKmer().equals(new CortexKmer("ATAATTATCGCGATAATAATCGTAATAAAAATAATTATCGCGATAAG"))) {
+                if (clr.getKmer().equals(new CanonicalKmer("ATAATTATCGCGATAATAATCGTAATAAAAATAATTATCGCGATAAG"))) {
                     log.info("{} {} {} {}", clr.getKmer(), seq.length(), clr.getJunctions().size(), seq);
                     log.info("  {}", cjr);
 

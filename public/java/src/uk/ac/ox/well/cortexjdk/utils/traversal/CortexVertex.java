@@ -1,9 +1,9 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import htsjdk.samtools.util.Interval;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 
 import java.util.Set;
 
@@ -47,7 +47,7 @@ public class CortexVertex {
 
     public CortexRecord getCr() { return cr; }
 
-    public CortexKmer getCk() { return cr.getCortexKmer(); }
+    public CanonicalKmer getCk() { return cr.getCortexKmer(); }
 
     public Interval getLocus() { return locus; }
 

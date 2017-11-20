@@ -12,11 +12,11 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.collection.CortexCollection;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
@@ -48,7 +48,7 @@ public class ComputeAssemblyQuality extends Module {
     public void execute() {
         CortexCollection cc = new CortexCollection(EVAL, COMP);
 
-        Set<CortexKmer> seeds = getVariantSeeds(cc, 0, 1);
+        Set<CanonicalKmer> seeds = getVariantSeeds(cc, 0, 1);
 
         int numBases = 0;
         for (SAMSequenceRecord ssr : REF.getReferenceSequence().getSequenceDictionary().getSequences()) {
@@ -63,7 +63,7 @@ public class ComputeAssemblyQuality extends Module {
         //log.info("Found {} variants", numVariants);
     }
 
-    private int callVariants(CortexCollection cc, int evalColor, int compColor, Set<CortexKmer> seeds) {
+    private int callVariants(CortexCollection cc, int evalColor, int compColor, Set<CanonicalKmer> seeds) {
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(cc)
                 .make();
@@ -77,7 +77,7 @@ public class ComputeAssemblyQuality extends Module {
         Map<Interval, Map<String, String>> entries = new TreeMap<>();
 
         int numVariants = 0;
-        for (CortexKmer ck : seeds) {
+        for (CanonicalKmer ck : seeds) {
             Map<String, String> te = callVariant(cc, evalColor, compColor, e, ck);
 
             if (te != null) {
@@ -99,7 +99,7 @@ public class ComputeAssemblyQuality extends Module {
         return numVariants;
     }
 
-    private Map<String, String> callVariant(CortexCollection cc, int evalColor, int compColor, TraversalEngine e, CortexKmer ck) {
+    private Map<String, String> callVariant(CortexCollection cc, int evalColor, int compColor, TraversalEngine e, CanonicalKmer ck) {
         CortexRecord cr = cc.findRecord(ck);
         if (cr.getCoverage(evalColor) > 0) {
             e.getConfiguration().setTraversalColor(evalColor);
@@ -205,10 +205,10 @@ public class ComputeAssemblyQuality extends Module {
     }
 
     @NotNull
-    private Set<CortexKmer> getVariantSeeds(CortexCollection cc, int evalColor, int compColor) {
+    private Set<CanonicalKmer> getVariantSeeds(CortexCollection cc, int evalColor, int compColor) {
         log.info("Finding variant seeds...");
 
-        Set<CortexKmer> seeds = new HashSet<>();
+        Set<CanonicalKmer> seeds = new HashSet<>();
 
         DirectedGraph<String, DefaultEdge> sg = new DefaultDirectedGraph<>(DefaultEdge.class);
 
@@ -255,7 +255,7 @@ public class ComputeAssemblyQuality extends Module {
         }
 
         Set<String> uniqueSeeds = new HashSet<>();
-        Set<CortexKmer> goodSeeds = new HashSet<>();
+        Set<CanonicalKmer> goodSeeds = new HashSet<>();
         for (String sk : sg.vertexSet()) {
             if (sg.inDegreeOf(sk) == 0 && sg.outDegreeOf(sk) == 1) {
                 uniqueSeeds.add(sk);
@@ -278,7 +278,7 @@ public class ComputeAssemblyQuality extends Module {
 
                 if (contig.size() > 3) {
                     List<String> linContig = new ArrayList<>(contig);
-                    goodSeeds.add(new CortexKmer(linContig.get(1)));
+                    goodSeeds.add(new CanonicalKmer(linContig.get(1)));
                 }
             }
         }

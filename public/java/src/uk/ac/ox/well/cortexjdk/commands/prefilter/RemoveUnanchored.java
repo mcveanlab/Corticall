@@ -5,10 +5,10 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexGraphWriter;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -72,24 +72,24 @@ public class RemoveUnanchored extends Module {
                 .graph(GRAPH)
                 .make();
 
-        Set<CortexKmer> unanchored = new HashSet<>();
+        Set<CanonicalKmer> unanchored = new HashSet<>();
         int numUnanchoredChains = 0;
 
-        Set<CortexKmer> rois = new HashSet<>();
+        Set<CanonicalKmer> rois = new HashSet<>();
         for (CortexRecord rr : ROI) {
             rois.add(rr.getCortexKmer());
         }
 
-        for (CortexKmer rk : rois) {
+        for (CanonicalKmer rk : rois) {
             if (!unanchored.contains(rk)) {
                 String contig = TraversalEngine.toContig(e.walk(rk.getKmerAsString()));
                 StringBuilder annb = new StringBuilder();
 
-                Set<CortexKmer> seenRois = new HashSet<>();
+                Set<CanonicalKmer> seenRois = new HashSet<>();
 
                 for (int i = 0; i <= contig.length() - GRAPH.getKmerSize(); i++) {
                     String sk = contig.substring(i, i + GRAPH.getKmerSize());
-                    CortexKmer ck = new CortexKmer(sk);
+                    CanonicalKmer ck = new CanonicalKmer(sk);
 
                     if (rois.contains(ck)) {
                         annb.append(".");

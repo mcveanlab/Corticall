@@ -2,7 +2,8 @@ package uk.ac.ox.well.cortexjdk.utils.assembler;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;
@@ -27,7 +28,7 @@ public class TempGraphAssembler {
         CortexGraphWriter cgw = new CortexGraphWriter(tempFile);
         cgw.setHeader(constructCortexHeader(haplotypeLists.keySet(), kmerSize));
 
-        Map<CortexKmer, CortexRecord> crs = new TreeMap<>();
+        Map<CanonicalKmer, CortexRecord> crs = new TreeMap<>();
 
         int c = 0;
         for (String sampleName : haplotypeLists.keySet()) {
@@ -47,7 +48,7 @@ public class TempGraphAssembler {
             c++;
         }
 
-        for (CortexKmer cr : crs.keySet()) {
+        for (CanonicalKmer cr : crs.keySet()) {
             cgw.addRecord(crs.get(cr));
         }
 
@@ -56,8 +57,8 @@ public class TempGraphAssembler {
         return new CortexGraph(tempFile);
     }
 
-    private static void updateRecord(Map<CortexKmer, CortexRecord> crs, int numColors, int color, String sk, String prevBase, String nextBase) {
-        CortexKmer ck = new CortexKmer(sk);
+    private static void updateRecord(Map<CanonicalKmer, CortexRecord> crs, int numColors, int color, String sk, String prevBase, String nextBase) {
+        CanonicalKmer ck = new CanonicalKmer(sk);
 
         List<Integer> coverageList = new ArrayList<>();
         List<Set<String>> inEdgesList = new ArrayList<>();

@@ -1,14 +1,10 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
 import htsjdk.samtools.util.Interval;
-import org.jgrapht.GraphPath;
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
-import org.jgrapht.graph.EdgeReversedGraph;
 import org.jgrapht.traverse.DepthFirstIterator;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexKmer;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleOpeningStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
@@ -35,7 +31,7 @@ public class BubbleCaller {
     private TraversalEngine eOpen;
     private Map<Integer, TraversalEngine> eCloses = new HashMap<>();
 
-    private Set<CortexKmer> rois = new HashSet<>();
+    private Set<CanonicalKmer> rois = new HashSet<>();
 
     public BubbleCaller(BubbleCallerConfiguration bc) {
         this.bc = bc;

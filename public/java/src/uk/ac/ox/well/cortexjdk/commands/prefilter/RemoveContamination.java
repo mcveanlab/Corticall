@@ -6,7 +6,8 @@ import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContaminantStopper;
@@ -61,12 +62,12 @@ public class RemoveContamination extends Module {
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);
 
-        Set<CortexKmer> roiKmers = new HashSet<>();
+        Set<CanonicalKmer> roiKmers = new HashSet<>();
         for (CortexRecord rc : ROI) {
             roiKmers.add(rc.getCortexKmer());
         }
 
-        Set<CortexKmer> contamKmers = new HashSet<>();
+        Set<CanonicalKmer> contamKmers = new HashSet<>();
         int numContamChains = 0;
 
         TraversalEngine e = new TraversalEngineFactory()
@@ -85,7 +86,7 @@ public class RemoveContamination extends Module {
 
                 if (dfs.vertexSet().size() > 0) {
                     for (CortexVertex av : dfs.vertexSet()) {
-                        CortexKmer ck = av.getCk();
+                        CanonicalKmer ck = av.getCk();
 
                         contamKmers.add(ck);
                     }

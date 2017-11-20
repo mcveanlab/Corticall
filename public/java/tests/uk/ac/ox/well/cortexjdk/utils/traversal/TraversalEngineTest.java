@@ -11,8 +11,10 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.assembler.TempGraphAssembler;
 import uk.ac.ox.well.cortexjdk.utils.assembler.TempLinksAssembler;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.*;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.CycleCollapsingContigStopper;
@@ -288,7 +290,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex os : oss) {
             for (CortexVertex is : iss) {
-                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CortexKmer(seed), true);
+                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CanonicalKmer(seed), true);
                 GraphPath<CortexVertex, CortexEdge> pm = dspMom.getPathFinder(os, is);
                 GraphPath<CortexVertex, CortexEdge> pd = dspDad.getPathFinder(os, is);
 
@@ -376,7 +378,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex os : oss) {
             for (CortexVertex is : iss) {
-                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CortexKmer(seed), true);
+                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CanonicalKmer(seed), true);
                 GraphPath<CortexVertex, CortexEdge> pm = dspMom.getPathFinder(os, is);
                 GraphPath<CortexVertex, CortexEdge> pd = dspDad.getPathFinder(os, is);
 
@@ -464,7 +466,7 @@ public class TraversalEngineTest {
 
         for (CortexVertex os : oss) {
             for (CortexVertex is : iss) {
-                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CortexKmer(seed), true);
+                GraphPath<CortexVertex, CortexEdge> pk = dspKid.getPathFinder(os, is, new CanonicalKmer(seed), true);
                 GraphPath<CortexVertex, CortexEdge> pm = dspMom.getPathFinder(os, is);
                 GraphPath<CortexVertex, CortexEdge> pd = dspDad.getPathFinder(os, is);
 
@@ -547,8 +549,8 @@ public class TraversalEngineTest {
 
         for (CortexVertex os : oss) {
             for (CortexVertex is : iss) {
-                GraphPath<CortexVertex, CortexEdge> pk1 = dspKid.getPathFinder(os, is, new CortexKmer("TGAGCTA"), true);
-                GraphPath<CortexVertex, CortexEdge> pk2 = dspKid.getPathFinder(os, is, new CortexKmer("TGAGCTA"), false);
+                GraphPath<CortexVertex, CortexEdge> pk1 = dspKid.getPathFinder(os, is, new CanonicalKmer("TGAGCTA"), true);
+                GraphPath<CortexVertex, CortexEdge> pk2 = dspKid.getPathFinder(os, is, new CanonicalKmer("TGAGCTA"), false);
 
                 Pair<String, String> akm = pathsToAlleles(pk1, pk2);
                 allelesVsSelf.add(akm);
@@ -670,16 +672,16 @@ public class TraversalEngineTest {
     }
 
     @NotNull
-    private Map<CortexKmer, String> loadSeedsAndExpectedContigs(String expFile) {
+    private Map<CanonicalKmer, String> loadSeedsAndExpectedContigs(String expFile) {
         FastaSequenceFile ssf = new FastaSequenceFile(new File(expFile), false);
-        Map<CortexKmer, String> seedsAndExpectedContigs = new TreeMap<>();
+        Map<CanonicalKmer, String> seedsAndExpectedContigs = new TreeMap<>();
         ReferenceSequence rseq;
         while ((rseq = ssf.nextSequence()) != null) {
             String[] pieces = rseq.getName().split("\\s+");
             for (String piece : pieces) {
                 if (piece.startsWith("seed=")) {
                     String seed = piece.replace("seed=", "");
-                    seedsAndExpectedContigs.put(new CortexKmer(seed), rseq.getBaseString());
+                    seedsAndExpectedContigs.put(new CanonicalKmer(seed), rseq.getBaseString());
                 }
             }
         }
@@ -690,14 +692,14 @@ public class TraversalEngineTest {
     public void testPathlessAssembly() {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.without_paths.fa");
+        Map<CanonicalKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.without_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
                 .graph(g)
                 .make();
 
-        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+        for (CanonicalKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
             String contigFwd = TraversalEngine.toContig(e.walk(seed));
@@ -714,7 +716,7 @@ public class TraversalEngineTest {
         CortexGraph g = new CortexGraph("testdata/PG0063-C.ERR019060.k47.clean.recovered.infer.ctx");
         CortexLinks l = new CortexLinks("testdata/PG0063-C.ERR019060.k47.3D7_ref.links.clean.ctp.gz.linkdb");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
+        Map<CanonicalKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_single_paths.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
@@ -722,7 +724,7 @@ public class TraversalEngineTest {
                 .links(l)
                 .make();
 
-        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+        for (CanonicalKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
             String contigFwd = TraversalEngine.toContig(e.walk(seed));
@@ -769,7 +771,7 @@ public class TraversalEngineTest {
         CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz.linkdb");
         CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz.linkdb");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
+        Map<CanonicalKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
@@ -777,7 +779,7 @@ public class TraversalEngineTest {
                 .links(l0, l1, l2)
                 .make();
 
-        for (CortexKmer ck : seedsAndExpectedContigs.keySet()) {
+        for (CanonicalKmer ck : seedsAndExpectedContigs.keySet()) {
             String seed = ck.getKmerAsString();
 
             String contigFwd = TraversalEngine.toContig(e.walk(seed));
@@ -796,7 +798,7 @@ public class TraversalEngineTest {
         CortexLinks l1 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.HB3_sanger.links.clean.ctp.gz.linkdb");
         CortexLinks l2 = new CortexLinks("testdata/PG0063-C.ERR019060.k47.reads.links.clean.ctp.gz.linkdb");
 
-        Map<CortexKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
+        Map<CanonicalKmer, String> seedsAndExpectedContigs = loadSeedsAndExpectedContigs("testdata/allcontigs.with_links_panel.fa");
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(0)
@@ -807,13 +809,13 @@ public class TraversalEngineTest {
                 .links(l0, l1, l2)
                 .make();
 
-        Set<CortexKmer> seedsToTry = new HashSet<>();
-        Iterator<CortexKmer> its = seedsAndExpectedContigs.keySet().iterator();
+        Set<CanonicalKmer> seedsToTry = new HashSet<>();
+        Iterator<CanonicalKmer> its = seedsAndExpectedContigs.keySet().iterator();
         for (int i = 0; i < 50 && its.hasNext(); i++) {
             seedsToTry.add(its.next());
         }
 
-        for (CortexKmer ck : seedsToTry) {
+        for (CanonicalKmer ck : seedsToTry) {
             String seed = ck.getKmerAsString();
 
             DirectedWeightedPseudograph<CortexVertex, CortexEdge> sg = e.dfs(seed);

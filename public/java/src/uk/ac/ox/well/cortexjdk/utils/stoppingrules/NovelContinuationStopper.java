@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingrules;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.DeBruijnGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
@@ -21,6 +21,7 @@ public class NovelContinuationStopper extends AbstractTraversalStoppingRule<Cort
             novelKmersSeen++;
         }
 
+        /*
         if (hasJoined) {
             distanceSinceJoin++;
         }
@@ -28,8 +29,11 @@ public class NovelContinuationStopper extends AbstractTraversalStoppingRule<Cort
         for (int c : joiningColors) {
             hasJoined |= (cv.getCr().getCoverage(c) > 0);
         }
+        */
 
-        return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || numAdjacentEdges != 1);
+        return novelKmersSeen > 0 && (childrenAlreadyTraversed ? numAdjacentEdges > 1 : numAdjacentEdges == 0);
+
+        //return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || numAdjacentEdges != 1);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.kmer;
 
-import uk.ac.ox.well.cortexjdk.utils.io.cortex.graph.CortexBinaryKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 
 /**
  * Created by kiran on 20/09/2017.
