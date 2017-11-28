@@ -16,7 +16,7 @@
     <property name="staging.dir" value="build/staging" />
     <property name="dist.dir" value="dist" />
     <property name="testng.dir" value="test" />
-    <property name="doc.dir" value="doc" />
+    <property name="doc.dir" value="docs" />
     <property name="out.dir" value="out" />
     <property name="report.dir" value="report" />
     <property name="release.dir" value="release" />
