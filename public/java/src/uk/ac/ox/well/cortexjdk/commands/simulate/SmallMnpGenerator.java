@@ -17,7 +17,7 @@ public class SmallMnpGenerator implements VariantGenerator {
 
     @Override
     public GeneratedVariant permute(String seq, int posIndex, Random rng) {
-        int length = rng.nextInt(19) + 1;
+        int length = rng.nextInt(18) + 2;
         String newAllele = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(length));
 
         return new GeneratedVariant(getType(), getSeqIndex(), posIndex, seq.substring(posIndex, posIndex + length), newAllele);

@@ -48,7 +48,7 @@ public class SimulateHaploidChild extends Module {
     public Long SEED = System.currentTimeMillis();
 
     @Argument(fullName="numBubbles", shortName="b", doc="Number of bubbles per type per chr")
-    public Integer NUM_BUBBLES = 2;
+    public Integer NUM_BUBBLES = 1;
 
     @Output
     public PrintStream out;
@@ -140,12 +140,12 @@ public class SimulateHaploidChild extends Module {
             GeneratedVariant gv = lvs.get(i);
             StringBuilder sb = newSbs.get(gv.seqIndex);
 
+            log.info("{} {} {} {}", i, sb.length(), sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()), gv);
+
             sb = sb.replace(gv.posIndex, gv.posIndex + gv.oldAllele.length(), gv.newAllele);
 
             String seedLeft = sb.substring(gv.posIndex - 100, gv.posIndex);
             String seedRight = sb.substring(gv.posIndex + gv.newAllele.length(), gv.posIndex + gv.newAllele.length() + 100);
-
-            log.info("{} {} {} {}", i, sb.length(), sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()), gv);
 
             vout.println(Joiner.on("\t").join(i,
                                               gv.getSeqIndex(),
