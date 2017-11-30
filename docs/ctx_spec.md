@@ -15,9 +15,9 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 | 22            | 4*`c`        | uint32_t[`c`] | The mean read length for each color                   |
 | 22+(4*`c`)    | 8*`c`        | uint64_t[`c`] | Total sequence for each color (definition is unclear) |
 | 22+(12*`c`)   | ?            | Block[]       | `c` color name blocks (see Table 2)                   |
-| 22+(12*`c`)+? | 16           | char[16]      | Error rate (currently unused)                         |
-| 38+(12*`c`)+? | ?            | Block[]       | `c` color information blocks (see Table 3)            |
-| 38+(12*`c`)+? | 6            | "CORTEX"      | Trailer                                               |
+| 22+(12*`c`)+? | 16*`c`       | char[c][16]   | Error rate for each color (currently unused)          |
+| 38+(28*`c`)+? | ?            | Block[]       | `c` color information blocks (see Table 3)            |
+| 38+(28*`c`)+? | 6            | "CORTEX"      | Trailer                                               |
 
 #### Table 2. Color name block: color name lengths and color names for each color
 | Offset | Size (Bytes) | Type/Contents | Description               |
@@ -28,10 +28,10 @@ This is for the version 6.0 graph format.  Types are C99.  Types are little-endi
 #### Table 3. Color information block
 | Offset | Size (Bytes) | Type/Contents | Description                                                           |
 |--------|--------------|---------------|-----------------------------------------------------------------------|
-| 0      | 1            | _Bool         | Is tip-clipping applied?                                              |
-| 1      | 1            | _Bool         | Have low-coverage unitigs been removed?                               |
-| 2      | 1            | _Bool         | Have low-coverage kmers been removed?                                 |
-| 3      | 1            | _Bool         | Has this graph been cleaned against another graph?                    |
+| 0      | 1            | Bool          | Is tip-clipping applied?                                              |
+| 1      | 1            | Bool          | Have low-coverage unitigs been removed?                               |
+| 2      | 1            | Bool          | Have low-coverage kmers been removed?                                 |
+| 3      | 1            | Bool          | Has this graph been cleaned against another graph?                    |
 | 4      | 4            | uint32_t      | Coverage threshold on unitigs                                         |
 | 8      | 4            | uint32_t      | Coverage threshold on kmers                                           |
 | 12     | 4            | uint32_t      | Length `G` of name of graph against which this graph has been cleaned |
@@ -46,11 +46,11 @@ Let each kmer record size, `S`, equal `8*s + 5*c`.  Then the number of kmer reco
 | 0      | N*S               | Block[]       | Kmer record blocks |
 
 #### Table 5. Record block
-| Offset        | Size (Bytes) | Type/Contents | Description              |
-|---------------|--------------|---------------|--------------------------|
+| Offset        | Size (Bytes) | Type/Contents | Description                           |
+|---------------|--------------|---------------|---------------------------------------|
 | 0             | 8*`s`        | uint64_t[`s`] | Binary kmer (big endian, See table 6) |
-| 8*`s`         | 4*`c`        | uint32_t[`c`] | Coverage per color       |
-| 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color |
+| 8*`s`         | 4*`c`        | uint32_t[`c`] | Coverage per color                    |
+| 8*`s` + 4*`c` | 1*`c`        | uint8_t[`c`]  | Edges per color                       |
 
 ### Binary kmer specification
 The binary kmer is a bit-packed representation of a fixed size string of the letters A, C, G, and T.
@@ -63,11 +63,11 @@ partially empty unless the stored kmer fits exactly into the kmer_container.
 
 #### Table 6
 | Bit value | Letter |
-| --------- | ------ |
-| `0b00` | A |
-| `0b01` | C |
-| `0b10` | G |
-| `0b11` | T |
+|-----------|--------|
+| `0b00`    |   A    |
+| `0b01`    |   C    |
+| `0b10`    |   G    |
+| `0b11`    |   T    |
 
 ### Edge specification
 An edge is a bit mask that determines the presence of incoming and outgoing edges. 
