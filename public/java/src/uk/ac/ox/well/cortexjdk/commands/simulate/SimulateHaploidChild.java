@@ -204,7 +204,14 @@ public class SimulateHaploidChild extends Module {
         String vo2 = g2.getStrand() == GFF3Record.Strand.POSITIVE ? v2 : SequenceUtils.reverseComplement(v2);
 
         int numVarRecombs = rng.nextInt(5) + 1;
-        Pair<List<String>, List<Integer>> vres = recombine(vo1, vo2, numVarRecombs,21,.25f);
+        int ks = 21;
+
+        Pair<List<String>, List<Integer>> vres = null;
+        while (vres == null) {
+            vres = recombine(vo1, vo2, numVarRecombs, ks, .25f);
+
+            ks -= 2;
+        }
 
         vs.add(new GeneratedVariant("NAHR-INS", Integer.valueOf(g1.getSeqid()), g1.getStart(), v1, Joiner.on("").join(vres.getFirst())));
         vs.add(new GeneratedVariant("NAHR-DEL", Integer.valueOf(g2.getSeqid()), g2.getStart(), v2, ""));
@@ -290,8 +297,7 @@ public class SimulateHaploidChild extends Module {
         Map<String, Pair<Integer, Integer>> kmersO = overlap(kmersA, kmersB, windowPct);
         List<String> kmers = new ArrayList<>(kmersO.keySet());
 
-        List<String> pieces = new ArrayList<>();
-        List<Integer> switches = new ArrayList<>();
+        if (kmers.size() == 0) { return null; }
 
         List<Pair<Integer, Integer>> recombPositions = new ArrayList<>();
         recombPositions.add(new Pair<>(0, 0));
@@ -304,6 +310,9 @@ public class SimulateHaploidChild extends Module {
 
         recombPositions.add(new Pair<>(seqs[0].length() - 1, seqs[1].length() - 1));
         recombPositions.sort(Comparator.comparing(Pair::getFirst));
+
+        List<String> pieces = new ArrayList<>();
+        List<Integer> switches = new ArrayList<>();
 
         boolean drawFromFirst = true;
         for (int i = 0; i < recombPositions.size() - 1; i++) {
