@@ -267,7 +267,7 @@ public class SimulateHaploidChild extends Module {
         String seq = sb.toString();
 
         for (int i = 0; i < num; i++) {
-            int posIndex = rng.nextInt(seq.length() - 1010);
+            int posIndex = rng.nextInt(seq.length() - 1110) + 105;
 
             GeneratedVariant gv = v.permute(seq, posIndex, rng);
             vs.add(gv);
