@@ -297,15 +297,20 @@ public class SimulateHaploidChild extends Module {
         Map<String, Pair<Integer, Integer>> kmersO = overlap(kmersA, kmersB, windowPct);
         List<String> kmers = new ArrayList<>(kmersO.keySet());
 
-        if (kmers.size() == 0) { return null; }
+        if (kmers.size() <= numRecombs) { return null; }
 
         List<Pair<Integer, Integer>> recombPositions = new ArrayList<>();
         recombPositions.add(new Pair<>(0, 0));
 
         for (int r = 0; r < numRecombs; r++) {
-            int index = rng.nextInt(kmers.size());
+            Pair<Integer, Integer> p;
+            do {
+                int index = rng.nextInt(kmers.size());
 
-            recombPositions.add(kmersO.get(kmers.get(index)));
+                p = kmersO.get(kmers.get(index));
+            } while (p.getFirst() < recombPositions.get(recombPositions.size() - 1).getFirst() || p.getSecond() < recombPositions.get(recombPositions.size() - 1).getSecond());
+
+            recombPositions.add(p);
         }
 
         recombPositions.add(new Pair<>(seqs[0].length() - 1, seqs[1].length() - 1));
@@ -352,7 +357,9 @@ public class SimulateHaploidChild extends Module {
 
         Map<String, Pair<Integer, Integer>> kmersO = new LinkedHashMap<>();
         for (String kmer : kmers) {
-            if (kmersA.containsKey(kmer) && kmersB.containsKey(kmer) && Math.abs(kmersA.get(kmer) - kmersB.get(kmer)) < (int) (windowPct*((float) kmersA.get(kmer)))) {
+            if (kmersA.containsKey(kmer) &&
+                kmersB.containsKey(kmer) &&
+                Math.abs(kmersA.get(kmer) - kmersB.get(kmer)) < (int) (windowPct*((float) kmersA.get(kmer)))) {
                 kmersO.put(kmer, new Pair<>(kmersA.get(kmer), kmersB.get(kmer)));
             }
         }
