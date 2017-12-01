@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.simulate;
+package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
@@ -10,7 +10,7 @@ public class SmallMnpGenerator implements VariantGenerator {
     public SmallMnpGenerator(int seqIndex) { this.seqIndex = seqIndex; }
 
     @Override
-    public String getType() { return "MNP"; }
+    public String getType() { return "SMALL_MNP"; }
 
     @Override
     public int getSeqIndex() { return seqIndex; }

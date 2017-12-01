@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.simulate;
+package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
 import org.jetbrains.annotations.NotNull;
 

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.simulate;
+package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
 import java.util.Random;
 
@@ -8,7 +8,7 @@ public class SmallDelGenerator implements VariantGenerator {
     public SmallDelGenerator(int seqIndex) { this.seqIndex = seqIndex; }
 
     @Override
-    public String getType() { return "DEL"; }
+    public String getType() { return "SMALL_DEL"; }
 
     @Override
     public int getSeqIndex() { return seqIndex; }

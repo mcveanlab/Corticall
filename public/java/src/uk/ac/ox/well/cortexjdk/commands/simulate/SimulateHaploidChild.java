@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.commands.simulate.generators.*;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
@@ -63,6 +64,8 @@ public class SimulateHaploidChild extends Module {
             throw new CortexJDKException("Array size mismatch");
         }
         rng = new Random(SEED);
+
+        vout.println(Joiner.on("\t").join("index", "chr", "start", "stop", "parent", "type", "old", "new", "sleft", "sright"));
     }
 
     @Override
@@ -92,6 +95,16 @@ public class SimulateHaploidChild extends Module {
 
             seqs.add(res);
 
+            int start = 0;
+            for (int j = 0; j < res.getFirst().size(); j++) {
+                String piece = res.getFirst().get(j);
+                int sw = res.getSecond().get(j);
+
+                vout.println(Joiner.on("\t").join(-1, i, start, start + piece.length(), sw, "RECOMB", ".", ".", ".", "."));
+
+                start += piece.length();
+            }
+
             pm.update();
         }
 
@@ -103,10 +116,17 @@ public class SimulateHaploidChild extends Module {
             Pair<List<String>, List<Integer>> res = seqs.get(i);
             List<String> pieces = res.getFirst();
 
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SnvGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallInsGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeDelGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeInsGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeInvGenerator(i)));
             vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallDelGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallInsGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallInvGenerator(i)));
             vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallMnpGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SnvGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new StrConGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new StrExpGenerator(i)));
+            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new TandemDuplicationGenerator(i)));
         }
 
         List<String> newSeqs = collapse(seqs, vs);
@@ -135,12 +155,11 @@ public class SimulateHaploidChild extends Module {
             newSbs.add(sbs);
         }
 
-        vout.println(Joiner.on("\t").join("index", "chr", "pos", "type", "old", "new", "sleft", "sright"));
         for (int i = lvs.size() - 1; i >= 0; i--) {
             GeneratedVariant gv = lvs.get(i);
             StringBuilder sb = newSbs.get(gv.seqIndex);
 
-            log.info("{} {} {} {}", i, sb.length(), sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()), gv);
+            log.info("{} {} {}", i, gv, sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()));
 
             sb = sb.replace(gv.posIndex, gv.posIndex + gv.oldAllele.length(), gv.newAllele);
 
@@ -150,6 +169,8 @@ public class SimulateHaploidChild extends Module {
             vout.println(Joiner.on("\t").join(i,
                                               gv.getSeqIndex(),
                                               gv.getPosIndex(),
+                                              gv.getPosIndex() + gv.newAllele.length(),
+                                              Character.isUpperCase(seedLeft.charAt(0)) ? 1 : 2,
                                               gv.getType(),
                                               gv.getOldAllele().length() == 0 ? "." : gv.getOldAllele(),
                                               gv.getNewAllele().length() == 0 ? "." : gv.getNewAllele(),
@@ -239,7 +260,7 @@ public class SimulateHaploidChild extends Module {
         String seq = sb.toString();
 
         for (int i = 0; i < num; i++) {
-            int posIndex = rng.nextInt(seq.length());
+            int posIndex = rng.nextInt(seq.length() - 1010);
 
             GeneratedVariant gv = v.permute(seq, posIndex, rng);
             vs.add(gv);
