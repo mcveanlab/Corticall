@@ -38,10 +38,25 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory graph(DeBruijnGraph graph) { configuration.setGraph(graph); return this; }
     public TraversalEngineFactory rois(DeBruijnGraph rois) { configuration.setRois(rois); return this; }
-    public TraversalEngineFactory links(CortexLinks... links) { Arrays.stream(links).forEach(l -> configuration.getLinks().add(l)); return this; }
-    public TraversalEngineFactory links(Collection<CortexLinks> links) { configuration.getLinks().addAll(links); return this; }
+
+    public TraversalEngineFactory links(CortexLinks... links) {
+        if (links != null) {
+            Arrays.stream(links).forEach(l -> configuration.getLinks().add(l));
+        }
+        return this;
+    }
+
+    public TraversalEngineFactory links(Collection<CortexLinks> links) {
+        if (links != null) {
+            configuration.getLinks().addAll(links);
+        }
+        return this;
+    }
+
     public TraversalEngineFactory references(KmerLookup... lookups) { Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r)); return this; }
     public TraversalEngineFactory references(Collection<KmerLookup> lookups) { configuration.getReferences().addAll(lookups); return this; }
+
+    public TraversalEngineFactory maxWalkLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 
     public TraversalEngine make() {
         configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new CortexJDKException("Joining colors must be greater than 0 (provided " + c + ")"); });

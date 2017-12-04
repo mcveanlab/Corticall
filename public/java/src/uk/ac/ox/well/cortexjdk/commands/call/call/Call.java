@@ -50,6 +50,9 @@ public class Call extends Module {
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROI;
 
+    @Argument(fullName = "maxWalkLength", shortName = "m", doc = "Max walk length")
+    public Integer MAX_WALK_LENGTH = Integer.MAX_VALUE;
+
     @Output
     public PrintStream out;
 
@@ -72,6 +75,7 @@ public class Call extends Module {
                 .links(LINKS)
                 .references(REFERENCES.values())
                 .rois(ROI)
+                .maxWalkLength(MAX_WALK_LENGTH)
                 .make();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -253,6 +257,7 @@ public class Call extends Module {
     @NotNull
     private List<CortexVertex> longWalk(Map<CanonicalKmer, Boolean> seen, TraversalEngine e, CanonicalKmer ck) {
         List<CortexVertex> w = e.walk(ck.getKmerAsString());
+        //log.info("w: {}", w.size());
 
         boolean extended;
         do {
@@ -263,6 +268,7 @@ public class Call extends Module {
             for (CortexVertex cv : nvs) {
                 List<CortexVertex> wn = e.walk(cv.getSk(), true);
                 wn.add(0, cv);
+                //log.info("  wn: {}", wn.size());
 
                 boolean hasNovels = false;
 
@@ -298,6 +304,7 @@ public class Call extends Module {
             for (CortexVertex cv : pvs) {
                 List<CortexVertex> wp = e.walk(cv.getSk(), false);
                 wp.add(cv);
+                //log.info("  wp: {}", wp.size());
 
                 boolean hasNovels = false;
 

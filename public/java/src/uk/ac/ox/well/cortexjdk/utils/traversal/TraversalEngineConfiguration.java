@@ -29,6 +29,8 @@ public class TraversalEngineConfiguration {
     private Set<Integer> recruitmentColors = new TreeSet<>();
     private Set<Integer> secondaryColors = new TreeSet<>();
 
+    private int maxLength = Integer.MAX_VALUE;
+
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
     private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule;
 
@@ -86,4 +88,7 @@ public class TraversalEngineConfiguration {
 
     public Set<KmerLookup> getReferences() { return kls; }
     public void setReferences(Set<KmerLookup> kls) { this.kls = kls; }
+
+    public void setMaxWalkLength(int maxLength) { this.maxLength = maxLength; }
+    public int getMaxWalkLength() { return maxLength; }
 }

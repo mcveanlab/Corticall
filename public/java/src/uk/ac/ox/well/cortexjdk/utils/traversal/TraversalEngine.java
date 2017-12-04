@@ -98,12 +98,12 @@ public class TraversalEngine {
 
         seek(seed);
         if (goForward) {
-            while (hasNext()) {
+            while (hasNext() && contig.size() < getConfiguration().getMaxWalkLength()) {
                 CortexVertex cv = next();
                 contig.add(cv);
             }
         } else {
-            while (hasPrevious()) {
+            while (hasPrevious() && contig.size() < getConfiguration().getMaxWalkLength()) {
                 CortexVertex cv = previous();
                 contig.add(0, cv);
             }
