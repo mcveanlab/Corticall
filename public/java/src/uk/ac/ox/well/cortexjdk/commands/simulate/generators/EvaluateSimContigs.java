@@ -53,7 +53,7 @@ public class EvaluateSimContigs extends Module {
 
         for (CortexRecord rr : ROI) {
             if (seenStrs.containsKey(rr.getCanonicalKmer()) && seenStrs.get(rr.getCanonicalKmer()) != null) {
-                log.info("{} {}", rr.getCanonicalKmer(), seenStrs.get(rr.getCanonicalKmer()));
+                //log.info("{} {}", rr.getCanonicalKmer(), seenStrs.get(rr.getCanonicalKmer()));
             } else {
                 List<CortexVertex> erw = er.walk(rr.getKmerAsString());
                 List<CortexVertex> elw = el.walk(rr.getKmerAsString());
