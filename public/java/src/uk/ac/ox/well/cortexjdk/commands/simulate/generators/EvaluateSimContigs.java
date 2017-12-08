@@ -65,8 +65,15 @@ public class EvaluateSimContigs extends Module {
                 String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size());
                 log.info("{} {}", rr.getCanonicalKmer(), out);
 
-                log.info("  - srw: {}", srw);
+                log.info("  - srw:");
+                for (SAMRecord sr : srw) {
+                    log.info("  - {}", sr.getSAMString());
+                }
+
                 log.info("  - slw: {}", slw);
+                for (SAMRecord sr : slw) {
+                    log.info("  - {}", sr.getSAMString());
+                }
 
                 seenStrs.put(rr.getCanonicalKmer(), out);
                 for (CortexVertex cv : erw) {
