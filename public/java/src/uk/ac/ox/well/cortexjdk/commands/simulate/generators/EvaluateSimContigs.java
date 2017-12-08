@@ -68,14 +68,14 @@ public class EvaluateSimContigs extends Module {
                 log.info("  - srw:");
                 for (SAMRecord sr : srw) {
                     if (sr.getMappingQuality() > 0) {
-                        log.info("  - {} {} {}", sr.getIntegerAttribute("NM"), sr.getCigarString(), sr.getSAMString());
+                        log.info("  - {} {} {}", sr.getIntegerAttribute("NM"), sr.getCigarString(), sr.getSAMString().trim());
                     }
                 }
 
                 log.info("  - slw: {}", slw);
                 for (SAMRecord sr : slw) {
                     if (sr.getMappingQuality() > 0) {
-                        log.info("  - {} {} {}", sr.getIntegerAttribute("NM"), sr.getCigarString(), sr.getSAMString());
+                        log.info("  - {} {} {}", sr.getIntegerAttribute("NM"), sr.getCigarString(), sr.getSAMString().trim());
                     }
                 }
 
