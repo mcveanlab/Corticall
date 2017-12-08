@@ -1,8 +1,10 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMRecord;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
@@ -23,6 +25,9 @@ public class EvaluateSimContigs extends Module {
 
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
+
+    @Argument(fullName="ref", shortName="R", doc="Ref")
+    public KmerLookup REF;
 
     @Override
     public void execute() {
@@ -52,11 +57,16 @@ public class EvaluateSimContigs extends Module {
             } else {
                 List<CortexVertex> erw = er.walk(rr.getKmerAsString());
                 List<CortexVertex> elw = el.walk(rr.getKmerAsString());
-                List<CortexVertex> ell = longWalk(seen, el, rr.getCanonicalKmer());
+                //List<CortexVertex> ell = longWalk(seen, el, rr.getCanonicalKmer());
 
-                String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size(), ell.size());
+                List<SAMRecord> srw = REF.getAligner().align(TraversalEngine.toContig(erw));
+                List<SAMRecord> slw = REF.getAligner().align(TraversalEngine.toContig(elw));
 
+                String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size());
                 log.info("{} {}", rr.getCanonicalKmer(), out);
+
+                log.info("  - srw: {}", srw);
+                log.info("  - slw: {}", slw);
 
                 seenStrs.put(rr.getCanonicalKmer(), out);
                 for (CortexVertex cv : erw) {
