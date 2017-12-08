@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
 import com.google.common.base.Joiner;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -27,40 +28,125 @@ public class EvaluateSimContigs extends Module {
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(ROI.getColor(0).getSampleName());
 
+        TraversalEngine er = new TraversalEngineFactory()
+                .traversalColor(childColor)
+                .graph(GRAPH)
+                .make();
+
         TraversalEngine el = new TraversalEngineFactory()
                 .traversalColor(childColor)
                 .graph(GRAPH)
                 .links(LINKS)
                 .make();
 
-        TraversalEngine er = new TraversalEngineFactory()
-                .traversalColor(childColor)
-                .graph(GRAPH)
-                .make();
-
-        Map<CanonicalKmer, String> seen = new HashMap<>();
+        Map<CanonicalKmer, String> seenStrs = new HashMap<>();
+        Map<CanonicalKmer, Boolean> seen = new HashMap<>();
         for (CortexRecord rr : ROI) {
-            seen.put(rr.getCanonicalKmer(), null);
+            seenStrs.put(rr.getCanonicalKmer(), null);
+            seen.put(rr.getCanonicalKmer(), false);
         }
 
         for (CortexRecord rr : ROI) {
-            if (seen.containsKey(rr.getCanonicalKmer())) {
-                log.info("{}", seen.get(rr.getCanonicalKmer()));
+            if (seenStrs.containsKey(rr.getCanonicalKmer()) && seenStrs.get(rr.getCanonicalKmer()) != null) {
+                log.info("{}", seenStrs.get(rr.getCanonicalKmer()));
             } else {
                 List<CortexVertex> erw = er.walk(rr.getKmerAsString());
                 List<CortexVertex> elw = el.walk(rr.getKmerAsString());
+                List<CortexVertex> ell = longWalk(seen, el, rr.getCanonicalKmer());
 
-                String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size());
+                String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size(), ell.size());
 
                 log.info("{}", out);
 
-                seen.put(rr.getCanonicalKmer(), out);
+                seenStrs.put(rr.getCanonicalKmer(), out);
                 for (CortexVertex cv : erw) {
-                    if (seen.containsKey(cv.getCanonicalKmer()) && seen.get(cv.getCanonicalKmer()) == null) {
-                        seen.put(cv.getCanonicalKmer(), out);
+                    if (seenStrs.containsKey(cv.getCanonicalKmer()) && seenStrs.get(cv.getCanonicalKmer()) == null) {
+                        seenStrs.put(cv.getCanonicalKmer(), out);
                     }
                 }
             }
         }
+    }
+
+    @NotNull
+    private List<CortexVertex> longWalk(Map<CanonicalKmer, Boolean> seen, TraversalEngine e, CanonicalKmer ck) {
+        List<CortexVertex> w = e.walk(ck.getKmerAsString());
+
+        //int wOldSize = w.size();
+
+        boolean extended = false;
+        do {
+            extended = false;
+            List<List<CortexVertex>> extFwd = new ArrayList<>();
+
+            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getKmerAsByteKmer());
+            for (CortexVertex cv : nvs) {
+                List<CortexVertex> wn = e.walk(cv.getKmerAsString(), true);
+                wn.add(0, cv);
+
+                boolean hasNovels = false;
+
+                for (CortexVertex v : wn) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
+                        hasNovels = true;
+                        break;
+                    }
+                }
+
+                if (hasNovels) {
+                    extFwd.add(wn);
+                }
+            }
+
+            if (extFwd.size() == 1) {
+                w.addAll(extFwd.get(0));
+                extended = true;
+
+                for (CortexVertex v : extFwd.get(0)) {
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
+                    }
+                }
+            }
+        } while (extended);
+
+        do {
+            extended = false;
+            List<List<CortexVertex>> extRev = new ArrayList<>();
+
+            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getKmerAsByteKmer());
+            for (CortexVertex cv : pvs) {
+                List<CortexVertex> wp = e.walk(cv.getKmerAsString(), false);
+                wp.add(cv);
+
+                boolean hasNovels = false;
+
+                for (CortexVertex v : wp) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
+                        hasNovels = true;
+                        break;
+                    }
+                }
+
+                if (hasNovels) {
+                    extRev.add(wp);
+                }
+            }
+
+            if (extRev.size() == 1) {
+                w.addAll(0, extRev.get(0));
+                extended = true;
+
+                for (CortexVertex v : extRev.get(0)) {
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
+                    }
+                }
+            }
+        } while (extended);
+
+        //int wNewSize = w.size();
+
+        return w;
     }
 }
