@@ -14,7 +14,7 @@ public class TipBeginningStopper extends AbstractTraversalStoppingRule<CortexVer
 
         boolean reunion = false;
         for (int c : joiningColors) {
-            reunion |= cv.getCr().getCoverage(c) > 0;
+            reunion |= cv.getCortexRecord().getCoverage(c) > 0;
         }
 
         return reunion;
@@ -24,8 +24,8 @@ public class TipBeginningStopper extends AbstractTraversalStoppingRule<CortexVer
     public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
         // We should reject this branch if we run out of edges to navigate
 
-        boolean hasNoIncomingEdges = cv.getCr().getInDegree(traversalColor) == 0;
-        boolean hasNoOutgoingEdges = cv.getCr().getOutDegree(traversalColor) == 0;
+        boolean hasNoIncomingEdges = cv.getCortexRecord().getInDegree(traversalColor) == 0;
+        boolean hasNoOutgoingEdges = cv.getCortexRecord().getOutDegree(traversalColor) == 0;
 
         return hasNoIncomingEdges || hasNoOutgoingEdges;
     }

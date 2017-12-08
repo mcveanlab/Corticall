@@ -20,7 +20,7 @@ public class NahrStopper extends AbstractTraversalStoppingRule<CortexVertex, Cor
             distanceFromLastNovel++;
         }
 
-        if (rois.findRecord(cv.getCr().getCortexKmer()) != null) {
+        if (rois.findRecord(cv.getCortexRecord().getCanonicalKmer()) != null) {
             foundNovels = true;
             distanceFromLastNovel++;
         }

@@ -123,7 +123,7 @@ public class ComputeInheritance extends Module {
                     CortexVertex cv = e.previous();
                     contigChild.add(0, cv);
 
-                    if (cv.getCr().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
+                    if (cv.getCortexRecord().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
                         source = cv;
                         break;
                     }
@@ -135,7 +135,7 @@ public class ComputeInheritance extends Module {
                     CortexVertex cv = e.next();
                     contigChild.add(cv);
 
-                    if (cv.getCr().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
+                    if (cv.getCortexRecord().getCoverage(parentThatDoesNotShareChildAllele) > 0) {
                         destination = cv;
                         break;
                     }
@@ -149,7 +149,7 @@ public class ComputeInheritance extends Module {
 
                     boolean destinationReached = false;
 
-                    e.seek(source.getSk());
+                    e.seek(source.getKmerAsString());
                     while (e.hasNext()) {
                         CortexVertex cv = e.next();
                         contigParent.add(cv);
@@ -161,12 +161,12 @@ public class ComputeInheritance extends Module {
                     }
 
                     if (destinationReached) {
-                        Set<Interval> sourceIntervals = REFERENCES.get("ref").find(source.getSk());
-                        Set<Interval> destinationIntervals = REFERENCES.get("ref").find(destination.getSk());
+                        Set<Interval> sourceIntervals = REFERENCES.get("ref").find(source.getKmerAsString());
+                        Set<Interval> destinationIntervals = REFERENCES.get("ref").find(destination.getKmerAsString());
 
                         float parentCoverage = 0.0f;
                         for (CortexVertex cv : contigParent) {
-                            parentCoverage += cv.getCr().getCoverage(parentThatDoesNotShareChildAllele);
+                            parentCoverage += cv.getCortexRecord().getCoverage(parentThatDoesNotShareChildAllele);
                         }
                         parentCoverage /= (float) contigParent.size();
 
@@ -198,7 +198,7 @@ public class ComputeInheritance extends Module {
                                 for (int cc : childColors) {
                                     float childCoverage = 0.0f;
                                     for (CortexVertex cv : contigChild) {
-                                        childCoverage += cv.getCr().getCoverage(cc);
+                                        childCoverage += cv.getCortexRecord().getCoverage(cc);
                                     }
                                     childCoverage /= (float) contigChild.size();
 
@@ -251,7 +251,7 @@ public class ComputeInheritance extends Module {
                 isSharedWithSomeChildren(cr, parentColors, draftColors, refColor) &&
                 hasUniqueCoordinates(cr, draftColors)) {
 
-                seeds.add(cr.getCortexKmer());
+                seeds.add(cr.getCanonicalKmer());
 
                 String skFwd = cr.getKmerAsString();
                 String skRev = SequenceUtils.reverseComplement(cr.getKmerAsString());

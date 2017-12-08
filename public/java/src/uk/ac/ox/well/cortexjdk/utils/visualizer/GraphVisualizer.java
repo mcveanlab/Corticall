@@ -62,19 +62,19 @@ public class GraphVisualizer {
             CortexVertex t = g.getEdgeTarget(e);
 
             Map<String, Object> em = new HashMap<>();
-            em.put("source", s.getSk());
-            em.put("target", t.getSk());
+            em.put("source", s.getKmerAsString());
+            em.put("target", t.getKmerAsString());
             em.put("color", e.getColor());
             es.add(em);
 
             Map<String, Object> sm = new HashMap<>();
-            sm.put("id", s.getSk());
-            sm.put("cr", recordToString(s.getSk(), s.getCr(), colors));
+            sm.put("id", s.getKmerAsString());
+            sm.put("cr", recordToString(s.getKmerAsString(), s.getCortexRecord(), colors));
             vs.add(sm);
 
             Map<String, Object> tm = new HashMap<>();
-            tm.put("id", t.getSk());
-            tm.put("cr", recordToString(t.getSk(), t.getCr(), colors));
+            tm.put("id", t.getKmerAsString());
+            tm.put("cr", recordToString(t.getKmerAsString(), t.getCortexRecord(), colors));
             vs.add(tm);
         }
 
@@ -122,19 +122,19 @@ public class GraphVisualizer {
             CortexVertex t = g.getEdgeTarget(e);
 
             Map<String, Object> em = new HashMap<>();
-            em.put("source", s.getSk());
-            em.put("target", t.getSk());
+            em.put("source", s.getKmerAsString());
+            em.put("target", t.getKmerAsString());
             em.put("color", e.getColor());
             es.add(em);
 
             Map<String, Object> sm = new HashMap<>();
-            sm.put("id", s.getSk());
-            sm.put("cr", recordToString(s.getSk(), s.getCr(), colors));
+            sm.put("id", s.getKmerAsString());
+            sm.put("cr", recordToString(s.getKmerAsString(), s.getCortexRecord(), colors));
             vs.add(sm);
 
             Map<String, Object> tm = new HashMap<>();
-            tm.put("id", t.getSk());
-            tm.put("cr", recordToString(t.getSk(), t.getCr(), colors));
+            tm.put("id", t.getKmerAsString());
+            tm.put("cr", recordToString(t.getKmerAsString(), t.getCortexRecord(), colors));
             vs.add(tm);
         }
 

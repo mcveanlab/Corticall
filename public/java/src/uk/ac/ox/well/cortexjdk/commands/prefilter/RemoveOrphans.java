@@ -74,14 +74,14 @@ public class RemoveOrphans extends Module {
                 .make();
 
         for (CortexRecord rr : ROI) {
-            if (!orphans.contains(rr.getCortexKmer())) {
+            if (!orphans.contains(rr.getCanonicalKmer())) {
                 Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
 
                 if (dfs != null && dfs.vertexSet().size() > 0) {
                     numOrphanChains++;
 
                     for (CortexVertex av : dfs.vertexSet()) {
-                        orphans.add(av.getCk());
+                        orphans.add(av.getCanonicalKmer());
                     }
                 }
             }
@@ -101,7 +101,7 @@ public class RemoveOrphans extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!orphans.contains(rr.getCortexKmer())) {
+            if (!orphans.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

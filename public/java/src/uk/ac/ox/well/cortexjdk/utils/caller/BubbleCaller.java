@@ -63,7 +63,7 @@ public class BubbleCaller {
         }
 
         for (CortexRecord rr : bc.getRois()) {
-            rois.add(rr.getCortexKmer());
+            rois.add(rr.getCanonicalKmer());
         }
     }
 
@@ -85,7 +85,7 @@ public class BubbleCaller {
             DepthFirstIterator<CortexVertex, CortexEdge> dRev = null;
 
             for (CortexVertex cv : gc.vertexSet()) {
-                if (cv.getSk().equals(seed)) {
+                if (cv.getKmerAsString().equals(seed)) {
                     dFwd = new DepthFirstIterator<>(gc, cv);
                     dRev = new DepthFirstIterator<>(new EdgeReversedGraph<>(gc), cv);
                 }
@@ -100,17 +100,17 @@ public class BubbleCaller {
                     s.addVertex(si);
 
                     for (int pc : bc.getReferenceColors()) {
-                        Set<Interval> soIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(so.getSk());
-                        Set<Interval> siIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(si.getSk());
+                        Set<Interval> soIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(so.getKmerAsString());
+                        Set<Interval> siIntervals = bc.getReferences().get(bc.getGraph().getSampleName(pc)).find(si.getKmerAsString());
 
-                        if (so.getCr().getCoverage(pc) > 0 && si.getCr().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
+                        if (so.getCortexRecord().getCoverage(pc) > 0 && si.getCortexRecord().getCoverage(pc) > 0 && soIntervals.size() == 1 && siIntervals.size() == 1) {
                             Interval soInterval = soIntervals.iterator().next();
                             Interval siInterval = siIntervals.iterator().next();
 
                             if (soInterval.getContig().equals(siInterval.getContig())) {
                                 eCloses.get(pc).getConfiguration().setPreviousTraversal(s);
 
-                                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getSk());
+                                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getKmerAsString());
 
                                 if (gp != null) {
                                     GraphPath<CortexVertex, CortexEdge> dgc = DijkstraShortestPath.findPathBetween(gc, so, si);
@@ -118,8 +118,8 @@ public class BubbleCaller {
 
                                     Set<CortexKmer> novelKmersInBubble = new HashSet<>();
                                     for (CortexVertex cv : dgc.getVertexList()) {
-                                        if (rois.contains(cv.getCk())) {
-                                            novelKmersInBubble.add(cv.getCk());
+                                        if (rois.contains(cv.getCanonicalKmer())) {
+                                            novelKmersInBubble.add(cv.getCanonicalKmer());
                                         }
                                     }
 
@@ -145,7 +145,7 @@ public class BubbleCaller {
                 CortexVertex cv = d.next();
                 Set<Interval> allIntervals = new HashSet<>();
                 for (KmerLookup kl : bc.getReferences().values()) {
-                    Set<Interval> intervals = kl.find(cv.getSk());
+                    Set<Interval> intervals = kl.find(cv.getKmerAsString());
                     if (intervals != null) {
                         allIntervals.addAll(intervals);
                     }

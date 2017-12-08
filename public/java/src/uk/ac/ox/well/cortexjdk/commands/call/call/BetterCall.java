@@ -1,7 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.call.call;
 
 import org.jetbrains.annotations.NotNull;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -13,7 +12,6 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
@@ -67,7 +65,7 @@ public class BetterCall extends Module {
     private Map<CanonicalKmer, Boolean> loadRois() {
         Map<CanonicalKmer, Boolean> rois = new HashMap<>();
         for (CortexRecord cr : ROI) {
-            rois.put(cr.getCortexKmer(), false);
+            rois.put(cr.getCanonicalKmer(), false);
         }
 
         return rois;
@@ -109,15 +107,15 @@ public class BetterCall extends Module {
             extended = false;
             List<List<CortexVertex>> extFwd = new ArrayList<>();
 
-            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getBk());
+            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getKmerAsByteKmer());
             for (CortexVertex cv : nvs) {
-                List<CortexVertex> wn = e.walk(cv.getSk(), true);
+                List<CortexVertex> wn = e.walk(cv.getKmerAsString(), true);
                 wn.add(0, cv);
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wn) {
-                    if (rois.containsKey(v.getCk()) && !rois.get(v.getCk())) {
+                    if (rois.containsKey(v.getCanonicalKmer()) && !rois.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -133,8 +131,8 @@ public class BetterCall extends Module {
                 extended = true;
 
                 for (CortexVertex v : extFwd.get(0)) {
-                    if (rois.containsKey(v.getCk())) {
-                        rois.put(v.getCk(), true);
+                    if (rois.containsKey(v.getCanonicalKmer())) {
+                        rois.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -144,15 +142,15 @@ public class BetterCall extends Module {
             extended = false;
             List<List<CortexVertex>> extRev = new ArrayList<>();
 
-            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getBk());
+            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getKmerAsByteKmer());
             for (CortexVertex cv : pvs) {
-                List<CortexVertex> wp = e.walk(cv.getSk(), false);
+                List<CortexVertex> wp = e.walk(cv.getKmerAsString(), false);
                 wp.add(cv);
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wp) {
-                    if (rois.containsKey(v.getCk()) && !rois.get(v.getCk())) {
+                    if (rois.containsKey(v.getCanonicalKmer()) && !rois.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -168,8 +166,8 @@ public class BetterCall extends Module {
                 extended = true;
 
                 for (CortexVertex v : extRev.get(0)) {
-                    if (rois.containsKey(v.getCk())) {
-                        rois.put(v.getCk(), true);
+                    if (rois.containsKey(v.getCanonicalKmer())) {
+                        rois.put(v.getCanonicalKmer(), true);
                     }
                 }
             }

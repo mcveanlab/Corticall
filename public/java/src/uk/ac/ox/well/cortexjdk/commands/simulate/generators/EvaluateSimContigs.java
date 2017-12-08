@@ -1,16 +1,17 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
+import com.google.common.base.Joiner;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class EvaluateSimContigs extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
@@ -37,11 +38,29 @@ public class EvaluateSimContigs extends Module {
                 .graph(GRAPH)
                 .make();
 
+        Map<CanonicalKmer, String> seen = new HashMap<>();
         for (CortexRecord rr : ROI) {
-            List<CortexVertex> elw = el.walk(rr.getKmerAsString());
-            List<CortexVertex> erw = er.walk(rr.getKmerAsString());
+            seen.put(rr.getCanonicalKmer(), null);
+        }
 
-            log.info("{} {} {}", rr.getKmerAsString(), elw.size(), erw.size());
+        for (CortexRecord rr : ROI) {
+            if (seen.containsKey(rr.getCanonicalKmer())) {
+                log.info("{}", seen.get(rr.getCanonicalKmer()));
+            } else {
+                List<CortexVertex> erw = er.walk(rr.getKmerAsString());
+                List<CortexVertex> elw = el.walk(rr.getKmerAsString());
+
+                String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size());
+
+                log.info("{}", out);
+
+                seen.put(rr.getCanonicalKmer(), out);
+                for (CortexVertex cv : erw) {
+                    if (seen.containsKey(cv.getCanonicalKmer()) && seen.get(cv.getCanonicalKmer()) == null) {
+                        seen.put(cv.getCanonicalKmer(), out);
+                    }
+                }
+            }
         }
     }
 }

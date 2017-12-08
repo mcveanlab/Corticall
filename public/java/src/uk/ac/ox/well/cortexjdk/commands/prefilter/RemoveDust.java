@@ -74,7 +74,7 @@ public class RemoveDust extends Module {
                 .make();
 
         for (CortexRecord rr : ROI) {
-            if (!dust.contains(rr.getCortexKmer()) && isLowComplexity(rr, 0)) {
+            if (!dust.contains(rr.getCanonicalKmer()) && isLowComplexity(rr, 0)) {
                 Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
 
                 if (dfs != null && dfs.vertexSet().size() > 0) {
@@ -83,7 +83,7 @@ public class RemoveDust extends Module {
                     log.debug("    dust chain {}, seed {}, {} vertices", numDustChains, rr.getKmerAsString(), dfs.vertexSet().size());
 
                     for (CortexVertex av : dfs.vertexSet()) {
-                        dust.add(av.getCk());
+                        dust.add(av.getCanonicalKmer());
                     }
 
                 }
@@ -104,7 +104,7 @@ public class RemoveDust extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!dust.contains(rr.getCortexKmer())) {
+            if (!dust.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

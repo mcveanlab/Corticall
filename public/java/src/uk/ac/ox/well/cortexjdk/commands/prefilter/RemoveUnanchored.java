@@ -77,7 +77,7 @@ public class RemoveUnanchored extends Module {
 
         Set<CanonicalKmer> rois = new HashSet<>();
         for (CortexRecord rr : ROI) {
-            rois.add(rr.getCortexKmer());
+            rois.add(rr.getCanonicalKmer());
         }
 
         for (CanonicalKmer rk : rois) {
@@ -157,7 +157,7 @@ public class RemoveUnanchored extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!unanchored.contains(rr.getCortexKmer())) {
+            if (!unanchored.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

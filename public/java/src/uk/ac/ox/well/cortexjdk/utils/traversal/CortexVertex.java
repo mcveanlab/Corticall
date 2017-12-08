@@ -12,7 +12,6 @@ import java.util.Set;
  */
 public class CortexVertex {
     private CortexByteKmer sk;
-    //private String sk;
     private CortexRecord cr;
     private Interval locus;
     private Set<String> kmerSources;
@@ -41,13 +40,13 @@ public class CortexVertex {
         this.kmerSources = kmerSources;
     }
 
-    public String getSk() { return new String(sk.getKmer()); }
+    public String getKmerAsString() { return new String(sk.getKmer()); }
 
-    public CortexByteKmer getBk() { return sk; }
+    public CortexByteKmer getKmerAsByteKmer() { return sk; }
 
-    public CortexRecord getCr() { return cr; }
+    public CortexRecord getCortexRecord() { return cr; }
 
-    public CanonicalKmer getCk() { return cr.getCortexKmer(); }
+    public CanonicalKmer getCanonicalKmer() { return cr.getCanonicalKmer(); }
 
     public Interval getLocus() { return locus; }
 

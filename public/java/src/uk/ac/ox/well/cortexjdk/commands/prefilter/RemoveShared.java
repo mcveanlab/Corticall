@@ -61,14 +61,14 @@ public class RemoveShared extends Module {
         Set<CanonicalKmer> sharedKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
-            if (!sharedKmers.contains(rr.getCortexKmer())) {
-                CortexRecord cr = GRAPH.findRecord(rr.getCortexKmer());
+            if (!sharedKmers.contains(rr.getCanonicalKmer())) {
+                CortexRecord cr = GRAPH.findRecord(rr.getCanonicalKmer());
 
                 boolean isShared = false;
 
                 for (int c = 0; c < GRAPH.getNumColors(); c++) {
                     if (c != childColor && !parentColors.contains(c) && !ignoreColors.contains(c) && cr.getCoverage(c) > 0) {
-                        sharedKmers.add(rr.getCortexKmer());
+                        sharedKmers.add(rr.getCanonicalKmer());
                         isShared = true;
 
                         break;
@@ -101,7 +101,7 @@ public class RemoveShared extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!sharedKmers.contains(rr.getCortexKmer())) {
+            if (!sharedKmers.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

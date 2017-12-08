@@ -116,7 +116,7 @@ public class TraversalEngine {
         StringBuilder sb = new StringBuilder();
 
         for (CortexVertex cv : walk) {
-            String sk = cv.getSk();
+            String sk = cv.getKmerAsString();
 
             if (sb.length() == 0) {
                 sb.append(sk);
@@ -133,7 +133,7 @@ public class TraversalEngine {
 
         CortexVertex seed = null;
         for (CortexVertex v : g.vertexSet()) {
-            if (v.getSk().equals(sk)) {
+            if (v.getKmerAsString().equals(sk)) {
                 seed = v;
                 break;
             }
@@ -174,8 +174,8 @@ public class TraversalEngine {
         }
 
         for (CortexVertex cv : walk) {
-            Map<Integer, Set<CortexByteKmer>> nextKmers = TraversalEngine.getAllNextKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
-            Map<Integer, Set<CortexByteKmer>> prevKmers = TraversalEngine.getAllPrevKmers(cv.getCr(), !cv.getCk().getKmerAsString().equals(cv.getSk()));
+            Map<Integer, Set<CortexByteKmer>> nextKmers = TraversalEngine.getAllNextKmers(cv.getCortexRecord(), !cv.getCanonicalKmer().getKmerAsString().equals(cv.getKmerAsString()));
+            Map<Integer, Set<CortexByteKmer>> prevKmers = TraversalEngine.getAllPrevKmers(cv.getCortexRecord(), !cv.getCanonicalKmer().getKmerAsString().equals(cv.getKmerAsString()));
 
             for (int refColor : refColors) {
                 for (CortexByteKmer nextKmer : nextKmers.get(refColor)) {
@@ -226,8 +226,8 @@ public class TraversalEngine {
         TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         do {
-            Set<CortexVertex> pvs = getPrevVertices(cv.getBk());
-            Set<CortexVertex> nvs = getNextVertices(cv.getBk());
+            Set<CortexVertex> pvs = getPrevVertices(cv.getKmerAsByteKmer());
+            Set<CortexVertex> nvs = getNextVertices(cv.getKmerAsByteKmer());
             avs = goForward ? nvs : pvs;
 
             if (!ec.getLinks().isEmpty()) {
@@ -274,7 +274,7 @@ public class TraversalEngine {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getSk(), goForward, currentTraversalDepth + 1, visited);
+                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentTraversalDepth + 1, visited);
 
                         if (branch != null) {
                             Graphs.addGraph(g, branch);
@@ -520,8 +520,8 @@ public class TraversalEngine {
         nextKmer = null;
         kmerSources = null;
 
-        if (nextKmers.size() == 1 && (!seen.contains(nextKmers.iterator().next().getBk()) || linkStore.isActive())) {
-            nextKmer = nextKmers.iterator().next().getBk();
+        if (nextKmers.size() == 1 && (!seen.contains(nextKmers.iterator().next().getKmerAsByteKmer()) || linkStore.isActive())) {
+            nextKmer = nextKmers.iterator().next().getKmerAsByteKmer();
 
             seen.add(nextKmer);
         } else if (nextKmers.size() > 1) {
@@ -563,8 +563,8 @@ public class TraversalEngine {
         prevKmer = null;
         kmerSources = null;
 
-        if (prevKmers.size() == 1 && (!seen.contains(prevKmers.iterator().next().getBk()) || linkStore.isActive())) {
-            prevKmer = prevKmers.iterator().next().getBk();
+        if (prevKmers.size() == 1 && (!seen.contains(prevKmers.iterator().next().getKmerAsByteKmer()) || linkStore.isActive())) {
+            prevKmer = prevKmers.iterator().next().getKmerAsByteKmer();
 
             seen.add(prevKmer);
         } else if (prevKmers.size() > 1) {
@@ -593,7 +593,7 @@ public class TraversalEngine {
         if (choice != null) {
             Set<CortexByteKmer> adjKmersStr = new HashSet<>();
             for (CortexVertex cv : adjKmers) {
-                adjKmersStr.add(cv.getBk());
+                adjKmersStr.add(cv.getKmerAsByteKmer());
             }
 
             byte[] bAdjKmer = new byte[kmer.length()];
@@ -636,10 +636,10 @@ public class TraversalEngine {
             curKmer = new CortexByteKmer(sk.getBytes());
 
             Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
-            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getBk() : null;
+            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getKmerAsByteKmer() : null;
 
             Set<CortexVertex> nextKmers = getNextVertices(curKmer);
-            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getBk() : null;
+            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getKmerAsByteKmer() : null;
 
             linkStore = new LinkStore();
             seen = new HashSet<>();
@@ -665,11 +665,11 @@ public class TraversalEngine {
                 DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
 
                 for (CortexVertex v : g.vertexSet()) {
-                    Map<Integer, Set<CortexByteKmer>> pks = pkscache.containsKey(v.getBk()) ? pkscache.get(v.getBk()) : getAllPrevKmers(v.getBk());
-                    Map<Integer, Set<CortexByteKmer>> nks = nkscache.containsKey(v.getBk()) ? nkscache.get(v.getBk()) : getAllNextKmers(v.getBk());
+                    Map<Integer, Set<CortexByteKmer>> pks = pkscache.containsKey(v.getKmerAsByteKmer()) ? pkscache.get(v.getKmerAsByteKmer()) : getAllPrevKmers(v.getKmerAsByteKmer());
+                    Map<Integer, Set<CortexByteKmer>> nks = nkscache.containsKey(v.getKmerAsByteKmer()) ? nkscache.get(v.getKmerAsByteKmer()) : getAllNextKmers(v.getKmerAsByteKmer());
 
-                    pkscache.put(v.getBk(), pks);
-                    nkscache.put(v.getBk(), nks);
+                    pkscache.put(v.getKmerAsByteKmer(), pks);
+                    nkscache.put(v.getKmerAsByteKmer(), nks);
 
                     g2.addVertex(v);
 

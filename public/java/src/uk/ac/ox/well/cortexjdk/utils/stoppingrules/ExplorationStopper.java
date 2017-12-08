@@ -13,11 +13,11 @@ public class ExplorationStopper extends AbstractTraversalStoppingRule<CortexVert
 
     @Override
     public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        boolean childHasCoverage = cv.getCr().getCoverage(traversalColor) > 0;
+        boolean childHasCoverage = cv.getCortexRecord().getCoverage(traversalColor) > 0;
         boolean parentHasCoverage = false;
 
         for (int c : joiningColors) {
-            parentHasCoverage |= cv.getCr().getCoverage(c) > 0;
+            parentHasCoverage |= cv.getCortexRecord().getCoverage(c) > 0;
         }
 
         if (novelKmerFound) {

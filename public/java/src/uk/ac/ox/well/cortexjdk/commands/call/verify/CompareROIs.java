@@ -33,13 +33,13 @@ public class CompareROIs extends Module {
         Set<CanonicalKmer> all = new HashSet<>();
 
         for (CortexRecord tr : TRUTH) {
-            trs.put(tr.getCortexKmer(), tr);
-            all.add(tr.getCortexKmer());
+            trs.put(tr.getCanonicalKmer(), tr);
+            all.add(tr.getCanonicalKmer());
         }
 
         for (CortexRecord er : EVAL) {
-            ers.put(er.getCortexKmer(), er);
-            all.add(er.getCortexKmer());
+            ers.put(er.getCanonicalKmer(), er);
+            all.add(er.getCanonicalKmer());
         }
 
         int privateToTruth = 0, privateToEval = 0, overlap = 0;

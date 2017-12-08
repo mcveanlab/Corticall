@@ -114,7 +114,7 @@ public class ComputeAssemblyQuality extends Module {
                 CortexVertex cv = e.previous();
                 contigEval.add(0, cv);
 
-                if (cv.getCr().getCoverage(compColor) > 0 && (cv.getSk().equals(cv.getCk().getKmerAsString()) ? cv.getCr().getOutDegree(compColor) == 1 : cv.getCr().getInDegree(compColor) == 1)) {
+                if (cv.getCortexRecord().getCoverage(compColor) > 0 && (cv.getKmerAsString().equals(cv.getCanonicalKmer().getKmerAsString()) ? cv.getCortexRecord().getOutDegree(compColor) == 1 : cv.getCortexRecord().getInDegree(compColor) == 1)) {
                     source = cv;
                     break;
                 }
@@ -126,7 +126,7 @@ public class ComputeAssemblyQuality extends Module {
                 CortexVertex cv = e.next();
                 contigEval.add(cv);
 
-                if (cv.getCr().getCoverage(compColor) > 0 && (cv.getSk().equals(cv.getCk().getKmerAsString()) ? cv.getCr().getInDegree(compColor) == 1 : cv.getCr().getOutDegree(compColor) == 1)) {
+                if (cv.getCortexRecord().getCoverage(compColor) > 0 && (cv.getKmerAsString().equals(cv.getCanonicalKmer().getKmerAsString()) ? cv.getCortexRecord().getInDegree(compColor) == 1 : cv.getCortexRecord().getOutDegree(compColor) == 1)) {
                     destination = cv;
                     break;
                 }
@@ -140,7 +140,7 @@ public class ComputeAssemblyQuality extends Module {
 
                 boolean destinationReached = false;
 
-                e.seek(source.getSk());
+                e.seek(source.getKmerAsString());
                 while (e.hasNext()) {
                     CortexVertex cv = e.next();
                     contigComp.add(cv);
@@ -152,12 +152,12 @@ public class ComputeAssemblyQuality extends Module {
                 }
 
                 if (destinationReached) {
-                    Set<Interval> sourceIntervals = REF.find(source.getSk());
-                    Set<Interval> destinationIntervals = REF.find(destination.getSk());
+                    Set<Interval> sourceIntervals = REF.find(source.getKmerAsString());
+                    Set<Interval> destinationIntervals = REF.find(destination.getKmerAsString());
 
                     float compCoverage = 0.0f;
                     for (CortexVertex cv : contigComp) {
-                        compCoverage += cv.getCr().getCoverage(compColor);
+                        compCoverage += cv.getCortexRecord().getCoverage(compColor);
                     }
                     compCoverage /= (float) contigComp.size();
 
@@ -186,7 +186,7 @@ public class ComputeAssemblyQuality extends Module {
 
                             float evalCoverage = 0.0f;
                             for (CortexVertex cv : contigEval) {
-                                evalCoverage += cv.getCr().getCoverage(evalColor);
+                                evalCoverage += cv.getCortexRecord().getCoverage(evalColor);
                             }
                             evalCoverage /= (float) contigEval.size();
 
@@ -217,7 +217,7 @@ public class ComputeAssemblyQuality extends Module {
                 isUniqueToEval(cr, evalColor, compColor) &&
                 hasUniqueCoordinates(cr)) {
 
-                seeds.add(cr.getCortexKmer());
+                seeds.add(cr.getCanonicalKmer());
 
                 String skFwd = cr.getKmerAsString();
                 String skRev = SequenceUtils.reverseComplement(cr.getKmerAsString());

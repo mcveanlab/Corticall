@@ -56,7 +56,7 @@ public class CompareContigLengths extends Module {
     public void execute() {
         Map<CanonicalKmer, Boolean> seen = new HashMap<>();
         for (CortexRecord cr : ROI) {
-            seen.put(cr.getCortexKmer(), false);
+            seen.put(cr.getCanonicalKmer(), false);
         }
 
         TraversalEngine eo = new TraversalEngineFactory()
@@ -95,16 +95,16 @@ public class CompareContigLengths extends Module {
             List<CortexVertex> l = longWalk(seen, e, ck);
 
             for (CortexVertex v : w) {
-                if (seen.containsKey(v.getCk())) {
-                    if (!shortWalks.containsKey(v.getCk()) || shortWalks.get(v.getCk()).size() < w.size()) {
-                        shortWalks.put(v.getCk(), w);
+                if (seen.containsKey(v.getCanonicalKmer())) {
+                    if (!shortWalks.containsKey(v.getCanonicalKmer()) || shortWalks.get(v.getCanonicalKmer()).size() < w.size()) {
+                        shortWalks.put(v.getCanonicalKmer(), w);
                     }
                 }
             }
 
             for (CortexVertex v : l) {
-                if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
-                    longWalks.put(v.getCk(), l);
+                if (!longWalks.containsKey(v.getCanonicalKmer()) || longWalks.get(v.getCanonicalKmer()).size() < l.size()) {
+                    longWalks.put(v.getCanonicalKmer(), l);
                 }
             }
 
@@ -218,8 +218,8 @@ public class CompareContigLengths extends Module {
                 }
 
                 for (CortexVertex v : l) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
                         pm.update();
                     }
                 }
@@ -234,16 +234,16 @@ public class CompareContigLengths extends Module {
 
         boolean inNovelRun = false;
         for (CortexVertex v : w) {
-            if (seen.containsKey(v.getCk())) {
+            if (seen.containsKey(v.getCanonicalKmer())) {
                 if (!inNovelRun) {
-                    breakpoints.add(v.getCk());
+                    breakpoints.add(v.getCanonicalKmer());
                 }
                 inNovelRun = true;
             } else {
                 inNovelRun = false;
             }
 
-            intervals.add(REFERENCES.get(parent).find(v.getSk()));
+            intervals.add(REFERENCES.get(parent).find(v.getKmerAsString()));
         }
 
         for (int i = 0; i < intervals.size(); i++) {
@@ -287,7 +287,7 @@ public class CompareContigLengths extends Module {
                     }
 
                     if (leftFound && rightFound) {
-                        breakpoints.add(w.get(i).getCk());
+                        breakpoints.add(w.get(i).getCanonicalKmer());
 
                         i = rightIndex;
                     }
@@ -301,7 +301,7 @@ public class CompareContigLengths extends Module {
         for (CortexVertex v : w) {
             a.add(v);
 
-            if (breakpoints.contains(v.getCk())) {
+            if (breakpoints.contains(v.getCanonicalKmer())) {
                 s.add(a);
                 a = new ArrayList<>();
             }
@@ -318,7 +318,7 @@ public class CompareContigLengths extends Module {
         int numNovels = 0;
 
         for (CortexVertex v : w) {
-            if (seen.containsKey(v.getCk())) {
+            if (seen.containsKey(v.getCanonicalKmer())) {
                 numNovels++;
             }
         }
@@ -337,15 +337,15 @@ public class CompareContigLengths extends Module {
             extended = false;
             List<List<CortexVertex>> extFwd = new ArrayList<>();
 
-            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getBk());
+            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getKmerAsByteKmer());
             for (CortexVertex cv : nvs) {
-                List<CortexVertex> wn = e.walk(cv.getSk(), true);
+                List<CortexVertex> wn = e.walk(cv.getKmerAsString(), true);
                 wn.add(0, cv);
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wn) {
-                    if (seen.containsKey(v.getCk()) && !seen.get(v.getCk())) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -361,8 +361,8 @@ public class CompareContigLengths extends Module {
                 extended = true;
 
                 for (CortexVertex v : extFwd.get(0)) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -372,15 +372,15 @@ public class CompareContigLengths extends Module {
             extended = false;
             List<List<CortexVertex>> extRev = new ArrayList<>();
 
-            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getBk());
+            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getKmerAsByteKmer());
             for (CortexVertex cv : pvs) {
-                List<CortexVertex> wp = e.walk(cv.getSk(), false);
+                List<CortexVertex> wp = e.walk(cv.getKmerAsString(), false);
                 wp.add(cv);
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wp) {
-                    if (seen.containsKey(v.getCk()) && !seen.get(v.getCk())) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -396,8 +396,8 @@ public class CompareContigLengths extends Module {
                 extended = true;
 
                 for (CortexVertex v : extRev.get(0)) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -485,17 +485,17 @@ public class CompareContigLengths extends Module {
         for (int i = 0; i < w.size() - 1; i++) {
             CortexVertex vi = w.get(i);
 
-            if (seen.containsKey(vi.getCk())) {
+            if (seen.containsKey(vi.getCanonicalKmer())) {
                 List<CortexVertex> roots = new ArrayList<>();
                 List<CortexVertex> sources = new ArrayList<>();
 
-                int lowerLimit = i - 3*vi.getCr().getKmerSize() >= 0 ? i - 3*vi.getCr().getKmerSize() : 0;
+                int lowerLimit = i - 3*vi.getCortexRecord().getKmerSize() >= 0 ? i - 3*vi.getCortexRecord().getKmerSize() : 0;
                 for (int j = i - 1; j >= lowerLimit; j--) {
                     CortexVertex vj = w.get(j);
                     CortexVertex vk = w.get(j+1);
 
-                    if (!seen.containsKey(vj.getCk())) {
-                        Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getSk()));
+                    if (!seen.containsKey(vj.getCanonicalKmer())) {
+                        Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getKmerAsString()));
 
                         for (CortexVertex cv : nvs) {
                             if (!cv.equals(vk)) {
@@ -517,7 +517,7 @@ public class CompareContigLengths extends Module {
                     CortexVertex root = roots.get(q);
                     CortexVertex source = sources.get(q);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getSk());
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getKmerAsString());
 
                     if (b != null) {
                         CortexVertex sink = null;

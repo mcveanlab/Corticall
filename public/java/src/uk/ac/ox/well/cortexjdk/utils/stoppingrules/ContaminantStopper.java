@@ -13,10 +13,10 @@ public class ContaminantStopper extends AbstractTraversalStoppingRule<CortexVert
         boolean parentsHaveCoverage = false;
 
         for (int c : joiningColors) {
-            parentsHaveCoverage |= cv.getCr().getCoverage(c) > 0;
+            parentsHaveCoverage |= cv.getCortexRecord().getCoverage(c) > 0;
         }
 
-        return cv.getCk() != null && (parentsHaveCoverage || numAdjacentEdges == 0);
+        return cv.getCanonicalKmer() != null && (parentsHaveCoverage || numAdjacentEdges == 0);
     }
 
     @Override
@@ -24,9 +24,9 @@ public class ContaminantStopper extends AbstractTraversalStoppingRule<CortexVert
         boolean parentsHaveCoverage = false;
 
         for (int c : joiningColors) {
-            parentsHaveCoverage |= cv.getCr().getCoverage(c) > 0;
+            parentsHaveCoverage |= cv.getCortexRecord().getCoverage(c) > 0;
         }
 
-        return cv.getCr() != null && parentsHaveCoverage;
+        return cv.getCortexRecord() != null && parentsHaveCoverage;
     }
 }

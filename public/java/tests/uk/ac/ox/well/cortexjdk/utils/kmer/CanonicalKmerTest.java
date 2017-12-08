@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.kmer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class CortexKmerTest {
+public class CanonicalKmerTest {
     @Test
     public void hashcodesAreEqualObjectsAreNot() {
         CanonicalKmer ck1 = new CanonicalKmer("GAACAAAAAAACTTGATAAATGTTTACAAAA");

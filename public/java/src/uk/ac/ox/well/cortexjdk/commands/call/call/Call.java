@@ -63,7 +63,7 @@ public class Call extends Module {
     public void execute() {
         Map<CanonicalKmer, Boolean> seen = new HashMap<>();
         for (CortexRecord cr : ROI) {
-            seen.put(cr.getCortexKmer(), false);
+            seen.put(cr.getCanonicalKmer(), false);
         }
 
         TraversalEngine e = new TraversalEngineFactory()
@@ -91,12 +91,12 @@ public class Call extends Module {
                 List<CortexVertex> l = longWalk(seen, e, ck);
 
                 for (CortexVertex v : l) {
-                    if (seen.containsKey(v.getCk())) {
-                        if (!longWalks.containsKey(v.getCk()) || longWalks.get(v.getCk()).size() < l.size()) {
-                            longWalks.put(v.getCk(), l);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        if (!longWalks.containsKey(v.getCanonicalKmer()) || longWalks.get(v.getCanonicalKmer()).size() < l.size()) {
+                            longWalks.put(v.getCanonicalKmer(), l);
                         }
 
-                        seen.put(v.getCk(), true);
+                        seen.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -194,14 +194,14 @@ public class Call extends Module {
 
         boolean inNovelRun = false;
         for (CortexVertex v : w) {
-            if (seen.containsKey(v.getCk())) {
+            if (seen.containsKey(v.getCanonicalKmer())) {
                 if (!inNovelRun) {
-                    breakpoints.add(v.getCk());
+                    breakpoints.add(v.getCanonicalKmer());
                 }
                 inNovelRun = true;
             } else {
                 if (inNovelRun) {
-                    breakpoints.add(v.getCk());
+                    breakpoints.add(v.getCanonicalKmer());
                 }
                 inNovelRun = false;
             }
@@ -213,7 +213,7 @@ public class Call extends Module {
         for (int i = 0; i < w.size(); i++) {
             CortexVertex v = w.get(i);
 
-            if (breakpoints.contains(v.getCk())) {
+            if (breakpoints.contains(v.getCanonicalKmer())) {
                 s.add(a);
                 a = new ArrayList<>();
             }
@@ -229,7 +229,7 @@ public class Call extends Module {
         List<Pair<Integer, Integer>> e = new ArrayList<>();
         int start = 0;
         for (List<CortexVertex> q : s) {
-            if (q.size() > 0 && !seen.containsKey(q.get(0).getCk())) {
+            if (q.size() > 0 && !seen.containsKey(q.get(0).getCanonicalKmer())) {
                 r.add(q);
                 e.add(new Pair<>(start, start + q.size()));
             }
@@ -246,7 +246,7 @@ public class Call extends Module {
         int numNovels = 0;
 
         for (CortexVertex v : w) {
-            if (seen.containsKey(v.getCk())) {
+            if (seen.containsKey(v.getCanonicalKmer())) {
                 numNovels++;
             }
         }
@@ -264,16 +264,16 @@ public class Call extends Module {
             extended = false;
             List<List<CortexVertex>> extFwd = new ArrayList<>();
 
-            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getBk());
+            Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getKmerAsByteKmer());
             for (CortexVertex cv : nvs) {
-                List<CortexVertex> wn = e.walk(cv.getSk(), true);
+                List<CortexVertex> wn = e.walk(cv.getKmerAsString(), true);
                 wn.add(0, cv);
                 //log.info("  wn: {}", wn.size());
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wn) {
-                    if (seen.containsKey(v.getCk()) && !seen.get(v.getCk())) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -289,8 +289,8 @@ public class Call extends Module {
                 extended = true;
 
                 for (CortexVertex v : extFwd.get(0)) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -300,16 +300,16 @@ public class Call extends Module {
             extended = false;
             List<List<CortexVertex>> extRev = new ArrayList<>();
 
-            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getBk());
+            Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getKmerAsByteKmer());
             for (CortexVertex cv : pvs) {
-                List<CortexVertex> wp = e.walk(cv.getSk(), false);
+                List<CortexVertex> wp = e.walk(cv.getKmerAsString(), false);
                 wp.add(cv);
                 //log.info("  wp: {}", wp.size());
 
                 boolean hasNovels = false;
 
                 for (CortexVertex v : wp) {
-                    if (seen.containsKey(v.getCk()) && !seen.get(v.getCk())) {
+                    if (seen.containsKey(v.getCanonicalKmer()) && !seen.get(v.getCanonicalKmer())) {
                         hasNovels = true;
                         break;
                     }
@@ -325,8 +325,8 @@ public class Call extends Module {
                 extended = true;
 
                 for (CortexVertex v : extRev.get(0)) {
-                    if (seen.containsKey(v.getCk())) {
-                        seen.put(v.getCk(), true);
+                    if (seen.containsKey(v.getCanonicalKmer())) {
+                        seen.put(v.getCanonicalKmer(), true);
                     }
                 }
             }
@@ -425,17 +425,17 @@ public class Call extends Module {
             for (int i = 0; i < w.size() - 1; i++) {
                 CortexVertex vi = w.get(i);
 
-                if (seen.containsKey(vi.getCk())) {
+                if (seen.containsKey(vi.getCanonicalKmer())) {
                     List<CortexVertex> roots = new ArrayList<>();
                     List<CortexVertex> sources = new ArrayList<>();
 
-                    int lowerLimit = i - 3 * vi.getCr().getKmerSize() >= 0 ? i - 3 * vi.getCr().getKmerSize() : 0;
+                    int lowerLimit = i - 3 * vi.getCortexRecord().getKmerSize() >= 0 ? i - 3 * vi.getCortexRecord().getKmerSize() : 0;
                     for (int j = i - 1; j >= lowerLimit; j--) {
                         CortexVertex vj = w.get(j);
                         CortexVertex vk = w.get(j + 1);
 
-                        if (!seen.containsKey(vj.getCk())) {
-                            Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getSk()));
+                        if (!seen.containsKey(vj.getCanonicalKmer())) {
+                            Set<CortexVertex> nvs = e.getNextVertices(new CortexByteKmer(vj.getKmerAsString()));
 
                             for (CortexVertex cv : nvs) {
                                 if (!cv.equals(vk)) {
@@ -448,11 +448,11 @@ public class Call extends Module {
 
                     DirectedWeightedPseudograph<CortexVertex, CortexEdge> sinks = new DirectedWeightedPseudograph<>(CortexEdge.class);
                     int distanceFromLastNovel = 0;
-                    for (int j = i + 1; j < w.size() && distanceFromLastNovel < 3 * vi.getCr().getKmerSize(); j++) {
+                    for (int j = i + 1; j < w.size() && distanceFromLastNovel < 3 * vi.getCortexRecord().getKmerSize(); j++) {
                         CortexVertex vj = w.get(j);
                         sinks.addVertex(vj);
 
-                        if (seen.containsKey(vj.getCk())) {
+                        if (seen.containsKey(vj.getCanonicalKmer())) {
                             distanceFromLastNovel = 0;
                         } else {
                             distanceFromLastNovel++;
@@ -465,7 +465,7 @@ public class Call extends Module {
                         CortexVertex root = roots.get(q);
                         CortexVertex source = sources.get(q);
 
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getSk());
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> b = e.dfs(source.getKmerAsString());
 
                         if (b != null) {
                             CortexVertex sink = null;

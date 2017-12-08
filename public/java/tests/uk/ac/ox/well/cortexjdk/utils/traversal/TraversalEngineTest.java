@@ -272,7 +272,7 @@ public class TraversalEngineTest {
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getKmerAsString());
 
                     if (w != null) {
                         Graphs.addGraph(walk, w);
@@ -360,7 +360,7 @@ public class TraversalEngineTest {
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getKmerAsString());
 
                     if (w != null) {
                         Graphs.addGraph(walk, w);
@@ -448,7 +448,7 @@ public class TraversalEngineTest {
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getKmerAsString());
 
                     if (w != null) {
                         Graphs.addGraph(walk, w);
@@ -534,7 +534,7 @@ public class TraversalEngineTest {
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
 
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getSk());
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> w = e.dfs(is.getKmerAsString());
 
                     if (w != null) {
                         Graphs.addGraph(walk, w);
@@ -582,7 +582,7 @@ public class TraversalEngineTest {
         e.seek(sk);
         while (e.hasNext()) {
             CortexVertex cv = e.next();
-            sk = cv.getSk();
+            sk = cv.getKmerAsString();
 
             sb.append(sk.substring(sk.length() - 1, sk.length()));
         }
@@ -609,7 +609,7 @@ public class TraversalEngineTest {
         e.seek(sk);
         while (e.hasPrevious()) {
             CortexVertex cv = e.previous();
-            sk = cv.getSk();
+            sk = cv.getKmerAsString();
 
             sb.insert(0, sk.substring(0, 1));
         }
@@ -636,7 +636,7 @@ public class TraversalEngineTest {
         e.seek(sk);
         while (e.hasNext()) {
             CortexVertex cv = e.next();
-            sk = cv.getSk();
+            sk = cv.getKmerAsString();
 
             sb.append(sk.substring(sk.length() - 1, sk.length()));
         }
@@ -663,7 +663,7 @@ public class TraversalEngineTest {
         e.seek(sk);
         while (e.hasPrevious()) {
             CortexVertex cv = e.previous();
-            sk = cv.getSk();
+            sk = cv.getKmerAsString();
 
             sb.insert(0, sk.substring(0, 1));
         }
@@ -759,7 +759,7 @@ public class TraversalEngineTest {
                 e.next();
                 CortexVertex cv = e.previous();
 
-                Assert.assertEquals(cv.getSk(), sk);
+                Assert.assertEquals(cv.getKmerAsString(), sk);
             }
         }
     }
@@ -822,7 +822,7 @@ public class TraversalEngineTest {
 
             Set<String> act = new HashSet<>();
             for (CortexVertex cv : sg.vertexSet()) {
-                act.add(cv.getSk());
+                act.add(cv.getKmerAsString());
             }
 
             String expectedContig = seedsAndExpectedContigs.get(ck);
@@ -867,9 +867,9 @@ public class TraversalEngineTest {
         if (pk != null) {
             for (CortexVertex v : pk.getVertexList()) {
                 if (sbk.length() == 0) {
-                    sbk.append(v.getSk());
+                    sbk.append(v.getKmerAsString());
                 } else {
-                    sbk.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
+                    sbk.append(v.getKmerAsString().substring(v.getKmerAsString().length() - 1, v.getKmerAsString().length()));
                 }
             }
         }

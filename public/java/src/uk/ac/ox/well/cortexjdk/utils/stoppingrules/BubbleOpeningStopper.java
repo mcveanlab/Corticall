@@ -17,7 +17,7 @@ public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVe
 
     @Override
     public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        if (rois.findRecord(cv.getBk()) != null) {
+        if (rois.findRecord(cv.getKmerAsByteKmer()) != null) {
             novelKmersSeen++;
         }
 
@@ -26,7 +26,7 @@ public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVe
         }
 
         for (int c : joiningColors) {
-            hasJoined |= (cv.getCr().getCoverage(c) > 0);
+            hasJoined |= (cv.getCortexRecord().getCoverage(c) > 0);
         }
 
         return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || numAdjacentEdges != 1);

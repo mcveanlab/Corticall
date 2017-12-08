@@ -51,7 +51,7 @@ public class PathFinder {
                     boolean constraintFound = false;
 
                     for (CortexVertex cv : gp.getVertexList()) {
-                        CanonicalKmer ck = new CanonicalKmer(cv.getSk());
+                        CanonicalKmer ck = new CanonicalKmer(cv.getKmerAsString());
 
                         if (ck.equals(constraint)) {
                             constraintFound = true;

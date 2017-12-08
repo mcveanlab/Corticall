@@ -22,7 +22,7 @@ public class Bubble {
     public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CanonicalKmer> novelKmers) {
         String[] pieces = pathsToAlleles(pRef, pAlt);
 
-        int kmerSize = pRef.getStartVertex().getCk().length();
+        int kmerSize = pRef.getStartVertex().getCanonicalKmer().length();
 
         this.flank5p = pieces[0];
         this.refAllele = pieces[1];
@@ -167,9 +167,9 @@ public class Bubble {
         if (pk != null) {
             for (CortexVertex v : pk.getVertexList()) {
                 if (sbk.length() == 0) {
-                    sbk.append(v.getSk());
+                    sbk.append(v.getKmerAsString());
                 } else {
-                    sbk.append(v.getSk().substring(v.getSk().length() - 1, v.getSk().length()));
+                    sbk.append(v.getKmerAsString().substring(v.getKmerAsString().length() - 1, v.getKmerAsString().length()));
                 }
             }
         }

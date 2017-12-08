@@ -72,7 +72,7 @@ public class RemoveTips extends Module {
         int numTipChains = 0;
 
         for (CortexRecord rr : ROI) {
-            if (!tips.contains(rr.getCortexKmer())) {
+            if (!tips.contains(rr.getCanonicalKmer())) {
                 Graph<CortexVertex, CortexEdge> dfsToParents = null;
                 Graph<CortexVertex, CortexEdge> dfsToFree = null;
 
@@ -120,7 +120,7 @@ public class RemoveTips extends Module {
                     log.debug("    tip chain {}, seed {}, {} vertices", numTipChains, rr.getKmerAsString(), dfs.vertexSet().size());
 
                     for (CortexVertex av : dfs.vertexSet()) {
-                        tips.add(av.getCk());
+                        tips.add(av.getCanonicalKmer());
                     }
                 }
             }
@@ -140,7 +140,7 @@ public class RemoveTips extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!tips.contains(rr.getCortexKmer())) {
+            if (!tips.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

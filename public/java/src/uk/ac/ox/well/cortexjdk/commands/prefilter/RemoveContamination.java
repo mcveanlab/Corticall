@@ -64,7 +64,7 @@ public class RemoveContamination extends Module {
 
         Set<CanonicalKmer> roiKmers = new HashSet<>();
         for (CortexRecord rc : ROI) {
-            roiKmers.add(rc.getCortexKmer());
+            roiKmers.add(rc.getCanonicalKmer());
         }
 
         Set<CanonicalKmer> contamKmers = new HashSet<>();
@@ -81,12 +81,12 @@ public class RemoveContamination extends Module {
                 .make();
 
         for (CortexRecord cr : CONTAM) {
-            if (roiKmers.contains(cr.getCortexKmer()) && !contamKmers.contains(cr.getCortexKmer())) {
+            if (roiKmers.contains(cr.getCanonicalKmer()) && !contamKmers.contains(cr.getCanonicalKmer())) {
                 Graph<CortexVertex, CortexEdge> dfs = e.dfs(cr.getKmerAsString());
 
                 if (dfs.vertexSet().size() > 0) {
                     for (CortexVertex av : dfs.vertexSet()) {
-                        CanonicalKmer ck = av.getCk();
+                        CanonicalKmer ck = av.getCanonicalKmer();
 
                         contamKmers.add(ck);
                     }
@@ -110,7 +110,7 @@ public class RemoveContamination extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!contamKmers.contains(rr.getCortexKmer())) {
+            if (!contamKmers.contains(rr.getCanonicalKmer())) {
                 cgw.addRecord(rr);
                 numKept++;
             } else {

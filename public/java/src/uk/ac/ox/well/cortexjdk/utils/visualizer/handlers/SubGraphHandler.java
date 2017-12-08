@@ -55,15 +55,15 @@ public class SubGraphHandler extends BaseHandler {
         for (CortexVertex v : g.vertexSet()) {
             Map<String, Object> vm = new HashMap<>();
 
-            vm.put("id", v.getSk());
+            vm.put("id", v.getKmerAsString());
             vs.add(vm);
         }
 
         for (CortexEdge e : g.edgeSet()) {
             Map<String, Object> em = new HashMap<>();
 
-            em.put("source", g.getEdgeSource(e).getSk());
-            em.put("target", g.getEdgeTarget(e).getSk());
+            em.put("source", g.getEdgeSource(e).getKmerAsString());
+            em.put("target", g.getEdgeTarget(e).getKmerAsString());
             em.put("color", e.getColor());
             es.add(em);
         }

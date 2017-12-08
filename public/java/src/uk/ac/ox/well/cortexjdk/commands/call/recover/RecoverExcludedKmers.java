@@ -60,7 +60,7 @@ public class RecoverExcludedKmers extends Module {
                 }
 
                 if (otherSamplesWithCoverage > 0) {
-                    CortexRecord dr = DIRTY.findRecord(cr.getCortexKmer());
+                    CortexRecord dr = DIRTY.findRecord(cr.getCanonicalKmer());
 
                     if (dr != null && dr.getCoverage(0) > 0) {
                         long[] binaryKmer = new long[cr.getBinaryKmer().length];

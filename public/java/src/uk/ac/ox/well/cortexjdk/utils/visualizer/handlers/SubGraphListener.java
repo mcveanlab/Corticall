@@ -67,17 +67,17 @@ public class SubGraphListener extends BaseHandler {
             CortexVertex v1 = g.getEdgeTarget(e);
 
             Map<String, Object> em = new HashMap<>();
-            em.put("source", v0.getSk());
-            em.put("target", v1.getSk());
+            em.put("source", v0.getKmerAsString());
+            em.put("target", v1.getKmerAsString());
             em.put("color",  e.getColor());
             es.add(em);
 
             Map<String, Object> va = new HashMap<>();
-            va.put("id", v0.getSk());
+            va.put("id", v0.getKmerAsString());
             vs.add(va);
 
             Map<String, Object> vb = new HashMap<>();
-            vb.put("id", v1.getSk());
+            vb.put("id", v1.getKmerAsString());
             vs.add(vb);
         }
 
