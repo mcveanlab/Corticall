@@ -44,7 +44,7 @@ public class RemoveContamination extends Module {
     @Output
     public File out;
 
-    @Output(fullName="removed_out", shortName="ro", doc="Contam output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File contam_out;
 
     @Override

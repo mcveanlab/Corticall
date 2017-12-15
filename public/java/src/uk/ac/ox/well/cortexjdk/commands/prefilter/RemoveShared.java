@@ -38,7 +38,7 @@ public class RemoveShared extends Module {
     @Output
     public File out;
 
-    @Output(fullName="shared_out", shortName="so", doc="Shared kmers output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File shared_out;
 
     @Override

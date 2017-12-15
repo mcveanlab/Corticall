@@ -42,7 +42,7 @@ public class RemoveOrphans extends Module {
     @Output
     public File out;
 
-    @Output(fullName="orphans_out", shortName="oo", doc="Orphans output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File orphans_out;
 
     @Override

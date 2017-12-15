@@ -42,7 +42,7 @@ public class RemoveUnanchored extends Module {
     @Output
     public File out;
 
-    @Output(fullName = "unanchored_out", shortName = "uo", doc = "Unanchored output file")
+    @Output(fullName = "excluded_out", shortName = "xo", doc = "Excluded kmers output file")
     public File unanchored_out;
 
     @Override

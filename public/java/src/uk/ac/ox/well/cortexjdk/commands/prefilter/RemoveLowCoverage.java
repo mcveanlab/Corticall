@@ -24,7 +24,7 @@ public class RemoveLowCoverage extends Module {
     @Output
     public File out;
 
-    @Output(fullName="lowcoverage_out", shortName="co", doc="Low coverage output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File lowcoverage_out;
 
     @Override

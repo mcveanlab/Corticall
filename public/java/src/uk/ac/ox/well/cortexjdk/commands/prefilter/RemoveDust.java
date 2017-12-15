@@ -42,7 +42,7 @@ public class RemoveDust extends Module {
     @Output
     public File out;
 
-    @Output(fullName="removed_out", shortName="ro", doc="Dust output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File dust_out;
 
     @Override

@@ -48,7 +48,7 @@ public class RemoveTips extends Module {
     @Output
     public File out;
 
-    @Output(fullName="tips_out", shortName="to", doc="Tips output file")
+    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
     public File tips_out;
 
     @Override
