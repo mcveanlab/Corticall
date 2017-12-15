@@ -44,8 +44,8 @@ public class RemoveContamination extends Module {
     @Output
     public File out;
 
-    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    public File contam_out;
+    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
+    //public File contam_out;
 
     @Override
     public void execute() {
@@ -105,22 +105,23 @@ public class RemoveContamination extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(makeCortexHeader());
 
-        CortexGraphWriter cgc = new CortexGraphWriter(contam_out);
-        cgc.setHeader(ROI.getHeader());
+        //CortexGraphWriter cgc = new CortexGraphWriter(contam_out);
+        //cgc.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!contamKmers.contains(rr.getCanonicalKmer())) {
-                cgw.addRecord(rr);
+                //cgw.addRecord(rr);
                 numKept++;
             } else {
-                cgc.addRecord(rr);
+                //cgc.addRecord(rr);
+                cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        cgc.close();
+        //cgc.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),

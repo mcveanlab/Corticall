@@ -48,8 +48,8 @@ public class RemoveTips extends Module {
     @Output
     public File out;
 
-    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    public File tips_out;
+    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
+    //public File tips_out;
 
     @Override
     public void execute() {
@@ -135,22 +135,23 @@ public class RemoveTips extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
-        CortexGraphWriter cgt = new CortexGraphWriter(tips_out);
-        cgt.setHeader(ROI.getHeader());
+        //CortexGraphWriter cgt = new CortexGraphWriter(tips_out);
+        //cgt.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!tips.contains(rr.getCanonicalKmer())) {
-                cgw.addRecord(rr);
+                //cgw.addRecord(rr);
                 numKept++;
             } else {
-                cgt.addRecord(rr);
+                //cgt.addRecord(rr);
+                cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        cgt.close();
+        //cgt.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),

@@ -42,8 +42,8 @@ public class RemoveUnanchored extends Module {
     @Output
     public File out;
 
-    @Output(fullName = "excluded_out", shortName = "xo", doc = "Excluded kmers output file")
-    public File unanchored_out;
+    //@Output(fullName = "excluded_out", shortName = "xo", doc = "Excluded kmers output file")
+    //public File unanchored_out;
 
     @Override
     public void execute() {
@@ -152,22 +152,23 @@ public class RemoveUnanchored extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
-        CortexGraphWriter cgt = new CortexGraphWriter(unanchored_out);
-        cgt.setHeader(ROI.getHeader());
+        //CortexGraphWriter cgt = new CortexGraphWriter(unanchored_out);
+        //cgt.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!unanchored.contains(rr.getCanonicalKmer())) {
-                cgw.addRecord(rr);
+                //cgw.addRecord(rr);
                 numKept++;
             } else {
-                cgt.addRecord(rr);
+                //cgt.addRecord(rr);
+                cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        cgt.close();
+        //cgt.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),

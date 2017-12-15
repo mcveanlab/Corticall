@@ -42,8 +42,8 @@ public class RemoveDust extends Module {
     @Output
     public File out;
 
-    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    public File dust_out;
+    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
+    //public File dust_out;
 
     @Override
     public void execute() {
@@ -99,22 +99,23 @@ public class RemoveDust extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
-        CortexGraphWriter cgo = new CortexGraphWriter(dust_out);
-        cgo.setHeader(ROI.getHeader());
+        //CortexGraphWriter cgo = new CortexGraphWriter(dust_out);
+        //cgo.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!dust.contains(rr.getCanonicalKmer())) {
-                cgw.addRecord(rr);
+                //cgw.addRecord(rr);
                 numKept++;
             } else {
-                cgo.addRecord(rr);
+                //cgo.addRecord(rr);
+                cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        cgo.close();
+        //cgo.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),

@@ -24,16 +24,16 @@ public class RemoveLowCoverage extends Module {
     @Output
     public File out;
 
-    @Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    public File lowcoverage_out;
+    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
+    //public File lowcoverage_out;
 
     @Override
     public void execute() {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
-        CortexGraphWriter lgw = new CortexGraphWriter(lowcoverage_out);
-
         cgw.setHeader(ROI.getHeader());
-        lgw.setHeader(ROI.getHeader());
+
+        //CortexGraphWriter lgw = new CortexGraphWriter(lowcoverage_out);
+        //lgw.setHeader(ROI.getHeader());
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Removing low-coverage records (< " + MIN_COVERAGE + ")")
@@ -44,10 +44,11 @@ public class RemoveLowCoverage extends Module {
         int numKept = 0, numExcluded = 0;
         for (CortexRecord cr : ROI) {
             if (cr.getCoverage(0) >= MIN_COVERAGE) {
-                cgw.addRecord(cr);
+                //cgw.addRecord(cr);
                 numKept++;
             } else {
-                lgw.addRecord(cr);
+                //lgw.addRecord(cr);
+                cgw.addRecord(cr);
                 numExcluded++;
             }
 
@@ -55,7 +56,7 @@ public class RemoveLowCoverage extends Module {
         }
 
         cgw.close();
-        lgw.close();
+        //lgw.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
