@@ -4,6 +4,7 @@ import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
 import org.apache.commons.collections.map.LRUMap;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
@@ -17,7 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
-public class CortexGraph implements uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph {
+public class CortexGraph implements DeBruijnGraph {
     private File cortexFile;
     private BinaryFile in;
 

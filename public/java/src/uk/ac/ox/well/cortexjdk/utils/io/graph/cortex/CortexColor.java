@@ -1,17 +1,17 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.cortex;
 
 public class CortexColor {
-    private int meanReadLength;
-    private long totalSequence;
     private String sampleName;
-    private double errorRate;
-    private boolean tipClippingApplied;
-    private boolean lowCovgSupernodesRemoved;
-    private boolean lowCovgKmersRemoved;
-    private boolean cleanedAgainstGraph;
-    private int lowCovSupernodesThreshold;
-    private int lowCovKmerThreshold;
-    private String cleanedAgainstGraphName;
+    private int meanReadLength = 0;
+    private long totalSequence = 0;
+    private double errorRate = 0.0;
+    private boolean tipClippingApplied = false;
+    private boolean lowCovgSupernodesRemoved = false;
+    private boolean lowCovgKmersRemoved = false;
+    private boolean cleanedAgainstGraph = false;
+    private int lowCovSupernodesThreshold = 0;
+    private int lowCovKmerThreshold = 0;
+    private String cleanedAgainstGraphName = "unknown";
 
     public int getMeanReadLength() {
         return meanReadLength;

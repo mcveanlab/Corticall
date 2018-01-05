@@ -9,7 +9,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
 import java.util.*;
 
 /**
- * A set of utilities for dealing with genomic sequences.
+ * A set of utilities for dealing with genomic reads.
  */
 public class SequenceUtils {
     /**
@@ -231,7 +231,7 @@ public class SequenceUtils {
     }
 
     /**
-     * For given FASTA files, load all of the sequences as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
+     * For given FASTA files, load all of the reads as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
      *
      * @param fastas  list of FASTA files to process
      * @param kmerSize  the kmer size to use
@@ -248,7 +248,7 @@ public class SequenceUtils {
     }
 
     /**
-     * For given FASTA files, load all of the sequences as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
+     * For given FASTA files, load all of the reads as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
      *
      * @param fasta  FASTA file to process
      * @param kmerSize  the kmer size to use
@@ -266,7 +266,7 @@ public class SequenceUtils {
     }
 
     /**
-     * For given FASTA files, load all of the sequences as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
+     * For given FASTA files, load all of the reads as the hashcodes of the alphanumerically lowest kmers mapped to the contig name
      *
      * @param seq  the reference sequence from the FASTA file
      * @param kmerSize  the kmer size to use
@@ -288,14 +288,14 @@ public class SequenceUtils {
     }
 
     /**
-     * Compute the number of segregating sites between two sequences.
+     * Compute the number of segregating sites between two reads.
      * @param s1  sequence 1
      * @param s2  sequence 2
      * @return  the number of segregating sites
      */
     public static int numSegregatingSites(String s1, String s2) {
         if (s1.length() != s2.length()) {
-            throw new CortexJDKException("Cannot compute number of segregating sites between sequences of different lengths (" + s1.length() + " vs " + s2.length() + ")");
+            throw new CortexJDKException("Cannot compute number of segregating sites between reads of different lengths (" + s1.length() + " vs " + s2.length() + ")");
         }
 
         int S = 0;
@@ -309,7 +309,7 @@ public class SequenceUtils {
     /**
      * Private method to compute N50 information
      *
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @param lengthOrValue  if true, compute length; else, compute value
      * @return  the N50 length or value
      */
@@ -342,7 +342,7 @@ public class SequenceUtils {
 
     /**
      * Compute N50 length
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @return  the N50 length
      */
     public static int computeN50Length(Collection<? extends CharSequence> sequences) {
@@ -351,7 +351,7 @@ public class SequenceUtils {
 
     /**
      * Compute N50 value (the longest length for which the collection of all contigs of that length or longer contains at least half of the total of the lengths of the contigs)
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @return  the N50 value
      */
     public static int computeN50Value(Collection<? extends CharSequence> sequences) {
@@ -361,7 +361,7 @@ public class SequenceUtils {
     /**
      * Private method to compute NG50 information
      *
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @param lengthOrValue  if true, compute length; else, compute value
      * @return  the NG50 length or value
      */
@@ -392,7 +392,7 @@ public class SequenceUtils {
 
     /**
      * Compute NG50 length
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @param referenceGenomeSize the length of the canonical reference genome
      * @return  the NG50 length
      */
@@ -402,7 +402,7 @@ public class SequenceUtils {
 
     /**
      * Compute NG50 value (the longest length for which the collection of all contigs of that length or longer contains at least half of the total of the reference genome)
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @param referenceGenomeSize the length of the canonical reference genome
      * @return  the NG50 value
      */
@@ -411,9 +411,9 @@ public class SequenceUtils {
     }
 
     /**
-     * Compute the minimum length in a collection of sequences
+     * Compute the minimum length in a collection of reads
      *
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @return  the minimum sequence length observed
      */
     public static int minLength(Collection<? extends CharSequence> sequences) {
@@ -429,9 +429,9 @@ public class SequenceUtils {
     }
 
     /**
-     * Compute the maximum length in a collection of sequences
+     * Compute the maximum length in a collection of reads
      *
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @return  the maximum sequence length observed
      */
     public static int maxLength(Collection<? extends CharSequence> sequences) {
@@ -447,9 +447,9 @@ public class SequenceUtils {
     }
 
     /**
-     * Compute the mean length in a collection of sequences
+     * Compute the mean length in a collection of reads
      *
-     * @param sequences  the sequences to process
+     * @param sequences  the reads to process
      * @return  the mean sequence length observed
      */
     public static float meanLength(Collection<? extends CharSequence> sequences) {

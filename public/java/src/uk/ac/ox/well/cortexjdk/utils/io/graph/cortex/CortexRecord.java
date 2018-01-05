@@ -93,7 +93,8 @@ public class CortexRecord implements Comparable<CortexRecord> {
             Set<String> inEdges = inEdgesList.get(c);
             Set<String> outEdges = outEdgesList.get(c);
 
-            byte edge = encodeBinaryEdges(inEdges, outEdges, ck.isFlipped());
+            //byte edge = encodeBinaryEdges(inEdges, outEdges, ck.isFlipped());
+            byte edge = !ck.isFlipped() ? encodeBinaryEdges(inEdges, outEdges, false) : encodeBinaryEdges(outEdges, inEdges, ck.isFlipped());
 
             edges[c] = edge;
         }
@@ -169,6 +170,22 @@ public class CortexRecord implements Comparable<CortexRecord> {
         }
 
         for (String edge : getEdgeAsStrings()) {
+            info += " " + edge;
+        }
+
+        return info;
+    }
+
+    public String toString(int... colors) {
+        String info = getKmerAsString();
+
+        for (int c : colors) {
+            int coverage = getCoverage(c);
+            info += " " + coverage;
+        }
+
+        for (int c : colors) {
+            String edge = getEdgesAsString(c);
             info += " " + edge;
         }
 

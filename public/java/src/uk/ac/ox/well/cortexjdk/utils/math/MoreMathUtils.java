@@ -60,4 +60,14 @@ public class MoreMathUtils {
     }
 
     public static boolean equals(double x, double y, double tol) { return Math.abs(x - y) < tol; }
+
+    public static int sum(int... values) {
+        int ret = 0;
+
+        for (int value : values) {
+            ret += value;
+        }
+
+        return ret;
+    }
 }
