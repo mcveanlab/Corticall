@@ -39,9 +39,7 @@ public class Build extends Module {
         List<CortexGraph> pieces = buildSortedTempGraphs(READ_FILES, KMER_SIZE, SAMPLE_NAME, NUM_THREADS, out);
 
         log.info("Merging {} sorted graph chunks...", pieces.size());
-        CortexGraph cg = mergeTempGraphs(pieces);
-
-        log.info("Wrote {} records to {}", cg.getNumRecords(), cg.getFile().getAbsolutePath());
+        mergeTempGraphs(pieces);
     }
 
     private CortexGraph mergeTempGraphs(List<CortexGraph> pieces) {
@@ -78,10 +76,13 @@ public class Build extends Module {
         }
 
         cgw.addRecord(new CortexRecord(bk, cov, edges, KMER_SIZE, kmerBits));
-
         cgw.close();
 
-        return new CortexGraph(out);
+        CortexGraph cg = new CortexGraph(out);
+
+        log.info("  wrote {} unique records to {}", cg.getNumRecords(), cg.getFile().getAbsolutePath());
+
+        return cg;
     }
 
     private long presumableFreeMemory() {
@@ -101,10 +102,7 @@ public class Build extends Module {
         int overheadFactor = 2;
         int maxRecordsPerThread = (int) ((float) freeMem / (float) (overheadFactor*assumedRecordSize*numThreads));
 
-        //log.info("Available memory: {}", freeMem);
-        //log.info("Record size: {}", assumedRecordSize);
-        //log.info("Threads: {}", numThreads);
-        //log.info("Records per thread: {}", maxRecordsPerThread);
+        log.info("  using {} threads, max {} records per thread", numThreads, maxRecordsPerThread);
 
         ThreadPoolExecutor execIO   = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         ThreadPoolExecutor execSort = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
@@ -114,12 +112,12 @@ public class Build extends Module {
 
         execIO.submit(new RecordsProducer(readQueue, readFiles, kmerSize, maxRecordsPerThread, log));
 
+        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
+        futures.add(execIO.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, numThreads, log)));
+
         for (int i = 0; i < numThreads; i++) {
             execSort.submit(new RecordsSorter(readQueue, writeQueue, log));
         }
-
-        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
-        futures.add(execIO.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, log)));
 
         List<CortexGraph> pieces = new ArrayList<>();
         try {
@@ -132,7 +130,6 @@ public class Build extends Module {
 
         execIO.shutdown();
         execSort.shutdown();
-
         return pieces;
     }
 }

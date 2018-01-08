@@ -43,6 +43,10 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
         for (int i = 0; i < numEnds; i++) {
             String readsPath = pieces[i];
 
+            if (! new File(readsPath).exists()) {
+                throw new CortexJDKException("File not found: '" + readsPath + "'");
+            }
+
             if (readsPath.endsWith(".fastq.gz") || readsPath.endsWith(".fq.gz") || readsPath.endsWith(".fastq") || readsPath.endsWith(".fq")) {
                 if (fqends == null) {
                     fqends = new FastqReader[numEnds];

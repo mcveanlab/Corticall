@@ -18,13 +18,17 @@ public class RecordsWriter implements Callable<List<CortexGraph>> {
     private String sampleName;
     private int kmerSize;
     private BlockingQueue<List<CortexRecord>> writeQueue;
+    private int numThreads;
     private Logger log;
 
-    public RecordsWriter(File cgout, String sampleName, int kmerSize, BlockingQueue<List<CortexRecord>> writeQueue, Logger log) {
+    private int numPoisonPills = 0;
+
+    public RecordsWriter(File cgout, String sampleName, int kmerSize, BlockingQueue<List<CortexRecord>> writeQueue, int numThreads, Logger log) {
         this.cgout = cgout;
         this.sampleName = sampleName;
         this.kmerSize = kmerSize;
         this.writeQueue = writeQueue;
+        this.numThreads = numThreads;
         this.log = log;
     }
 
@@ -67,14 +71,13 @@ public class RecordsWriter implements Callable<List<CortexGraph>> {
             while (true) {
                 lrs = writeQueue.peek();
 
-                if (lrs == null) {
+                if (numPoisonPills == numThreads) {
+                    break;
+                } else if (lrs == null) {
                     Thread.sleep(5000);
                 } else if (lrs.size() == 0) {
-                    if (writeQueue.size() > 1) {
-                        lrs = writeQueue.take();
-                    } else {
-                        break;
-                    }
+                    lrs = writeQueue.take();
+                    numPoisonPills++;
                 } else {
                     lrs = writeQueue.take();
 
