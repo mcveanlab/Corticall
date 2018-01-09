@@ -15,6 +15,7 @@ import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Iterator;
 
 import static uk.ac.ox.well.cortexjdk.utils.io.reads.Reads.SeqType.*;
@@ -32,7 +33,7 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
 
     private Pair<FastqRecord, FastqRecord> nextRecord;
 
-    public Reads(File readsFile) {
+    public Reads(File readsFile) throws FileNotFoundException {
         String[] pieces = readsFile.getAbsolutePath().split(":");
         numEnds = pieces.length;
 
@@ -44,7 +45,8 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
             String readsPath = pieces[i];
 
             if (! new File(readsPath).exists()) {
-                throw new CortexJDKException("File not found: '" + readsPath + "'");
+                //throw new CortexJDKException("File not found: '" + readsPath + "'");
+                throw new FileNotFoundException("File not found: '" + readsPath + "'");
             }
 
             if (readsPath.endsWith(".fastq.gz") || readsPath.endsWith(".fq.gz") || readsPath.endsWith(".fastq") || readsPath.endsWith(".fq")) {

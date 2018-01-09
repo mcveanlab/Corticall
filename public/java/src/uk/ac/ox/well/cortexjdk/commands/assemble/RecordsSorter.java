@@ -12,13 +12,11 @@ import org.slf4j.Logger;
 public class RecordsSorter implements Runnable {
     private BlockingQueue<List<CortexRecord>> readQueue;
     private BlockingQueue<List<CortexRecord>> writeQueue;
-    //private int numThreads;
     private Logger log;
 
     public RecordsSorter(BlockingQueue<List<CortexRecord>> readQueue, BlockingQueue<List<CortexRecord>> writeQueue, Logger log) {
         this.readQueue = readQueue;
         this.writeQueue = writeQueue;
-        //this.numThreads = numThreads;
         this.log = log;
     }
 
@@ -39,7 +37,9 @@ public class RecordsSorter implements Runnable {
 
                     Collections.sort(lrs);
 
-                    log.info("  sorted {} records [{}]", lrs.size(), Thread.currentThread().getName());
+                    if (lrs.size() > 0) {
+                        log.info("  - sorted: {} records [{}]", lrs.size(), Thread.currentThread().getName());
+                    }
 
                     writeQueue.put(lrs);
                 }

@@ -56,10 +56,7 @@ public class CortexGraphWriter {
 
             for (int color = 0; color < header.getNumColors(); color++) {
                 long totalSequence = header.getColor(color).getTotalSequence();
-
-                bb.order(ByteOrder.BIG_ENDIAN);
                 bb.putLong(totalSequence);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
             }
 
             for (int color = 0; color < header.getNumColors(); color++) {
@@ -70,7 +67,13 @@ public class CortexGraphWriter {
             }
 
             for (int color = 0; color < header.getNumColors(); color++) {
-                byte[] errorRate = new byte[16];
+                // The Cortex ctx spec requires a 16-byte long double that specifies the error rate of the
+                // sequencing data.  However, 1. I don't know how this is calculated, and 2. there's no
+                // easy way of writing a long double in Java, and 3. it seems that McCortex always sets the
+                // error rate to 0.01.  Therefore, the following line encodes a 16-byte array that hard-codes
+                // the error rate of new graphs to the same value.  This ensures that a diff of a McCortex
+                // graph and a CortexJDK graph will return no differences.
+                byte[] errorRate = new byte[] { 0, (byte) 0xd8, (byte) 0xa3, (byte) 0x70, (byte) 0x3d, (byte) 0x0a, (byte) 0xd7, (byte) 0xa3, (byte) 0xf8, (byte) 0x3f, 0, 0, 0, 0, 0, 0 };
                 bb.put(errorRate);
             }
 

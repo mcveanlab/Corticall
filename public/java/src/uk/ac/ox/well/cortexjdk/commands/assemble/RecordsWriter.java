@@ -91,7 +91,7 @@ public class RecordsWriter implements Callable<List<CortexGraph>> {
 
                     cgw.close();
 
-                    log.info("  wrote {} records to {} [{}]", lrs.size(), cgf.getAbsolutePath(), Thread.currentThread().getName());
+                    log.info("  -  wrote: {} records to {} [{}]", lrs.size(), cgf.getAbsolutePath(), Thread.currentThread().getName());
 
                     graphs.add(new CortexGraph(cgf));
                 }

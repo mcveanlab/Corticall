@@ -11,7 +11,7 @@ public class CortexColor {
     private boolean cleanedAgainstGraph = false;
     private int lowCovSupernodesThreshold = 0;
     private int lowCovKmerThreshold = 0;
-    private String cleanedAgainstGraphName = "unknown";
+    private String cleanedAgainstGraphName = "undefined";
 
     public int getMeanReadLength() {
         return meanReadLength;

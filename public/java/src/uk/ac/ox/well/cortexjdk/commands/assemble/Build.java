@@ -1,8 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.assemble;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
-import org.apache.commons.math3.util.MathUtils;
-import picard.util.MathUtil;
+import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
@@ -35,16 +34,88 @@ public class Build extends Module {
 
     @Override
     public void execute() {
-        log.info("Loading and sorting graph chunks...");
-        List<CortexGraph> pieces = buildSortedTempGraphs(READ_FILES, KMER_SIZE, SAMPLE_NAME, NUM_THREADS, out);
+        verifyFiles(READ_FILES);
 
-        log.info("Merging {} sorted graph chunks...", pieces.size());
-        mergeTempGraphs(pieces);
+        log.info("Loading and sorting graph chunks...");
+        Pair<List<CortexGraph>, Pair<Long, Integer>> val = buildSortedTempGraphs(READ_FILES, KMER_SIZE, SAMPLE_NAME, NUM_THREADS, out);
+
+        log.info("Merging sorted graph chunks...");
+        mergeSortedTempGraphs(val.getFirst(), val.getSecond());
     }
 
-    private CortexGraph mergeTempGraphs(List<CortexGraph> pieces) {
+    private void verifyFiles(List<File> readFiles) {
+        for (File readFile : readFiles) {
+            String[] pieces = readFile.getAbsolutePath().split(":");
+
+            for (String piece : pieces) {
+                if (! new File(piece).exists()) {
+                    throw new CortexJDKException("File not found: '" + piece + "'");
+                }
+            }
+        }
+    }
+
+    private long presumableFreeMemory() {
+        long allocatedMemory = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
+
+        return Runtime.getRuntime().maxMemory() - allocatedMemory;
+    }
+
+    private Pair<List<CortexGraph>, Pair<Long, Integer>> buildSortedTempGraphs(List<File> readFiles, int kmerSize, String sampleName, int numThreads, File cgout) {
+        final long assumedRecordSize = RamUsageEstimator.sizeOf(new CortexRecord(CortexRecord.encodeBinaryKmer(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(kmerSize)),
+                                                       new int[1],
+                                                       new byte[1],
+                                                       kmerSize,
+                                                       CortexRecord.getKmerBits(kmerSize)));
+
+        long freeMem = presumableFreeMemory();
+        int overheadFactor = 2;
+        int maxRecordsPerThread = (int) ((float) freeMem / (float) (overheadFactor*assumedRecordSize*numThreads));
+
+        log.info("  using {} threads, max {} records per thread", numThreads, maxRecordsPerThread);
+
+        ThreadPoolExecutor execIO   = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ThreadPoolExecutor execSort = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+
+        BlockingQueue<List<CortexRecord>> readQueue = new ArrayBlockingQueue<>(2);
+        BlockingQueue<List<CortexRecord>> writeQueue = new ArrayBlockingQueue<>(2);
+
+        Future<Pair<Long, Integer>> gStatsFuture = execIO.submit(new RecordsProducer(readQueue, readFiles, kmerSize, maxRecordsPerThread, log));
+
+        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
+        futures.add(execIO.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, numThreads, log)));
+
+        for (int i = 0; i < numThreads; i++) {
+            execSort.submit(new RecordsSorter(readQueue, writeQueue, log));
+        }
+
+        List<CortexGraph> pieces = new ArrayList<>();
+        Pair<Long, Integer> gstats;
+        try {
+            for (Future<List<CortexGraph>> future : futures) {
+                pieces.addAll(future.get());
+            }
+            gstats = gStatsFuture.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new CortexJDKException("Error retrieving temp graph results", e);
+        }
+
+        execIO.shutdown();
+        execSort.shutdown();
+
+        return new Pair<>(pieces, gstats);
+    }
+
+    private CortexGraph mergeSortedTempGraphs(List<CortexGraph> pieces, Pair<Long, Integer> gstats) {
+        log.info("  merging {} chunks", pieces.size());
+
         CortexGraphWriter cgw = new CortexGraphWriter(out);
-        cgw.setHeader(pieces.get(0).getHeader());
+
+        CortexHeader ch = pieces.get(0).getHeader();
+        ch.getColor(0).setTotalSequence(gstats.getFirst());
+        ch.getColor(0).setMeanReadLength(gstats.getSecond());
+        ch.getColor(0).setErrorRate(0.01);
+        cgw.setHeader(ch);
 
         int kmerBits = CortexRecord.getKmerBits(KMER_SIZE);
 
@@ -80,56 +151,9 @@ public class Build extends Module {
 
         CortexGraph cg = new CortexGraph(out);
 
-        log.info("  wrote {} unique records to {}", cg.getNumRecords(), cg.getFile().getAbsolutePath());
+        log.info("  -  wrote: {} unique records to {}", cg.getNumRecords(), cg.getFile().getAbsolutePath());
 
         return cg;
     }
 
-    private long presumableFreeMemory() {
-        long allocatedMemory = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
-
-        return Runtime.getRuntime().maxMemory() - allocatedMemory;
-    }
-
-    private List<CortexGraph> buildSortedTempGraphs(List<File> readFiles, int kmerSize, String sampleName, int numThreads, File cgout) {
-        final long assumedRecordSize = RamUsageEstimator.sizeOf(new CortexRecord(CortexRecord.encodeBinaryKmer(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(kmerSize)),
-                                                       new int[1],
-                                                       new byte[1],
-                                                       kmerSize,
-                                                       CortexRecord.getKmerBits(kmerSize)));
-
-        long freeMem = presumableFreeMemory();
-        int overheadFactor = 2;
-        int maxRecordsPerThread = (int) ((float) freeMem / (float) (overheadFactor*assumedRecordSize*numThreads));
-
-        log.info("  using {} threads, max {} records per thread", numThreads, maxRecordsPerThread);
-
-        ThreadPoolExecutor execIO   = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-        ThreadPoolExecutor execSort = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
-
-        BlockingQueue<List<CortexRecord>> readQueue = new ArrayBlockingQueue<>(2);
-        BlockingQueue<List<CortexRecord>> writeQueue = new ArrayBlockingQueue<>(2);
-
-        execIO.submit(new RecordsProducer(readQueue, readFiles, kmerSize, maxRecordsPerThread, log));
-
-        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
-        futures.add(execIO.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, numThreads, log)));
-
-        for (int i = 0; i < numThreads; i++) {
-            execSort.submit(new RecordsSorter(readQueue, writeQueue, log));
-        }
-
-        List<CortexGraph> pieces = new ArrayList<>();
-        try {
-            for (Future<List<CortexGraph>> future : futures) {
-                pieces.addAll(future.get());
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            throw new CortexJDKException("Error retrieving temp graph results", e);
-        }
-
-        execIO.shutdown();
-        execSort.shutdown();
-        return pieces;
-    }
 }

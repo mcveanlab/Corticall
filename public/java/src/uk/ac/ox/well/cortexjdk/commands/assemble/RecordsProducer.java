@@ -10,13 +10,17 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.reads.Reads;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import org.slf4j.Logger;
+import java.util.concurrent.Callable;
 
-public class RecordsProducer implements Runnable {
+import org.slf4j.Logger;
+import uk.ac.ox.well.cortexjdk.utils.statistics.misc.StatisticsOnStream;
+
+public class RecordsProducer implements Callable<Pair<Long, Integer>> {
     private BlockingQueue<List<CortexRecord>> queue;
     private List<File> readFiles;
     private int kmerSize;
@@ -32,11 +36,16 @@ public class RecordsProducer implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Pair<Long, Integer> call() throws Exception {
         List<CortexRecord> frs = new ArrayList<>(maxReads);
 
         try {
+            StatisticsOnStream sos = new StatisticsOnStream();
+            long totalSequence = 0;
+
             for (File readFile : readFiles) {
+                log.info("  processing '{}'", readFile.getAbsolutePath());
+
                 Reads reads = new Reads(readFile);
 
                 for (Pair<FastqRecord, FastqRecord> p : reads) {
@@ -45,6 +54,9 @@ public class RecordsProducer implements Runnable {
                     if (p.getSecond() != null) { rs.add(p.getSecond().getReadString()); }
 
                     for (String r : rs) {
+                        sos.push(r.length());
+                        totalSequence += r.length();
+
                         for (int i = 0; i <= r.length() - kmerSize; i++) {
                             String sk = r.substring(i, i + kmerSize);
 
@@ -60,7 +72,7 @@ public class RecordsProducer implements Runnable {
                     if (frs.size() >= maxReads) {
                         queue.put(frs);
 
-                        log.info("  queued {} records [{}]", frs.size(), Thread.currentThread().getName());
+                        log.info("  - queued: {} records [{}]", frs.size(), Thread.currentThread().getName());
 
                         frs = new ArrayList<>();
                     }
@@ -70,12 +82,18 @@ public class RecordsProducer implements Runnable {
             if (frs.size() > 0) {
                 queue.put(frs);
 
-                log.info("  queued last {} records [{}]", frs.size(), Thread.currentThread().getName());
+                log.info("  - queued: {} records [{}]", frs.size(), Thread.currentThread().getName());
             }
 
             queue.put(new ArrayList<>());
+
+            //log.info("{} {}", totalSequence, Math.floor(sos.getMean()));
+
+            return new Pair<>(totalSequence, (int) Math.floor(sos.getMean()));
         } catch (InterruptedException e) {
             throw new CortexJDKException("Interrupted while adding records to processing queue", e);
+        } catch (FileNotFoundException e) {
+            throw new CortexJDKException("File not found", e);
         }
     }
 
