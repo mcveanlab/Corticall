@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble;
+package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;

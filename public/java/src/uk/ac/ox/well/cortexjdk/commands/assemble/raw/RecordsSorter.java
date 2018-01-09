@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble;
+package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;

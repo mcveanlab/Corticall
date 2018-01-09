@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble;
+package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -42,10 +42,9 @@ public class RecordsProducer implements Callable<Pair<Long, Integer>> {
         try {
             StatisticsOnStream sos = new StatisticsOnStream();
             long totalSequence = 0;
+            long numReads = 0;
 
             for (File readFile : readFiles) {
-                log.info("  processing '{}'", readFile.getAbsolutePath());
-
                 Reads reads = new Reads(readFile);
 
                 for (Pair<FastqRecord, FastqRecord> p : reads) {
@@ -60,19 +59,23 @@ public class RecordsProducer implements Callable<Pair<Long, Integer>> {
                         for (int i = 0; i <= r.length() - kmerSize; i++) {
                             String sk = r.substring(i, i + kmerSize);
 
-                            List<Set<String>> allInEdges = createSingleSampleInEdgeList(r, i);
-                            List<Set<String>> allOutEdges = createSingleSampleOutEdgeList(r, i, kmerSize);
+                            if (!sk.contains("N")) {
+                                List<Set<String>> allInEdges = createSingleSampleInEdgeList(r, i);
+                                List<Set<String>> allOutEdges = createSingleSampleOutEdgeList(r, i, kmerSize);
 
-                            CortexRecord cr = new CortexRecord(sk, Lists.newArrayList(1), allInEdges, allOutEdges);
+                                CortexRecord cr = new CortexRecord(sk, Lists.newArrayList(1), allInEdges, allOutEdges);
 
-                            frs.add(cr);
+                                frs.add(cr);
+                            }
                         }
+
+                        numReads++;
                     }
 
                     if (frs.size() >= maxReads) {
                         queue.put(frs);
 
-                        log.info("  - queued: {} records [{}]", frs.size(), Thread.currentThread().getName());
+                        log.info("  - queued: {} records, {} reads processed [{}]", frs.size(), numReads, Thread.currentThread().getName());
 
                         frs = new ArrayList<>();
                     }
@@ -82,12 +85,10 @@ public class RecordsProducer implements Callable<Pair<Long, Integer>> {
             if (frs.size() > 0) {
                 queue.put(frs);
 
-                log.info("  - queued: {} records [{}]", frs.size(), Thread.currentThread().getName());
+                log.info("  - queued: {} records, {} reads processed [{}]", frs.size(), numReads, Thread.currentThread().getName());
             }
 
             queue.put(new ArrayList<>());
-
-            //log.info("{} {}", totalSequence, Math.floor(sos.getMean()));
 
             return new Pair<>(totalSequence, (int) Math.floor(sos.getMean()));
         } catch (InterruptedException e) {

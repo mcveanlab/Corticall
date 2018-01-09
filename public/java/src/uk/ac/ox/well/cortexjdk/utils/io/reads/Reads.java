@@ -12,6 +12,7 @@ import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.fq.FqReader;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
 
 import java.io.File;
@@ -23,7 +24,8 @@ import static uk.ac.ox.well.cortexjdk.utils.io.reads.Reads.SeqType.*;
 public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator<Pair<FastqRecord, FastqRecord>> {
     public enum SeqType { FASTQ, SAM, FASTA, TEXT }
 
-    private FastqReader[] fqends;
+//    private FastqReader[] fqends;
+    private FqReader[] fqends;
     private SAMRecordIterator[] sams;
     private FastaSequenceFile[] faends;
     private LineReader[] lends;
@@ -45,13 +47,13 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
             String readsPath = pieces[i];
 
             if (! new File(readsPath).exists()) {
-                //throw new CortexJDKException("File not found: '" + readsPath + "'");
                 throw new FileNotFoundException("File not found: '" + readsPath + "'");
             }
 
             if (readsPath.endsWith(".fastq.gz") || readsPath.endsWith(".fq.gz") || readsPath.endsWith(".fastq") || readsPath.endsWith(".fq")) {
                 if (fqends == null) {
-                    fqends = new FastqReader[numEnds];
+//                    fqends = new FastqReader[numEnds];
+                    fqends = new FqReader[numEnds];
                     type = FASTQ;
                 } else {
                     if (type != FASTQ) {
@@ -59,7 +61,8 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
                     }
                 }
 
-                fqends[i] = new FastqReader(new File(readsPath));
+//                fqends[i] = new FastqReader(new File(readsPath));
+                fqends[i] = new FqReader(new File(readsPath));
             } else if (readsPath.endsWith(".sam") || readsPath.endsWith(".bam")) {
                 if (sams == null) {
                     sams = new SAMRecordIterator[numEnds];

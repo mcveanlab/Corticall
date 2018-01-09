@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble;
+package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import org.apache.commons.math3.util.Pair;
@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class Build extends Module {
+public class BuildRawGraph extends Module {
     @Argument(fullName="reads", shortName="r", doc="Read sequences")
     public ArrayList<File> READ_FILES;
 
@@ -69,25 +69,26 @@ public class Build extends Module {
                                                        CortexRecord.getKmerBits(kmerSize)));
 
         long freeMem = presumableFreeMemory();
-        int overheadFactor = 2;
+        int overheadFactor = 1;
         int maxRecordsPerThread = (int) ((float) freeMem / (float) (overheadFactor*assumedRecordSize*numThreads));
 
-        log.info("  using {} threads, max {} records per thread", numThreads, maxRecordsPerThread);
+        log.info("  using {} threads, approx {} records per thread", numThreads, maxRecordsPerThread);
 
-        ThreadPoolExecutor execIO   = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-        ThreadPoolExecutor execSort = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+        ThreadPoolExecutor execInput  = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ThreadPoolExecutor execSort   = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+        ThreadPoolExecutor execOutput = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
         BlockingQueue<List<CortexRecord>> readQueue = new ArrayBlockingQueue<>(2);
         BlockingQueue<List<CortexRecord>> writeQueue = new ArrayBlockingQueue<>(2);
 
-        Future<Pair<Long, Integer>> gStatsFuture = execIO.submit(new RecordsProducer(readQueue, readFiles, kmerSize, maxRecordsPerThread, log));
-
-        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
-        futures.add(execIO.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, numThreads, log)));
+        Future<Pair<Long, Integer>> gStatsFuture = execInput.submit(new RecordsProducer(readQueue, readFiles, kmerSize, maxRecordsPerThread, log));
 
         for (int i = 0; i < numThreads; i++) {
             execSort.submit(new RecordsSorter(readQueue, writeQueue, log));
         }
+
+        List<Future<List<CortexGraph>>> futures = new ArrayList<>();
+        futures.add(execOutput.submit(new RecordsWriter(out, sampleName, kmerSize, writeQueue, numThreads, log)));
 
         List<CortexGraph> pieces = new ArrayList<>();
         Pair<Long, Integer> gstats;
@@ -100,7 +101,7 @@ public class Build extends Module {
             throw new CortexJDKException("Error retrieving temp graph results", e);
         }
 
-        execIO.shutdown();
+        execInput.shutdown();
         execSort.shutdown();
 
         return new Pair<>(pieces, gstats);
