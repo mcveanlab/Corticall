@@ -93,8 +93,6 @@ public class RecordsProducer implements Callable<Pair<Long, Integer>> {
             return new Pair<>(totalSequence, (int) Math.floor(sos.getMean()));
         } catch (InterruptedException e) {
             throw new CortexJDKException("Interrupted while adding records to processing queue", e);
-        } catch (FileNotFoundException e) {
-            throw new CortexJDKException("File not found", e);
         }
     }
 

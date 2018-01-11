@@ -35,7 +35,7 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
 
     private Pair<FastqRecord, FastqRecord> nextRecord;
 
-    public Reads(File readsFile) throws FileNotFoundException {
+    public Reads(File readsFile) {
         String[] pieces = readsFile.getAbsolutePath().split(":");
         numEnds = pieces.length;
 
@@ -47,7 +47,7 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
             String readsPath = pieces[i];
 
             if (! new File(readsPath).exists()) {
-                throw new FileNotFoundException("File not found: '" + readsPath + "'");
+                throw new CortexJDKException("File not found: '" + readsPath + "'");
             }
 
             if (readsPath.endsWith(".fastq.gz") || readsPath.endsWith(".fq.gz") || readsPath.endsWith(".fastq") || readsPath.endsWith(".fq")) {

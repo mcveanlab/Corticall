@@ -13,6 +13,8 @@ public class FqReader implements Iterator<FastqRecord>, Iterable<FastqRecord> {
     private Scanner sc;
 
     public FqReader(File fileToRead) {
+        SnappyI
+
         try {
             is = new GZIPInputStream(new FileInputStream(fileToRead), 4096*64);
 
