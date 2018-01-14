@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.commands.simulate;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -12,6 +13,8 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
@@ -51,11 +54,17 @@ public class SimulateHaploidChild extends Module {
     @Argument(fullName="numBubbles", shortName="b", doc="Number of bubbles per type per chr")
     public Integer NUM_BUBBLES = 1;
 
+    @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
+    public Integer KMER_SIZE = 47;
+
     @Output
     public PrintStream out;
 
     @Output(fullName="variantsOut", shortName="vo", doc="Variants out")
     public PrintStream vout;
+
+    @Output(fullName="kmersOut", shortName="ko", doc="Kmers out")
+    public PrintStream kout;
 
     private Random rng;
 
@@ -76,7 +85,7 @@ public class SimulateHaploidChild extends Module {
         List<GFF3Record> gffs = new ArrayList<>();
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Processing chromosomes")
+                .header("Processing chromosomes...")
                 .message("processed")
                 .maxRecord(CHRS1.size())
                 .make(log);
@@ -129,7 +138,10 @@ public class SimulateHaploidChild extends Module {
             vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new TandemDuplicationGenerator(i)));
         }
 
-        List<String> newSeqs = collapse(seqs, vs);
+        Set<CortexBinaryKmer> cbks = getParentalKmers(REF1, REF2, KMER_SIZE);
+
+        log.info("Collapsing into new linear haploid reference...");
+        List<String> newSeqs = collapse(seqs, cbks, vs);
 
         for (int i = 0; i < newSeqs.size(); i++) {
             out.println(">" + i);
@@ -137,7 +149,44 @@ public class SimulateHaploidChild extends Module {
         }
     }
 
-    private List<String> collapse(List<Pair<List<String>, List<Integer>>> seqs, Set<GeneratedVariant> vs) {
+    private Set<CortexBinaryKmer> getParentalKmers(IndexedFastaSequenceFile ref1, IndexedFastaSequenceFile ref2, int kmerSize) {
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Computing parental kmers...")
+                .message("processed")
+                .maxRecord(ref1.getSequenceDictionary().size() + ref2.getSequenceDictionary().size())
+                .make(log);
+
+        Set<CortexBinaryKmer> cbks = new HashSet<>();
+        for (IndexedFastaSequenceFile ref : Arrays.asList(ref1, ref2)) {
+            ReferenceSequence rseq;
+            while ((rseq = ref.nextSequence()) != null) {
+                byte[] bseq = rseq.getBases();
+
+                for (int i = 0; i <= bseq.length - kmerSize; i++) {
+                    byte[] bk = new byte[kmerSize];
+                    System.arraycopy(bseq, i, bk, 0, kmerSize);
+
+                    boolean hasNs = false;
+                    for (int j = 0; j < bk.length; j++) {
+                        if (bk[j] == 'N' || bk[j] == 'n') {
+                            hasNs = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasNs) {
+                        cbks.add(new CortexBinaryKmer(bk));
+                    }
+                }
+
+                pm.update();
+            }
+        }
+
+        return cbks;
+    }
+
+    private List<String> collapse(List<Pair<List<String>, List<Integer>>> seqs, Set<CortexBinaryKmer> cbks, Set<GeneratedVariant> vs) {
         List<GeneratedVariant> lvs = new ArrayList<>(vs);
 
         List<StringBuilder> newSbs = new ArrayList<>();
@@ -166,6 +215,16 @@ public class SimulateHaploidChild extends Module {
             String seedLeft = sb.substring(gv.posIndex - 100, gv.posIndex);
             String seedRight = sb.substring(gv.posIndex + gv.newAllele.length(), gv.posIndex + gv.newAllele.length() + 100);
 
+            Set<String> novelKmers = new LinkedHashSet<>();
+            for (int p = gv.posIndex - 100; p <= gv.posIndex + gv.newAllele.length() + 100 - KMER_SIZE; p++) {
+                String sk = sb.substring(p, p + KMER_SIZE).toUpperCase();
+                CortexBinaryKmer cbk = new CortexBinaryKmer(sk.getBytes());
+
+                if (!cbks.contains(cbk)) {
+                    novelKmers.add(sk);
+                }
+            }
+
             vout.println(Joiner.on("\t").join(i,
                                               gv.getSeqIndex(),
                                               gv.getPosIndex(),
@@ -176,6 +235,12 @@ public class SimulateHaploidChild extends Module {
                                               gv.getNewAllele().length() == 0 ? "." : gv.getNewAllele(),
                                               seedLeft,
                                               seedRight));
+
+            int nki = 0;
+            for (String nk : novelKmers) {
+                kout.println(Joiner.on("\t").join(i, novelKmers.size(), nki, nk));
+                nki++;
+            }
         }
 
         List<String> newSeqs = new ArrayList<>();
