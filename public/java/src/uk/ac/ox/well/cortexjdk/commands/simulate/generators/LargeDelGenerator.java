@@ -16,8 +16,7 @@ public class LargeDelGenerator implements VariantGenerator {
     @Override
     public GeneratedVariant permute(String seq, int posIndex, Random rng) {
         int end = posIndex + rng.nextInt(1000) + 1000;
-
-        String oldAllele = seq.substring(posIndex, posIndex + rng.nextInt(1000) + 1000);
+        String oldAllele = seq.substring(posIndex, end);
 
         return new GeneratedVariant(getType(), getSeqIndex(), posIndex, oldAllele, "");
     }

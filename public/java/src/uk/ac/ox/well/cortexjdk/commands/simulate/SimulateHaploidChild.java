@@ -332,9 +332,12 @@ public class SimulateHaploidChild extends Module {
         String seq = sb.toString();
 
         for (int i = 0; i < num; i++) {
-            int posIndex = rng.nextInt(seq.length() - 1110) + 105;
+            GeneratedVariant gv;
+            do {
+                int posIndex = rng.nextInt(seq.length() - 1110) + 105;
+                gv = v.permute(seq, posIndex, rng);
+            } while (gv.getOldAllele().contains("N") || gv.getNewAllele().contains("N"));
 
-            GeneratedVariant gv = v.permute(seq, posIndex, rng);
             vs.add(gv);
         }
 

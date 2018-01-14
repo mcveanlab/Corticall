@@ -23,7 +23,7 @@ public class StrConGenerator implements VariantGenerator {
 
         for (int i = 0; i < seq.length() - s; i++) {
             String repeatUnit = seq.substring(i, i + s);
-            if (i + s + s < seq.length() && repeatUnit.equals(seq.substring(i + s, i + s + s))) {
+            if (!repeatUnit.contains("N") && i + s + s < seq.length() && repeatUnit.equals(seq.substring(i + s, i + s + s))) {
                 loci.add(i);
             }
         }
