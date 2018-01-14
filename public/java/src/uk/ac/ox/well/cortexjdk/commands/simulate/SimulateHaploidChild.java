@@ -208,7 +208,7 @@ public class SimulateHaploidChild extends Module {
             GeneratedVariant gv = lvs.get(i);
             StringBuilder sb = newSbs.get(gv.seqIndex);
 
-            log.info("{} {} {}", i, gv, sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()));
+            //log.info("{} {} {}", i, gv, sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()));
 
             sb = sb.replace(gv.posIndex, gv.posIndex + gv.oldAllele.length(), gv.newAllele);
 
