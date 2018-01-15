@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
+import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
@@ -98,45 +99,38 @@ public class FindUnanchored extends Module {
 
                         seenRois.add(ck);
                     } else {
-                        String code = "?";
-                        for (String background : LOOKUPS.keySet()) {
-                            Set<Interval> intervals = LOOKUPS.get(background).find(sk);
-
-                            if (intervals.size() == 1) {
-                                code = "1";
-                            } else if (intervals.size() == 0 && !code.equals("1")) {
-                                code = "?";
-                            } else if (intervals.size() > 1 && !code.equals("1")) {
-                                code = "_";
-                            }
-                        }
-
-                        annb.append(code);
+                        annb.append("_");
                     }
                 }
 
                 String ann = annb.toString();
 
                 List<String> pieces = SequenceUtils.splitAtPositions(ann, SequenceUtils.computeSplits(ann, '.'));
-                boolean leftAnchored = false;
                 boolean novelsSeen = false;
-                boolean rightAnchored = false;
+                boolean hasAlignments = false;
 
-                for (String piece : pieces) {
-                    if (!piece.contains(".") && piece.contains("1")) {
-                        if (!novelsSeen) {
-                            leftAnchored = true;
-                        } else {
-                            rightAnchored = true;
+                for (int i = 0; i < pieces.size(); i++) {
+                    if (pieces.contains(".")) {
+                        novelsSeen = true;
+                    } else {
+                        for (String background : LOOKUPS.keySet()) {
+                            List<SAMRecord> srs = LOOKUPS.get(background).getAligner().align(pieces.get(i));
+
+                            for (SAMRecord sr : srs) {
+                                if (sr.getMappingQuality() > 0) {
+                                    hasAlignments = true;
+                                    break;
+                                }
+                            }
                         }
                     }
 
-                    if (piece.contains(".")) {
-                        novelsSeen = true;
+                    if (novelsSeen && hasAlignments) {
+                        break;
                     }
                 }
 
-                if (!leftAnchored || !rightAnchored) {
+                if (!hasAlignments) {
                     log.debug("    discard: {}", ann);
 
                     unanchored.addAll(seenRois);
@@ -154,23 +148,17 @@ public class FindUnanchored extends Module {
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
-        //CortexGraphWriter cgt = new CortexGraphWriter(unanchored_out);
-        //cgt.setHeader(ROI.getHeader());
-
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
             if (!unanchored.contains(rr.getCanonicalKmer())) {
-                //cgw.addRecord(rr);
                 numKept++;
             } else {
-                //cgt.addRecord(rr);
                 cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        //cgt.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
