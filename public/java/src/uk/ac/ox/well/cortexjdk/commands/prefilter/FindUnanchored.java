@@ -110,7 +110,7 @@ public class FindUnanchored extends Module {
                 boolean hasAlignments = false;
 
                 for (int i = 0; i < pieces.size(); i++) {
-                    if (pieces.contains(".")) {
+                    if (pieces.get(i).contains(".")) {
                         novelsSeen = true;
                     } else {
                         for (String background : LOOKUPS.keySet()) {
