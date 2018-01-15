@@ -49,9 +49,6 @@ public class FindTips extends Module {
     @Output
     public File out;
 
-    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    //public File tips_out;
-
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
@@ -92,85 +89,23 @@ public class FindTips extends Module {
 
                 List<CortexVertex> l = e.walk(rr.getKmerAsString());
 
-                boolean novelEnds = used.containsKey(l.get(0).getCanonicalKmer()) || used.containsKey(l.get(l.size() - 1).getCanonicalKmer());
+                boolean leftNovelEnd = used.containsKey(l.get(0).getCanonicalKmer());
+                boolean noLeftEdges = e.getPrevVertices(l.get(0).getKmerAsByteKmer()).size() == 0;
+
+                boolean rightNovelEnd = used.containsKey(l.get(l.size() - 1).getCanonicalKmer());
+                boolean noRightEdges = e.getNextVertices(l.get(l.size() - 1).getKmerAsByteKmer()).size() == 0;
+
+                boolean isTip = (leftNovelEnd && noLeftEdges) || (rightNovelEnd && noRightEdges);
 
                 for (CortexVertex cv : l) {
                     if (used.containsKey(cv.getCanonicalKmer())) {
                         used.put(cv.getCanonicalKmer(), true);
 
-                        if (novelEnds) {
+                        if (isTip) {
                             tips.add(cv.getCanonicalKmer());
                         }
                     }
                 }
-
-                /*
-                Graph<CortexVertex, CortexEdge> dfsToParents = null;
-                Graph<CortexVertex, CortexEdge> dfsToFree = null;
-
-                for (boolean goForward : Arrays.asList(true, false)) {
-                    TraversalEngine eFwd = new TraversalEngineFactory()
-                            .traversalDirection(goForward ? FORWARD : REVERSE)
-                            .combinationOperator(AND)
-                            .traversalColor(childColor)
-                            .joiningColors(parentColors)
-                            .stoppingRule(TipBeginningStopper.class)
-                            .rois(ROI)
-                            .graph(GRAPH)
-                            .make();
-
-                    TraversalEngine eRev = new TraversalEngineFactory()
-                            .traversalDirection(goForward ? REVERSE : FORWARD)
-                            .combinationOperator(AND)
-                            .traversalColor(childColor)
-                            .joiningColors(parentColors)
-                            .stoppingRule(TipEndStopper.class)
-                            .rois(ROI)
-                            .graph(GRAPH)
-                            .make();
-
-                    dfsToParents = eFwd.dfs(rr.getKmerAsString());
-                    dfsToFree = eRev.dfs(rr.getKmerAsString());
-
-                    if (dfsToParents != null) {
-                        for (CortexVertex cv : dfsToParents.vertexSet()) {
-                            if (used.containsKey(cv.getCanonicalKmer())) {
-                                used.put(cv.getCanonicalKmer(), true);
-                            }
-                        }
-                    }
-
-                    if (dfsToFree != null) {
-                        for (CortexVertex cv : dfsToFree.vertexSet()) {
-                            if (used.containsKey(cv.getCanonicalKmer())) {
-                                used.put(cv.getCanonicalKmer(), true);
-                            }
-                        }
-                    }
-
-                    if (dfsToParents != null && dfsToParents.vertexSet().size() > 0 && dfsToFree != null && dfsToFree.vertexSet().size() > 0) {
-                        break;
-                    }
-                }
-
-                DirectedGraph<CortexVertex, CortexEdge> dfs = null;
-                if (dfsToParents != null && dfsToParents.vertexSet().size() > 0 && dfsToFree != null && dfsToFree.vertexSet().size() > 0) {
-                    dfs = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-                    Graphs.addGraph(dfs, dfsToParents);
-                    Graphs.addGraph(dfs, dfsToFree);
-                }
-
-                if (dfs != null && dfs.vertexSet().size() > 0) {
-                    numTipChains++;
-
-                    log.debug("    tip chain {}, seed {}, {} vertices", numTipChains, rr.getKmerAsString(), dfs.vertexSet().size());
-
-                    for (CortexVertex av : dfs.vertexSet()) {
-                        tips.add(av.getCanonicalKmer());
-                    }
-                }
-                */
             }
 
             pm.update();
