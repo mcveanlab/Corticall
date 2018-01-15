@@ -22,10 +22,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
@@ -68,11 +65,16 @@ public class FindTips extends Module {
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
+        Map<CanonicalKmer, Boolean> used = new HashMap<>();
+        for (CortexRecord rr : ROI) {
+            used.put(rr.getCanonicalKmer(), false);
+        }
+
         Set<CanonicalKmer> tips = new HashSet<>();
         int numTipChains = 0;
 
-        for (CortexRecord rr : ROI) {
-            if (!tips.contains(rr.getCanonicalKmer())) {
+        for (CanonicalKmer rr : used.keySet()) {
+            if (!used.get(rr)) {
                 Graph<CortexVertex, CortexEdge> dfsToParents = null;
                 Graph<CortexVertex, CortexEdge> dfsToFree = null;
 
@@ -100,6 +102,22 @@ public class FindTips extends Module {
                     dfsToParents = eFwd.dfs(rr.getKmerAsString());
                     dfsToFree = eRev.dfs(rr.getKmerAsString());
 
+                    if (dfsToParents != null) {
+                        for (CortexVertex cv : dfsToParents.vertexSet()) {
+                            if (used.containsKey(cv.getCanonicalKmer())) {
+                                used.put(cv.getCanonicalKmer(), true);
+                            }
+                        }
+                    }
+
+                    if (dfsToFree != null) {
+                        for (CortexVertex cv : dfsToFree.vertexSet()) {
+                            if (used.containsKey(cv.getCanonicalKmer())) {
+                                used.put(cv.getCanonicalKmer(), true);
+                            }
+                        }
+                    }
+
                     if (dfsToParents != null && dfsToParents.vertexSet().size() > 0 && dfsToFree != null && dfsToFree.vertexSet().size() > 0) {
                         break;
                     }
@@ -112,7 +130,6 @@ public class FindTips extends Module {
                     Graphs.addGraph(dfs, dfsToParents);
                     Graphs.addGraph(dfs, dfsToFree);
                 }
-
 
                 if (dfs != null && dfs.vertexSet().size() > 0) {
                     numTipChains++;
