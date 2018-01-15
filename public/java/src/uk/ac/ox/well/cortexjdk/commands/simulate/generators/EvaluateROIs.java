@@ -23,9 +23,6 @@ public class EvaluateROIs extends Module {
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROIS;
 
-    //@Argument(fullName="graph", shortName="g", doc="Graph", required=false)
-    //public CortexGraph GRAPH;
-
     @Override
     public void execute() {
         Set<CanonicalKmer> allRois = new HashSet<>();
@@ -52,19 +49,6 @@ public class EvaluateROIs extends Module {
             }
         }
 
-        /*
-        TraversalEngine e = null;
-        if (GRAPH != null) {
-            e = new TraversalEngineFactory()
-                    .traversalDirection(BOTH)
-                    .combinationOperator(OR)
-                    .traversalColor(2)
-                    .rois(ROIS)
-                    .graph(GRAPH)
-                    .make();
-        }
-        */
-
         int uniqueToRois = 0, shared = 0, uniqueToKnowns = 0;
 
         for (CanonicalKmer ck : allRois) {
@@ -75,35 +59,15 @@ public class EvaluateROIs extends Module {
                 Map<String, String> te = knownRois.get(ck);
 
                 log.info("shared         {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
+                shared++;
             } else {
                 Map<String, String> te = knownRois.get(ck);
 
                 log.info("uniqueToKnowns {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
+                uniqueToKnowns++;
             }
         }
 
-
-        /*
-        for (CortexRecord cr : ROIS) {
-            if (found.containsKey(cr.getCanonicalKmer())) {
-                found.put(cr.getCanonicalKmer(), true);
-            } else {
-                if (e != null) {
-                    List<CortexVertex> l = e.walk(cr.getKmerAsString());
-
-                    log.info("missing: {}", cr);
-                    for (CortexVertex v : l) {
-                        log.info("  {}", v);
-                    }
-                }
-            }
-        }
-        */
-
-        for (CanonicalKmer ck : found.keySet()) {
-            Map<String, String> te = knownRois.get(ck);
-
-            log.info("{} {} {} {} {}", te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
-        }
+        log.info("uniqueToRois={}, shared={}, uniqueToKnowns={}", uniqueToRois, shared, uniqueToKnowns);
     }
 }
