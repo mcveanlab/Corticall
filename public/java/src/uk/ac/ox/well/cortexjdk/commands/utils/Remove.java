@@ -80,6 +80,8 @@ public class Remove extends Module {
             pm.update("processed (kept: " + numKept + ", removed: " + numRemoved + ")");
         }
 
+        log.info("  finished (kept: {}, removed: {})");
+
         cgw.close();
     }
 }
