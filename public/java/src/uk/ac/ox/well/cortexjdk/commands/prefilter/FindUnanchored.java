@@ -10,6 +10,7 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
@@ -30,6 +31,9 @@ import java.util.*;
 public class FindUnanchored extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
+
+    @Argument(fullName = "links", shortName = "l", doc = "Links", required = false)
+    public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName = "parents", shortName = "p", doc = "Parents")
     public ArrayList<String> PARENTS;
@@ -74,8 +78,10 @@ public class FindUnanchored extends Module {
                 .rois(ROI)
                 .stoppingRule(ContigStopper.class)
                 .graph(GRAPH)
+                .links(LINKS)
                 .make();
 
+        Set<CanonicalKmer> used = new HashSet<>();
         Set<CanonicalKmer> unanchored = new HashSet<>();
         int numUnanchoredChains = 0;
 
@@ -85,7 +91,7 @@ public class FindUnanchored extends Module {
         }
 
         for (CanonicalKmer rk : rois) {
-            if (!unanchored.contains(rk)) {
+            if (!used.contains(rk)) {
                 String contig = TraversalEngine.toContig(e.walk(rk.getKmerAsString()));
 
                 Set<CanonicalKmer> seenRois = new HashSet<>();
@@ -138,6 +144,7 @@ public class FindUnanchored extends Module {
                     unanchored.addAll(seenRois);
                     numUnanchoredChains++;
                 }
+                used.addAll(seenRois);
             }
 
             pm.update();
