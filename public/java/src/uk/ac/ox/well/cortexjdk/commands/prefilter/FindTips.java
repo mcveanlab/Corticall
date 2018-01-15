@@ -10,10 +10,12 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TipBeginningStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TipEndStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
@@ -25,13 +27,15 @@ import java.io.File;
 import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 @Description(text="Find chains of novel kmers only anchored at one end")
 public class FindTips extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
+
+    @Argument(fullName = "links", shortName = "l", doc = "Links", required = false)
+    public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
@@ -75,6 +79,32 @@ public class FindTips extends Module {
 
         for (CanonicalKmer rr : used.keySet()) {
             if (!used.get(rr)) {
+                TraversalEngine e = new TraversalEngineFactory()
+                        .traversalDirection(BOTH)
+                        .combinationOperator(AND)
+                        .traversalColor(childColor)
+                        .joiningColors(parentColors)
+                        .stoppingRule(ContigStopper.class)
+                        .rois(ROI)
+                        .graph(GRAPH)
+                        .links(LINKS)
+                        .make();
+
+                List<CortexVertex> l = e.walk(rr.getKmerAsString());
+
+                boolean novelEnds = used.containsKey(l.get(0).getCanonicalKmer()) || used.containsKey(l.get(l.size() - 1).getCanonicalKmer());
+
+                for (CortexVertex cv : l) {
+                    if (used.containsKey(cv.getCanonicalKmer())) {
+                        used.put(cv.getCanonicalKmer(), true);
+
+                        if (novelEnds) {
+                            tips.add(cv.getCanonicalKmer());
+                        }
+                    }
+                }
+
+                /*
                 Graph<CortexVertex, CortexEdge> dfsToParents = null;
                 Graph<CortexVertex, CortexEdge> dfsToFree = null;
 
@@ -140,6 +170,7 @@ public class FindTips extends Module {
                         tips.add(av.getCanonicalKmer());
                     }
                 }
+                */
             }
 
             pm.update();
