@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
@@ -14,7 +15,8 @@ import java.io.File;
 /**
  * Created by kiran on 28/08/2017.
  */
-public class RemoveLowCoverage extends Module {
+@Description(text="Find low-coverage kmers")
+public class FindLowCoverage extends Module {
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 

@@ -31,8 +31,8 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
-@Description(text="Remove graph tips (chains of novel kmers only anchored at one end)")
-public class RemoveTips extends Module {
+@Description(text="Find chains of novel kmers only anchored at one end")
+public class FindTips extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 

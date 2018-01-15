@@ -25,8 +25,8 @@ import java.util.Set;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
-@Description(text="Remove chains of low-complexity kmers")
-public class RemoveDust extends Module {
+@Description(text="Find chains of low-complexity kmers")
+public class FindDust extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 

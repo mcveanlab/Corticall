@@ -1,16 +1,17 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
-import org.jetbrains.annotations.NotNull;
 import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContaminantStopper;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.OrphanStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
@@ -21,11 +22,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
-@Description(text="Remove chains of contaminating kmers")
-public class RemoveContamination extends Module {
+@Description(text="Find chains of orphaned kmers (those that don't ever connect to parents)")
+public class FindOrphans extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -38,14 +39,11 @@ public class RemoveContamination extends Module {
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
-    @Argument(fullName="contamination", shortName="contam", doc="Contam")
-    public CortexGraph CONTAM;
-
     @Output
     public File out;
 
     //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    //public File contam_out;
+    //public File orphans_out;
 
     @Override
     public void execute() {
@@ -57,98 +55,83 @@ public class RemoveContamination extends Module {
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Finding contamination")
+                .header("Finding orphans")
                 .message("records processed")
-                .maxRecord(CONTAM.getNumRecords())
+                .maxRecord(ROI.getNumRecords())
                 .make(log);
 
-        Set<CanonicalKmer> roiKmers = new HashSet<>();
-        for (CortexRecord rc : ROI) {
-            roiKmers.add(rc.getCanonicalKmer());
-        }
-
-        Set<CanonicalKmer> contamKmers = new HashSet<>();
-        int numContamChains = 0;
+        Set<CanonicalKmer> orphans = new HashSet<>();
+        int numOrphanChains = 0;
 
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalDirection(BOTH)
-                .combinationOperator(OR)
+                .combinationOperator(AND)
                 .traversalColor(childColor)
                 .joiningColors(parentColors)
-                .stoppingRule(ContaminantStopper.class)
+                .stoppingRule(OrphanStopper.class)
                 .rois(ROI)
                 .graph(GRAPH)
                 .make();
 
-        for (CortexRecord cr : CONTAM) {
-            if (roiKmers.contains(cr.getCanonicalKmer()) && !contamKmers.contains(cr.getCanonicalKmer())) {
-                Graph<CortexVertex, CortexEdge> dfs = e.dfs(cr.getKmerAsString());
+        for (CortexRecord rr : ROI) {
+            if (!orphans.contains(rr.getCanonicalKmer())) {
+                /*
+                Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
 
-                if (dfs.vertexSet().size() > 0) {
+                if (dfs != null && dfs.vertexSet().size() > 0) {
+                    numOrphanChains++;
+
                     for (CortexVertex av : dfs.vertexSet()) {
-                        CanonicalKmer ck = av.getCanonicalKmer();
-
-                        contamKmers.add(ck);
+                        orphans.add(av.getCanonicalKmer());
                     }
+                }
+                */
 
-                    numContamChains++;
+                CortexRecord cr = GRAPH.findRecord(rr.getKmerAsString());
+                if (e.getNextVertices(cr.getKmerAsByteKmer()).size() == 0 || e.getPrevVertices(cr.getKmerAsByteKmer()).size() == 0) {
+                    Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
+
+                    if (dfs != null && dfs.vertexSet().size() > 0) {
+                        numOrphanChains++;
+
+                        for (CortexVertex av : dfs.vertexSet()) {
+                            orphans.add(av.getCanonicalKmer());
+                        }
+                    }
                 }
             }
 
             pm.update();
         }
 
-        log.info("Found {} contamination kmer chains ({} kmers total)", numContamChains, contamKmers.size());
+        log.info("Found {} orphaned kmer chains ({} kmers total)", numOrphanChains, orphans.size());
 
         log.info("Writing...");
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
-        cgw.setHeader(makeCortexHeader());
+        cgw.setHeader(ROI.getHeader());
 
-        //CortexGraphWriter cgc = new CortexGraphWriter(contam_out);
-        //cgc.setHeader(ROI.getHeader());
+        //CortexGraphWriter cgo = new CortexGraphWriter(orphans_out);
+        //cgo.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!contamKmers.contains(rr.getCanonicalKmer())) {
+            if (!orphans.contains(rr.getCanonicalKmer())) {
                 //cgw.addRecord(rr);
                 numKept++;
             } else {
-                //cgc.addRecord(rr);
+                //cgo.addRecord(rr);
                 cgw.addRecord(rr);
                 numExcluded++;
             }
         }
 
         cgw.close();
-        //cgc.close();
+        //cgo.close();
 
         log.info("  {}/{} ({}%) kept, {}/{} ({}%) excluded",
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
                 numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
         );
-    }
-
-    @NotNull
-    private CortexHeader makeCortexHeader() {
-        CortexHeader ch = new CortexHeader();
-        ch.setVersion(6);
-        ch.setNumColors(1);
-        ch.setKmerSize(GRAPH.getKmerSize());
-        ch.setKmerBits(GRAPH.getKmerBits());
-
-        CortexColor cc = new CortexColor();
-        cc.setCleanedAgainstGraph(false);
-        cc.setCleanedAgainstGraphName("");
-        cc.setErrorRate(0);
-        cc.setLowCovgKmersRemoved(false);
-        cc.setLowCovgSupernodesRemoved(false);
-        cc.setTipClippingApplied(false);
-        cc.setTotalSequence(0);
-        cc.setSampleName(CHILD);
-
-        ch.addColor(cc);
-
-        return ch;
     }
 }

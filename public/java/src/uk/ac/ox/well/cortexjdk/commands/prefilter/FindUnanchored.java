@@ -4,6 +4,7 @@ import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
@@ -23,7 +24,8 @@ import java.util.*;
 /**
  * Created by kiran on 21/07/2017.
  */
-public class RemoveUnanchored extends Module {
+@Description(text="Find novel kmers in contigs that cannot be confidently placed on any available reference")
+public class FindUnanchored extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 

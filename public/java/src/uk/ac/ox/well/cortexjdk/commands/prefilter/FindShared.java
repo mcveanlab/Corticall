@@ -1,6 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
-import org.jgrapht.Graph;
+import com.google.api.client.util.Joiner;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
@@ -11,22 +11,15 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.OrphanStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-
-@Description(text="Remove chains of orphaned kmers (those that don't ever connect to parents)")
-public class RemoveOrphans extends Module {
+@Description(text="Find kmers shared among children (as these are unlikely to tag de novo mutations)")
+public class FindShared extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -36,87 +29,79 @@ public class RemoveOrphans extends Module {
     @Argument(fullName="child", shortName="c", doc="Child")
     public String CHILD;
 
-    @Argument(fullName="roi", shortName="r", doc="ROI")
+    @Argument(fullName="ignore", shortName="i", doc="Ignore specified samples", required=false)
+    public ArrayList<String> IGNORE;
+
+    @Argument(fullName="roi", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
     @Output
     public File out;
 
     //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    //public File orphans_out;
+    //public File shared_out;
 
     @Override
     public void execute() {
         int childColor = GRAPH.getColorForSampleName(CHILD);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
+        Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
         log.info("Colors:");
         log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Finding orphans")
+                .header("Finding shared kmers")
                 .message("records processed")
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
-        Set<CanonicalKmer> orphans = new HashSet<>();
-        int numOrphanChains = 0;
-
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalDirection(BOTH)
-                .combinationOperator(AND)
-                .traversalColor(childColor)
-                .joiningColors(parentColors)
-                .stoppingRule(OrphanStopper.class)
-                .rois(ROI)
-                .graph(GRAPH)
-                .make();
+        Set<CanonicalKmer> sharedKmers = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
-            if (!orphans.contains(rr.getCanonicalKmer())) {
-                /*
-                Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
+            if (!sharedKmers.contains(rr.getCanonicalKmer())) {
+                CortexRecord cr = GRAPH.findRecord(rr.getCanonicalKmer());
 
-                if (dfs != null && dfs.vertexSet().size() > 0) {
-                    numOrphanChains++;
+                boolean isShared = false;
 
-                    for (CortexVertex av : dfs.vertexSet()) {
-                        orphans.add(av.getCanonicalKmer());
+                for (int c = 0; c < GRAPH.getNumColors(); c++) {
+                    if (c != childColor && !parentColors.contains(c) && !ignoreColors.contains(c) && cr.getCoverage(c) > 0) {
+                        sharedKmers.add(rr.getCanonicalKmer());
+                        isShared = true;
+
+                        break;
                     }
                 }
-                */
 
-                CortexRecord cr = GRAPH.findRecord(rr.getKmerAsString());
-                if (e.getNextVertices(cr.getKmerAsByteKmer()).size() == 0 || e.getPrevVertices(cr.getKmerAsByteKmer()).size() == 0) {
-                    Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
+                if (isShared && log.isDebugEnabled()) {
+                    List<String> records = new ArrayList<>();
 
-                    if (dfs != null && dfs.vertexSet().size() > 0) {
-                        numOrphanChains++;
-
-                        for (CortexVertex av : dfs.vertexSet()) {
-                            orphans.add(av.getCanonicalKmer());
-                        }
+                    for (int c = 0; c < GRAPH.getNumColors(); c++) {
+                        records.add(String.format("%d:%d", c, cr.getCoverage(c)));
                     }
+
+                    log.debug("{}", Joiner.on(' ').join(records));
                 }
             }
 
             pm.update();
         }
 
-        log.info("Found {} orphaned kmer chains ({} kmers total)", numOrphanChains, orphans.size());
+        log.info("Found {} shared kmers", sharedKmers.size());
 
         log.info("Writing...");
 
         CortexGraphWriter cgw = new CortexGraphWriter(out);
         cgw.setHeader(ROI.getHeader());
 
-        //CortexGraphWriter cgo = new CortexGraphWriter(orphans_out);
+        //CortexGraphWriter cgo = new CortexGraphWriter(shared_out);
         //cgo.setHeader(ROI.getHeader());
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!orphans.contains(rr.getCanonicalKmer())) {
+            if (!sharedKmers.contains(rr.getCanonicalKmer())) {
                 //cgw.addRecord(rr);
                 numKept++;
             } else {
