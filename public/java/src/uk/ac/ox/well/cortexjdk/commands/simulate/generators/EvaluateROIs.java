@@ -11,10 +11,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
@@ -26,11 +23,13 @@ public class EvaluateROIs extends Module {
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROIS;
 
-    @Argument(fullName="graph", shortName="g", doc="Graph", required=false)
-    public CortexGraph GRAPH;
+    //@Argument(fullName="graph", shortName="g", doc="Graph", required=false)
+    //public CortexGraph GRAPH;
 
     @Override
     public void execute() {
+        Set<CanonicalKmer> allRois = new HashSet<>();
+
         TableReader tr = new TableReader(KNOWN_ROIS, "id", "numKmers", "index", "kmer");
 
         Map<CanonicalKmer, Map<String, String>> knownRois = new HashMap<>();
@@ -39,8 +38,21 @@ public class EvaluateROIs extends Module {
             CanonicalKmer ck = new CanonicalKmer(te.get("kmer"));
             knownRois.put(ck, te);
             found.put(ck, false);
+
+            allRois.add(ck);
         }
 
+        Set<CanonicalKmer> calledRois = new HashSet<>();
+        for (CortexRecord cr : ROIS) {
+            allRois.add(cr.getCanonicalKmer());
+            calledRois.add(cr.getCanonicalKmer());
+
+            if (found.containsKey(cr.getCanonicalKmer())) {
+                found.put(cr.getCanonicalKmer(), true);
+            }
+        }
+
+        /*
         TraversalEngine e = null;
         if (GRAPH != null) {
             e = new TraversalEngineFactory()
@@ -51,7 +63,27 @@ public class EvaluateROIs extends Module {
                     .graph(GRAPH)
                     .make();
         }
+        */
 
+        int uniqueToRois = 0, shared = 0, uniqueToKnowns = 0;
+
+        for (CanonicalKmer ck : allRois) {
+            if (!knownRois.containsKey(ck)) {
+                log.info("uniqueToRois   {}", ck);
+                uniqueToRois++;
+            } else if (found.containsKey(ck) && found.get(ck)) {
+                Map<String, String> te = knownRois.get(ck);
+
+                log.info("shared         {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
+            } else {
+                Map<String, String> te = knownRois.get(ck);
+
+                log.info("uniqueToKnowns {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
+            }
+        }
+
+
+        /*
         for (CortexRecord cr : ROIS) {
             if (found.containsKey(cr.getCanonicalKmer())) {
                 found.put(cr.getCanonicalKmer(), true);
@@ -66,6 +98,7 @@ public class EvaluateROIs extends Module {
                 }
             }
         }
+        */
 
         for (CanonicalKmer ck : found.keySet()) {
             Map<String, String> te = knownRois.get(ck);
