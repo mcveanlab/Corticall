@@ -1,8 +1,10 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
+import htsjdk.samtools.SAMRecord;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
@@ -17,9 +19,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
@@ -40,6 +40,9 @@ public class FindContamination extends Module {
 
     @Argument(fullName="contamination", shortName="contam", doc="Contam")
     public CortexGraph CONTAM;
+
+    @Argument(fullName = "drafts", shortName = "d", doc = "Drafts")
+    public HashMap<String, KmerLookup> LOOKUPS;
 
     @Output
     public File out;
@@ -62,9 +65,9 @@ public class FindContamination extends Module {
                 .maxRecord(CONTAM.getNumRecords())
                 .make(log);
 
-        Set<CanonicalKmer> roiKmers = new HashSet<>();
+        Map<CanonicalKmer, Boolean> roiKmers = new HashMap<>();
         for (CortexRecord rc : ROI) {
-            roiKmers.add(rc.getCanonicalKmer());
+            roiKmers.put(rc.getCanonicalKmer(), false);
         }
 
         Set<CanonicalKmer> contamKmers = new HashSet<>();
@@ -81,16 +84,62 @@ public class FindContamination extends Module {
                 .make();
 
         for (CortexRecord cr : CONTAM) {
-            if (roiKmers.contains(cr.getCanonicalKmer()) && !contamKmers.contains(cr.getCanonicalKmer())) {
-                Graph<CortexVertex, CortexEdge> dfs = e.dfs(cr.getKmerAsString());
+            if (roiKmers.containsKey(cr.getCanonicalKmer()) && !roiKmers.get(cr.getCanonicalKmer())) {
+                List<CortexVertex> l = e.walk(cr.getKmerAsString());
 
-                if (dfs.vertexSet().size() > 0) {
-                    for (CortexVertex av : dfs.vertexSet()) {
-                        CanonicalKmer ck = av.getCanonicalKmer();
+                List<String> pieces = new ArrayList<>();
+                List<String> piece = new ArrayList<>();
 
-                        contamKmers.add(ck);
+                for (CortexVertex cv : l) {
+                    String sk = cv.getKmerAsString();
+                    CanonicalKmer ck = cv.getCanonicalKmer();
+
+                    if (roiKmers.containsKey(ck)) {
+                        if (piece.size() > 0) {
+                            pieces.add(combineKmers(piece));
+                            piece = new ArrayList<>();
+                        }
+                        roiKmers.put(ck, true);
+                    } else {
+                        piece.add(sk);
                     }
+                }
 
+                if (piece.size() > 0) {
+                    pieces.add(combineKmers(piece));
+                }
+
+
+                boolean wellAligned = false;
+
+                for (String p : pieces) {
+                    for (String background : LOOKUPS.keySet()) {
+                        List<SAMRecord> srs = LOOKUPS.get(background).getAligner().align(p);
+
+                        int numAlignments = 0;
+                        for (SAMRecord sr : srs) {
+                            if (sr.getMappingQuality() > 0) {
+                                numAlignments++;
+                            }
+                        }
+
+                        if (numAlignments == 1) {
+                            wellAligned = true;
+                        }
+                    }
+                }
+
+                for (CortexVertex v : l) {
+                    if (roiKmers.containsKey(v.getCanonicalKmer())) {
+                        roiKmers.put(v.getCanonicalKmer(), true);
+
+                        if (!wellAligned) {
+                            contamKmers.add(v.getCanonicalKmer());
+                        }
+                    }
+                }
+
+                if (wellAligned) {
                     numContamChains++;
                 }
             }
@@ -150,5 +199,18 @@ public class FindContamination extends Module {
         ch.addColor(cc);
 
         return ch;
+    }
+
+    @NotNull
+    private String combineKmers(List<String> piece) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : piece) {
+            if (sb.length() == 0) {
+                sb.append(s);
+            } else {
+                sb.append(s.substring(s.length() - 1, s.length()));
+            }
+        }
+        return sb.toString();
     }
 }
