@@ -6,11 +6,18 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 public class EvaluateROIs extends Module {
     @Argument(fullName="knownRois", shortName="k", doc="Known ROIs")
@@ -18,6 +25,9 @@ public class EvaluateROIs extends Module {
 
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROIS;
+
+    @Argument(fullName="graph", shortName="g", doc="Graph")
+    public CortexGraph GRAPH;
 
     @Override
     public void execute() {
@@ -31,11 +41,24 @@ public class EvaluateROIs extends Module {
             found.put(ck, false);
         }
 
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalDirection(BOTH)
+                .combinationOperator(OR)
+                .traversalColor(2)
+                .rois(ROIS)
+                .graph(GRAPH)
+                .make();
+
         for (CortexRecord cr : ROIS) {
             if (found.containsKey(cr.getCanonicalKmer())) {
                 found.put(cr.getCanonicalKmer(), true);
             } else {
+                List<CortexVertex> l = e.walk(cr.getKmerAsString());
+
                 log.info("missing: {}", cr);
+                for (CortexVertex v : l) {
+                    log.info("  {}", v);
+                }
             }
         }
 
