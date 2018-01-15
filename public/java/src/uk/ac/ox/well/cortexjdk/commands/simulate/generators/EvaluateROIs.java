@@ -57,28 +57,28 @@ public class EvaluateROIs extends Module {
 
         int uniqueToRois = 0, shared = 0, uniqueToKnowns = 0;
 
-        out.println(Joiner.on(" ").join("class", "ck", "id", "numKmers", "index", "kmer", "found"));
+        out.println(Joiner.on("\t").join("class", "ck", "id", "numKmers", "index", "kmer", "found"));
 
         for (CanonicalKmer ck : allRois) {
             if (!knownRois.containsKey(ck)) {
                 log.info("uniqueToRois   {}", ck);
                 uniqueToRois++;
 
-                out.println(Joiner.on(" ").join("uniqueToRois", ck, null, null, null, null, null));
+                out.println(Joiner.on("\t").join("uniqueToRois", ck, "NA", "NA", "NA", "NA", "NA"));
             } else if (found.containsKey(ck) && found.get(ck)) {
                 Map<String, String> te = knownRois.get(ck);
 
                 log.info("shared         {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
                 shared++;
 
-                out.println(Joiner.on(" ").join("shared", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck)));
+                out.println(Joiner.on("\t").join("shared", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck)));
             } else {
                 Map<String, String> te = knownRois.get(ck);
 
                 log.info("uniqueToKnowns {} {} {} {} {} {}", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck));
                 uniqueToKnowns++;
 
-                out.println(Joiner.on(" ").join("uniqueToKnowns", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck)));
+                out.println(Joiner.on("\t").join("uniqueToKnowns", ck, te.get("id"), te.get("numKmers"), te.get("index"), te.get("kmer"), found.get(ck)));
             }
         }
 
