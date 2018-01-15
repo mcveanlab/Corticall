@@ -34,6 +34,8 @@ public class EvaluateROIs extends Module {
         for (CortexRecord cr : ROIS) {
             if (found.containsKey(cr.getCanonicalKmer())) {
                 found.put(cr.getCanonicalKmer(), true);
+            } else {
+                log.info("missing: {}", cr);
             }
         }
 
