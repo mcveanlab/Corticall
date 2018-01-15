@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Interval;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -86,53 +87,54 @@ public class FindUnanchored extends Module {
         for (CanonicalKmer rk : rois) {
             if (!unanchored.contains(rk)) {
                 String contig = TraversalEngine.toContig(e.walk(rk.getKmerAsString()));
-                StringBuilder annb = new StringBuilder();
 
                 Set<CanonicalKmer> seenRois = new HashSet<>();
+                List<String> pieces = new ArrayList<>();
+                List<String> piece = new ArrayList<>();
 
                 for (int i = 0; i <= contig.length() - GRAPH.getKmerSize(); i++) {
                     String sk = contig.substring(i, i + GRAPH.getKmerSize());
                     CanonicalKmer ck = new CanonicalKmer(sk);
 
                     if (rois.contains(ck)) {
-                        annb.append(".");
-
+                        if (piece.size() > 0) {
+                            pieces.add(combineKmers(piece));
+                            piece = new ArrayList<>();
+                        }
                         seenRois.add(ck);
                     } else {
-                        annb.append("_");
+                        piece.add(sk);
                     }
                 }
 
-                String ann = annb.toString();
+                if (piece.size() > 0) {
+                    pieces.add(combineKmers(piece));
+                }
 
-                List<String> pieces = SequenceUtils.splitAtPositions(ann, SequenceUtils.computeSplits(ann, '.'));
-                boolean novelsSeen = false;
                 boolean hasAlignments = false;
+                for (String p : pieces) {
+                    for (String background : LOOKUPS.keySet()) {
+                        List<SAMRecord> srs = LOOKUPS.get(background).getAligner().align(p);
 
-                for (int i = 0; i < pieces.size(); i++) {
-                    if (pieces.get(i).contains(".")) {
-                        novelsSeen = true;
-                    } else {
-                        for (String background : LOOKUPS.keySet()) {
-                            List<SAMRecord> srs = LOOKUPS.get(background).getAligner().align(pieces.get(i));
+                        for (SAMRecord sr : srs) {
+                            int numAlignments = 0;
+                            if (sr.getMappingQuality() > 0) {
+                                numAlignments++;
+                            }
 
-                            for (SAMRecord sr : srs) {
-                                if (sr.getMappingQuality() > 0) {
-                                    hasAlignments = true;
-                                    break;
-                                }
+                            if (numAlignments == 1) {
+                                hasAlignments = true;
+                                break;
                             }
                         }
                     }
 
-                    if (novelsSeen && hasAlignments) {
+                    if (hasAlignments) {
                         break;
                     }
                 }
 
                 if (!hasAlignments) {
-                    log.debug("    discard: {}", ann);
-
                     unanchored.addAll(seenRois);
                     numUnanchoredChains++;
                 }
@@ -164,5 +166,18 @@ public class FindUnanchored extends Module {
                 numKept,     ROI.getNumRecords(), 100.0f * (float) numKept / (float) ROI.getNumRecords(),
                 numExcluded, ROI.getNumRecords(), 100.0f * (float) numExcluded / (float) ROI.getNumRecords()
         );
+    }
+
+    @NotNull
+    private String combineKmers(List<String> piece) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : piece) {
+            if (sb.length() == 0) {
+                sb.append(s);
+            } else {
+                sb.append(s.substring(s.length() - 1, s.length()));
+            }
+        }
+        return sb.toString();
     }
 }
