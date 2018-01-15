@@ -46,7 +46,7 @@ public class Remove extends Module {
 
         for (CortexRecord cr : cc) {
             boolean found = false;
-            for (int c = 1; c < cr.getNumColors(); c++) {
+            for (int c = PGRAPH.getNumColors(); c < cr.getNumColors(); c++) {
                 if (cr.getCoverage(c) > 0) {
                     found = true;
                     break;
@@ -54,10 +54,18 @@ public class Remove extends Module {
             }
 
             if (!found) {
+                int[] cov = new int[PGRAPH.getNumColors()];
+                byte[] edges = new byte[PGRAPH.getNumColors()];
+
+                for (int c = 0; c < PGRAPH.getNumColors(); c++) {
+                    cov[c] = cr.getCoverage(c);
+                    edges[c] = cr.getEdges()[c];
+                }
+
                 CortexRecord ncr = new CortexRecord(
                         cr.getBinaryKmer(),
-                        new int[] { cr.getCoverage(0) },
-                        new byte[] { cr.getEdges()[0] },
+                        cov,
+                        edges,
                         cr.getKmerSize(),
                         cr.getKmerBits()
                 );
