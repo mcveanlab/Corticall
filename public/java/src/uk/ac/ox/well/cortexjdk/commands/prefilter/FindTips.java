@@ -97,6 +97,10 @@ public class FindTips extends Module {
 
                 boolean isTip = (leftNovelEnd && noLeftEdges) || (rightNovelEnd && noRightEdges);
 
+                if (isTip) {
+                    numTipChains++;
+                }
+
                 for (CortexVertex cv : l) {
                     if (used.containsKey(cv.getCanonicalKmer())) {
                         used.put(cv.getCanonicalKmer(), true);
