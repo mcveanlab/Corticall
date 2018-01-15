@@ -26,7 +26,7 @@ public class EvaluateROIs extends Module {
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROIS;
 
-    @Argument(fullName="graph", shortName="g", doc="Graph")
+    @Argument(fullName="graph", shortName="g", doc="Graph", required=false)
     public CortexGraph GRAPH;
 
     @Override
@@ -41,23 +41,28 @@ public class EvaluateROIs extends Module {
             found.put(ck, false);
         }
 
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalDirection(BOTH)
-                .combinationOperator(OR)
-                .traversalColor(2)
-                .rois(ROIS)
-                .graph(GRAPH)
-                .make();
+        TraversalEngine e = null;
+        if (GRAPH != null) {
+            e = new TraversalEngineFactory()
+                    .traversalDirection(BOTH)
+                    .combinationOperator(OR)
+                    .traversalColor(2)
+                    .rois(ROIS)
+                    .graph(GRAPH)
+                    .make();
+        }
 
         for (CortexRecord cr : ROIS) {
             if (found.containsKey(cr.getCanonicalKmer())) {
                 found.put(cr.getCanonicalKmer(), true);
             } else {
-                List<CortexVertex> l = e.walk(cr.getKmerAsString());
+                if (e != null) {
+                    List<CortexVertex> l = e.walk(cr.getKmerAsString());
 
-                log.info("missing: {}", cr);
-                for (CortexVertex v : l) {
-                    log.info("  {}", v);
+                    log.info("missing: {}", cr);
+                    for (CortexVertex v : l) {
+                        log.info("  {}", v);
+                    }
                 }
             }
         }
