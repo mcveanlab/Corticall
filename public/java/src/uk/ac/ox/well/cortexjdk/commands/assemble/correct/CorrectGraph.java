@@ -161,7 +161,8 @@ public class CorrectGraph extends Module {
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(l.getFirst().getKmerAsString());
 
                             if (g != null && !cv0.equals(cv1)) {
-                                PathFinder pf = new PathFinder(g, 0);
+                                //PathFinder pf = new PathFinder(g, 0);
+                                PathFinder pf = new PathFinder(g, 1);
                                 GraphPath<CortexVertex, CortexEdge> gp = pf.getPathFinder(cv0, cv1);
 
                                 if (gp != null) {
