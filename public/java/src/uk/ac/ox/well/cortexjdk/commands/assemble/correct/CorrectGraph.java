@@ -9,10 +9,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
 import uk.ac.ox.well.cortexjdk.utils.io.reads.Reads;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
@@ -29,7 +26,7 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 
 public class CorrectGraph extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
-    public CortexGraph GRAPH;
+    public CortexMap GRAPH;
 
     @Argument(fullName="clean", shortName="c", doc="Clean graph")
     public CortexGraph CLEAN;

@@ -18,6 +18,7 @@ import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexMap;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
@@ -269,6 +270,8 @@ public class ArgumentHandler {
                 return new CanonicalKmer(value);
             } else if (type.equals(CortexGraph.class)) {
                 return new CortexGraph(value);
+            } else if (type.equals(CortexMap.class)) {
+                return new CortexMap(value);
             } else if (type.equals(CortexLinksIterable.class)) {
                 return new CortexLinksIterable(value);
             } else if (type.equals(CortexLinksMap.class)) {
