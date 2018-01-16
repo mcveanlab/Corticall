@@ -28,14 +28,19 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 public class CorrectGraph extends Module {
-    @Argument(fullName="dirty", shortName="d", doc="Dirty graph")
-    public CortexGraph DIRTY;
+    @Argument(fullName="graph", shortName="g", doc="Graph")
+    public CortexGraph GRAPH;
 
     @Argument(fullName="clean", shortName="c", doc="Clean graph")
     public CortexGraph CLEAN;
 
+    /*
+    @Argument(fullName="dirty", shortName="d", doc="Dirty graph")
+    public CortexGraph DIRTY;
+
     @Argument(fullName="ref", shortName="R", doc="Reference graphs", required = false)
     public ArrayList<CortexGraph> REFS;
+    */
 
     @Argument(fullName="reads", shortName="r", doc="Reads")
     public ArrayList<File> READS;
@@ -45,24 +50,28 @@ public class CorrectGraph extends Module {
 
     @Override
     public void execute() {
+        /*
         List<CortexGraph> graphs = new ArrayList<>();
         graphs.add(DIRTY);
         if (REFS != null) { graphs.addAll(REFS); }
 
         CortexCollection cc = new CortexCollection(graphs);
+        */
 
         List<Integer> refColors = new ArrayList<>();
-        for (int c = 1; c < cc.getNumColors(); c++) {
+        //for (int c = 1; c < cc.getNumColors(); c++) {
+        for (int c = 2; c < GRAPH.getNumColors(); c++) {
             refColors.add(c);
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(0)
+                //.traversalColor(0)
+                .traversalColor(1)
                 .recruitmentColors(refColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
                 .stoppingRule(GapClosingStopper.class)
-                .graph(cc)
+                .graph(GRAPH)
                 .make();
 
         Map<CanonicalKmer, CortexRecord> corrections = new TreeMap<>();
@@ -82,18 +91,24 @@ public class CorrectGraph extends Module {
                 for (FastqRecord fr : Arrays.asList(p.getFirst(), p.getSecond())) {
                     if (fr != null) {
                         String seq = fr.getReadString();
-                        CortexVertex[] cvs = new CortexVertex[seq.length() - CLEAN.getKmerSize() + 1];
+                        //CortexVertex[] cvs = new CortexVertex[seq.length() - CLEAN.getKmerSize() + 1];
+                        CortexVertex[] cvs = new CortexVertex[seq.length() - GRAPH.getKmerSize() + 1];
 
-                        for (int i = 0; i <= seq.length() - CLEAN.getKmerSize(); i++) {
-                            String sk = seq.substring(i, i + CLEAN.getKmerSize());
+                        //for (int i = 0; i <= seq.length() - CLEAN.getKmerSize(); i++) {
+                        for (int i = 0; i <= seq.length() - GRAPH.getKmerSize(); i++) {
+                            //String sk = seq.substring(i, i + CLEAN.getKmerSize());
+                            String sk = seq.substring(i, i + GRAPH.getKmerSize());
 
                             if (!sk.contains("N")) {
                                 CanonicalKmer ck = new CanonicalKmer(sk);
 
-                                CortexRecord cr = CLEAN.findRecord(ck);
-                                if (cr != null) {
-                                    CortexRecord dr = cc.findRecord(ck);
-                                    CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), dr);
+                                //CortexRecord cr = CLEAN.findRecord(ck);
+                                CortexRecord cr = GRAPH.findRecord(ck);
+                                //if (cr != null) {
+                                if (cr != null && cr.getCoverage(0) > 0) {
+                                    //CortexRecord dr = cc.findRecord(ck);
+                                    //CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), dr);
+                                    CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), cr);
 
                                     cvs[i] = cv;
                                 }
