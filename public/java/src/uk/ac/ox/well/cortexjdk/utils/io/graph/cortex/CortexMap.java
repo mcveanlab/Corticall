@@ -1,9 +1,12 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.cortex;
 
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -19,8 +22,16 @@ public class CortexMap implements DeBruijnGraph {
     private void loadGraph(File cortexFile) {
         this.graph = new CortexGraph(cortexFile);
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Loading graph...")
+                .message("records loaded")
+                .updateRecord(1000000)
+                .make(Main.getLogger());
+
         for (CortexRecord cr : graph) {
             recs.put(cr.getCortexBinaryKmer(), cr);
+
+            pm.update();
         }
     }
 
