@@ -10,7 +10,7 @@ import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
@@ -44,7 +44,7 @@ public class CompareContigLengths extends Module {
     public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName="references", shortName="R", doc="References")
-    public HashMap<String, KmerLookup> REFERENCES;
+    public HashMap<String, IndexedReference> REFERENCES;
 
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
@@ -597,7 +597,7 @@ public class CompareContigLengths extends Module {
         SAMRecord bestRecord = null;
         int bestRecordScore = Integer.MAX_VALUE;
 
-        for (KmerLookup kl : REFERENCES.values()) {
+        for (IndexedReference kl : REFERENCES.values()) {
             List<SAMRecord> recs = kl.getAligner().align(contig);
             List<SAMRecord> filteredRecs = new ArrayList<>();
 

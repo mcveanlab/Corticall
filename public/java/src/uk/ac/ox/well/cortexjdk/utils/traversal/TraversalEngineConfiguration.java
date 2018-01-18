@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
@@ -37,7 +37,7 @@ public class TraversalEngineConfiguration {
     private DeBruijnGraph graph;
     private DeBruijnGraph rois;
     private Set<ConnectivityAnnotations> links = new HashSet<>();
-    private Set<KmerLookup> kls = new HashSet<>();
+    private Set<IndexedReference> kls = new HashSet<>();
 
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
     public void setGraphCombinationOperator(GraphCombinationOperator gco) { this.gco = gco; }
@@ -86,8 +86,8 @@ public class TraversalEngineConfiguration {
     public DeBruijnGraph getRois() { return rois; }
     public void setRois(DeBruijnGraph rois) { this.rois = rois; }
 
-    public Set<KmerLookup> getReferences() { return kls; }
-    public void setReferences(Set<KmerLookup> kls) { this.kls = kls; }
+    public Set<IndexedReference> getReferences() { return kls; }
+    public void setReferences(Set<IndexedReference> kls) { this.kls = kls; }
 
     public void setMaxWalkLength(int maxLength) { this.maxLength = maxLength; }
     public int getMaxWalkLength() { return maxLength; }

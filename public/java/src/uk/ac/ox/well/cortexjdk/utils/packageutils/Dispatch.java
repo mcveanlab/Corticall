@@ -36,13 +36,13 @@ public class Dispatch {
         try {
             Class<? extends Module> module = (Class<? extends Module>) Class.forName(moduleName);
 
+            Main.getLogger().info("{}", getBanner());
+            //Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
+            Main.getLogger().info("java -jar cortexjdk.jar {} {}", module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
+            Main.getLogger().info("");
+
             Module instance = module.newInstance();
             instance.args = moduleArgs;
-
-            Set<String> specifiedArgs = new HashSet<>();
-            for (int i = 0; i < moduleArgs.length - 1; i+=2) {
-                specifiedArgs.add(moduleArgs[i]);
-            }
 
             Field[] instanceFields = instance.getClass().getDeclaredFields();
             Field[] superFields = instance.getClass().getSuperclass().getDeclaredFields();
@@ -50,6 +50,12 @@ public class Dispatch {
             List<Field> fields = new ArrayList<>();
             fields.addAll(Arrays.asList(instanceFields));
             fields.addAll(Arrays.asList(superFields));
+
+            /*
+            Set<String> specifiedArgs = new HashSet<>();
+            for (int i = 0; i < moduleArgs.length - 1; i+=2) {
+                specifiedArgs.add(moduleArgs[i]);
+            }
 
             List<String> defaultArgs = new ArrayList<>();
             for (Field field : fields) {
@@ -67,12 +73,13 @@ public class Dispatch {
                     }
                 }
             }
+            */
 
             instance.init();
 
-            Main.getLogger().info("{}", getBanner());
+            //Main.getLogger().info("{}", getBanner());
             //Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
-            Main.getLogger().info("");
+            //Main.getLogger().info("");
 
             Date startTime = new Date();
 

@@ -2,7 +2,7 @@ package uk.ac.ox.well.cortexjdk.utils.caller;
 
 import htsjdk.samtools.util.Interval;
 import org.jgrapht.traverse.DepthFirstIterator;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
@@ -144,7 +144,7 @@ public class BubbleCaller {
             while (d.hasNext()) {
                 CortexVertex cv = d.next();
                 Set<Interval> allIntervals = new HashSet<>();
-                for (KmerLookup kl : bc.getReferences().values()) {
+                for (IndexedReference kl : bc.getReferences().values()) {
                     Set<Interval> intervals = kl.find(cv.getKmerAsString());
                     if (intervals != null) {
                         allIntervals.addAll(intervals);

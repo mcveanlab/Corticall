@@ -8,7 +8,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
@@ -34,7 +34,7 @@ public class ComputeInheritance extends Module {
     public CortexGraph GRAPH;
 
     @Argument(fullName="references", shortName="r", doc="References")
-    public HashMap<String, KmerLookup> REFERENCES;
+    public HashMap<String, IndexedReference> REFERENCES;
 
     @Argument(fullName="parent", shortName="p", doc="Parents")
     public HashMap<String, String> PARENTS;
@@ -390,7 +390,7 @@ public class ComputeInheritance extends Module {
         }
 
         if (numDraftsWithCoverage == 1 && draftColor > -1) {
-            KmerLookup kl = REFERENCES.get(GRAPH.getSampleName(draftColor));
+            IndexedReference kl = REFERENCES.get(GRAPH.getSampleName(draftColor));
 
             Set<Interval> its = kl.find(cr.getKmerAsString());
 

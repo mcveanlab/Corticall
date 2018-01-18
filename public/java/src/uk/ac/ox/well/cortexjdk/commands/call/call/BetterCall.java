@@ -2,7 +2,7 @@ package uk.ac.ox.well.cortexjdk.commands.call.call;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -32,7 +32,7 @@ public class BetterCall extends Module {
     public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName = "references", shortName = "R", doc = "References")
-    public HashMap<String, KmerLookup> REFERENCES;
+    public HashMap<String, IndexedReference> REFERENCES;
 
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROI;

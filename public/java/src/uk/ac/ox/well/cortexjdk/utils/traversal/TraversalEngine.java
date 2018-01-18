@@ -78,6 +78,10 @@ public class TraversalEngine {
         return null;
     }
 
+    public List<CortexVertex> gwalk(String seed) {
+        return toWalk(dfs(seed), seed);
+    }
+
     public List<CortexVertex> walk(String seed) {
         validateConfiguration(seed);
 
@@ -140,18 +144,25 @@ public class TraversalEngine {
         }
 
         if (seed != null) {
+            w.add(seed);
+
+            Set<CortexVertex> seen = new HashSet<>();
             CortexVertex cv = seed;
-            while (g.outDegreeOf(cv) == 1) {
+            while (g.outDegreeOf(cv) == 1 && !seen.contains(cv)) {
                 CortexVertex nv = Graphs.successorListOf(g, cv).iterator().next();
                 w.add(nv);
+                seen.add(cv);
 
                 cv = nv;
             }
 
+            seen = new HashSet<>();
             cv = seed;
-            while (g.inDegreeOf(cv) == 1) {
+
+            while (g.inDegreeOf(cv) == 1 && !seen.contains(cv)) {
                 CortexVertex pv = Graphs.predecessorListOf(g, cv).iterator().next();
                 w.add(0, pv);
+                seen.add(cv);
 
                 cv = pv;
             }
@@ -230,6 +241,8 @@ public class TraversalEngine {
             Set<CortexVertex> nvs = getNextVertices(cv.getKmerAsByteKmer());
             avs = goForward ? nvs : pvs;
 
+            boolean addToVisitedList = true;
+
             if (!ec.getLinks().isEmpty()) {
                 CortexVertex qv = null;
                 if (goForward && hasNext()) {
@@ -242,6 +255,8 @@ public class TraversalEngine {
                     //avs = Collections.singleton(qv);
                     avs = new HashSet<>();
                     avs.add(qv);
+
+                    addToVisitedList = false;
                 }
             }
 
@@ -254,7 +269,9 @@ public class TraversalEngine {
                 connectVertex(g, cv, avs,  null);
             }
 
-            visited.add(cv);
+            if (addToVisitedList) {
+                visited.add(cv);
+            }
 
             // Avoid traversing infinite loops by removing from traversal consideration
             // those vertices that have already been incorporated into the graph.

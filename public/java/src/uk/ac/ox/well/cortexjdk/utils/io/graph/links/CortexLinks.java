@@ -1,11 +1,12 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
+import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;
 
 import java.io.File;
 
-public class CortexLinks implements uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations {
-    uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations links;
+public class CortexLinks implements ConnectivityAnnotations {
+    ConnectivityAnnotations links;
 
     public CortexLinks(String linksPath) { initialize(new File(linksPath)); }
 

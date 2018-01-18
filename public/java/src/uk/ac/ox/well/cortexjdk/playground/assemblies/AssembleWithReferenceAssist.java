@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.playground.assemblies;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -26,7 +26,7 @@ public class AssembleWithReferenceAssist extends Module {
     public CortexLinks LINKS;
 
     @Argument(fullName="ref", shortName="R", doc="Reference")
-    public KmerLookup REF;
+    public IndexedReference REF;
 
     @Output
     public PrintStream out;

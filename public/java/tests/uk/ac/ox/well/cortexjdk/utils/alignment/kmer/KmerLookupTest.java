@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Interval;
 import org.apache.commons.io.FileUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
@@ -19,7 +20,7 @@ import java.util.*;
  */
 public class KmerLookupTest {
     private File tempFa;
-    private KmerLookup kl;
+    private IndexedReference kl;
 
     private Map<String, Set<Interval>> expectedIntervals = new HashMap<>();
     private Map<Interval, String> expectedKmersFwd = new HashMap<>();
@@ -93,9 +94,9 @@ public class KmerLookupTest {
             tempFai.deleteOnExit();
             tempDict.deleteOnExit();
 
-            KmerLookup.createIndex(tempFa, expectedSource).deleteOnExit();
+            IndexedReference.createIndex(tempFa, expectedSource).deleteOnExit();
 
-            kl = new KmerLookup(tempFa);
+            kl = new IndexedReference(tempFa);
         } catch (IOException e) {
             throw new CortexJDKException("Could not write KmerLookupTest files to temp directory");
         }

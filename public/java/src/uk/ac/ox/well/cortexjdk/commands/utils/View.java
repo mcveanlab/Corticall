@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.commands.utils;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -27,7 +27,7 @@ public class View extends Module {
     public Boolean HEADER_ONLY = false;
 
     @Argument(fullName="lookup", shortName="l", doc="Reference lookup", required=false)
-    public KmerLookup LOOKUP;
+    public IndexedReference LOOKUP;
 
     @Output
     public PrintStream out;

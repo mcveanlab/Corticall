@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.utils.alignment.kmer;
+package uk.ac.ox.well.cortexjdk.utils.alignment.reference;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
@@ -16,13 +16,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class KmerLookup {
+public class IndexedReference {
     private File refFile;
     private IndexedFastaSequenceFile ref;
     private Set<String> sources = new HashSet<>();
     private BwaAligner bwa;
 
-    public KmerLookup(File refFile) { initialize(refFile); }
+    public IndexedReference(File refFile) { initialize(refFile); }
 
     private void initialize(File refFile) {
         try {
@@ -58,6 +58,14 @@ public class KmerLookup {
     }
 
     public BwaAligner getAligner() { return bwa; }
+
+    public List<SAMRecord> align(String query) {
+        return bwa.align(query);
+    }
+
+    public List<SAMRecord> align(List<String> queries) {
+        return bwa.align(queries);
+    }
 
     public String find(Interval interval) {
         if (ref.getSequenceDictionary().getSequenceIndex(interval.getContig()) == -1) {

@@ -77,7 +77,8 @@ public class CorrectGraph extends Module {
             Reads reads = new Reads(readsFile);
 
             ProgressMeter pm = new ProgressMeterFactory()
-                    .updateRecord(100000)
+                    //.updateRecord(100000)
+                    .updateRecord(GRAPH.getNumRecords() / 10)
                     .header("Processing '" + readsFile.getAbsolutePath() + "'")
                     .message("reads processed")
                     .make(log);

@@ -2,9 +2,8 @@ package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
 import htsjdk.samtools.SAMRecord;
 import org.jetbrains.annotations.NotNull;
-import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
@@ -13,7 +12,6 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContaminantStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
@@ -42,7 +40,7 @@ public class FindContamination extends Module {
     public CortexGraph CONTAM;
 
     @Argument(fullName = "drafts", shortName = "d", doc = "Drafts")
-    public HashMap<String, KmerLookup> LOOKUPS;
+    public HashMap<String, IndexedReference> LOOKUPS;
 
     @Output
     public File out;

@@ -1,6 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.caller;
 
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 
@@ -19,7 +19,7 @@ public class BubbleCallerFactory {
     public BubbleCallerFactory referenceColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getReferenceColors().add(c)); return this; }
     public BubbleCallerFactory referenceColors(Collection<Integer> colors) { configuration.getReferenceColors().addAll(colors); return this; }
 
-    public BubbleCallerFactory references(Map<String, KmerLookup> references) { configuration.setReferences(references); return this; }
+    public BubbleCallerFactory references(Map<String, IndexedReference> references) { configuration.setReferences(references); return this; }
 
     public BubbleCallerFactory graph(DeBruijnGraph graph) { configuration.setGraph(graph); return this; }
     public BubbleCallerFactory rois(DeBruijnGraph rois) { configuration.setRois(rois); return this; }

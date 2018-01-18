@@ -25,7 +25,7 @@ public class CortexMap implements DeBruijnGraph {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Pre-loading graph...")
                 .message("records loaded")
-                .updateRecord(10000000)
+                .maxRecord(this.graph.getNumRecords())
                 .make(Main.getLogger());
 
         for (CortexRecord cr : graph) {

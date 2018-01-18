@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.index.reference;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 
 import java.io.File;
@@ -18,7 +18,7 @@ public class IndexReference extends Module {
     public void execute() {
         log.info("Indexing reference");
 
-        File dbFile = KmerLookup.createIndex(REF_FILE, SOURCES.toArray(new String[0]));
+        File dbFile = IndexedReference.createIndex(REF_FILE, SOURCES.toArray(new String[0]));
 
         log.info("  wrote {} sources to {}", SOURCES.size(), dbFile.getAbsolutePath());
     }

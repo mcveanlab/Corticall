@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
@@ -53,8 +53,19 @@ public class TraversalEngineFactory {
         return this;
     }
 
-    public TraversalEngineFactory references(KmerLookup... lookups) { Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r)); return this; }
-    public TraversalEngineFactory references(Collection<KmerLookup> lookups) { configuration.getReferences().addAll(lookups); return this; }
+    public TraversalEngineFactory references(IndexedReference... lookups) {
+        if (lookups != null) {
+            Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r));
+        }
+        return this;
+    }
+
+    public TraversalEngineFactory references(Collection<IndexedReference> lookups) {
+        if (lookups != null) {
+            configuration.getReferences().addAll(lookups);
+        }
+        return this;
+    }
 
     public TraversalEngineFactory maxWalkLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 

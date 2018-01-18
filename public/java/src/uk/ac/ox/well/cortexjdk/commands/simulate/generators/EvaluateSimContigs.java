@@ -4,7 +4,7 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMRecord;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
@@ -27,7 +27,7 @@ public class EvaluateSimContigs extends Module {
     public CortexGraph ROI;
 
     @Argument(fullName="ref", shortName="R", doc="Ref")
-    public KmerLookup REF;
+    public IndexedReference REF;
 
     @Override
     public void execute() {

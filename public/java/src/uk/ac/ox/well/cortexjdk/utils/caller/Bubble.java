@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.caller;
 import htsjdk.samtools.util.Interval;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.jgrapht.GraphPath;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
@@ -19,7 +19,7 @@ public class Bubble {
     private Set<CanonicalKmer> novelKmers;
     private Interval locus;
 
-    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, KmerLookup kl, Set<CanonicalKmer> novelKmers) {
+    public Bubble(GraphPath<CortexVertex, CortexEdge> pRef, GraphPath<CortexVertex, CortexEdge> pAlt, IndexedReference kl, Set<CanonicalKmer> novelKmers) {
         String[] pieces = pathsToAlleles(pRef, pAlt);
 
         int kmerSize = pRef.getStartVertex().getCanonicalKmer().length();

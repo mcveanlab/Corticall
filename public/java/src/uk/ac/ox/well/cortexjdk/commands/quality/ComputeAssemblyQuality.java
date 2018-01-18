@@ -9,7 +9,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.kmer.KmerLookup;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
@@ -39,7 +39,7 @@ public class ComputeAssemblyQuality extends Module {
     public CortexGraph COMP;
 
     @Argument(fullName="evalRef", shortName="r", doc="")
-    public KmerLookup REF;
+    public IndexedReference REF;
 
     @Output
     public PrintStream out;
