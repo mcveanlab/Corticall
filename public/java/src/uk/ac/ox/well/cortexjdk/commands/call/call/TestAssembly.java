@@ -21,10 +21,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
@@ -77,7 +74,7 @@ public class TestAssembly extends Module {
     }
 
     private Map<String, Boolean> loadRois(FastaSequenceFile fa) {
-        Map<String, Boolean> used = new HashMap<>();
+        Map<String, Boolean> used = new LinkedHashMap<>();
 
         ReferenceSequence rseq;
         while ((rseq = fa.nextSequence()) != null) {
