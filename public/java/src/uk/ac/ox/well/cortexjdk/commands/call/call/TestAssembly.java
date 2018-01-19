@@ -84,12 +84,12 @@ public class TestAssembly extends Module {
             String[] pieces = rseq.getName().split("\\s+");
 
             for (String piece : pieces) {
-                if (piece.contains("=")) {
+                log.info("{}", piece);
+
+                if (piece.contains("seed=")) {
                     String[] kv = piece.split("=");
 
-                    if (kv[0].contains("seed")) {
-                        used.put(kv[1], false);
-                    }
+                    used.put(kv[1], false);
                 }
             }
         }
