@@ -1,5 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.call.call;
 
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -34,11 +36,8 @@ public class TestAssembly extends Module {
     @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
     public ArrayList<CortexLinks> LINKS;
 
-    @Argument(fullName = "references", shortName = "R", doc = "References", required=false)
-    public ArrayList<IndexedReference> REFERENCES;
-
-    @Argument(fullName = "roi", shortName = "r", doc = "ROI")
-    public CortexGraph ROIS;
+    @Argument(fullName = "mc", shortName = "m", doc="McCortex output")
+    public FastaSequenceFile MC;
 
     @Output
     public PrintStream out;
@@ -47,14 +46,7 @@ public class TestAssembly extends Module {
     public void execute() {
         TraversalEngine e = configureTraversalEngine();
 
-        Map<CanonicalKmer, Boolean> used = loadRois(ROIS);
-
-        /*
-        Map<CanonicalKmer, Boolean> used = new HashMap<>();
-        used.put(new CanonicalKmer("ATAACACTAAAAATTAAATACCAAAAAAAAAAAAAAAAAAAAAAAAT"), false);
-        used.put(new CanonicalKmer("ACCCTGAACCCTGAACCCTAAACCCTAAAACCTGAACCCTGAACCCT"), false);
-        used.put(new CanonicalKmer("GGTTTAGGGTTTAGGGTTCAGGGTTCAGGGTTCAGGGTTCAGGTTTA"), false);
-        */
+        Map<String, Boolean> used = loadRois(MC);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -62,36 +54,12 @@ public class TestAssembly extends Module {
                 .maxRecord(used.size())
                 .make(log);
 
-        for (CanonicalKmer ck : used.keySet()) {
-            if (!used.get(ck)) {
-                List<CortexVertex> g = e.walk(ck.getKmerAsString());
+        for (String sk : used.keySet()) {
+            List<CortexVertex> g = e.walk(sk);
 
-                out.println(">" + ck);
-                out.println(TraversalEngine.toContig(g));
+            String contig = TraversalEngine.toContig(g);
 
-                /*
-                List<CortexVertex> gwalk = e.gwalk(ck.getKmerAsString());
-
-                List<CortexVertex> g = e.walk(ck.getKmerAsString(), false);
-                CortexVertex v = new CortexVertex(new CortexByteKmer(ck.getKmerAsString()), GRAPH.findRecord(ck));
-                g.add(v);
-
-                log.info("{} {} {}", ck, gwalk.size(), g.size());
-
-                Map<String, Integer> cvs = new HashMap<>();
-                for (CortexVertex cv : g) {
-                    ContainerUtils.increment(cvs, cv.getKmerAsString());
-                }
-
-                for (String s : cvs.keySet()) {
-                    if (cvs.get(s) > 1) {
-                        log.info("  {} {}", s, cvs.get(s));
-                    }
-                }
-
-                used.put(ck, true);
-                */
-            }
+            out.println("seed=" + sk + " len=" + (contig.length() - 46) + " " + contig);
 
             pm.update();
         }
@@ -99,25 +67,31 @@ public class TestAssembly extends Module {
 
     private TraversalEngine configureTraversalEngine() {
         return new TraversalEngineFactory()
-                    .traversalColor(getTraversalColor(GRAPH, ROIS))
+                    .traversalColor(0)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .graph(GRAPH)
                     .links(LINKS)
-                    .references(REFERENCES)
-                    .rois(ROIS)
                     .stoppingRule(ContigStopper.class)
                     .make();
     }
 
-    private int getTraversalColor(DeBruijnGraph graph, CortexGraph rois) {
-        return graph.getColorForSampleName(rois.getSampleName(0));
-    }
+    private Map<String, Boolean> loadRois(FastaSequenceFile fa) {
+        Map<String, Boolean> used = new HashMap<>();
 
-    private Map<CanonicalKmer, Boolean> loadRois(CortexGraph rois) {
-        Map<CanonicalKmer, Boolean> used = new HashMap<>();
-        for (CortexRecord cr : rois) {
-            used.put(cr.getCanonicalKmer(), false);
+        ReferenceSequence rseq;
+        while ((rseq = fa.nextSequence()) != null) {
+            String[] pieces = rseq.getName().split("\\s+");
+
+            for (String piece : pieces) {
+                if (piece.contains("=")) {
+                    String[] kv = piece.split("=");
+
+                    if (kv[0].contains("seed")) {
+                        used.put(kv[1], false);
+                    }
+                }
+            }
         }
 
         return used;
