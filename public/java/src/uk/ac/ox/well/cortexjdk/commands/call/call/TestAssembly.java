@@ -84,7 +84,7 @@ public class TestAssembly extends Module {
             String[] pieces = rseq.getName().split("\\s+");
 
             for (String piece : pieces) {
-                log.info("{}", piece);
+                //log.info("{}", piece);
 
                 if (piece.contains("seed=")) {
                     String[] kv = piece.split("=");
