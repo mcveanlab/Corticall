@@ -36,14 +36,14 @@ public class TestAssembly extends Module {
     @Argument(fullName = "mc", shortName = "m", doc="McCortex output")
     public FastaSequenceFile MC;
 
-    @Output
-    public PrintStream out;
+    //@Output
+    //public PrintStream out;
 
     @Override
     public void execute() {
         TraversalEngine e = configureTraversalEngine();
 
-        Map<String, Boolean> used = loadRois(MC);
+        Map<String, String> used = loadRois(MC);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -56,7 +56,15 @@ public class TestAssembly extends Module {
 
             String contig = TraversalEngine.toContig(g);
 
-            out.println("seed=" + sk + " len=" + (contig.length() - 46) + " " + contig);
+            //out.println("seed=" + sk + " len=" + (contig.length() - 46) + " " + contig);
+
+            log.info("{} cj={} mc={}", sk, contig.length(), used.get(sk).length());
+            log.info(" - cj={}", contig);
+            log.info(" - mc={}", used.get(sk));
+
+            if (!contig.equals(used.get(sk))) {
+                e.walk(sk);
+            }
 
             pm.update();
         }
@@ -73,20 +81,18 @@ public class TestAssembly extends Module {
                     .make();
     }
 
-    private Map<String, Boolean> loadRois(FastaSequenceFile fa) {
-        Map<String, Boolean> used = new LinkedHashMap<>();
+    private Map<String, String> loadRois(FastaSequenceFile fa) {
+        Map<String, String> used = new LinkedHashMap<>();
 
         ReferenceSequence rseq;
         while ((rseq = fa.nextSequence()) != null) {
             String[] pieces = rseq.getName().split("\\s+");
 
             for (String piece : pieces) {
-                //log.info("{}", piece);
-
                 if (piece.contains("seed=")) {
                     String[] kv = piece.split("=");
 
-                    used.put(kv[1], false);
+                    used.put(kv[1], rseq.getBaseString());
                 }
             }
         }

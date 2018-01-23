@@ -6,6 +6,7 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -525,6 +526,8 @@ public class TraversalEngine {
             goForward = true;
         }
 
+        //Main.getLogger().info("{}", linkStore);
+
         linkStore.incrementAge();
 
         CortexRecord cr = ec.getGraph().findRecord(nextKmer);
@@ -568,6 +571,9 @@ public class TraversalEngine {
             goForward = false;
         }
 
+        Main.getLogger().info("{} {}", new String(prevKmer.getKmer()), new String(SequenceUtils.reverseComplement(prevKmer.getKmer())));
+        Main.getLogger().info("{}", linkStore);
+
         linkStore.incrementAge();
 
         CortexRecord cr = ec.getGraph().findRecord(new CanonicalKmer(prevKmer.getKmer()));
@@ -595,6 +601,17 @@ public class TraversalEngine {
                 CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
                 if (lm.containsKey(ck)) {
                     linkStore.add(curKmer, lm.get(ck), false, lm.getSource());
+                }
+
+                Set<CortexVertex> adj = new HashSet<>();
+                Set<CortexVertex> p = getPrevVertices(new CortexByteKmer(ck.getKmerAsBytes()));
+                Set<CortexVertex> n = getNextVertices(new CortexByteKmer(ck.getKmerAsBytes()));
+
+                for (CortexVertex v : adj) {
+                    CanonicalKmer vk = v.getCanonicalKmer();
+                    if (lm.containsKey(vk)) {
+                        linkStore.add(v.getKmerAsByteKmer(), lm.get(vk), false, lm.getSource());
+                    }
                 }
             }
         }

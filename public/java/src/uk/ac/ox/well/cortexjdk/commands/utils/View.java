@@ -7,12 +7,15 @@ import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -23,6 +26,9 @@ public class View extends Module {
     @Argument(fullName="record", shortName="r", doc="Record to find and print", required=false)
     public ArrayList<String> RECORDS;
 
+    @Argument(fullName="links", shortName="l", doc="Links", required=false)
+    public ArrayList<CortexLinks> LINKS;
+
     @Argument(fullName="headerOnly", shortName="H", doc="Only print the file header", required=false)
     public Boolean HEADER_ONLY = false;
 
@@ -32,7 +38,7 @@ public class View extends Module {
     @Output
     public PrintStream out;
 
-    private String recordToString(String sk, CortexRecord cr) {
+    private String recordToString(String sk, CortexRecord cr, List<CortexLinksRecord> cl) {
         String kmer = cr.getKmerAsString();
         String cov = "";
         String ed = "";
@@ -50,6 +56,8 @@ public class View extends Module {
         for (String edge : cr.getEdgeAsStrings()) {
             ed += " " + (fw ? edge : SequenceUtils.reverseComplement(edge));
         }
+
+        ed += " (l:" + cl.size() + ")";
 
         Set<String> lss = new TreeSet<>();
         if (LOOKUP != null) {
@@ -80,8 +88,17 @@ public class View extends Module {
                         CanonicalKmer ck = new CanonicalKmer(kmer);
                         CortexRecord cr = GRAPH.findRecord(ck);
 
+                        List<CortexLinksRecord> cl = new ArrayList<>();
+                        if (LINKS != null && LINKS.size() > 0) {
+                            for (CortexLinks links : LINKS) {
+                                if (links.containsKey(ck)) {
+                                    cl.add(links.get(ck));
+                                }
+                            }
+                        }
+
                         if (cr != null) {
-                            out.println(recordToString(kmer, cr));
+                            out.println(recordToString(kmer, cr, cl));
                         } else {
                             out.println(kmer + ": missing");
                         }

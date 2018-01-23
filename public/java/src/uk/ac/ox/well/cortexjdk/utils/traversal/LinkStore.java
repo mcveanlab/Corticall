@@ -12,9 +12,9 @@ import java.util.*;
  * Created by kiran on 24/07/2017.
  */
 public class LinkStore {
-    private Map<String, Integer> linkAges = new TreeMap<>();
-    private Map<String, Integer> linkPos = new TreeMap<>();
-    private Map<String, String> linkSources = new TreeMap<>();
+    private Map<String, Integer> linkAges = new LinkedHashMap<>();
+    private Map<String, Integer> linkPos = new LinkedHashMap<>();
+    private Map<String, String> linkSources = new LinkedHashMap<>();
 
     public void add(CortexByteKmer curKmer, CortexLinksRecord clr, boolean goForward, String linkSource) {
         boolean recordOrientationMatchesKmer = clr.getKmerAsByteKmer().equals(curKmer);
@@ -106,5 +106,25 @@ public class LinkStore {
 
     public boolean isActive() {
         return linkPos.size() > 0;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (String junctionList : linkAges.keySet()) {
+            if (sb.length() > 0) {
+                sb.append("\n");
+            }
+
+            sb.append(junctionList)
+              .append(" [")
+              .append(linkPos.get(junctionList))
+              .append("/")
+              .append(junctionList.length())
+              .append("] age: ")
+              .append(linkAges.get(junctionList));
+        }
+
+        return sb.toString();
     }
 }

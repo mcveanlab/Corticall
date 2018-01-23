@@ -1,5 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
+import uk.ac.ox.well.cortexjdk.CortexJDK;
+import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;
 
@@ -18,7 +20,9 @@ public class CortexLinks implements ConnectivityAnnotations {
         if (linksIndex.exists()) {
             links = new CortexLinksRandomAccess(linksFile);
         } else {
-            links = new CortexLinksMap(linksFile);
+            //links = new CortexLinksMap(linksFile);
+
+            throw new CortexJDKException("Loading of unindexed links files ('" + linksFile.getAbsolutePath() + "') is disabled");
         }
     }
 
@@ -33,7 +37,9 @@ public class CortexLinks implements ConnectivityAnnotations {
     }
 
     @Override
-    public boolean containsKey(Object key) { return links.containsKey(key); }
+    public boolean containsKey(Object key) {
+        return links.containsKey(key);
+    }
 
     @Override
     public CortexLinksRecord get(Object key) {
