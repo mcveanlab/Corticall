@@ -32,7 +32,7 @@ public class View extends Module {
     @Argument(fullName="headerOnly", shortName="H", doc="Only print the file header", required=false)
     public Boolean HEADER_ONLY = false;
 
-    @Argument(fullName="lookup", shortName="l", doc="Reference lookup", required=false)
+    @Argument(fullName="reference", shortName="R", doc="Reference lookup", required=false)
     public IndexedReference LOOKUP;
 
     @Output
