@@ -3,19 +3,12 @@ package uk.ac.ox.well.cortexjdk.commands.call.call;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.containers.ContainerUtils;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
@@ -37,6 +30,9 @@ public class TestAssembly extends Module {
     @Argument(fullName = "mc", shortName = "m", doc="McCortex output")
     public FastaSequenceFile MC;
 
+    @Argument(fullName = "useDfs", shortName = "u", doc="DFS")
+    public Boolean USE_DFS = false;
+
     @Output
     public PrintStream out;
 
@@ -53,9 +49,9 @@ public class TestAssembly extends Module {
                 .make(log);
 
         for (String sk : used.keySet()) {
-            List<CortexVertex> g = e.walk(sk);
+            List<CortexVertex> gw = USE_DFS ? e.gwalk(sk) : e.walk(sk);
 
-            String contig = TraversalEngine.toContig(g);
+            String contig = TraversalEngine.toContig(gw);
 
             out.println("seed=" + sk + " len=" + (contig.length() - (GRAPH.getKmerSize() - 1)) + " " + contig);
 
