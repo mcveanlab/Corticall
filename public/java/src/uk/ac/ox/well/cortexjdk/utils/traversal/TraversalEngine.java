@@ -84,8 +84,6 @@ public class TraversalEngine {
     }
 
     public List<CortexVertex> walk(String seed) {
-        validateConfiguration(seed);
-
         List<CortexVertex> contig = new ArrayList<>();
         CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
         contig.add(sv);
@@ -520,15 +518,13 @@ public class TraversalEngine {
     public CortexVertex next() {
         if (nextKmer == null) { throw new NoSuchElementException("No single advance kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || !goForward) {
-            if (!goForward) { seek(new String(curKmer.getKmer())); }
-
-            initializeLinkStore(true);
             goForward = true;
+            seek(new String(curKmer.getKmer()));
+
+            initializeLinkStore(goForward);
         }
 
-        //Main.getLogger().info("{}", linkStore);
-
-        linkStore.incrementAge();
+        updateLinkStore(goForward);
 
         CortexRecord cr = ec.getGraph().findRecord(nextKmer);
         CortexVertex cv = new CortexVertex(nextKmer, cr, kmerSources);
@@ -548,15 +544,12 @@ public class TraversalEngine {
             Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, nextKmers, true);
             nextKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
+
+            linkStore.incrementAges();
         }
 
-        if (!ec.getLinks().isEmpty()) {
-            for (ConnectivityAnnotations lm : specificLinksFiles) {
-                CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
-                if (lm.containsKey(ck)) {
-                    linkStore.add(curKmer, lm.get(ck), true, lm.getSource());
-                }
-            }
+        if (linkStore.numNewPaths() > 0) {
+            linkStore.incrementAges();
         }
 
         return cv;
@@ -565,16 +558,13 @@ public class TraversalEngine {
     public CortexVertex previous() {
         if (prevKmer == null) { throw new NoSuchElementException("No single prev kmer from cursor '" + curKmer + "'"); }
         if (specificLinksFiles == null || goForward) {
-            if (goForward) { seek(new String(curKmer.getKmer())); }
-
-            initializeLinkStore(false);
             goForward = false;
+            seek(new String(curKmer.getKmer()));
+
+            initializeLinkStore(goForward);
         }
 
-        Main.getLogger().info("{} {}", new String(prevKmer.getKmer()), new String(SequenceUtils.reverseComplement(prevKmer.getKmer())));
-        Main.getLogger().info("{}", linkStore);
-
-        linkStore.incrementAge();
+        updateLinkStore(goForward);
 
         CortexRecord cr = ec.getGraph().findRecord(new CanonicalKmer(prevKmer.getKmer()));
         CortexVertex cv = new CortexVertex(prevKmer, cr, kmerSources);
@@ -594,26 +584,12 @@ public class TraversalEngine {
             Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, prevKmers, false);
             prevKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
+
+            linkStore.incrementAges();
         }
 
-        if (!ec.getLinks().isEmpty()) {
-            for (ConnectivityAnnotations lm : specificLinksFiles) {
-                CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
-                if (lm.containsKey(ck)) {
-                    linkStore.add(curKmer, lm.get(ck), false, lm.getSource());
-                }
-
-                Set<CortexVertex> adj = new HashSet<>();
-                Set<CortexVertex> p = getPrevVertices(new CortexByteKmer(ck.getKmerAsBytes()));
-                Set<CortexVertex> n = getNextVertices(new CortexByteKmer(ck.getKmerAsBytes()));
-
-                for (CortexVertex v : adj) {
-                    CanonicalKmer vk = v.getCanonicalKmer();
-                    if (lm.containsKey(vk)) {
-                        linkStore.add(v.getKmerAsByteKmer(), lm.get(vk), false, lm.getSource());
-                    }
-                }
-            }
+        if (linkStore.numNewPaths() > 0) {
+            linkStore.incrementAges();
         }
 
         return cv;
@@ -651,6 +627,7 @@ public class TraversalEngine {
 
     private void initializeLinkStore(boolean goForward) {
         specificLinksFiles = new HashSet<>();
+
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : ec.getLinks()) {
                 if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
@@ -659,6 +636,29 @@ public class TraversalEngine {
                     CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
                     if (lm.containsKey(ck)) {
                         linkStore.add(curKmer, lm.get(ck), goForward, lm.getSource());
+                    }
+                }
+            }
+        }
+    }
+
+    private void updateLinkStore(boolean goForward) {
+        specificLinksFiles = new HashSet<>();
+        if (!ec.getLinks().isEmpty()) {
+            for (ConnectivityAnnotations lm : ec.getLinks()) {
+                if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
+                    specificLinksFiles.add(lm);
+
+                    if (goForward) {
+                        CanonicalKmer nk = nextKmer == null ? null : new CanonicalKmer(nextKmer.getKmer());
+                        if (nextKmer != null && lm.containsKey(nk)) {
+                            linkStore.add(nextKmer, lm.get(nk), goForward, lm.getSource());
+                        }
+                    } else {
+                        CanonicalKmer pk = prevKmer == null ? null : new CanonicalKmer(prevKmer.getKmer());
+                        if (prevKmer != null && lm.containsKey(pk)) {
+                            linkStore.add(prevKmer, lm.get(pk), goForward, lm.getSource());
+                        }
                     }
                 }
             }

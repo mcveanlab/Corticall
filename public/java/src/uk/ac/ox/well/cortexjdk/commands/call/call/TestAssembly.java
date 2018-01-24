@@ -15,6 +15,7 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
@@ -36,8 +37,8 @@ public class TestAssembly extends Module {
     @Argument(fullName = "mc", shortName = "m", doc="McCortex output")
     public FastaSequenceFile MC;
 
-    //@Output
-    //public PrintStream out;
+    @Output
+    public PrintStream out;
 
     @Override
     public void execute() {
@@ -56,15 +57,11 @@ public class TestAssembly extends Module {
 
             String contig = TraversalEngine.toContig(g);
 
-            //out.println("seed=" + sk + " len=" + (contig.length() - 46) + " " + contig);
+            out.println("seed=" + sk + " len=" + (contig.length() - (GRAPH.getKmerSize() - 1)) + " " + contig);
 
             log.info("{} cj={} mc={}", sk, contig.length(), used.get(sk).length());
             log.info(" - cj={}", contig);
             log.info(" - mc={}", used.get(sk));
-
-            if (!contig.equals(used.get(sk))) {
-                e.walk(sk);
-            }
 
             pm.update();
         }
