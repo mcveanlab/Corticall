@@ -28,14 +28,24 @@ public class Join extends Module {
         cgw.setHeader(cc.getHeader());
 
         log.info("Joining graphs:");
-        for (int c = 0; c < cc.getNumColors(); c++) {
-            log.info("  {}: {} ({} kmers)", c, cc.getSampleName(c), cc.getGraph(c).getNumRecords());
+
+        long maxRecords = 0;
+        int ac = 0;
+        for (CortexGraph g : GRAPHS) {
+            log.info("  file: {} ({} colors, {} kmers)", g.getFile(), g.getNumColors(), g.getNumRecords());
+            for (int c = 0; c < g.getNumColors(); c++, ac++) {
+                log.info("    color {} ({}) -> color {} ({})", c, g.getSampleName(c), ac, cc.getSampleName(ac));
+            }
+
+            if (g.getNumRecords() > maxRecords) {
+                maxRecords = g.getNumRecords();
+            }
         }
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing graph...")
                 .message("records processed")
-                .updateRecord(cc.getGraph(0).getNumRecords() / 10)
+                .updateRecord(maxRecords / 10)
                 .make(log);
 
         for (CortexRecord cr : cc) {
