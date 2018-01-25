@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -14,12 +15,12 @@ public class NovelKmerAggregationStopper extends AbstractTraversalStoppingRule<C
     private boolean haveSeenNovelKmers = false;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        boolean childHasCoverage = cv.getCortexRecord().getCoverage(traversalColor) > 0;
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        boolean childHasCoverage = s.getCurrentVertex().getCortexRecord().getCoverage(s.getTraversalColor()) > 0;
         boolean parentsHaveCoverage = false;
 
-        for (int c : joiningColors) {
-            parentsHaveCoverage |= cv.getCortexRecord().getCoverage(c) > 0;
+        for (int c : s.getJoiningColors()) {
+            parentsHaveCoverage |= s.getCurrentVertex().getCortexRecord().getCoverage(c) > 0;
         }
 
         if (childHasCoverage && !parentsHaveCoverage) {
@@ -30,7 +31,7 @@ public class NovelKmerAggregationStopper extends AbstractTraversalStoppingRule<C
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return !haveSeenNovelKmers && (currentGraphSize >= 100 || currentTraversalDepth >= 3);
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
+        return !haveSeenNovelKmers && (s.getCurrentGraphSize() >= 100 || s.getCurrentTraversalDepth() >= 3);
     }
 }

@@ -283,7 +283,9 @@ public class TraversalEngine {
             avs.removeAll(seen);
 
             // Decide if we should keep exploring the graph or not
-            if (stoppingRule.keepGoing(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois())) {
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois());
+
+            if (stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
                     cv = avs.iterator().next();
                 } else if (avs.size() != 1) {
@@ -300,7 +302,7 @@ public class TraversalEngine {
                         }
                     }
 
-                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), true, ec.getPreviousTraversal(), ec.getRois())) {
+                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(ts)) {
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away

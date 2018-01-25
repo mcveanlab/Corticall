@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -15,21 +16,21 @@ public class NahrStopper extends AbstractTraversalStoppingRule<CortexVertex, Cor
     private int distanceFromLastNovel = 0;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
         if (foundNovels) {
             distanceFromLastNovel++;
         }
 
-        if (rois.findRecord(cv.getCortexRecord().getCanonicalKmer()) != null) {
+        if (s.getRois().findRecord(s.getCurrentVertex().getCortexRecord().getCanonicalKmer()) != null) {
             foundNovels = true;
             distanceFromLastNovel++;
         }
 
-        return foundNovels && (distanceFromLastNovel >= 1000 || currentTraversalDepth >= 5 || numAdjacentEdges == 0 || childrenAlreadyTraversed);
+        return foundNovels && (distanceFromLastNovel >= 1000 || s.getCurrentTraversalDepth() >= 5 || s.getNumAdjacentEdges() == 0 || s.isChildrenAlreadyTraversed());
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return !foundNovels && (currentGraphSize >= 1000 || currentTraversalDepth >= 2 || numAdjacentEdges == 0);
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
+        return !foundNovels && (s.getCurrentGraphSize() >= 1000 || s.getCurrentTraversalDepth() >= 2 || s.getNumAdjacentEdges() == 0);
     }
 }

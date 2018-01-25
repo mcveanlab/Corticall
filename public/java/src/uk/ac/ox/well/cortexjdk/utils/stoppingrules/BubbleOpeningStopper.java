@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -16,8 +17,8 @@ public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVe
     private boolean hasJoined = false;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        if (rois.findRecord(cv.getKmerAsByteKmer()) != null) {
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        if (s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
             novelKmersSeen++;
         }
 
@@ -25,15 +26,15 @@ public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVe
             distanceSinceJoin++;
         }
 
-        for (int c : joiningColors) {
-            hasJoined |= (cv.getCortexRecord().getCoverage(c) > 0);
+        for (int c : s.getJoiningColors()) {
+            hasJoined |= (s.getCurrentVertex().getCortexRecord().getCoverage(c) > 0);
         }
 
-        return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || numAdjacentEdges != 1);
+        return novelKmersSeen > 0 && hasJoined && (distanceSinceJoin >= 30 || s.getNumAdjacentEdges() != 1);
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return novelKmersSeen == 0 && (currentTraversalDepth >= 5 || numAdjacentEdges == 0);
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
+        return novelKmersSeen == 0 && (s.getCurrentTraversalDepth() >= 5 || s.getNumAdjacentEdges() == 0);
     }
 }

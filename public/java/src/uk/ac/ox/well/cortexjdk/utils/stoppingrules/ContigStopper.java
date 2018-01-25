@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -12,12 +13,12 @@ import java.util.Set;
  */
 public class ContigStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return numAdjacentEdges != 1;
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        return s.getNumAdjacentEdges() != 1;
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
         return false;
     }
 }

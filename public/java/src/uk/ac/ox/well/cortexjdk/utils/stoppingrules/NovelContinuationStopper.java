@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -15,20 +16,18 @@ public class NovelContinuationStopper extends AbstractTraversalStoppingRule<Cort
     private int numKmersSeen = 0;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        if (numKmersSeen == 0 && rois.findRecord(cv.getKmerAsByteKmer()) != null) {
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        if (numKmersSeen == 0 && s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
             startedWithANovelKmer = true;
         }
 
         numKmersSeen++;
 
-        return startedWithANovelKmer && numKmersSeen > 0 && (childrenAlreadyTraversed ? numAdjacentEdges > 1 : numAdjacentEdges == 0);
+        return startedWithANovelKmer && numKmersSeen > 0 && (s.isChildrenAlreadyTraversed() ? s.getNumAdjacentEdges() > 1 : s.getNumAdjacentEdges() == 0);
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        //return novelKmersSeen == 0 && (currentTraversalDepth >= 3 || numAdjacentEdges == 0);
-
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
         return !startedWithANovelKmer;
     }
 }

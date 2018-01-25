@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -12,12 +13,12 @@ import java.util.Set;
  */
 public class GapClosingStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return previousGraph.containsVertex(cv);
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        return s.getPreviousGraph().containsVertex(s.getCurrentVertex());
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return currentTraversalDepth > 5 || numAdjacentEdges == 0;
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
+        return s.getCurrentTraversalDepth() > 5 || s.getNumAdjacentEdges() == 0;
     }
 }

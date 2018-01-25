@@ -1,29 +1,26 @@
 package uk.ac.ox.well.cortexjdk.utils.stoppingrules;
 
-import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
-
-import java.util.Set;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 public abstract class AbstractTraversalStoppingRule<V, E> implements TraversalStoppingRule<V, E> {
     private boolean traversalSucceeded = false;
     private boolean traversalFailed = false;
 
     @Override
-    public boolean keepGoing(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, DeBruijnGraph rois) {
-        traversalSucceeded = hasTraversalSucceeded(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
-        traversalFailed = hasTraversalFailed(cv, goForward, traversalColor, joiningColors, currentTraversalDepth, currentGraphSize, numAdjacentEdges, childrenAlreadyTraversed, previousGraph, rois);
+    public boolean keepGoing(TraversalState<V> s) {
+        traversalSucceeded = hasTraversalSucceeded(s);
+        traversalFailed = hasTraversalFailed(s);
 
         return !traversalSucceeded && !traversalFailed;
     }
 
     @Override
-    public boolean hasTraversalSucceeded(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, DeBruijnGraph rois) {
+    public boolean hasTraversalSucceeded(TraversalState<V> s) {
         return false;
     }
 
     @Override
-    public boolean hasTraversalFailed(V cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<V, E> previousGraph, DeBruijnGraph rois) {
+    public boolean hasTraversalFailed(TraversalState<V> s) {
         return true;
     }
 

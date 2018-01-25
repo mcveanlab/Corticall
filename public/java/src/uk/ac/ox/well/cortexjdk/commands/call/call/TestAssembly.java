@@ -40,7 +40,10 @@ public class TestAssembly extends Module {
     public void execute() {
         TraversalEngine e = configureTraversalEngine();
 
-        Map<String, String> used = loadRois(MC);
+        Map<String, String> usedFull = loadRois(MC);
+
+        Map<String, String> used = new HashMap<>();
+        used.put("TCACTTAGTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT", usedFull.get("TCACTTAGTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -49,15 +52,22 @@ public class TestAssembly extends Module {
                 .make(log);
 
         for (String sk : used.keySet()) {
-            List<CortexVertex> gw = USE_DFS ? e.gwalk(sk) : e.walk(sk);
+            List<CortexVertex> gd = e.gwalk(sk);
+            List<CortexVertex> gw = e.walk(sk);
 
-            String contig = TraversalEngine.toContig(gw);
+            String cd = TraversalEngine.toContig(gd);
+            String cw = TraversalEngine.toContig(gw);
+
+            String contig = USE_DFS ? cd : cw;
 
             out.println("seed=" + sk + " len=" + (contig.length() - (GRAPH.getKmerSize() - 1)) + " " + contig);
 
-            log.info("{} cj={} mc={}", sk, contig.length(), used.get(sk).length());
-            log.info(" - cj={}", contig);
-            log.info(" - mc={}", used.get(sk));
+            log.info("{} cjd={} cjw={} mc={}", sk, cd.length(), cw.length(), used.get(sk).length());
+            log.info(" - cjd={}", cd);
+            log.info(" - cjw={}", cw);
+            log.info(" -  mc={}", used.get(sk));
+
+            List<CortexVertex> d = e.gwalk(sk);
 
             pm.update();
         }

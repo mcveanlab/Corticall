@@ -4,6 +4,7 @@ import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 
 import java.util.Set;
 
@@ -12,12 +13,12 @@ public class ExplorationStopper extends AbstractTraversalStoppingRule<CortexVert
     private int distanceFromLastNovelKmer = -1;
 
     @Override
-    public boolean hasTraversalSucceeded(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        boolean childHasCoverage = cv.getCortexRecord().getCoverage(traversalColor) > 0;
+    public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
+        boolean childHasCoverage = s.getCurrentVertex().getCortexRecord().getCoverage(s.getTraversalColor()) > 0;
         boolean parentHasCoverage = false;
 
-        for (int c : joiningColors) {
-            parentHasCoverage |= cv.getCortexRecord().getCoverage(c) > 0;
+        for (int c : s.getJoiningColors()) {
+            parentHasCoverage |= s.getCurrentVertex().getCortexRecord().getCoverage(c) > 0;
         }
 
         if (novelKmerFound) {
@@ -29,11 +30,11 @@ public class ExplorationStopper extends AbstractTraversalStoppingRule<CortexVert
             distanceFromLastNovelKmer = 0;
         }
 
-        return novelKmerFound && (distanceFromLastNovelKmer > 300 || childrenAlreadyTraversed);
+        return novelKmerFound && (distanceFromLastNovelKmer > 300 || s.isChildrenAlreadyTraversed());
     }
 
     @Override
-    public boolean hasTraversalFailed(CortexVertex cv, boolean goForward, int traversalColor, Set<Integer> joiningColors, int currentTraversalDepth, int currentGraphSize, int numAdjacentEdges, boolean childrenAlreadyTraversed, DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph, DeBruijnGraph rois) {
-        return !novelKmerFound && (currentGraphSize > 500 || numAdjacentEdges == 0 || currentTraversalDepth > 5);
+    public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
+        return !novelKmerFound && (s.getCurrentGraphSize() > 500 || s.getNumAdjacentEdges() == 0 || s.getCurrentTraversalDepth() > 5);
     }
 }
