@@ -5,8 +5,8 @@ import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 
 import java.io.File;
 import java.io.IOException;

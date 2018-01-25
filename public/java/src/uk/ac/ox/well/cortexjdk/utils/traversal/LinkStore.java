@@ -1,9 +1,9 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.apache.commons.math3.util.Pair;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexJunctionsRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.util.*;

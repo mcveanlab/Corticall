@@ -6,13 +6,12 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 

@@ -1,17 +1,16 @@
 package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import org.slf4j.Logger;
 
 public class RecordsWriter implements Callable<List<CortexGraph>> {
     private File cgout;

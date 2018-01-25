@@ -15,16 +15,16 @@ import org.apache.commons.jexl2.JexlEngine;
 import uk.ac.ox.well.cortexjdk.commands.Command;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexCollection;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexMap;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksMap;
-import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.xmfa.XMFASequenceFile;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.awt.*;
 import java.io.*;

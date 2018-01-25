@@ -2,9 +2,9 @@ package uk.ac.ox.well.cortexjdk.commands.index.alignedbam;
 
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 
 import java.io.File;
 import java.io.IOException;

@@ -5,20 +5,18 @@ import com.google.common.collect.Sets;
 import htsjdk.samtools.fastq.FastqRecord;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.reads.Reads;
+import uk.ac.ox.well.cortexjdk.utils.statistics.misc.StatisticsOnStream;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-
-import org.slf4j.Logger;
-import uk.ac.ox.well.cortexjdk.utils.statistics.misc.StatisticsOnStream;
 
 public class RecordsProducer implements Callable<Pair<Long, Integer>> {
     private BlockingQueue<List<CortexRecord>> queue;

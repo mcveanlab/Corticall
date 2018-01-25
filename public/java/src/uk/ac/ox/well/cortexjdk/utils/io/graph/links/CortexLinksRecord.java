@@ -1,7 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
 import java.util.ArrayList;
 import java.util.List;

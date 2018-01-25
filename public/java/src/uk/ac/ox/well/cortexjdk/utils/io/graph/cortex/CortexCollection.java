@@ -3,8 +3,8 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.cortex;
 import com.google.common.base.Joiner;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.kmer.*;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.util.*;

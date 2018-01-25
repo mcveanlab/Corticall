@@ -4,10 +4,10 @@ import htsjdk.samtools.*;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.index.alignedbam.KmerIndex;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexJunctionsRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.util.*;

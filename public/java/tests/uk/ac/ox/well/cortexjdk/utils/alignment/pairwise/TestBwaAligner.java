@@ -1,16 +1,12 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.pairwise;
 
-import com.github.lindenb.jbwa.jni.*;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.junit.Assert;
 import org.junit.Test;
-import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

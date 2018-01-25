@@ -8,16 +8,10 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
-
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
 public class EvaluateROIs extends Module {
     @Argument(fullName="knownRois", shortName="k", doc="Known ROIs")

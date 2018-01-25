@@ -13,7 +13,10 @@ import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by kiran on 31/08/2017.

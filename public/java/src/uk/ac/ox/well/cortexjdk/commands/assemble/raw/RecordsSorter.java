@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
 
+import org.slf4j.Logger;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 
@@ -7,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import org.slf4j.Logger;
 
 public class RecordsSorter implements Runnable {
     private BlockingQueue<List<CortexRecord>> readQueue;

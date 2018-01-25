@@ -1,6 +1,5 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
-import uk.ac.ox.well.cortexjdk.CortexJDK;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;

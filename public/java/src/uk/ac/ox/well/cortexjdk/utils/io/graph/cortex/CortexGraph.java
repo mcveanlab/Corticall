@@ -5,10 +5,10 @@ import it.unimi.dsi.io.ByteBufferInputStream;
 import org.apache.commons.collections.map.LRUMap;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryUtils;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;

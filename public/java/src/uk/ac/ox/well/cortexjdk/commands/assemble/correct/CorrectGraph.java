@@ -1,15 +1,16 @@
 package uk.ac.ox.well.cortexjdk.commands.assemble.correct;
 
-import com.google.common.collect.Sets;
 import htsjdk.samtools.fastq.FastqRecord;
 import org.apache.commons.math3.util.Pair;
-import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
-import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.*;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexMap;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.reads.Reads;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;

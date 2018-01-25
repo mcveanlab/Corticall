@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
-import uk.ac.ox.well.cortexjdk.utils.kmer.*;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.util.Collection;

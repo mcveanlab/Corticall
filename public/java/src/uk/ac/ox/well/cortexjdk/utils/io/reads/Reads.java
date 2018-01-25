@@ -12,11 +12,9 @@ import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.io.fq.FqReader;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.Iterator;
 
 import static uk.ac.ox.well.cortexjdk.utils.io.reads.Reads.SeqType.*;

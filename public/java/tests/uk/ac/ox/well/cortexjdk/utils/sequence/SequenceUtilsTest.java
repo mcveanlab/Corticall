@@ -5,9 +5,9 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.io.FileNotFoundException;

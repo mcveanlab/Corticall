@@ -1,9 +1,9 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import htsjdk.samtools.util.Interval;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
 import java.util.Set;
 

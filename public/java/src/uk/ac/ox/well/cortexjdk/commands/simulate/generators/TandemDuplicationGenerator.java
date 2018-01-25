@@ -1,7 +1,5 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
 
-import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-
 import java.util.Random;
 
 public class TandemDuplicationGenerator implements VariantGenerator {

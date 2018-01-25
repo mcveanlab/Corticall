@@ -5,7 +5,6 @@ import org.apache.commons.lang.time.DurationFormatUtils;
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.performance.PerformanceUtils;
 
