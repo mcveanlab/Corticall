@@ -21,7 +21,6 @@ public class LinkStore {
         junctions.addAll(clr.getJunctions());
 
         for (CortexJunctionsRecord cjr : junctions) {
-            //boolean linkGoesForward = recordOrientationMatchesKmer ? cjr.isForward() : !cjr.isForward();
             boolean linkGoesForward = recordOrientationMatchesKmer == cjr.isForward();
             String junctionList = linkGoesForward ? cjr.getJunctions() : SequenceUtils.complement(cjr.getJunctions());
 
@@ -43,14 +42,6 @@ public class LinkStore {
         }
     }
 
-    public void imcrementPositions() {
-        for (String junctionList : linkElements.keySet()) {
-            for (LinkStoreElement lse : linkElements.get(junctionList)) {
-                lse.incrementPos();
-            }
-        }
-    }
-
     public int numNewPaths() {
         int numNewPaths = 0;
         for (String junctionList : linkElements.keySet()) {
@@ -64,44 +55,12 @@ public class LinkStore {
         return numNewPaths;
     }
 
-    /*
-    private void expireRecords() {
-        Set<LinkStoreElement> toRemove = new HashSet<>();
-
-        List<LinkStoreElement> lses = new ArrayList<>();
-        for (String junctionList : linkElements.keySet()) {
-            for (LinkStoreElement lse : linkElements.get(junctionList)) {
-                lses.add(lse);
-            }
-        }
-
-        lses.sort((o1, o2) -> {
-            if (o1.getAge() != o2.getAge()) { return o1.getAge() > o2.getAge() ? -1 : 1; }
-            if (o1.length() == o2.length()) { return o2.getJunctionList().compareTo(o1.getJunctionList()); }
-            return o1.length() < o2.length() ? -1 : 1;
-        });
-
-        for (LinkStoreElement lse : lses) {
-            int pos = lse.getPos();
-            String junctionList = lse.getJunctionList();
-
-            if (lse.getPos() + 1 >= junctionList.length() || !junctionList.substring(pos, pos + 1).equals(choice)) {
-                toRemove.add(lse);
-            } else if (junctionList.substring(pos, pos + 1).equals(choice)) {
-                lse.incrementPos();
-            }
-        }
-    }
-    */
-
     private void incrementPositionsAndExpire(String choice) {
         Set<LinkStoreElement> toRemove = new HashSet<>();
 
         List<LinkStoreElement> lses = new ArrayList<>();
         for (String junctionList : linkElements.keySet()) {
-            for (LinkStoreElement lse : linkElements.get(junctionList)) {
-                lses.add(lse);
-            }
+            lses.addAll(linkElements.get(junctionList));
         }
 
         lses.sort((o1, o2) -> {
@@ -219,26 +178,23 @@ public class LinkStore {
 
         int numCurr = junctionLists.size();
 
-        sb.append("\n");
-        sb.append("                             num_curr: ").append(numCurr);
+        sb.append("num_curr: ").append(numCurr);
 
         for (LinkStoreElement lse : junctionLists) {
             if (sb.length() > 0) {
                 sb.append("\n");
             }
 
-            sb.append("                              ")
-                    .append(SequenceUtils.complement(lse.getJunctionList()))
-                    .append(" [")
-                    .append(lse.getPos())
-                    .append("/")
-                    .append(lse.length())
-                    .append("] age: ")
-                    .append(lse.getAge());
+            sb.append(SequenceUtils.complement(lse.getJunctionList()))
+              .append(" [")
+              .append(lse.getPos())
+              .append("/")
+              .append(lse.length())
+              .append("] age: ")
+              .append(lse.getAge());
         }
 
         sb.append("\n");
-        sb.append("                             num_counter: 0\n");
 
         return sb.toString();
     }

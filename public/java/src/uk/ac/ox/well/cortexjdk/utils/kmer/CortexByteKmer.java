@@ -14,15 +14,6 @@ public class CortexByteKmer implements Comparable<CortexByteKmer> {
 
     public CortexByteKmer(String kmer) { this.kmer = kmer.getBytes(); }
 
-    /*
-    public ByteKmer(byte[] s0, byte[] s1) {
-        kmer = new byte[s0.length + s1.length];
-
-        System.arraycopy(s0, 0, kmer, 0, s0.length);
-        System.arraycopy(s1, 0, kmer, s0.length, s1.length);
-    }
-    */
-
     public int length() { return kmer.length; }
 
     public byte[] getKmer() { return kmer; }

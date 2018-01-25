@@ -15,6 +15,7 @@ public class CortexVertex {
     private CortexRecord cr;
     private Interval locus;
     private Set<String> kmerSources;
+    private int copyIndex = 0;
 
     public CortexVertex(CortexByteKmer sk, CortexRecord cr) {
         this.sk = sk;
@@ -40,6 +41,14 @@ public class CortexVertex {
         this.kmerSources = kmerSources;
     }
 
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources, int copyIndex) {
+        this.sk = sk;
+        this.cr = cr;
+        this.locus = locus;
+        this.kmerSources = kmerSources;
+        this.copyIndex = copyIndex;
+    }
+
     public String getKmerAsString() { return new String(sk.getKmer()); }
 
     public CortexByteKmer getKmerAsByteKmer() { return sk; }
@@ -47,6 +56,8 @@ public class CortexVertex {
     public CortexRecord getCortexRecord() { return cr; }
 
     public CanonicalKmer getCanonicalKmer() { return cr.getCanonicalKmer(); }
+
+    public int getCopyIndex() { return copyIndex; }
 
     public Interval getLocus() { return locus; }
 
@@ -67,27 +78,31 @@ public class CortexVertex {
 
         CortexVertex that = (CortexVertex) o;
 
-        if (sk != null ? !sk.equals(that.sk) : that.sk != null) return false;
-        if (cr != null ? !cr.equals(that.cr) : that.cr != null) return false;
-        return locus != null ? locus.equals(that.locus) : that.locus == null;
-
+        if (copyIndex != that.copyIndex) return false;
+        if (!sk.equals(that.sk)) return false;
+        if (!cr.equals(that.cr)) return false;
+        if (locus != null ? !locus.equals(that.locus) : that.locus != null) return false;
+        return kmerSources != null ? kmerSources.equals(that.kmerSources) : that.kmerSources == null;
     }
 
     @Override
     public int hashCode() {
-        int result = sk != null ? sk.hashCode() : 0;
-        result = 31 * result + (cr != null ? cr.hashCode() : 0);
+        int result = sk.hashCode();
+        result = 31 * result + cr.hashCode();
         result = 31 * result + (locus != null ? locus.hashCode() : 0);
+        result = 31 * result + (kmerSources != null ? kmerSources.hashCode() : 0);
+        result = 31 * result + copyIndex;
         return result;
     }
 
     @Override
     public String toString() {
         return "CortexVertex{" +
-                "sk='" + new String(sk.getKmer()) + '\'' +
+                "sk=" + sk +
                 ", cr=" + cr +
                 ", locus=" + locus +
                 ", kmerSources=" + kmerSources +
+                ", copyIndex=" + copyIndex +
                 '}';
     }
 }

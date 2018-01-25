@@ -5,6 +5,7 @@ import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.LineReader;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
 import java.io.File;
 import java.util.*;
@@ -20,7 +21,7 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
     private int kmerSize = 0;
     private int kmerBits = 0;
 
-    //private Map<Integer, String> colorList = new HashMap<>();
+    private List<CortexColor> colors = new ArrayList<>();
 
     public CortexCollection(List<CortexGraph> graphCollection) {
         loadCollection(graphCollection);
@@ -56,9 +57,12 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
             graphList.add(g);
 
             numColors += accessColors.size();
+
+            colors.addAll(g.getColors());
         }
     }
 
+    /*
     public CortexCollection(String collectionFileString) {
         if (!collectionFileString.endsWith(".ctx") && new File(collectionFileString).exists()) {
             List<String> lines = new ArrayList<>();
@@ -170,6 +174,7 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
             }
         }
     }
+    */
 
     public CortexGraph getGraph(int color) {
         for (CortexGraph g : graphs.keySet()) {
@@ -211,27 +216,39 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
 
     @Override
     public List<CortexColor> getColors() {
-        return null;
+        return colors;
     }
 
     @Override
     public boolean hasColor(int color) {
-        return false;
+        return colors.size() > color;
     }
 
     @Override
     public CortexColor getColor(int color) {
-        return null;
+        return colors.get(color);
     }
 
     @Override
     public int getColorForSampleName(String sampleName) {
-        return 0;
+        List<Integer> l = getColorsForSampleNames(Collections.singletonList(sampleName));
+
+        return l.size() == 1 ? l.get(0) : -1;
     }
 
     @Override
     public List<Integer> getColorsForSampleNames(Collection<String> sampleNames) {
-        return null;
+        List<Integer> l = new ArrayList<>();
+
+        Set<String> names = new LinkedHashSet<>(sampleNames);
+
+        for (int c = 0; c < colors.size(); c++) {
+            if (names.contains(colors.get(c).getSampleName())) {
+                l.add(c);
+            }
+        }
+
+        return l;
     }
 
     public int getKmerSize() { return kmerSize; }
@@ -246,16 +263,14 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
         ch.setKmerBits(getKmerBits());
 
         for (int c = 0; c < getNumColors(); c++) {
-            ch.addColor(getGraph(c).getColor(0));
+            ch.addColor(colors.get(c));
         }
 
         return ch;
     }
 
     @Override
-    public int getVersion() {
-        return 0;
-    }
+    public int getVersion() { return 6; }
 
     public CortexRecord findRecord(byte[] bk) {
         long[] binaryKmer = null;
@@ -287,7 +302,7 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
         return (binaryKmer == null) ? null : new CortexRecord(binaryKmer, coverages, edges, kmerSize, kmerBits);
     }
 
-    public CortexRecord findRecord(uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer bk) {
+    public CortexRecord findRecord(CortexByteKmer bk) {
         return findRecord(bk.getKmer());
     }
     public CortexRecord findRecord(CanonicalKmer ck) {
@@ -406,5 +421,35 @@ public class CortexCollection implements uk.ac.ox.well.cortexjdk.utils.io.graph.
     @Override
     public CortexRecord getRecord(long i) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        List<String> filenames = new ArrayList<>();
+        for (CortexGraph g : graphList) {
+            filenames.add(g.getFile().getAbsolutePath());
+        }
+
+        String info = "files:\n  " + Joiner.on("\n  ").join(filenames) + "\n"
+                + "----" + "\n"
+                + "binary version: " + this.getVersion() + "\n"
+                + "kmer size: " + this.getKmerSize() + "\n"
+                + "bitfields: " + this.getKmerBits() + "\n"
+                + "colors: " + this.getNumColors() + "\n";
+
+        for (int color = 0; color < this.getNumColors(); color++) {
+            CortexColor cortexColor = this.getColors().get(color);
+            info += "-- Color " + color + " --\n"
+                 +  "  sample name: '" + cortexColor.getSampleName() + "'\n"
+                 +  "  mean read length: " + cortexColor.getMeanReadLength() + "\n"
+                 +  "  total sequence loaded: " + "(not parsed)" + "\n"
+                 +  "  sequence error rate: " + "(not parsed)" + "\n"
+                 +  "  tip clipping: " + (cortexColor.isTipClippingApplied() ? "yes" : "no") + "\n"
+                 +  "  remove_low_coverage_supernodes: " + (cortexColor.isLowCovgSupernodesRemoved() ? "yes" : "no") + "\n"
+                 +  "  remove_low_coverage_kmers: " + (cortexColor.isLowCovgKmersRemoved() ? "yes" : "no") + "\n"
+                 +  "  cleaned against graph: " + (cortexColor.isCleanedAgainstGraph() ? "yes" : "no") + "\n";
+        }
+
+        return info;
     }
 }
