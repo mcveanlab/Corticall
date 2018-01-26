@@ -474,7 +474,7 @@ public class CompareContigLengths extends Module {
                 .traversalDirection(FORWARD)
                 .combinationOperator(OR)
                 .stoppingRule(BubbleClosingStopper.class)
-                //.previousTraversal(g)
+                //.sink(g)
                 .graph(GRAPH)
                 .links(LINKS)
                 .references(REFERENCES.values())
@@ -511,7 +511,7 @@ public class CompareContigLengths extends Module {
                     CortexVertex vj = w.get(j);
                     sinks.addVertex(vj);
                 }
-                e.getConfiguration().setPreviousTraversal(sinks);
+                e.getConfiguration().setSink(sinks);
 
                 for (int q = 0; q < sources.size(); q++) {
                     CortexVertex root = roots.get(q);

@@ -155,7 +155,7 @@ public class CorrectGraph extends Module {
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> pt = new DirectedWeightedPseudograph<>(CortexEdge.class);
                             pt.addVertex(cv1);
 
-                            e.getConfiguration().setPreviousTraversal(pt);
+                            e.getConfiguration().setSink(pt);
 
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(l.getFirst().getKmerAsString());
 

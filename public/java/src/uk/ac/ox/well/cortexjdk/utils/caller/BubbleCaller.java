@@ -108,7 +108,7 @@ public class BubbleCaller {
                             Interval siInterval = siIntervals.iterator().next();
 
                             if (soInterval.getContig().equals(siInterval.getContig())) {
-                                eCloses.get(pc).getConfiguration().setPreviousTraversal(s);
+                                eCloses.get(pc).getConfiguration().setSink(s);
 
                                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gp = eCloses.get(pc).dfs(so.getKmerAsString());
 

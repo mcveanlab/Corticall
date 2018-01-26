@@ -29,7 +29,8 @@ public class TraversalEngineConfiguration {
     private Set<Integer> recruitmentColors = new TreeSet<>();
     private Set<Integer> secondaryColors = new TreeSet<>();
 
-    private int maxLength = Integer.MAX_VALUE;
+    //private int maxLength = Integer.MAX_VALUE;
+    private int maxLength = 75000;
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
     private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule;
@@ -71,8 +72,8 @@ public class TraversalEngineConfiguration {
     public void setSecondaryColors(Collection<Integer> secondaryColors) { this.secondaryColors = new TreeSet<>(secondaryColors); }
     public void setSecondaryColors() { this.secondaryColors.clear(); }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getPreviousTraversal() { return previousTraversal; }
-    public void setPreviousTraversal(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getSink() { return previousTraversal; }
+    public void setSink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
 
     public Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
     public void setStoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }
@@ -90,5 +91,5 @@ public class TraversalEngineConfiguration {
     public void setReferences(Set<IndexedReference> kls) { this.kls = kls; }
 
     public void setMaxWalkLength(int maxLength) { this.maxLength = maxLength; }
-    public int getMaxWalkLength() { return maxLength; }
+    public int getMaxBranchLength() { return maxLength; }
 }

@@ -16,6 +16,7 @@ final public class TraversalState<V> {
     final private boolean childrenAlreadyTraversed;
     final private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph;
     final private DeBruijnGraph rois;
+    final private boolean reachedMaxBranchLength;
 
     public TraversalState(V currentVertex,
                           boolean goForward,
@@ -25,6 +26,7 @@ final public class TraversalState<V> {
                           int currentGraphSize,
                           int numAdjacentEdges,
                           boolean childrenAlreadyTraversed,
+                          boolean reachedMaxBranchLength,
                           DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph,
                           DeBruijnGraph rois) {
         this.currentVertex = currentVertex;
@@ -37,6 +39,7 @@ final public class TraversalState<V> {
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
         this.previousGraph = previousGraph;
         this.rois = rois;
+        this.reachedMaxBranchLength = reachedMaxBranchLength;
     }
 
     public V getCurrentVertex() { return currentVertex; }
@@ -54,6 +57,8 @@ final public class TraversalState<V> {
     public int getNumAdjacentEdges() { return numAdjacentEdges; }
 
     public boolean isChildrenAlreadyTraversed() { return childrenAlreadyTraversed; }
+
+    public boolean reachedMaxBranchLength() { return reachedMaxBranchLength; }
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getPreviousGraph() { return previousGraph; }
 

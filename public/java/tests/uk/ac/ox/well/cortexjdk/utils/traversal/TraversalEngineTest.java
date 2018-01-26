@@ -267,7 +267,7 @@ public class TraversalEngineTest {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
-                e.getConfiguration().setPreviousTraversal(p);
+                e.getConfiguration().setSink(p);
 
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
@@ -355,7 +355,7 @@ public class TraversalEngineTest {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
-                e.getConfiguration().setPreviousTraversal(p);
+                e.getConfiguration().setSink(p);
 
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
@@ -443,7 +443,7 @@ public class TraversalEngineTest {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
-                e.getConfiguration().setPreviousTraversal(p);
+                e.getConfiguration().setSink(p);
 
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);
@@ -529,7 +529,7 @@ public class TraversalEngineTest {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> p = new DirectedWeightedPseudograph<>(CortexEdge.class);
                 p.addVertex(os);
 
-                e.getConfiguration().setPreviousTraversal(p);
+                e.getConfiguration().setSink(p);
 
                 for (int c : g.getColorsForSampleNames(Arrays.asList("mom", "dad"))) {
                     e.getConfiguration().setTraversalColor(c);

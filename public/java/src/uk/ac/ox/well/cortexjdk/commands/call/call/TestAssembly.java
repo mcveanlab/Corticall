@@ -11,7 +11,6 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertexFactory;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
 
@@ -20,8 +19,6 @@ import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class TestAssembly extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
@@ -43,11 +40,11 @@ public class TestAssembly extends Module {
     public void execute() {
         TraversalEngine e = configureTraversalEngine();
 
-        Map<String, String> used = loadRois(MC);
+//        Map<String, String> used = loadRois(MC);
 
-//        Map<String, String> usedFull = loadRois(MC);
-//        Map<String, String> used = new HashMap<>();
-//        used.put("TCAGGGTTTTAGGTTTAGGGTTTAGGGTTTAGGGTTTAGGGTTTAGG", usedFull.get("TCAGGGTTTTAGGTTTAGGGTTTAGGGTTTAGGGTTTAGGGTTTAGG"));
+        Map<String, String> usedFull = loadRois(MC);
+        Map<String, String> used = new HashMap<>();
+        used.put("ACTTCTACTAACTTAGGTCTTACATTAACTAACTCAGGTCTTACTTT", usedFull.get("ACTTCTACTAACTTAGGTCTTACATTAACTAACTCAGGTCTTACTTT"));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -56,11 +53,8 @@ public class TestAssembly extends Module {
                 .make(log);
 
         for (String sk : used.keySet()) {
-            List<CortexVertex> gd = e.gwalk(sk);
             List<CortexVertex> gw = e.walk(sk);
-
-            //List<CortexVertex> gw = e.walk(sk, false);
-            //gw.add(new CortexVertexFactory().bases(sk).record(GRAPH.findRecord(sk)).make());
+            List<CortexVertex> gd = e.gwalk(sk);
 
             String cd = TraversalEngine.toContig(gd);
             String cw = TraversalEngine.toContig(gw);
@@ -69,15 +63,7 @@ public class TestAssembly extends Module {
 
             out.println("seed=" + sk + " len=" + (contig.length() - (GRAPH.getKmerSize() - 1)) + " " + contig);
 
-            //if (cw.length() > cd.length()) {
-                log.info("{} cjd={} cjw={} mc={}", sk, cd.length(), cw.length(), used.get(sk).length());
-//            }
-
-//            log.info(" - cjd={}", cd);
-//            log.info(" - cjw={}", cw);
-//            log.info(" -  mc={}", used.get(sk));
-//
-//            List<CortexVertex> d = e.gwalk(sk);
+            log.info("{} cjd={} cjw={} mc={}", sk, cd.length(), cw.length(), used.get(sk).length());
 
             pm.update();
         }

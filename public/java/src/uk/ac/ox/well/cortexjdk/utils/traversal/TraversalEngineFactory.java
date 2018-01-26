@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
+import org.jgrapht.Graphs;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
@@ -32,7 +33,36 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory secondaryColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getSecondaryColors().add(c)); return this; }
     public TraversalEngineFactory secondaryColors(Collection<Integer> colors) { configuration.getSecondaryColors().addAll(colors); return this; }
 
-    public TraversalEngineFactory previousTraversal(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { configuration.setPreviousTraversal(previousTraversal); return this; }
+    public TraversalEngineFactory sink(CortexVertex sink) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        s.addVertex(sink);
+
+        configuration.setSink(s);
+
+        return this;
+    }
+
+    public TraversalEngineFactory sink(CortexVertex... sinks) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        for (CortexVertex sink : sinks) {
+            s.addVertex(sink);
+        }
+
+        configuration.setSink(s);
+
+        return this;
+    }
+
+    public TraversalEngineFactory sink(Collection<CortexVertex> sinks) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        Graphs.addAllVertices(s, sinks);
+
+        configuration.setSink(s);
+
+        return this;
+    }
+
+    public TraversalEngineFactory sink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> sink) { configuration.setSink(sink); return this; }
 
     public TraversalEngineFactory stoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 
@@ -67,7 +97,7 @@ public class TraversalEngineFactory {
         return this;
     }
 
-    public TraversalEngineFactory maxWalkLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
+    public TraversalEngineFactory maxBranchLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 
     public TraversalEngine make() {
         configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new CortexJDKException("Joining colors must be greater than 0 (provided " + c + ")"); });

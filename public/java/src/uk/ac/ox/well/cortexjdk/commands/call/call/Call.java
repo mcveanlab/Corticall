@@ -50,7 +50,7 @@ public class Call extends Module {
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROI;
 
-    @Argument(fullName = "maxWalkLength", shortName = "m", doc = "Max walk length")
+    @Argument(fullName = "maxBranchLength", shortName = "m", doc = "Max walk length")
     public Integer MAX_WALK_LENGTH = Integer.MAX_VALUE;
 
     @Output
@@ -75,7 +75,7 @@ public class Call extends Module {
                 .links(LINKS)
                 .references(REFERENCES.values())
                 .rois(ROI)
-                .maxWalkLength(MAX_WALK_LENGTH)
+                .maxBranchLength(MAX_WALK_LENGTH)
                 .make();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -459,7 +459,7 @@ public class Call extends Module {
                         }
                     }
 
-                    e.getConfiguration().setPreviousTraversal(sinks);
+                    e.getConfiguration().setSink(sinks);
 
                     for (int q = 0; q < sources.size(); q++) {
                         CortexVertex root = roots.get(q);

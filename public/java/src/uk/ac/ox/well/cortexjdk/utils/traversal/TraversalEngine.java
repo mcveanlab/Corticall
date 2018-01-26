@@ -19,7 +19,7 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.*;
 
 public class TraversalEngine {
-    private TraversalEngineConfiguration ec;
+    final private TraversalEngineConfiguration ec;
 
     public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
 
@@ -98,12 +98,12 @@ public class TraversalEngine {
 
         seek(seed);
         if (goForward) {
-            while (hasNext() && contig.size() < getConfiguration().getMaxWalkLength()) {
+            while (hasNext() && contig.size() < getConfiguration().getMaxBranchLength()) {
                 CortexVertex cv = next();
                 contig.add(cv);
             }
         } else {
-            while (hasPrevious() && contig.size() < getConfiguration().getMaxWalkLength()) {
+            while (hasPrevious() && contig.size() < getConfiguration().getMaxBranchLength()) {
                 CortexVertex cv = previous();
                 contig.add(0, cv);
             }
@@ -348,7 +348,7 @@ public class TraversalEngine {
             visited.add(cv);
 
             // Decide if we should keep exploring the graph or not
-            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois());
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
 
             if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {

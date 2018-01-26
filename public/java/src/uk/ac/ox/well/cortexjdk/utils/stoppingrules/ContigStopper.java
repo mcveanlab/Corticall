@@ -10,7 +10,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 public class ContigStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        return s.getNumAdjacentEdges() != 1;
+        return s.getNumAdjacentEdges() != 1 || s.reachedMaxBranchLength();
     }
 
     @Override
