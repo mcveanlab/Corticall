@@ -65,7 +65,10 @@ public class TestAssembly extends Module {
 
             out.println("seed=" + sk + " len=" + (contig.length() - (GRAPH.getKmerSize() - 1)) + " " + contig);
 
-            log.info("{} cjd={} cjw={} mc={}", sk, cd.length(), cw.length(), used.get(sk).length());
+            if (cw.length() > cd.length()) {
+                log.info("{} cjd={} cjw={} mc={}", sk, cd.length(), cw.length(), used.get(sk).length());
+            }
+
             //log.info(" - cjd={}", cd);
             //log.info(" - cjw={}", cw);
             //log.info(" -  mc={}", used.get(sk));
