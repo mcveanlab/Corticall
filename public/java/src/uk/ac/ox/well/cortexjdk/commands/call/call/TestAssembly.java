@@ -40,10 +40,13 @@ public class TestAssembly extends Module {
     public void execute() {
         TraversalEngine e = configureTraversalEngine();
 
-        Map<String, String> usedFull = loadRois(MC);
+        Map<String, String> used = loadRois(MC);
 
+        /*
+        Map<String, String> usedFull = loadRois(MC);
         Map<String, String> used = new HashMap<>();
         used.put("TCACTTAGTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT", usedFull.get("TCACTTAGTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"));
+        */
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
