@@ -2,11 +2,8 @@ package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.Nullable;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -51,21 +48,21 @@ public class TraversalEngine {
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String seed) {
         validateConfiguration(seed);
 
-        DirectedGraph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(seed, false, 0, new HashSet<>()) : null;
-        DirectedGraph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(seed, true,  0, new HashSet<>()) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(seed, false, 0, new HashSet<>()) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(seed, true,  0, new HashSet<>()) : null;
 
-        DirectedGraph<CortexVertex, CortexEdge> dfs = null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
 
         if (ec.getGraphCombinationOperator() == OR) {
             if (dfsr != null || dfsf != null) {
-                dfs = new DefaultDirectedGraph<>(CortexEdge.class);
+                dfs = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
                 if (dfsr != null) { Graphs.addGraph(dfs, dfsr); }
                 if (dfsf != null) { Graphs.addGraph(dfs, dfsf); }
             }
         } else {
             if (dfsr != null && dfsf != null) {
-                dfs = new DefaultDirectedGraph<>(CortexEdge.class);
+                dfs = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
                 Graphs.addGraph(dfs, dfsr);
                 Graphs.addGraph(dfs, dfsf);
@@ -201,7 +198,7 @@ public class TraversalEngine {
                     }
 
                     if (allKmersTheSame) {
-                        pvs.sort((o1, o2) -> o1.getCopyIndex() < o2.getCopyIndex() ? -1 : 1);
+                        pvs.sort((o1, o2) -> o1.getCopyIndex() > o2.getCopyIndex() ? -1 : 1);
 
                         if (pvs.size() > 0) {
                             pv = pvs.get(0);
@@ -269,8 +266,8 @@ public class TraversalEngine {
     }
 
     @Nullable
-    private DirectedGraph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
-        DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         if (!ec.getLinks().isEmpty()) {
             seek(sk);
@@ -282,10 +279,14 @@ public class TraversalEngine {
 
         CortexVertex cv = null;
         do {
+            int copyIndex;
+            if (goForward) { copyIndex = cv == null ? 0 : cv.getCopyIndex() + 1; }
+            else { copyIndex = cv == null ? 0 : cv.getCopyIndex() - 1; }
+
             cv = new CortexVertexFactory()
                     .bases(sk)
                     .record(cr)
-                    .copyIndex(cv == null ? 0 : cv.getCopyIndex() + 1)
+                    .copyIndex(copyIndex)
                     .make();
         } while (visited.contains(cv));
 
@@ -309,9 +310,13 @@ public class TraversalEngine {
                 if (qv != null) {
                     CortexVertex lv = null;
                     do {
+                        int copyIndex;
+                        if (goForward) { copyIndex = lv == null ? 1 : cv.getCopyIndex() + 1; }
+                        else { copyIndex = lv == null ? -1 : cv.getCopyIndex() - 1; }
+
                         lv = new CortexVertexFactory()
                                 .vertex(qv)
-                                .copyIndex(lv == null ? 0 : lv.getCopyIndex() + 1)
+                                .copyIndex(copyIndex)
                                 .make();
                     } while (visited.contains(lv));
 
@@ -352,7 +357,7 @@ public class TraversalEngine {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedGraph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentTraversalDepth + 1, visited);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentTraversalDepth + 1, visited);
 
                         if (branch != null) {
                             Graphs.addGraph(g, branch);
@@ -378,7 +383,7 @@ public class TraversalEngine {
         return null;
     }
 
-    private void connectVertex(DirectedGraph<CortexVertex, CortexEdge> g, CortexVertex cv, Set<CortexVertex> pvs, Set<CortexVertex> nvs) {
+    private void connectVertex(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexVertex cv, Set<CortexVertex> pvs, Set<CortexVertex> nvs) {
         g.addVertex(cv);
 
         if (pvs != null) {
@@ -747,7 +752,7 @@ public class TraversalEngine {
 
     public boolean hasPrevious() { return prevKmer != null; }
 
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addSecondaryColors(DirectedGraph<CortexVertex, CortexEdge> g) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addSecondaryColors(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         Set<Integer> displayColors = new HashSet<>(ec.getSecondaryColors());
@@ -758,7 +763,7 @@ public class TraversalEngine {
             Map<CortexByteKmer, Map<Integer, Set<CortexByteKmer>>> nkscache = new HashMap<>();
 
             for (int c : displayColors) {
-                DirectedGraph<CortexVertex, CortexEdge> g2 = new DefaultDirectedGraph<>(CortexEdge.class);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g2 = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
                 for (CortexVertex v : g.vertexSet()) {
                     Map<Integer, Set<CortexByteKmer>> pks = pkscache.containsKey(v.getKmerAsByteKmer()) ? pkscache.get(v.getKmerAsByteKmer()) : getAllPrevKmers(v.getKmerAsByteKmer());

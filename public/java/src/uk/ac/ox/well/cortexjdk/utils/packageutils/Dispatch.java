@@ -36,8 +36,7 @@ public class Dispatch {
             Class<? extends Module> module = (Class<? extends Module>) Class.forName(moduleName);
 
             Main.getLogger().info("{}", getBanner());
-            //Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
-            Main.getLogger().info("java -jar cortexjdk.jar {} {}", module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
+            Main.getLogger().info("java -Xmx{}g -jar cortexjdk.jar {} {}", (Runtime.getRuntime().maxMemory()/(1024*1024))/1024, module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
             Main.getLogger().info("");
 
             Module instance = module.newInstance();
