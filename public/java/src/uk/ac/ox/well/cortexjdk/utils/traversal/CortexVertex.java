@@ -99,10 +99,10 @@ public class CortexVertex {
     public String toString() {
         return "CortexVertex{" +
                 "sk=" + sk +
+                ", copyIndex=" + copyIndex +
                 ", cr=" + cr +
                 ", locus=" + locus +
                 ", kmerSources=" + kmerSources +
-                ", copyIndex=" + copyIndex +
                 '}';
     }
 }

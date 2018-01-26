@@ -6,6 +6,7 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -135,7 +136,7 @@ public class TraversalEngine {
 
         CortexVertex seed = null;
         for (CortexVertex v : g.vertexSet()) {
-            if (v.getKmerAsString().equals(sk)) {
+            if (v.getKmerAsString().equals(sk) && v.getCopyIndex() == 0) {
                 seed = v;
                 break;
             }
@@ -146,21 +147,72 @@ public class TraversalEngine {
 
             Set<CortexVertex> seen = new HashSet<>();
             CortexVertex cv = seed;
-            while (g.outDegreeOf(cv) == 1 && !seen.contains(cv)) {
-                CortexVertex nv = Graphs.successorListOf(g, cv).iterator().next();
-                w.add(nv);
-                seen.add(cv);
+            while (cv != null && !seen.contains(cv)) {
+                List<CortexVertex> nvs = Graphs.successorListOf(g, cv);
+                nvs.remove(cv);
+
+                CortexVertex nv = null;
+
+                if (nvs.size() == 1) {
+                    nv = nvs.get(0);
+                } else if (nvs.size() > 1) {
+                    boolean allKmersTheSame = true;
+                    for (int i = 1; i < nvs.size(); i++) {
+                        if (!nvs.get(0).getCanonicalKmer().equals(nvs.get(i).getCanonicalKmer())) {
+                            allKmersTheSame = false;
+                            break;
+                        }
+                    }
+
+                    if (allKmersTheSame) {
+                        nvs.sort((o1, o2) -> o1.getCopyIndex() < o2.getCopyIndex() ? -1 : 1);
+
+                        if (nvs.size() > 0) {
+                            nv = nvs.get(0);
+                        }
+                    }
+                }
+
+                if (nv != null) {
+                    w.add(nv);
+                    seen.add(cv);
+                }
 
                 cv = nv;
             }
 
             seen = new HashSet<>();
             cv = seed;
+            while (cv != null && !seen.contains(cv)) {
+                List<CortexVertex> pvs = Graphs.predecessorListOf(g, cv);
+                pvs.remove(cv);
 
-            while (g.inDegreeOf(cv) == 1 && !seen.contains(cv)) {
-                CortexVertex pv = Graphs.predecessorListOf(g, cv).iterator().next();
-                w.add(0, pv);
-                seen.add(cv);
+                CortexVertex pv = null;
+
+                if (pvs.size() == 1) {
+                    pv = pvs.get(0);
+                } else if (pvs.size() > 1) {
+                    boolean allKmersTheSame = true;
+                    for (int i = 1; i < pvs.size(); i++) {
+                        if (!pvs.get(0).getCanonicalKmer().equals(pvs.get(i).getCanonicalKmer())) {
+                            allKmersTheSame = false;
+                            break;
+                        }
+                    }
+
+                    if (allKmersTheSame) {
+                        pvs.sort((o1, o2) -> o1.getCopyIndex() < o2.getCopyIndex() ? -1 : 1);
+
+                        if (pvs.size() > 0) {
+                            pv = pvs.get(0);
+                        }
+                    }
+                }
+
+                if (pv != null) {
+                    w.add(0, pv);
+                    seen.add(cv);
+                }
 
                 cv = pv;
             }
@@ -228,7 +280,14 @@ public class TraversalEngine {
 
         if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
 
-        CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), cr);
+        CortexVertex cv = null;
+        do {
+            cv = new CortexVertexFactory()
+                    .bases(sk)
+                    .record(cr)
+                    .copyIndex(cv == null ? 0 : cv.getCopyIndex() + 1)
+                    .make();
+        } while (visited.contains(cv));
 
         Set<CortexVertex> avs;
 
@@ -239,8 +298,6 @@ public class TraversalEngine {
             Set<CortexVertex> nvs = getNextVertices(cv.getKmerAsByteKmer());
             avs = goForward ? nvs : pvs;
 
-            boolean addToVisitedList = true;
-
             if (!ec.getLinks().isEmpty()) {
                 CortexVertex qv = null;
                 if (goForward && hasNext()) {
@@ -250,11 +307,16 @@ public class TraversalEngine {
                 }
 
                 if (qv != null) {
-                    //avs = Collections.singleton(qv);
-                    avs = new HashSet<>();
-                    avs.add(qv);
+                    CortexVertex lv = null;
+                    do {
+                        lv = new CortexVertexFactory()
+                                .vertex(qv)
+                                .copyIndex(lv == null ? 0 : lv.getCopyIndex() + 1)
+                                .make();
+                    } while (visited.contains(lv));
 
-                    addToVisitedList = false;
+                    avs = new HashSet<>();
+                    avs.add(lv);
                 }
             }
 
@@ -267,10 +329,6 @@ public class TraversalEngine {
                 connectVertex(g, cv, avs,  null);
             }
 
-            if (addToVisitedList) {
-                visited.add(cv);
-            }
-
             // Avoid traversing infinite loops by removing from traversal consideration
             // those vertices that have already been incorporated into the graph.
             Set<CortexVertex> seen = new HashSet<>();
@@ -281,13 +339,16 @@ public class TraversalEngine {
             }
             avs.removeAll(seen);
 
+            visited.add(cv);
+            visited.addAll(avs);
+
             // Decide if we should keep exploring the graph or not
             TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois());
 
             if (stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
                     cv = avs.iterator().next();
-                } else if (avs.size() != 1) {
+                } else {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
@@ -542,7 +603,7 @@ public class TraversalEngine {
 
             seen.add(nextKmer);
         } else if (nextKmers.size() > 1) {
-            Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, nextKmers, true);
+            Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, nextKmers, goForward);
             nextKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
 
@@ -567,7 +628,7 @@ public class TraversalEngine {
 
         updateLinkStore(goForward);
 
-        CortexRecord cr = ec.getGraph().findRecord(new CanonicalKmer(prevKmer.getKmer()));
+        CortexRecord cr = ec.getGraph().findRecord(prevKmer);
         CortexVertex cv = new CortexVertex(prevKmer, cr, kmerSources);
 
         nextKmer = curKmer;
@@ -582,7 +643,7 @@ public class TraversalEngine {
 
             seen.add(prevKmer);
         } else if (prevKmers.size() > 1) {
-            Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, prevKmers, false);
+            Pair<CortexByteKmer, Set<String>> akp = getAdjacentKmer(curKmer, prevKmers, goForward);
             prevKmer = akp != null ? akp.getFirst() : null;
             kmerSources = akp != null ? akp.getSecond() : null;
 

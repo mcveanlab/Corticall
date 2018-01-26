@@ -14,9 +14,19 @@ public class CortexVertexFactory {
     private Set<String> kmerSources = new HashSet<>();
     private int copyIndex = 0;
 
-    public CortexVertexFactory vertex(String sk) { this.bk = new CortexByteKmer(sk); return this; }
-    public CortexVertexFactory vertex(CortexByteKmer bk) { this.bk = bk; return this; }
-    public CortexVertexFactory vertex(byte[] bk) { this.bk = new CortexByteKmer(bk); return this; }
+    public CortexVertexFactory vertex(CortexVertex v) {
+        bases(v.getKmerAsByteKmer());
+        record(v.getCortexRecord());
+        locus(v.getLocus());
+        sources(v.getSources());
+        copyIndex(v.getCopyIndex());
+
+        return this;
+    }
+
+    public CortexVertexFactory bases(String sk) { this.bk = new CortexByteKmer(sk); return this; }
+    public CortexVertexFactory bases(CortexByteKmer bk) { this.bk = bk; return this; }
+    public CortexVertexFactory bases(byte[] bk) { this.bk = new CortexByteKmer(bk); return this; }
 
     public CortexVertexFactory record(CortexRecord cr) { this.cr = cr; return this; }
 
