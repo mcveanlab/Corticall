@@ -311,8 +311,8 @@ public class TraversalEngine {
                     CortexVertex lv = null;
                     do {
                         int copyIndex;
-                        if (goForward) { copyIndex = lv == null ? 1 : cv.getCopyIndex() + 1; }
-                        else { copyIndex = lv == null ? -1 : cv.getCopyIndex() - 1; }
+                        if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
+                        else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
 
                         lv = new CortexVertexFactory()
                                 .vertex(qv)
