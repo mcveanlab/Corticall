@@ -344,13 +344,13 @@ public class TraversalEngine {
             }
             avs.removeAll(seen);
 
+            boolean previouslyVisited = visited.contains(cv);
             visited.add(cv);
-            visited.addAll(avs);
 
             // Decide if we should keep exploring the graph or not
             TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, ec.getPreviousTraversal(), ec.getRois());
 
-            if (stoppingRule.keepGoing(ts)) {
+            if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
                     cv = avs.iterator().next();
                 } else {
