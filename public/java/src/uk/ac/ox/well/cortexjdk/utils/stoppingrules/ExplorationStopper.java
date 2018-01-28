@@ -26,11 +26,11 @@ public class ExplorationStopper extends AbstractTraversalStoppingRule<CortexVert
             distanceFromLastNovelKmer = 0;
         }
 
-        return novelKmerFound && (distanceFromLastNovelKmer > 300 || s.isChildrenAlreadyTraversed());
+        return novelKmerFound && (distanceFromLastNovelKmer > 300 || s.childBranchesAlreadyTraversed());
     }
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return !novelKmerFound && (s.getCurrentGraphSize() > 500 || s.getNumAdjacentEdges() == 0 || s.getCurrentTraversalDepth() > 5);
+        return !novelKmerFound && (s.getCurrentGraphSize() > 500 || s.getNumAdjacentEdges() == 0 || s.getCurrentJunctionDepth() > 5);
     }
 }

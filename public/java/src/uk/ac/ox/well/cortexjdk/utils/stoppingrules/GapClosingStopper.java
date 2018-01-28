@@ -15,6 +15,6 @@ public class GapClosingStopper extends AbstractTraversalStoppingRule<CortexVerte
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return s.getCurrentTraversalDepth() > 5 || s.getNumAdjacentEdges() == 0;
+        return s.getCurrentJunctionDepth() > 5 || s.getNumAdjacentEdges() == 0;
     }
 }

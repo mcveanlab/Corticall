@@ -22,11 +22,11 @@ public class NahrStopper extends AbstractTraversalStoppingRule<CortexVertex, Cor
             distanceFromLastNovel++;
         }
 
-        return foundNovels && (distanceFromLastNovel >= 1000 || s.getCurrentTraversalDepth() >= 5 || s.getNumAdjacentEdges() == 0 || s.isChildrenAlreadyTraversed());
+        return foundNovels && (distanceFromLastNovel >= 1000 || s.getCurrentJunctionDepth() >= 5 || s.getNumAdjacentEdges() == 0 || s.childBranchesAlreadyTraversed());
     }
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return !foundNovels && (s.getCurrentGraphSize() >= 1000 || s.getCurrentTraversalDepth() >= 2 || s.getNumAdjacentEdges() == 0);
+        return !foundNovels && (s.getCurrentGraphSize() >= 1000 || s.getCurrentJunctionDepth() >= 2 || s.getNumAdjacentEdges() == 0);
     }
 }

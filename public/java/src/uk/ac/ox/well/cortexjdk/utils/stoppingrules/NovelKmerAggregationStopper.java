@@ -28,6 +28,6 @@ public class NovelKmerAggregationStopper extends AbstractTraversalStoppingRule<C
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return !haveSeenNovelKmers && (s.getCurrentGraphSize() >= 100 || s.getCurrentTraversalDepth() >= 3);
+        return !haveSeenNovelKmers && (s.getCurrentGraphSize() >= 100 || s.getCurrentJunctionDepth() >= 3);
     }
 }

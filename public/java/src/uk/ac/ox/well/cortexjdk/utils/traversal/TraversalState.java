@@ -10,7 +10,7 @@ final public class TraversalState<V> {
     final private boolean goForward;
     final private int traversalColor;
     final private Set<Integer> joiningColors;
-    final private int currentTraversalDepth;
+    final private int currentJunctionDepth;
     final private int currentGraphSize;
     final private int numAdjacentEdges;
     final private boolean childrenAlreadyTraversed;
@@ -22,7 +22,7 @@ final public class TraversalState<V> {
                           boolean goForward,
                           int traversalColor,
                           Set<Integer> joiningColors,
-                          int currentTraversalDepth,
+                          int currentJunctionDepth,
                           int currentGraphSize,
                           int numAdjacentEdges,
                           boolean childrenAlreadyTraversed,
@@ -33,7 +33,7 @@ final public class TraversalState<V> {
         this.goForward = goForward;
         this.traversalColor = traversalColor;
         this.joiningColors = joiningColors;
-        this.currentTraversalDepth = currentTraversalDepth;
+        this.currentJunctionDepth = currentJunctionDepth;
         this.currentGraphSize = currentGraphSize;
         this.numAdjacentEdges = numAdjacentEdges;
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
@@ -50,13 +50,13 @@ final public class TraversalState<V> {
 
     public Set<Integer> getJoiningColors() { return joiningColors; }
 
-    public int getCurrentTraversalDepth() { return currentTraversalDepth; }
+    public int getCurrentJunctionDepth() { return currentJunctionDepth; }
 
     public int getCurrentGraphSize() { return currentGraphSize; }
 
     public int getNumAdjacentEdges() { return numAdjacentEdges; }
 
-    public boolean isChildrenAlreadyTraversed() { return childrenAlreadyTraversed; }
+    public boolean childBranchesAlreadyTraversed() { return childrenAlreadyTraversed; }
 
     public boolean reachedMaxBranchLength() { return reachedMaxBranchLength; }
 

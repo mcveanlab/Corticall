@@ -31,6 +31,6 @@ public class BubbleOpeningStopper extends AbstractTraversalStoppingRule<CortexVe
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return novelKmersSeen == 0 && (s.getCurrentTraversalDepth() >= 5 || s.getNumAdjacentEdges() == 0);
+        return novelKmersSeen == 0 && (s.getCurrentJunctionDepth() >= 5 || s.getNumAdjacentEdges() == 0);
     }
 }

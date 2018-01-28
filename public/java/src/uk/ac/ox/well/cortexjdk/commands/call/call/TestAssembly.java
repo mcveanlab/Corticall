@@ -53,8 +53,8 @@ public class TestAssembly extends Module {
                 .make(log);
 
         for (String sk : used.keySet()) {
-            List<CortexVertex> gw = e.walk(sk);
-            List<CortexVertex> gd = e.gwalk(sk);
+            List<CortexVertex> gw = e.assemble(sk);
+            List<CortexVertex> gd = e.walk(sk);
 
             String cd = TraversalEngine.toContig(gd);
             String cw = TraversalEngine.toContig(gw);

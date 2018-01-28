@@ -15,6 +15,6 @@ public class BubbleClosingStopper extends AbstractTraversalStoppingRule<CortexVe
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return s.getCurrentGraphSize() > 10000 || s.getCurrentTraversalDepth() >= 2 || s.getNumAdjacentEdges() == 0;
+        return s.getCurrentGraphSize() > 10000 || s.getCurrentJunctionDepth() >= 2 || s.getNumAdjacentEdges() == 0;
     }
 }

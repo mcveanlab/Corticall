@@ -10,7 +10,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 public class VisualizationStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        return s.getNumAdjacentEdges() == 0 || s.getCurrentTraversalDepth() > 2 || s.getCurrentGraphSize() > 500;
+        return s.getNumAdjacentEdges() == 0 || s.getCurrentJunctionDepth() > 2 || s.getCurrentGraphSize() > 500;
     }
 
     @Override

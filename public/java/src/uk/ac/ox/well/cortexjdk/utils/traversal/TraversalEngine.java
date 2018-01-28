@@ -45,8 +45,18 @@ public class TraversalEngine {
         }
     }
 
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CanonicalKmer seed) {
+        return dfs(seed.getKmerAsString());
+    }
+
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String seed) {
         validateConfiguration(seed);
+
+//        CortexVertex cv = new CortexVertexFactory()
+//                .bases(seed)
+//                .record(ec.getGraph().findRecord(seed))
+//                .copyIndex(0)
+//                .make();
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(seed, false, 0, new HashSet<>()) : null;
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(seed, true,  0, new HashSet<>()) : null;
@@ -76,34 +86,34 @@ public class TraversalEngine {
         return null;
     }
 
-    public List<CortexVertex> gwalk(String seed) {
+    public List<CortexVertex> walk(CanonicalKmer seed) { return toWalk(dfs(seed.getKmerAsString()), seed.getKmerAsString()); }
+
+    public List<CortexVertex> walk(String seed) {
         return toWalk(dfs(seed), seed);
     }
 
-    public List<CortexVertex> walk(String seed) {
+    public List<CortexVertex> assemble(String seed) {
         List<CortexVertex> contig = new ArrayList<>();
         CortexVertex sv = new CortexVertex(new CortexByteKmer(seed.getBytes()), ec.getGraph().findRecord(seed));
         contig.add(sv);
 
-        contig.addAll(walk(seed, true));
-        contig.addAll(0, walk(seed, false));
+        contig.addAll(assemble(seed, true));
+        contig.addAll(0, assemble(seed, false));
 
         return contig;
     }
 
-    public List<CortexVertex> walk(String seed, boolean goForward) {
-        validateConfiguration(seed);
-
+    public List<CortexVertex> assemble(String seed, boolean goForward) {
         List<CortexVertex> contig = new ArrayList<>();
 
         seek(seed);
         if (goForward) {
-            while (hasNext() && contig.size() < getConfiguration().getMaxBranchLength()) {
+            while (hasNext() && contig.size() < ec.getMaxBranchLength()) {
                 CortexVertex cv = next();
                 contig.add(cv);
             }
         } else {
-            while (hasPrevious() && contig.size() < getConfiguration().getMaxBranchLength()) {
+            while (hasPrevious() && contig.size() < ec.getMaxBranchLength()) {
                 CortexVertex cv = previous();
                 contig.add(0, cv);
             }
@@ -130,6 +140,8 @@ public class TraversalEngine {
 
     public static List<CortexVertex> toWalk(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String sk) {
         List<CortexVertex> w = new ArrayList<>();
+
+        if (g == null) { return w; }
 
         CortexVertex seed = null;
         for (CortexVertex v : g.vertexSet()) {
@@ -218,6 +230,7 @@ public class TraversalEngine {
         return w;
     }
 
+    /*
     public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(DeBruijnGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dwp = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
@@ -254,6 +267,7 @@ public class TraversalEngine {
 
         return dwp;
     }
+    */
 
     private static TraversalStoppingRule<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stopperClass) {
         try {
@@ -266,7 +280,7 @@ public class TraversalEngine {
     }
 
     @Nullable
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentTraversalDepth, Set<CortexVertex> visited) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visited) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         if (!ec.getLinks().isEmpty()) {
@@ -315,7 +329,8 @@ public class TraversalEngine {
                         else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
 
                         lv = new CortexVertexFactory()
-                                .vertex(qv)
+                                .bases(qv.getKmerAsString())
+                                .record(qv.getCortexRecord())
                                 .copyIndex(copyIndex)
                                 .make();
                     } while (visited.contains(lv));
@@ -348,7 +363,7 @@ public class TraversalEngine {
             visited.add(cv);
 
             // Decide if we should keep exploring the graph or not
-            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentTraversalDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
 
             if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
@@ -357,7 +372,7 @@ public class TraversalEngine {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentTraversalDepth + 1, visited);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentJunctionDepth + 1, visited);
 
                         if (branch != null) {
                             Graphs.addGraph(g, branch);
@@ -367,7 +382,9 @@ public class TraversalEngine {
                         }
                     }
 
-                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(ts)) {
+                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
+
+                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away

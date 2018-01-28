@@ -13,17 +13,16 @@ public class NovelContinuationStopper extends AbstractTraversalStoppingRule<Cort
 
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        if (numKmersSeen == 0 && s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
+        if (s.getCurrentJunctionDepth() > 0 && numKmersSeen <= s.getCurrentVertex().getKmerAsString().length() && s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
             startedWithANovelKmer = true;
         }
-
         numKmersSeen++;
 
-        return startedWithANovelKmer && numKmersSeen > 0 && (s.isChildrenAlreadyTraversed() ? s.getNumAdjacentEdges() > 1 : s.getNumAdjacentEdges() == 0);
+        return (s.childBranchesAlreadyTraversed() && s.getNumAdjacentEdges() != 1) || s.reachedMaxBranchLength();
     }
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return !startedWithANovelKmer;
+        return (s.getCurrentJunctionDepth() > 0 && !startedWithANovelKmer) || s.getCurrentJunctionDepth() > 3;
     }
 }

@@ -102,7 +102,7 @@ public class EvaluateSimContigs extends Module {
 
             Set<CortexVertex> nvs = e.getNextVertices(w.get(w.size() - 1).getKmerAsByteKmer());
             for (CortexVertex cv : nvs) {
-                List<CortexVertex> wn = e.walk(cv.getKmerAsString(), true);
+                List<CortexVertex> wn = e.assemble(cv.getKmerAsString(), true);
                 wn.add(0, cv);
 
                 boolean hasNovels = false;
@@ -137,7 +137,7 @@ public class EvaluateSimContigs extends Module {
 
             Set<CortexVertex> pvs = e.getPrevVertices(w.get(0).getKmerAsByteKmer());
             for (CortexVertex cv : pvs) {
-                List<CortexVertex> wp = e.walk(cv.getKmerAsString(), false);
+                List<CortexVertex> wp = e.assemble(cv.getKmerAsString(), false);
                 wp.add(cv);
 
                 boolean hasNovels = false;
