@@ -62,11 +62,11 @@ public class CallCandidates extends Module {
             pm.update();
 
             if (used.get(ck) == null) {
-                List<CortexVertex> wSimple = eSimple.walk(ck);
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSimple = eSimple.dfs(ck);
-
                 List<CortexVertex> wFurther = eFurther.walk(ck);
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gFurther = eFurther.dfs(ck);
+
+                List<CortexVertex> wSimple = eSimple.walk(ck);
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gSimple = eSimple.dfs(ck);
 
                 int numMarked = markUsedRois(used, wSimple);
                 numContigs++;

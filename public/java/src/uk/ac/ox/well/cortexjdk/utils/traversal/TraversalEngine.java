@@ -4,6 +4,7 @@ import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.Nullable;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -52,14 +53,14 @@ public class TraversalEngine {
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String seed) {
         validateConfiguration(seed);
 
-//        CortexVertex cv = new CortexVertexFactory()
-//                .bases(seed)
-//                .record(ec.getGraph().findRecord(seed))
-//                .copyIndex(0)
-//                .make();
+        CortexVertex cv = new CortexVertexFactory()
+                .bases(seed)
+                .record(ec.getGraph().findRecord(seed))
+                .copyIndex(0)
+                .make();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(seed, false, 0, new HashSet<>()) : null;
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(seed, true,  0, new HashSet<>()) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, new HashSet<>()) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, new HashSet<>()) : null;
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
 
@@ -280,29 +281,29 @@ public class TraversalEngine {
     }
 
     @Nullable
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String sk, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visited) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visited) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         if (!ec.getLinks().isEmpty()) {
-            seek(sk);
+            seek(cv.getKmerAsString());
         }
 
-        CortexRecord cr = ec.getGraph().findRecord(sk);
+        //CortexRecord cr = ec.getGraph().findRecord(sk);
 
-        if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
+        //if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
 
-        CortexVertex cv = null;
-        do {
-            int copyIndex;
-            if (goForward) { copyIndex = cv == null ? 0 : cv.getCopyIndex() + 1; }
-            else { copyIndex = cv == null ? 0 : cv.getCopyIndex() - 1; }
-
-            cv = new CortexVertexFactory()
-                    .bases(sk)
-                    .record(cr)
-                    .copyIndex(copyIndex)
-                    .make();
-        } while (visited.contains(cv));
+//        CortexVertex cv = null;
+//        do {
+//            int copyIndex;
+//            if (goForward) { copyIndex = cv == null ? 0 : cv.getCopyIndex() + 1; }
+//            else { copyIndex = cv == null ? 0 : cv.getCopyIndex() - 1; }
+//
+//            cv = new CortexVertexFactory()
+//                    .bases(sk)
+//                    .record(cr)
+//                    .copyIndex(copyIndex)
+//                    .make();
+//        } while (visited.contains(cv));
 
         Set<CortexVertex> avs;
 
@@ -344,9 +345,9 @@ public class TraversalEngine {
             if (ec.connectAllNeighbors()) {
                 connectVertex(g, cv, pvs,  nvs);
             } else if (goForward) {
-                connectVertex(g, cv, null, avs);
+                //connectVertex(g, cv, null, avs);
             } else {
-                connectVertex(g, cv, avs,  null);
+                //connectVertex(g, cv, avs,  null);
             }
 
             // Avoid traversing infinite loops by removing from traversal consideration
@@ -367,14 +368,20 @@ public class TraversalEngine {
 
             if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
+                    if (goForward) { connectVertex(g, cv, null, avs);  }
+                    else           { connectVertex(g, cv, avs,  null); }
+
                     cv = avs.iterator().next();
                 } else {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av.getKmerAsString(), goForward, currentJunctionDepth + 1, visited);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited);
 
                         if (branch != null) {
+                            if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av));  }
+                            else           { connectVertex(branch, cv, Collections.singleton(av),  null); }
+
                             Graphs.addGraph(g, branch);
                             childrenWereSuccessful = true;
                         } else {
@@ -385,6 +392,9 @@ public class TraversalEngine {
                     TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
 
                     if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
+                        //if (goForward) { connectVertex(g, cv, null, avs);  }
+                        //else           { connectVertex(g, cv, avs,  null); }
+
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away
