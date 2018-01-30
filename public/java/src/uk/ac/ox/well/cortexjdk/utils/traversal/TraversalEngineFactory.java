@@ -10,6 +10,8 @@ import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TraversalEngineFactory {
     private TraversalEngineConfiguration configuration = new TraversalEngineConfiguration();
@@ -33,6 +35,33 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory secondaryColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getSecondaryColors().add(c)); return this; }
     public TraversalEngineFactory secondaryColors(Collection<Integer> colors) { configuration.getSecondaryColors().addAll(colors); return this; }
 
+    public TraversalEngineFactory sink(String sink) {
+        Set<String> sinks = new HashSet<>();
+        sinks.add(sink);
+
+        configuration.setSink(sinks);
+
+        return this;
+    }
+
+    public TraversalEngineFactory sink(String... sink) {
+        Set<String> sinks = new HashSet<>();
+        for (String s : sink) {
+            sinks.add(s);
+        }
+
+        configuration.setSink(sinks);
+
+        return this;
+    }
+
+    public TraversalEngineFactory sink(Set<String> sinks) {
+        configuration.setSink(sinks);
+
+        return this;
+    }
+
+    /*
     public TraversalEngineFactory sink(CortexVertex sink) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
         s.addVertex(sink);
@@ -63,6 +92,7 @@ public class TraversalEngineFactory {
     }
 
     public TraversalEngineFactory sink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> sink) { configuration.setSink(sink); return this; }
+    */
 
     public TraversalEngineFactory stoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 

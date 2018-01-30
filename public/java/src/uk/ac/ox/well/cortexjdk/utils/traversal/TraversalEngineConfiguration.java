@@ -32,7 +32,9 @@ public class TraversalEngineConfiguration {
     //private int maxLength = Integer.MAX_VALUE;
     private int maxLength = 75000;
 
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
+    private Set<String> sinks = new HashSet<>();
+    //private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal;
+
     private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule;
 
     private DeBruijnGraph graph;
@@ -72,8 +74,11 @@ public class TraversalEngineConfiguration {
     public void setSecondaryColors(Collection<Integer> secondaryColors) { this.secondaryColors = new TreeSet<>(secondaryColors); }
     public void setSecondaryColors() { this.secondaryColors.clear(); }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getSink() { return previousTraversal; }
-    public void setSink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
+    public Set<String> getSink() { return sinks; }
+    public void setSink(Set<String> sinks) { this.sinks = sinks; }
+
+    //public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getSink() { return previousTraversal; }
+    //public void setSink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousTraversal) { this.previousTraversal = previousTraversal; }
 
     public Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
     public void setStoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }

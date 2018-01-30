@@ -13,7 +13,7 @@ public class NovelContinuationStopper extends AbstractTraversalStoppingRule<Cort
 
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        if (s.getCurrentJunctionDepth() > 0 && numKmersSeen <= s.getCurrentVertex().getKmerAsString().length() && s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
+        if (s.getCurrentJunctionDepth() > 0 && numKmersSeen <= 2*s.getCurrentVertex().getKmerAsString().length() && s.getRois().findRecord(s.getCurrentVertex().getKmerAsByteKmer()) != null) {
             startedWithANovelKmer = true;
         }
         numKmersSeen++;

@@ -10,7 +10,9 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 public class BubbleClosingStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        return s.getPreviousGraph().containsVertex(s.getCurrentVertex());
+        //return s.getPreviousGraph().containsVertex(s.getCurrentVertex());
+
+        return false;
     }
 
     @Override

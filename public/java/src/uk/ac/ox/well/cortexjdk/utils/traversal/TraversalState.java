@@ -1,6 +1,5 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
-import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 
 import java.util.Set;
@@ -14,7 +13,7 @@ final public class TraversalState<V> {
     final private int currentGraphSize;
     final private int numAdjacentEdges;
     final private boolean childrenAlreadyTraversed;
-    final private DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph;
+    final private Set<String> sinks;
     final private DeBruijnGraph rois;
     final private boolean reachedMaxBranchLength;
 
@@ -27,7 +26,7 @@ final public class TraversalState<V> {
                           int numAdjacentEdges,
                           boolean childrenAlreadyTraversed,
                           boolean reachedMaxBranchLength,
-                          DirectedWeightedPseudograph<CortexVertex, CortexEdge> previousGraph,
+                          Set<String> sinks,
                           DeBruijnGraph rois) {
         this.currentVertex = currentVertex;
         this.goForward = goForward;
@@ -37,7 +36,7 @@ final public class TraversalState<V> {
         this.currentGraphSize = currentGraphSize;
         this.numAdjacentEdges = numAdjacentEdges;
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
-        this.previousGraph = previousGraph;
+        this.sinks = sinks;
         this.rois = rois;
         this.reachedMaxBranchLength = reachedMaxBranchLength;
     }
@@ -60,7 +59,7 @@ final public class TraversalState<V> {
 
     public boolean reachedMaxBranchLength() { return reachedMaxBranchLength; }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> getPreviousGraph() { return previousGraph; }
+    public Set<String> getSinks() { return sinks; }
 
     public DeBruijnGraph getRois() { return rois; }
 }

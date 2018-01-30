@@ -511,7 +511,7 @@ public class CompareContigLengths extends Module {
                     CortexVertex vj = w.get(j);
                     sinks.addVertex(vj);
                 }
-                e.getConfiguration().setSink(sinks);
+                //e.getConfiguration().setSink(sinks);
 
                 for (int q = 0; q < sources.size(); q++) {
                     CortexVertex root = roots.get(q);

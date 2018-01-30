@@ -139,6 +139,10 @@ public class TraversalEngine {
         return sb.toString();
     }
 
+    public static List<CortexVertex> toWalk(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CanonicalKmer ck) {
+        return toWalk(g, ck.getKmerAsString());
+    }
+
     public static List<CortexVertex> toWalk(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String sk) {
         List<CortexVertex> w = new ArrayList<>();
 
@@ -491,7 +495,7 @@ public class TraversalEngine {
         return nextVertices;
     }
 
-    private static Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexRecord cr, boolean isFlipped) {
+    public static Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexRecord cr, boolean isFlipped) {
         Map<Integer, Set<CortexByteKmer>> prevKmers = new HashMap<>();
 
         if (cr != null) {
@@ -516,14 +520,14 @@ public class TraversalEngine {
         return prevKmers;
     }
 
-    private Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexByteKmer sk) {
+    public Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexByteKmer sk) {
         CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllPrevKmers(cr, ck.isFlipped());
     }
 
-    private static Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexRecord cr, boolean isFlipped) {
+    public static Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexRecord cr, boolean isFlipped) {
         Map<Integer, Set<CortexByteKmer>> nextKmers = new HashMap<>();
 
         if (cr != null) {
@@ -548,14 +552,14 @@ public class TraversalEngine {
         return nextKmers;
     }
 
-    private Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexByteKmer sk) {
+    public Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexByteKmer sk) {
         CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
         CortexRecord cr = ec.getGraph().findRecord(ck);
 
         return getAllNextKmers(cr, ck.isFlipped());
     }
 
-    private static Map<Integer, Set<Byte>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
+    public static Map<Integer, Set<Byte>> getInEdges(CortexRecord cr, boolean kmerIsFlipped) {
         Map<Integer, Set<Byte>> inEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
@@ -571,7 +575,7 @@ public class TraversalEngine {
         return inEdges;
     }
 
-    private static Map<Integer, Set<Byte>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
+    public static Map<Integer, Set<Byte>> getOutEdges(CortexRecord cr, boolean kmerIsFlipped) {
         Map<Integer, Set<Byte>> outEdges = new HashMap<>();
 
         if (!kmerIsFlipped) {
