@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.utils.alignment.sw;
+package uk.ac.ox.well.cortexjdk.utils.alignment.swold;
 
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;

@@ -6,8 +6,9 @@ import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SWResult;
+import uk.ac.ox.well.cortexjdk.utils.alignment.swold.SmithWaterman;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman2;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -42,8 +43,11 @@ public class ExploreCandidates extends Module {
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROIS;
 
-    @Argument(fullName = "background", shortName = "b", doc = "Background name")
+    @Argument(fullName = "background", shortName = "b", doc = "Background color name")
     public HashSet<String> BACKGROUNDS;
+
+    @Argument(fullName = "windowAroundRois", shortName = "w", doc = "Window of consideration around variants")
+    public Integer WINDOW = 100;
 
     @Output
     public PrintStream out;
@@ -63,6 +67,10 @@ public class ExploreCandidates extends Module {
 
         Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
 
+        List<Integer> colors = new ArrayList<>();
+        colors.add(getTraversalColor(GRAPH, ROIS));
+        colors.addAll(getBackgroundColors(GRAPH, BACKGROUNDS));
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
                 .message("records processed")
@@ -74,141 +82,29 @@ public class ExploreCandidates extends Module {
             pm.update();
 
             if (used.get(ck) == null) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(ck);
-                List<CortexVertex> w = TraversalEngine.toWalk(g, ck);
+                List<CortexVertex> w = e.walk(ck);
 
                 Pair<Integer, Integer> numMarked = markUsedRois(used, w);
+                Pair<Integer, Integer> range = getNovelKmerRange(used, w);
 
-                log.info("    {} seed={} dfs={} contig={} numNewlyMarked={} numAlreadyMarked={}", numContigs, ck, g.vertexSet().size(), w.size(), numMarked.getFirst(), numMarked.getSecond());
-
-                numContigs++;
-
-                int q0 = -1, q1 = -1;
-                for (int i = 0; i < w.size(); i++) {
-                    if (used.containsKey(w.get(i).getCanonicalKmer())) {
-                        if (q0 == -1) { q0 = i; }
-                        q1 = i;
-                    }
-                }
-
-                int s0 = q0 - 100 >= 0 ? q0 - 100 : 0;
-                int s1 = q1 + 100 < w.size() - 1 ? q1 + 100 : w.size() - 1;
-
-                List<Integer> colors = new ArrayList<>();
-                colors.add(getTraversalColor(GRAPH, ROIS));
-                colors.add(getTraversalColor(GRAPH, ROIS));
-                colors.addAll(getParentalColors(GRAPH, BACKGROUNDS));
-
-                boolean processedNovelTrack = false;
+                log.info("  * contig={} seed={} len={} numNewlyMarked={} numAlreadyMarked={}", numContigs, ck, w.size(), numMarked.getFirst(), numMarked.getSecond());
 
                 for (int c : colors) {
-                    Map<Integer, Set<String>> divOutVertices = new TreeMap<>();
-                    Map<Integer, Set<String>> divInVertices = new TreeMap<>();
+                    displayContigAndAnnotations(w, range, c, used);
 
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 0; i < w.size(); i++) {
-                        CortexVertex v = w.get(i);
+                    Map<Integer, VariantContext> nvcs = callVariantsAgainstBackground(w, range, c, used);
 
-                        Set<String> divIn = divergenceDegree(v, false, getTraversalColor(GRAPH, ROIS), c);
-                        Set<String> divOut = divergenceDegree(v, true, getTraversalColor(GRAPH, ROIS), c);
+                    log.info("        backgroundColor={} backgroundName={} nvcs={}", c, GRAPH.getSampleName(c), nvcs.size());
 
-                        if (!processedNovelTrack && c == getTraversalColor(GRAPH, ROIS) && used.containsKey(v.getCanonicalKmer())) {
-                            sb.append("!");
-                        } else if (v.getCortexRecord().getCoverage(c) == 0) {
-                            sb.append(" ");
-                        } else if (divIn.size() + divOut.size() > 0) {
-                            if (divIn.size() > 0 && divOut.size() == 0) {
-                                sb.append("\\");
-                                if (i >= s0 && i <= s1) {
-                                    divInVertices.put(i, divIn);
-                                }
-                            } else if (divIn.size() == 0 && divOut.size() > 0) {
-                                sb.append("/");
-                                if (i >= s0 && i <= s1) {
-                                    divOutVertices.put(i, divOut);
-                                }
-                            } else {
-                                sb.append("=");
-                                if (i >= s0 && i <= s1) {
-                                    divInVertices.put(i, divIn);
-                                    divOutVertices.put(i, divOut);
-                                }
-                            }
-                        } else {
-                            sb.append("_");
-                        }
+                    for (int offset : nvcs.keySet()) {
+                        log.info("        w={} v0={} v1={} offset={} vc={}", w.size(), range.getFirst(), range.getSecond(), offset, nvcs.get(offset));
                     }
 
-                    if (c == getTraversalColor(GRAPH, ROIS)) { processedNovelTrack = true; }
-
-                    String s = sb.toString();
-
-                    log.info("{} {}: {}{}{}", String.format("%-3d", c), String.format("%-20s", GRAPH.getSampleName(c)), s0 == 0 ? "" : "...", s.substring(s0, s1), s1 == s.length() ? "" : "...");
-
-                    if (divOutVertices.size() > 0 && divInVertices.size() > 0) {
-                        for (int ovi : divOutVertices.keySet()) {
-                            Set<String> ovs = divOutVertices.get(ovi);
-                            Set<String> ivs = new HashSet<>();
-
-                            for (int ivi : divInVertices.keySet()) {
-                                if (ivi > ovi) {
-                                    ivs.addAll(divInVertices.get(ivi));
-                                }
-                            }
-
-                            TraversalEngine eo = new TraversalEngineFactory()
-                                    .traversalColor(c)
-                                    .traversalDirection(FORWARD)
-                                    .combinationOperator(OR)
-                                    .graph(GRAPH)
-                                    .links(LINKS)
-                                    //.references(REFERENCES)
-                                    .rois(ROIS)
-                                    .sink(ivs)
-                                    .stoppingRule(DestinationStopper.class)
-                                    .make();
-
-                            for (String ov : ovs) {
-                                DirectedWeightedPseudograph<CortexVertex, CortexEdge> go = eo.dfs(ov);
-                                List<CortexVertex> gw = TraversalEngine.toWalk(go, ov);
-                                String gc = TraversalEngine.toContig(gw);
-
-                                if (go != null) {
-                                    for (CortexVertex cv : go.vertexSet()) {
-                                        if (ivs.contains(cv.getKmerAsString())) {
-                                            for (int ivi : divInVertices.keySet()) {
-                                                List<CortexVertex> subContig = new ArrayList<>();
-                                                for (int i = ovi + 1; i < ivi; i++) {
-                                                    subContig.add(w.get(i));
-                                                }
-
-                                                String sc = TraversalEngine.toContig(subContig);
-
-                                                if (divInVertices.get(ivi).contains(cv.getKmerAsString())) {
-                                                    log.info("{}{} {} {}", String.format("%-26s", ""), ovi, ivi, sc);
-                                                    log.info("{}{} {} {}", String.format("%-26s", ""), ovi, ivi, gc);
-
-                                                    trimToAlleles(gc, sc);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    /*
-                                    List<CortexVertex> subContig = new ArrayList<>();
-                                    for (int i = ovi + 1; i < ivi; i++) {
-                                        subContig.add(w.get(i));
-                                    }
-                                    log.info("alt {} {} {}{}", ovi, ivi, String.format("%-26s", ""), TraversalEngine.toContig(subContig));
-                                    log.info("hap {} {} {}{}", ovi, ivi, String.format("%-26s", ""), TraversalEngine.toContig(TraversalEngine.toWalk(go, ov)));
-                                    */
-                                }
-                            }
-                        }
-                    }
+                    log.info("    ==");
+                    log.info("");
                 }
 
-                log.info("");
+                numContigs++;
             }
         }
 
@@ -222,80 +118,211 @@ public class ExploreCandidates extends Module {
         log.info("Assigned {}/{} novel kmers to {} contigs", numNovelKmersAssigned, used.size(), numContigs);
     }
 
-    private void trimToAlleles(String altContig, String compContig) {
-        SmithWaterman sw = new SmithWaterman(compContig, altContig);
-        String[] aligns = sw.getAlignment();
+    private void displayContigAndAnnotations(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
+        StringBuilder t0 = new StringBuilder();
+        StringBuilder t1 = new StringBuilder();
+        StringBuilder t2 = new StringBuilder();
+        List<CortexVertex> wsub = new ArrayList<>();
+        for (int i = range.getFirst(); i <= range.getSecond(); i++) {
+            wsub.add(w.get(i));
+
+            t0.append(w.get(i).getKmerAsString().substring(0, 1));
+            t1.append(used.containsKey(w.get(i).getCanonicalKmer()) ? "!" : "_");
+            int divOut = divergenceDegree(w.get(i), true, getTraversalColor(GRAPH, ROIS), c).size();
+            int divIn = divergenceDegree(w.get(i), false, getTraversalColor(GRAPH, ROIS), c).size();
+
+            if      (divOut >  0 && divIn == 0) { t2.append("\\");  }
+            else if (divOut == 0 && divIn >  0) { t2.append("/"); }
+            else if (divOut >  0 && divIn >  0) { t2.append("=");  }
+            else                                { t2.append(" ");  }
+        }
+
+        log.info("    {}", t0.toString());
+        log.info("    {}", t1.toString());
+        log.info("    {}", t2.toString());
+    }
+
+    private Map<Integer, VariantContext> callVariantsAgainstBackground(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
+        List<VariantContext> vcs = new ArrayList<>();
+
+        Map<Integer, Set<String>> divOutVertices = new TreeMap<>();
+        Map<Integer, Set<String>> divInVertices = new TreeMap<>();
+
+        for (int i = 0; i < w.size(); i++) {
+            CortexVertex v = w.get(i);
+
+            if (i >= range.getFirst() && i <= range.getSecond()) {
+                Set<String> divIn = divergenceDegree(v, false, getTraversalColor(GRAPH, ROIS), c);
+                Set<String> divOut = divergenceDegree(v, true, getTraversalColor(GRAPH, ROIS), c);
+
+                if (divIn.size() + divOut.size() > 0) {
+                    if (divIn.size() > 0) { divInVertices.put(i, divIn); }
+                    if (divOut.size() > 0) { divOutVertices.put(i, divOut); }
+                }
+            }
+        }
+
+        if (divOutVertices.size() > 0 && divInVertices.size() > 0) {
+            for (int ovi : divOutVertices.keySet()) {
+                Set<String> ovs = divOutVertices.get(ovi);
+                Set<String> ivs = new HashSet<>();
+
+                for (int ivi : divInVertices.keySet()) {
+                    if (ivi > ovi) {
+                        ivs.addAll(divInVertices.get(ivi));
+                    }
+                }
+
+                for (String ov : ovs) {
+                    int numNovelsFinal = 0;
+                    List<CortexVertex> traversalWalkFinal = null;
+                    List<CortexVertex> backgroundWalkFinal = null;
+                    String ivFinal = null;
+
+                    for (String iv : ivs) {
+                        TraversalEngine em = new TraversalEngineFactory()
+                                .traversalColor(c)
+                                .traversalDirection(FORWARD)
+                                .combinationOperator(OR)
+                                .graph(GRAPH)
+                                .links(LINKS)
+                                .rois(ROIS)
+                                .sink(iv)
+                                .stoppingRule(DestinationStopper.class)
+                                .make();
+
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = em.dfs(ov);
+
+                        if (g != null) {
+                            List<CortexVertex> backgroundWalk = TraversalEngine.toWalk(g, ov);
+
+                            int numNovels = 0;
+                            List<CortexVertex> traversalWalk = new ArrayList<>();
+                            for (int ivi : divInVertices.keySet()) {
+                                if (divInVertices.get(ivi).contains(iv)) {
+                                    for (int j = ovi + 1; j < ivi; j++) {
+                                        if (used.containsKey(w.get(j).getCanonicalKmer())) {
+                                            numNovels++;
+                                        }
+
+                                        traversalWalk.add(w.get(j));
+                                    }
+
+                                    break;
+                                }
+                            }
+
+                            if (backgroundWalkFinal == null || (numNovels >= numNovelsFinal && backgroundWalk.size() <= backgroundWalkFinal.size())) {
+                                numNovelsFinal = numNovels;
+                                traversalWalkFinal = traversalWalk;
+                                backgroundWalkFinal = backgroundWalk;
+                                ivFinal = iv;
+                            }
+                        }
+                    }
+
+                    if (traversalWalkFinal != null && backgroundWalkFinal != null && numNovelsFinal > 0) {
+                        String backgroundColorContig = TraversalEngine.toContig(backgroundWalkFinal);
+                        String traversalColorContig = TraversalEngine.toContig(traversalWalkFinal);
+
+                        vcs.addAll(trimToAlleles(traversalColorContig, backgroundColorContig, ovi + GRAPH.getKmerSize() + 1, ov, ivFinal, numNovelsFinal));
+                    }
+                }
+            }
+        }
+
+        Map<Integer, VariantContext> nvcs = new TreeMap<>();
+        for (VariantContext vc : vcs) {
+            nvcs.put(vc.getStart() - range.getFirst() - GRAPH.getKmerSize(), vc);
+        }
+
+        return nvcs;
+    }
+
+    private Pair<Integer, Integer> getNovelKmerRange(Map<CanonicalKmer, List<CortexVertex>> used, List<CortexVertex> w) {
+        int q0 = -1, q1 = -1;
+        for (int i = 0; i < w.size(); i++) {
+            if (used.containsKey(w.get(i).getCanonicalKmer())) {
+                if (q0 == -1) { q0 = i; }
+                q1 = i;
+            }
+        }
+
+        int s0 = q0 - WINDOW >= 0 ? q0 - WINDOW : 0;
+        int s1 = q1 + WINDOW < w.size() - 1 ? q1 + WINDOW : w.size() - 1;
+
+        return new Pair<>(s0, s1);
+    }
+
+    private List<VariantContext> trimToAlleles(String traversalColorContig, String backgroundColorContig, int offset, String ov, String iv, int numNovels) {
+        SmithWaterman2 sw = new SmithWaterman2();
+        String[] aligns = sw.getAlignment(traversalColorContig, backgroundColorContig);
+
+        //log.info("{}", traversalColorContig);
+        //log.info("{}", backgroundColorContig);
+        //log.info("{}", aligns[0]);
+        //log.info("{}", aligns[1]);
 
         List<VariantContext> vcs = new ArrayList<>();
 
-        int alleleStart = 0, alleleStop = 0;
+        int currentPos = 0;
+        int alleleStart = -1;
         StringBuilder altBuilder = new StringBuilder();
         StringBuilder compBuilder = new StringBuilder();
-        for (int i = 0; i < aligns[0].length(); i++, alleleStop++) {
+        for (int i = 0; i < aligns[0].length(); i++) {
             if (aligns[0].charAt(i) != aligns[1].charAt(i)) {
                 if (altBuilder.length() == 0) {
-                    alleleStart = i;
+                    alleleStart = currentPos;
                 }
 
                 altBuilder.append(aligns[0].charAt(i));
                 compBuilder.append(aligns[1].charAt(i));
             } else {
-                // add variant to pile
                 if (altBuilder.length() > 0) {
-                    log.info("{} {} {}", alleleStart, altBuilder, compBuilder);
+                    vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder, offset, ov, iv, numNovels));
 
-                    Set<Character> a = new HashSet<>();
-                    for (int q = 0; q < altBuilder.length(); q++) { a.add(altBuilder.charAt(q)); }
-
-                    Set<Character> b = new HashSet<>();
-                    for (int q = 0; q < compBuilder.length(); q++) { b.add(compBuilder.charAt(q)); }
-
-                    if (a.contains('-') && (a.contains('A') || a.contains('C') || a.contains('G') || a.contains('T'))) {
-                        log.info("{}", a);
-                    }
-
-                    if (b.contains('-') && (b.contains('A') || b.contains('C') || b.contains('G') || b.contains('T'))) {
-                        log.info("{}", b);
-                    }
-
-                    vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder));
-
+                    alleleStart = -1;
                     altBuilder = new StringBuilder();
                     compBuilder = new StringBuilder();
                 }
             }
+
+            if (aligns[0].charAt(i) != '-') {
+                currentPos++;
+            }
         }
 
         if (altBuilder.length() > 0) {
-            vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder));
+            vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder, offset, ov, iv, numNovels));
         }
+
+        return vcs;
     }
 
-    private VariantContext buildVariantContext(String[] aligns, int alleleStart, StringBuilder altBuilder, StringBuilder compBuilder) {
-        String altAllele = altBuilder.toString();
-        String compAllele = compBuilder.toString();
+    private VariantContext buildVariantContext(String[] aligns, int alleleStart, StringBuilder altBuilder, StringBuilder compBuilder, int offset, String ov, String iv, int numNovels) {
+        String altAllele = altBuilder.toString().replaceAll("-", "");
+        String compAllele = compBuilder.toString().replaceAll("-", "");
 
-        if (altAllele.contains("-")) {
-            altBuilder = new StringBuilder(altAllele.replaceAll("-", ""));
-            altBuilder.insert(0, aligns[0].charAt(alleleStart - 1));
+        if (altAllele.length() != compAllele.length()) {
+            alleleStart -= 1;
+
+            altBuilder = new StringBuilder(altAllele);
+            altBuilder.insert(0, aligns[0].replaceAll("-", "").charAt(alleleStart));
             altAllele = altBuilder.toString();
 
-            compBuilder.insert(0, aligns[1].charAt(alleleStart - 1));
+            compBuilder = new StringBuilder(compAllele);
+            compBuilder.insert(0, aligns[0].replaceAll("-", "").charAt(alleleStart));
             compAllele = compBuilder.toString();
-        } else if (compAllele.contains("-")) {
-            compBuilder = new StringBuilder(compAllele.replaceAll("-", ""));
-            compBuilder.insert(0, aligns[1].charAt(alleleStart - 1));
-            compAllele = compBuilder.toString();
-
-            altBuilder.insert(0, aligns[0].charAt(alleleStart - 1));
-            altAllele = altBuilder.toString();
         }
 
         VariantContext vc = new VariantContextBuilder()
                 .chr("unknown")
-                .start(alleleStart)
-                .computeEndFromAlleles(Arrays.asList(Allele.create(compAllele, true), Allele.create(altAllele, false)), alleleStart)
-                .alleles(compAllele, altAllele)
+                .start(alleleStart + offset)
+                .computeEndFromAlleles(Arrays.asList(Allele.create(altAllele, true), Allele.create(compAllele, false)), alleleStart + offset)
+                .alleles(altAllele, compAllele)
+                .attribute("ov", ov)
+                .attribute("iv", iv)
+                .attribute("numNovels", numNovels)
                 .make();
 
         return vc;
@@ -334,7 +361,7 @@ public class ExploreCandidates extends Module {
         return graph.getColorForSampleName(rois.getSampleName(0));
     }
 
-    private Collection<Integer> getParentalColors(DeBruijnGraph graph, Set<String> parentNames) {
+    private Collection<Integer> getBackgroundColors(DeBruijnGraph graph, Set<String> parentNames) {
         return graph.getColorsForSampleNames(parentNames);
     }
 
