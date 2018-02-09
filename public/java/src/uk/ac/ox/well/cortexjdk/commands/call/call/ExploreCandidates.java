@@ -5,9 +5,12 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
+import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SWResult;
-import uk.ac.ox.well.cortexjdk.utils.alignment.swold.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman2;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
@@ -19,16 +22,19 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class ExploreCandidates extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
@@ -50,10 +56,22 @@ public class ExploreCandidates extends Module {
     public Integer WINDOW = 100;
 
     @Output
-    public PrintStream out;
+    public File out;
 
     @Override
     public void execute() {
+        if (out.exists()) { out.delete(); }
+        DB dbOut = DBMaker
+                .fileDB(out)
+                .make();
+
+        HTreeMap<Integer, CortexVertex[]> dbContigs = dbOut
+                .hashMap("contigs")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(new SerializerArray(Serializer.JAVA))
+                .counterEnable()
+                .create();
+
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalColor(getTraversalColor(GRAPH, ROIS))
                 .traversalDirection(BOTH)
@@ -66,6 +84,9 @@ public class ExploreCandidates extends Module {
                 .make();
 
         Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
+//        Map<CanonicalKmer, List<CortexVertex>> usedAll = loadRois(ROIS);
+//        Map<CanonicalKmer, List<CortexVertex>> used = new HashMap<>();
+//        used.put(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC"), usedAll.get(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC")));
 
         List<Integer> colors = new ArrayList<>();
         colors.add(getTraversalColor(GRAPH, ROIS));
@@ -79,10 +100,13 @@ public class ExploreCandidates extends Module {
 
         int numContigs = 0;
         for (CanonicalKmer ck : used.keySet()) {
+        //for (CanonicalKmer ck : Arrays.asList(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC"))) {
             pm.update();
 
             if (used.get(ck) == null) {
                 List<CortexVertex> w = e.walk(ck);
+
+                dbContigs.put(numContigs, w.toArray(new CortexVertex[w.size()]));
 
                 Pair<Integer, Integer> numMarked = markUsedRois(used, w);
                 Pair<Integer, Integer> range = getNovelKmerRange(used, w);
@@ -116,17 +140,23 @@ public class ExploreCandidates extends Module {
         }
 
         log.info("Assigned {}/{} novel kmers to {} contigs", numNovelKmersAssigned, used.size(), numContigs);
+
+        dbOut.commit();
+        dbOut.close();
     }
 
     private void displayContigAndAnnotations(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
         StringBuilder t0 = new StringBuilder();
         StringBuilder t1 = new StringBuilder();
         StringBuilder t2 = new StringBuilder();
-        List<CortexVertex> wsub = new ArrayList<>();
-        for (int i = range.getFirst(); i <= range.getSecond(); i++) {
-            wsub.add(w.get(i));
+        StringBuilder t3 = new StringBuilder();
 
-            t0.append(w.get(i).getKmerAsString().substring(0, 1));
+        //List<CortexVertex> wsub = new ArrayList<>();
+        for (int i = range.getFirst(); i <= range.getSecond(); i++) {
+            //wsub.add(w.get(i));
+
+            //t0.append(w.get(i).getKmerAsString().substring(0, 1));
+            t0.append(w.get(i).getKmerAsString().substring(GRAPH.getKmerSize() - 1, GRAPH.getKmerSize()));
             t1.append(used.containsKey(w.get(i).getCanonicalKmer()) ? "!" : "_");
             int divOut = divergenceDegree(w.get(i), true, getTraversalColor(GRAPH, ROIS), c).size();
             int divIn = divergenceDegree(w.get(i), false, getTraversalColor(GRAPH, ROIS), c).size();
@@ -135,11 +165,14 @@ public class ExploreCandidates extends Module {
             else if (divOut == 0 && divIn >  0) { t2.append("/"); }
             else if (divOut >  0 && divIn >  0) { t2.append("=");  }
             else                                { t2.append(" ");  }
+
+            t3.append(w.get(i).getCortexRecord().getCoverage(c) > 0 ? "1" : " ");
         }
 
         log.info("    {}", t0.toString());
         log.info("    {}", t1.toString());
         log.info("    {}", t2.toString());
+        log.info("    {}", t3.toString());
     }
 
     private Map<Integer, VariantContext> callVariantsAgainstBackground(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
@@ -175,12 +208,12 @@ public class ExploreCandidates extends Module {
 
                 for (String ov : ovs) {
                     int numNovelsFinal = 0;
-                    List<CortexVertex> traversalWalkFinal = null;
-                    List<CortexVertex> backgroundWalkFinal = null;
+                    List<CortexVertex> traversalWalkFinal = new ArrayList<>();
+                    List<CortexVertex> backgroundWalkFinal = new ArrayList<>();
                     String ivFinal = null;
 
                     for (String iv : ivs) {
-                        TraversalEngine em = new TraversalEngineFactory()
+                        TraversalEngine ef = new TraversalEngineFactory()
                                 .traversalColor(c)
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
@@ -188,13 +221,32 @@ public class ExploreCandidates extends Module {
                                 .links(LINKS)
                                 .rois(ROIS)
                                 .sink(iv)
+                                .maxBranchLength(10000)
                                 .stoppingRule(DestinationStopper.class)
                                 .make();
 
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = em.dfs(ov);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(ov);
+                        List<CortexVertex> backgroundWalk = TraversalEngine.toWalk(g, ov);
 
-                        if (g != null) {
-                            List<CortexVertex> backgroundWalk = TraversalEngine.toWalk(g, ov);
+                        if (g == null) {
+                            TraversalEngine eb = new TraversalEngineFactory()
+                                    .traversalColor(c)
+                                    .traversalDirection(REVERSE)
+                                    .combinationOperator(OR)
+                                    .graph(GRAPH)
+                                    .links(LINKS)
+                                    .rois(ROIS)
+                                    .sink(ov)
+                                    .maxBranchLength(10000)
+                                    .stoppingRule(DestinationStopper.class)
+                                    .make();
+
+                            g = eb.dfs(iv);
+                            backgroundWalk = TraversalEngine.toWalk(g, iv);
+                        }
+
+                        if (backgroundWalk.size() > 0) {
+                            //List<CortexVertex> backgroundWalk = gf != null ? TraversalEngine.toWalk(gf, ov) : TraversalEngine.toWalk(gb, iv);
 
                             int numNovels = 0;
                             List<CortexVertex> traversalWalk = new ArrayList<>();
@@ -212,7 +264,7 @@ public class ExploreCandidates extends Module {
                                 }
                             }
 
-                            if (backgroundWalkFinal == null || (numNovels >= numNovelsFinal && backgroundWalk.size() <= backgroundWalkFinal.size())) {
+                            if (backgroundWalkFinal.size() == 0 || (numNovels >= numNovelsFinal && backgroundWalk.size() <= backgroundWalkFinal.size())) {
                                 numNovelsFinal = numNovels;
                                 traversalWalkFinal = traversalWalk;
                                 backgroundWalkFinal = backgroundWalk;
@@ -221,11 +273,16 @@ public class ExploreCandidates extends Module {
                         }
                     }
 
-                    if (traversalWalkFinal != null && backgroundWalkFinal != null && numNovelsFinal > 0) {
+                    if (traversalWalkFinal.size() > 0 && backgroundWalkFinal.size() > 0 && numNovelsFinal > 0) {
                         String backgroundColorContig = TraversalEngine.toContig(backgroundWalkFinal);
                         String traversalColorContig = TraversalEngine.toContig(traversalWalkFinal);
 
-                        vcs.addAll(trimToAlleles(traversalColorContig, backgroundColorContig, ovi + GRAPH.getKmerSize() + 1, ov, ivFinal, numNovelsFinal));
+                        String kmerStart = ivFinal.substring(1, ivFinal.length() - 1);
+                        String kmerStop = ov.substring(1, ov.length() - 1);
+
+                        if (backgroundColorContig.contains(kmerStart) && backgroundColorContig.contains(kmerStop) && traversalColorContig.contains(kmerStart) && traversalColorContig.contains(kmerStop)) {
+                            vcs.addAll(trimToAlleles(traversalColorContig, backgroundColorContig, ovi + GRAPH.getKmerSize() + 1, ov, ivFinal, numNovelsFinal));
+                        }
                     }
                 }
             }
@@ -258,11 +315,6 @@ public class ExploreCandidates extends Module {
         SmithWaterman2 sw = new SmithWaterman2();
         String[] aligns = sw.getAlignment(traversalColorContig, backgroundColorContig);
 
-        //log.info("{}", traversalColorContig);
-        //log.info("{}", backgroundColorContig);
-        //log.info("{}", aligns[0]);
-        //log.info("{}", aligns[1]);
-
         List<VariantContext> vcs = new ArrayList<>();
 
         int currentPos = 0;
@@ -278,7 +330,7 @@ public class ExploreCandidates extends Module {
                 altBuilder.append(aligns[0].charAt(i));
                 compBuilder.append(aligns[1].charAt(i));
             } else {
-                if (altBuilder.length() > 0) {
+                if (altBuilder.length() > 0 && alleleStart > 0) {
                     vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder, offset, ov, iv, numNovels));
 
                     alleleStart = -1;
@@ -292,7 +344,7 @@ public class ExploreCandidates extends Module {
             }
         }
 
-        if (altBuilder.length() > 0) {
+        if (altBuilder.length() > 0 && alleleStart > 0) {
             vcs.add(buildVariantContext(aligns, alleleStart, altBuilder, compBuilder, offset, ov, iv, numNovels));
         }
 

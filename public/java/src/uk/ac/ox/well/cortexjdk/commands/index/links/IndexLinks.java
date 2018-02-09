@@ -35,8 +35,8 @@ public class IndexLinks extends Module {
 
     @Override
     public void execute() {
-        Path bgzipPath = Paths.get(LINKS.getCortexLinksFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz"));
-        Path indexPath = Paths.get(LINKS.getCortexLinksFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz.idx"));
+        Path bgzipPath = Paths.get(LINKS.getFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz"));
+        Path indexPath = Paths.get(LINKS.getFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz.idx"));
 
         BlockCompressedOutputStream bc = new BlockCompressedOutputStream(bgzipPath.toFile().getAbsolutePath(), 9);
 

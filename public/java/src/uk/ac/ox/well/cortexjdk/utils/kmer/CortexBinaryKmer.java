@@ -3,9 +3,10 @@ package uk.ac.ox.well.cortexjdk.utils.kmer;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class CortexBinaryKmer implements Comparable<CortexBinaryKmer> {
+public class CortexBinaryKmer implements Comparable<CortexBinaryKmer>, Serializable {
     private long[] binaryKmer;
 
     public CortexBinaryKmer(long[] binaryKmer) {

@@ -7,10 +7,14 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
+import java.io.File;
+
 /**
  * Created by kiran on 14/09/2017.
  */
 public interface ConnectivityAnnotations {
+    File getFile();
+
     int size();
 
     boolean isEmpty();

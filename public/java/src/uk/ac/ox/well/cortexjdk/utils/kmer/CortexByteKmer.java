@@ -2,12 +2,13 @@ package uk.ac.ox.well.cortexjdk.utils.kmer;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * Created by kiran on 09/08/2017.
  */
-public class CortexByteKmer implements Comparable<CortexByteKmer> {
+public class CortexByteKmer implements Comparable<CortexByteKmer>, Serializable {
     private byte[] kmer;
 
     public CortexByteKmer(byte[] kmer) { this.kmer = kmer; }

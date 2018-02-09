@@ -5,18 +5,19 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexBinaryKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
 
-public class CortexRecord implements Comparable<CortexRecord> {
+public class CortexRecord implements Comparable<CortexRecord>, Serializable {
     private int kmerSize, kmerBits;
     private long[] binaryKmer;
     private int[] coverages;
     private byte[] edges;
 
-    private byte[][] lazyLoadedEdgesTable = null;
-    private String[] lazyLoadedEdgeStrings = null;
+    private transient byte[][] lazyLoadedEdgesTable = null;
+    private transient String[] lazyLoadedEdgeStrings = null;
 
     public CortexRecord(long[] binaryKmer, int[] coverages, byte[] edges, int kmerSize, int kmerBits) {
         this.binaryKmer = new long[binaryKmer.length];

@@ -280,7 +280,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     public long getNumKmersWithLinks() { return numKmersWithLinks; }
     public long getNumLinks() { return numLinks; }
     public long getLinkBytes() { return linkBytes; }
-    public File getCortexLinksFile() { return linksFile; }
+    public File getFile() { return linksFile; }
 
     public boolean hasColor(int color) {
         return (color < colors.size());

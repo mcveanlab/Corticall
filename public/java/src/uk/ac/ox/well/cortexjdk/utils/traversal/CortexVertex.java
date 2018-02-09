@@ -1,16 +1,19 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.util.Interval;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Set;
 
 /**
  * Created by kiran on 10/05/2017.
  */
-public class CortexVertex {
+public class CortexVertex implements Serializable {
     private CortexByteKmer sk;
     private CortexRecord cr;
     private Interval locus;

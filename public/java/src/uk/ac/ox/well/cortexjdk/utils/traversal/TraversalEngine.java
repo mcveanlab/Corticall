@@ -46,16 +46,24 @@ public class TraversalEngine {
         }
     }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CanonicalKmer seed) {
-        return dfs(seed.getKmerAsString());
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(Collection<String> sources) {
+        return dfs(sources, null);
     }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String seed) {
-        validateConfiguration(seed);
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(Collection<String> sources, Collection<String> sinks) {
+        return null;
+    }
+
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CanonicalKmer source) {
+        return dfs(source.getKmerAsString());
+    }
+
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String source) {
+        validateConfiguration(source);
 
         CortexVertex cv = new CortexVertexFactory()
-                .bases(seed)
-                .record(ec.getGraph().findRecord(seed))
+                .bases(source)
+                .record(ec.getGraph().findRecord(source))
                 .copyIndex(0)
                 .make();
 
@@ -235,44 +243,25 @@ public class TraversalEngine {
         return w;
     }
 
-    /*
-    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(DeBruijnGraph graph, List<CortexVertex> walk, int altColor, int ... refColors) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dwp = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        dwp.addVertex(walk.get(0));
-
-        for (int i = 1; i < walk.size(); i++) {
-            CortexVertex cv0 = walk.get(i - 1);
-            CortexVertex cv1 = walk.get(i);
-
-            dwp.addVertex(cv1);
-            dwp.addEdge(cv0, cv1, new CortexEdge(altColor, 1.0));
-        }
-
-        for (CortexVertex cv : walk) {
-            Map<Integer, Set<CortexByteKmer>> nextKmers = TraversalEngine.getAllNextKmers(cv.getCortexRecord(), !cv.getCanonicalKmer().getKmerAsString().equals(cv.getKmerAsString()));
-            Map<Integer, Set<CortexByteKmer>> prevKmers = TraversalEngine.getAllPrevKmers(cv.getCortexRecord(), !cv.getCanonicalKmer().getKmerAsString().equals(cv.getKmerAsString()));
-
-            for (int refColor : refColors) {
-                for (CortexByteKmer nextKmer : nextKmers.get(refColor)) {
-                    CortexVertex nv = new CortexVertex(nextKmer, graph.findRecord(nextKmer));
-
-                    dwp.addVertex(nv);
-                    dwp.addEdge(cv, nv, new CortexEdge(refColor, 1.0));
-                }
-
-                for (CortexByteKmer prevKmer : prevKmers.get(refColor)) {
-                    CortexVertex pv = new CortexVertex(prevKmer, graph.findRecord(prevKmer));
-
-                    dwp.addVertex(pv);
-                    dwp.addEdge(pv, cv, new CortexEdge(refColor, 1.0));
-                }
+    public static CortexVertex findVertex(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CanonicalKmer ck) {
+        for (CortexVertex v : g.vertexSet()) {
+            if (v.getCanonicalKmer().equals(ck)) {
+                return v;
             }
         }
 
-        return dwp;
+        return null;
     }
-    */
+
+    public static CortexVertex findVertex(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String sk) {
+        for (CortexVertex v : g.vertexSet()) {
+            if (v.getKmerAsString().equals(sk)) {
+                return v;
+            }
+        }
+
+        return null;
+    }
 
     private static TraversalStoppingRule<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stopperClass) {
         try {
@@ -285,33 +274,21 @@ public class TraversalEngine {
     }
 
     @Nullable
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visited) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visitedOld) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
+        // Account for vertices visited in progenitor branches (but not other progeny branches)
+        Set<CortexVertex> visited = new HashSet<>(visitedOld);
+
+        // If links are available, reset the state of the LinkStore
         if (!ec.getLinks().isEmpty()) {
             seek(cv.getKmerAsString());
         }
 
-        //CortexRecord cr = ec.getGraph().findRecord(sk);
-
-        //if (cr == null) { throw new CortexJDKException("Record '" + sk + "' does not exist in graph."); }
-
-//        CortexVertex cv = null;
-//        do {
-//            int copyIndex;
-//            if (goForward) { copyIndex = cv == null ? 0 : cv.getCopyIndex() + 1; }
-//            else { copyIndex = cv == null ? 0 : cv.getCopyIndex() - 1; }
-//
-//            cv = new CortexVertexFactory()
-//                    .bases(sk)
-//                    .record(cr)
-//                    .copyIndex(copyIndex)
-//                    .make();
-//        } while (visited.contains(cv));
+        // Instantiate a new stopping rule per branch
+        TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         Set<CortexVertex> avs;
-
-        TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
 
         do {
             Set<CortexVertex> pvs = getPrevVertices(cv.getKmerAsByteKmer());
@@ -319,6 +296,9 @@ public class TraversalEngine {
             avs = goForward ? nvs : pvs;
 
             if (!ec.getLinks().isEmpty()) {
+                // If we have links, then we are permitted to traverse some vertices multiple times.  Include a copy
+                // count for those vertices so that we can distinguish each copy in the resulting subgraph.
+
                 CortexVertex qv = null;
                 if (goForward && hasNext()) {
                     qv = next();
@@ -345,13 +325,9 @@ public class TraversalEngine {
                 }
             }
 
-            // Connect the new vertices to the graph
+            // Connect all neighboring vertices to the graph (useful for visualization)
             if (ec.connectAllNeighbors()) {
-                connectVertex(g, cv, pvs,  nvs);
-            } else if (goForward) {
-                //connectVertex(g, cv, null, avs);
-            } else {
-                //connectVertex(g, cv, avs,  null);
+                connectVertex(g, cv, pvs, nvs);
             }
 
             // Avoid traversing infinite loops by removing from traversal consideration
@@ -396,9 +372,6 @@ public class TraversalEngine {
                     TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
 
                     if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
-                        //if (goForward) { connectVertex(g, cv, null, avs);  }
-                        //else           { connectVertex(g, cv, avs,  null); }
-
                         return g;
                     } else {
                         // could mark a rejected traversal here rather than just throwing it away
@@ -420,14 +393,20 @@ public class TraversalEngine {
         if (pvs != null) {
             for (CortexVertex pv : pvs) {
                 g.addVertex(pv);
-                g.addEdge(pv, cv, new CortexEdge(ec.getTraversalColor(), 1.0));
+
+                if (!g.containsEdge(pv, cv)) {
+                    g.addEdge(pv, cv, new CortexEdge(ec.getTraversalColor(), 1.0));
+                }
             }
         }
 
         if (nvs != null) {
             for (CortexVertex nv : nvs) {
                 g.addVertex(nv);
-                g.addEdge(cv, nv, new CortexEdge(ec.getTraversalColor(), 1.0));
+
+                if (!g.containsEdge(cv, nv)) {
+                    g.addEdge(cv, nv, new CortexEdge(ec.getTraversalColor(), 1.0));
+                }
             }
         }
     }
@@ -785,42 +764,46 @@ public class TraversalEngine {
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addSecondaryColors(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        Graphs.addGraph(m, g);
 
-        Set<Integer> displayColors = new HashSet<>(ec.getSecondaryColors());
-        if (displayColors.isEmpty()) {
-            Graphs.addGraph(m, g);
-        } else {
+        if (!ec.getSecondaryColors().isEmpty()) {
             Map<CortexByteKmer, Map<Integer, Set<CortexByteKmer>>> pkscache = new HashMap<>();
             Map<CortexByteKmer, Map<Integer, Set<CortexByteKmer>>> nkscache = new HashMap<>();
 
-            for (int c : displayColors) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g2 = new DirectedWeightedPseudograph<>(CortexEdge.class);
+            for (int c : ec.getSecondaryColors()) {
+                if (c != ec.getTraversalColor()) {
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g2 = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
-                for (CortexVertex v : g.vertexSet()) {
-                    Map<Integer, Set<CortexByteKmer>> pks = pkscache.containsKey(v.getKmerAsByteKmer()) ? pkscache.get(v.getKmerAsByteKmer()) : getAllPrevKmers(v.getKmerAsByteKmer());
-                    Map<Integer, Set<CortexByteKmer>> nks = nkscache.containsKey(v.getKmerAsByteKmer()) ? nkscache.get(v.getKmerAsByteKmer()) : getAllNextKmers(v.getKmerAsByteKmer());
+                    for (CortexVertex v : g.vertexSet()) {
+                        Map<Integer, Set<CortexByteKmer>> pks = pkscache.containsKey(v.getKmerAsByteKmer()) ? pkscache.get(v.getKmerAsByteKmer()) : getAllPrevKmers(v.getKmerAsByteKmer());
+                        Map<Integer, Set<CortexByteKmer>> nks = nkscache.containsKey(v.getKmerAsByteKmer()) ? nkscache.get(v.getKmerAsByteKmer()) : getAllNextKmers(v.getKmerAsByteKmer());
 
-                    pkscache.put(v.getKmerAsByteKmer(), pks);
-                    nkscache.put(v.getKmerAsByteKmer(), nks);
+                        pkscache.put(v.getKmerAsByteKmer(), pks);
+                        nkscache.put(v.getKmerAsByteKmer(), nks);
 
-                    g2.addVertex(v);
+                        g2.addVertex(v);
 
-                    for (CortexByteKmer pk : pks.get(c)) {
-                        CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk));
+                        for (CortexByteKmer pk : pks.get(c)) {
+                            CortexVertex pv = new CortexVertex(pk, ec.getGraph().findRecord(pk));
 
-                        g2.addVertex(pv);
-                        g2.addEdge(pv, v, new CortexEdge(c, 1.0));
+                            g2.addVertex(pv);
+                            if (!g2.containsEdge(pv, v)) {
+                                g2.addEdge(pv, v, new CortexEdge(c, 1.0));
+                            }
+                        }
+
+                        for (CortexByteKmer nk : nks.get(c)) {
+                            CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk));
+
+                            g2.addVertex(nv);
+                            if (!g2.containsEdge(v, nv)) {
+                                g2.addEdge(v, nv, new CortexEdge(c, 1.0));
+                            }
+                        }
                     }
 
-                    for (CortexByteKmer nk : nks.get(c)) {
-                        CortexVertex nv = new CortexVertex(nk, ec.getGraph().findRecord(nk));
-
-                        g2.addVertex(nv);
-                        g2.addEdge(v, nv, new CortexEdge(c, 1.0));
-                    }
+                    Graphs.addGraph(m, g2);
                 }
-
-                Graphs.addGraph(m, g2);
             }
         }
 

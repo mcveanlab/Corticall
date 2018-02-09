@@ -30,14 +30,24 @@ public class PathFinder {
         }
     }
 
-    public GraphPath<CortexVertex, CortexEdge> getPathFinder(CortexVertex startVertex, CortexVertex endVertex) {
-        return getPathFinder(startVertex, endVertex, null, true);
+    public GraphPath<CortexVertex, CortexEdge> getPath(CortexVertex startVertex, CortexVertex endVertex) {
+        return getPath(startVertex, endVertex, null, true);
     }
 
-    public GraphPath<CortexVertex, CortexEdge> getPathFinder(CortexVertex startVertex, CortexVertex endVertex, CanonicalKmer constraint, boolean accept) {
+    public GraphPath<CortexVertex, CortexEdge> getPath(CortexVertex startVertex, CortexVertex endVertex, CanonicalKmer constraint, boolean accept) {
+        List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = getPaths(startVertex, endVertex, constraint, accept);
+
+        return pathsFiltered.size() == 0 ? null : pathsFiltered.get(0);
+    }
+
+    public List<GraphPath<CortexVertex, CortexEdge>> getPaths(CortexVertex startVertex, CortexVertex endVertex) {
+        return getPaths(startVertex, endVertex, null, true);
+    }
+
+    public List<GraphPath<CortexVertex, CortexEdge>> getPaths(CortexVertex startVertex, CortexVertex endVertex, CanonicalKmer constraint, boolean accept) {
         KShortestPaths<CortexVertex, CortexEdge> ksp = new KShortestPaths<>(g, 10);
 
-        List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = null;
+        List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = new ArrayList<>();
 
         if (g.containsVertex(startVertex) && g.containsVertex(endVertex)) {
             List<GraphPath<CortexVertex, CortexEdge>> pathsUnfiltered = ksp.getPaths(startVertex, endVertex);
@@ -45,8 +55,6 @@ public class PathFinder {
             if (constraint == null) {
                 pathsFiltered = pathsUnfiltered;
             } else {
-                pathsFiltered = new ArrayList<>();
-
                 for (GraphPath<CortexVertex, CortexEdge> gp : pathsUnfiltered) {
                     boolean constraintFound = false;
 
@@ -66,10 +74,6 @@ public class PathFinder {
             }
         }
 
-        if (pathsFiltered == null || pathsFiltered.size() == 0) {
-            return null;
-        }
-
-        return pathsFiltered.get(0);
+        return pathsFiltered;
     }
 }

@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
+import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
@@ -9,7 +10,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CortexLinksMap implements uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations {
+public class CortexLinksMap implements ConnectivityAnnotations {
     private CortexLinksIterable cortexGraphLinks;
     private Map<CortexBinaryKmer, CortexLinksRecord> recordHash;
     private CortexHeader header;
@@ -30,6 +31,8 @@ public class CortexLinksMap implements uk.ac.ox.well.cortexjdk.utils.io.graph.Co
         for (int c = 0; c < header.getNumColors(); c++) {
             CortexColor cc = new CortexColor();
             cc.setSampleName(cortexGraphLinks.getColor(c).getSampleName());
+
+            header.addColor(cc);
         }
 
         recordHash = new HashMap<>((int) cortexGraphLinks.getNumLinks());
@@ -38,6 +41,9 @@ public class CortexLinksMap implements uk.ac.ox.well.cortexjdk.utils.io.graph.Co
             recordHash.put(new CortexBinaryKmer(clr.getKmer().getKmerAsBytes()), clr);
         }
     }
+
+    @Override
+    public File getFile() { return cortexGraphLinks.getFile(); }
 
     @Override
     public int size() { return recordHash.size(); }

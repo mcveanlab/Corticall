@@ -18,9 +18,10 @@ public class TraversalEngineConfiguration {
     public enum GraphCombinationOperator { AND, OR }
     public enum TraversalDirection { BOTH, FORWARD, REVERSE }
 
-    private GraphCombinationOperator gco = GraphCombinationOperator.AND;
+    private GraphCombinationOperator gco = GraphCombinationOperator.OR;
     private TraversalDirection td = TraversalDirection.BOTH;
     private boolean connectAllNeighbors = false;
+
     private boolean discardFailedBranches = true;
     private boolean markFailedBranches = false;
 

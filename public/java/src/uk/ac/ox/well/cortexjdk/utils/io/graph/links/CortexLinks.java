@@ -19,11 +19,13 @@ public class CortexLinks implements ConnectivityAnnotations {
         if (linksIndex.exists()) {
             links = new CortexLinksRandomAccess(linksFile);
         } else {
-            //links = new CortexLinksMap(linksFile);
-
-            throw new CortexJDKException("Loading of unindexed links files ('" + linksFile.getAbsolutePath() + "') is disabled");
+            links = new CortexLinksMap(linksFile);
+            //throw new CortexJDKException("Loading of unindexed links files ('" + linksFile.getAbsolutePath() + "') is disabled");
         }
     }
+
+    @Override
+    public File getFile() { return links.getFile(); }
 
     @Override
     public int size() {

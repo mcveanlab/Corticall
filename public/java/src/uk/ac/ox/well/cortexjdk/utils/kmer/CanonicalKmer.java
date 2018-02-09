@@ -2,9 +2,10 @@ package uk.ac.ox.well.cortexjdk.utils.kmer;
 
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class CanonicalKmer implements CharSequence, Comparable<CanonicalKmer> {
+public class CanonicalKmer implements CharSequence, Comparable<CanonicalKmer>, Serializable {
     private byte[] kmer;
     private String sk;
     private boolean isFlippedFromSuppliedOrientation = false;

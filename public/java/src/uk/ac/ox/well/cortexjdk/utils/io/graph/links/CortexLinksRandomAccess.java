@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexHeader;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
@@ -18,7 +19,8 @@ import java.util.Map;
 /**
  * Created by kiran on 14/09/2017.
  */
-public class CortexLinksRandomAccess implements uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations {
+public class CortexLinksRandomAccess implements ConnectivityAnnotations {
+    private File cortexLinksFile;
     private BlockCompressedInputStream bi;
     private Map<CortexBinaryKmer, Pair<Long, Integer>> index;
     private CortexHeader header;
@@ -29,6 +31,7 @@ public class CortexLinksRandomAccess implements uk.ac.ox.well.cortexjdk.utils.io
     public CortexLinksRandomAccess(File cortexLinksFile) { initialize(cortexLinksFile); }
 
     private void initialize(File cortexLinksFile) {
+        this.cortexLinksFile = cortexLinksFile;
         File cortexLinksIndex = new File(cortexLinksFile.getAbsolutePath() + ".idx");
 
         try {
@@ -84,6 +87,9 @@ public class CortexLinksRandomAccess implements uk.ac.ox.well.cortexjdk.utils.io
             throw new CortexJDKException("IOException", e);
         }
     }
+
+    @Override
+    public File getFile() { return cortexLinksFile; }
 
     @Override
     public int size() { return index.size(); }
