@@ -20,10 +20,9 @@
     <property name="out.dir" value="out" />
     <property name="report.dir" value="report" />
     <property name="release.dir" value="release" />
-    <property name="testdata.dir" value="testdata" />
 
-	<property name="bwa.version" value="8e2da1e407972170d1a660286f07a3a3a71ee6fb" />
-	<property name="bwa.dir" value="build/bwa" />
+    <property name="bwa.version" value="8e2da1e407972170d1a660286f07a3a3a71ee6fb" />
+    <property name="bwa.dir" value="build/bwa" />
 
     <property name="ivy.install.version" value="2.3.0-rc1" />
     <property name="ivy.jar.dir" value="${lib.dir}" />
@@ -261,6 +260,5 @@
             <fileset dir="${report.dir}" />
             <fileset dir="${release.dir}" />
         </delete>
-        <delete file="${testdata.dir}/largeTableTest.table" verbose="false" quiet="true" />
     </target>
 </project>

@@ -58,8 +58,6 @@ public class TestReadToGraphAligner {
             FastqRecord fq2 = new FastqRecord("test", read.getSecond(), null, StringUtil.repeatCharNTimes('I', read.getSecond().length()));
 
             PairedEndAlignmentInfo pai = ga.align(fq1, fq2);
-
-            Main.getLogger().info("{} {} {}", read.getFirst(), read.getSecond(), Joiner.on(" ").withKeyValueSeparator(" => ").join(pai.getAlignmentDistanceMap()));
         }
     }
 
@@ -80,8 +78,6 @@ public class TestReadToGraphAligner {
             FastqRecord fq2 = new FastqRecord("test", read.getSecond(), null, StringUtil.repeatCharNTimes('I', read.getSecond().length()));
 
             PairedEndAlignmentInfo pai = ga.align(fq1, fq2);
-
-            Main.getLogger().info("{} {} {}", read.getFirst(), SequenceUtils.reverseComplement(read.getSecond()), Joiner.on(" ").withKeyValueSeparator(" => ").join(pai.getAlignmentDistanceMap()));
         }
     }
 }

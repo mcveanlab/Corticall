@@ -4,14 +4,14 @@ package uk.ac.ox.well.cortexjdk.utils.alignment.swold;
  * @author Paul Reiners
  *
  */
-public class SmithWaterman extends SequenceAlignment {
+public class SmithWatermanOld extends SequenceAlignment {
     private Cell highScoreCell;
 
-    public SmithWaterman(String sequence1, String sequence2) {
+    public SmithWatermanOld(String sequence1, String sequence2) {
         super(sequence1, sequence2);
     }
 
-    public SmithWaterman(String sequence1, String sequence2, int match, int mismatch, int gap) {
+    public SmithWatermanOld(String sequence1, String sequence2, int match, int mismatch, int gap) {
         super(sequence1, sequence2, match, mismatch, gap);
     }
 

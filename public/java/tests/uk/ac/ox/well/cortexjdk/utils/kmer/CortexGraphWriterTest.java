@@ -1,25 +1,33 @@
 package uk.ac.ox.well.cortexjdk.utils.kmer;
 
+import com.google.common.collect.Lists;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import uk.ac.ox.well.cortexjdk.utils.assembler.TempGraphAssembler;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.*;
 
 public class CortexGraphWriterTest {
     @Test
     public void writeSmallGraphTest() {
         try {
+            Map<String, Collection<String>> haplotypes = new HashMap<>();
+            haplotypes.put("mom", Collections.singletonList(new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(100))));
+            haplotypes.put("dad", Collections.singletonList(new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(100))));
+            haplotypes.put("kid", Collections.singletonList(new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(100))));
+            CortexGraph cg1 = TempGraphAssembler.buildGraph(haplotypes, 5);
+
             File tempFile = File.createTempFile("smallgraph-copy", ".ctx");
             tempFile.deleteOnExit();
 
-            CortexGraph cg1 = new CortexGraph("testdata/smallgraph.ctx");
             CortexGraphWriter cgw = new CortexGraphWriter(tempFile);
             cgw.setHeader(cg1.getHeader());
 

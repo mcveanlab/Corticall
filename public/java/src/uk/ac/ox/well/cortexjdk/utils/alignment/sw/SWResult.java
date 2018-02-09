@@ -3,7 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.alignment.sw;
 import java.util.ArrayList;
 
 /**
- * Stores result of SmithWaterman Alignment.
+ * Stores result of SmithWatermanOld Alignment.
  * @author kimidori
  */
 public class SWResult {

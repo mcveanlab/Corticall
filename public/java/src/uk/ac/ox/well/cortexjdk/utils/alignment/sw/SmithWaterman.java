@@ -10,18 +10,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * public domain snippet for SmithWaterman alignment
+ * public domain snippet for SmithWatermanOld alignment
  * Smith, Temple F., and Michael S. Waterman.
  * "Identification of common molecular subsequences."
  * Journal of molecular biology 147.1 (1981): 195-197.
  *
  * author: yamule (https://github.com/yamule/smithwaterman)
  * usage ===
- *	SmithWaterman swold = new SmithWaterman();
+ *	SmithWatermanOld swold = new SmithWatermanOld();
  *	SWResult res = swold.align("EEEEMDQNNSLPPYAGGTWRYII","IIIIMDQNNSPPYAQGGTWRYEE");
  *	System.out.println("score: "+res.score);
- *	System.out.println(SmithWaterman.listToString(res.qseq));
- *	System.out.println(SmithWaterman.listToString(res.sseq));
+ *	System.out.println(SmithWatermanOld.listToString(res.qseq));
+ *	System.out.println(SmithWatermanOld.listToString(res.sseq));
  *
  * output ===
  * score: 73
@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * IIII----MDQNNS-PPYAQGGTWRY--EE
  *
  */
-public class SmithWaterman2 {
+public class SmithWaterman {
     public static int TYPE_MATCH = 0;
     public static int TYPE_GAPINCOL = 1;
     public static int TYPE_GAPINROW = 2;
@@ -304,49 +304,6 @@ public class SmithWaterman2 {
         }
         return ret.toString();
     }
-
-//    public static void main(String[] args){
-//        for(int ii = 0;ii < args.length;ii++){
-//            System.out.println(ii+" "+args[ii]);
-//        }
-//        ArrayList<Sequence> seq1 = Sequence.loadFasta(args[0]);
-//        ArrayList<Sequence> seq2 = Sequence.loadFasta(args[1]);
-//
-//        SmithWaterman swold = new SmithWaterman2();
-//        SWResult res = swold.align(seq1.get(0),seq2.get(0));
-//        System.out.println("# score: "+res.score);
-//        System.out.println(">"+seq1.get(0).name);
-//        System.out.println(listToString(res.qseq));
-//        System.out.println(">"+seq2.get(0).name);
-//        System.out.println(listToString(res.sseq));
-//
-//		/*
-//		// for debug
-//		SmithWaterman swold = new SmithWaterman();
-//		SWResult res = swold.align("MTPPPPGRAAPSAPRARVPGPPARLGLPLRLRLLLLLWAAAASAQGHLRSGPRIFAVWKG","PGPGNPSPMSLSPAWPGHPDQPLPREQMTSPAPPRIITSATADPEGTETALAGDTSDGLA");
-//		System.out.println("score: "+res.score);
-//		System.out.println(SmithWaterman.listToString(res.qseq));
-//		System.out.println(SmithWaterman.listToString(res.sseq));
-//		*/
-//		/*
-//		BLOSUM62 bl = new BLOSUM62();
-//		SmithWaterman swold = new SmithWaterman();
-//		ArrayList<Sequence> seqs = Sequence.loadFasta("C:\\Users\\kimidori\\Desktop\\TBM\\swold\\testfas.txt");
-//		for(Sequence s:seqs){
-//			System.out.println(">"+s.name+" "+s.desc);
-//			for(Character c:s.seq){
-//				System.out.print(String.valueOf(c));
-//			}
-//			System.out.println();
-//		}
-//		SWResult res = swold.align(seqs.get(0),seqs.get(1));
-//		System.out.println(res.score);
-//		System.out.println(seqs.get(0).name);
-//		System.out.println(listToString(res.qseq));
-//		System.out.println(seqs.get(1).name);
-//		System.out.println(listToString(res.sseq));
-//		*/
-//    }
 }
 
 

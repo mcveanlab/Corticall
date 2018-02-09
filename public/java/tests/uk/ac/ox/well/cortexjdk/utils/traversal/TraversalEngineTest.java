@@ -174,6 +174,7 @@ public class TraversalEngineTest {
 
     @Test
     public void testCyclesWithoutLinksAreNotAssembled() {
+        // This is the example in Figure 1 of the McCortex paper
         Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
         haplotypes.put("test", Collections.singletonList("ACTGATTTCGATGCGATGCGATGCCACGGTGG"));
 
@@ -191,7 +192,8 @@ public class TraversalEngineTest {
     }
 
     @Test
-    public void testCyclesWithLinksAreStillNotAssembledButHeyItsLongerThanOtherwiseSoYay() {
+    public void testCyclesWithLinksAreAssembled() {
+        // This is the example in Figure 1 of the McCortex paper
         Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
         haplotypes.put("test", Collections.singletonList("ACTGATTTCGATGCGATGCGATGCCACGGTGG"));
 

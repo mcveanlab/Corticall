@@ -37,8 +37,6 @@ public class DataFrame<R, C, D> {
                 String entry = fields[i];
                 D value = zeroValue;
 
-                System.out.println("loading: " + rowName + " " + colName);
-
                 if (zeroValue instanceof Float) {
                     value = (D) Float.valueOf((String) entry);
                 }
@@ -89,8 +87,6 @@ public class DataFrame<R, C, D> {
             for (C c : cols) {
                 D v0 = this.get(r, c);
                 D v1 = d.get(r, c);
-
-                System.out.println(r + " " + c);
 
                 if (v0 instanceof Float && v1 instanceof Float) {
                     Float v2 = (Float) v0 + (Float) v1;

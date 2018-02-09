@@ -64,31 +64,96 @@ public class CortexGraphTest {
         }
     }
 
-    @Test
-    public void getLongSampleNames() {
-        CortexGraph cg = new CortexGraph("testdata/test_gene_for_sn_reconstruction.ctx");
+    @BeforeClass
+    public void initialize() {
+        recs = new ArrayList<>();
 
-        Assert.assertEquals("test_sample_with_long_name", cg.getColor(0).getSampleName());
+        recs.add(new SimpleCortexRecord("AAATAGGGCCACGATTTTTATTCAGAGCATA", new int[] { 1, 0 }, new String[] {"..g..C..", "........"}));
+        recs.add(new SimpleCortexRecord("AACTACATGACCAGTACTCAGAGAGAAGCCC", new int[] { 0, 1 }, new String[] {"........", ".c..A..."}));
+        recs.add(new SimpleCortexRecord("AATAGGGCCACGATTTTTATTCAGAGCATAC", new int[] { 1, 0 }, new String[] {"a.....G.", "........"}));
+        recs.add(new SimpleCortexRecord("ACACTACGACTACAGCAACTACATGACCAGT", new int[] { 0, 1 }, new String[] {"........", "..g.A..."}));
+        recs.add(new SimpleCortexRecord("ACAGCAACTACATGACCAGTACTCAGAGAGA", new int[] { 0, 1 }, new String[] {"........", "...tA..."}));
+        recs.add(new SimpleCortexRecord("ACATGACCAGTACTCAGAGAGAAGCCCATAA", new int[] { 0, 1 }, new String[] {"........", "...t...T"}));
+        recs.add(new SimpleCortexRecord("ACCAGTACTCAGAGAGAAGCCCATAATAGGC", new int[] { 0, 1 }, new String[] {"........", "..g...G."}));
+        recs.add(new SimpleCortexRecord("ACGAAATAGGGCCACGATTTTTATTCAGAGC", new int[] { 1, 0 }, new String[] {"...tA...", "........"}));
+        recs.add(new SimpleCortexRecord("ACGACACTACGACTACAGCAACTACATGACC", new int[] { 0, 1 }, new String[] {"........", ".c..A..."}));
+        recs.add(new SimpleCortexRecord("ACGACTACAGCAACTACATGACCAGTACTCA", new int[] { 0, 1 }, new String[] {"........", "...t..G."}));
+        recs.add(new SimpleCortexRecord("ACGATTTTTATTCAGAGCATACGATACAGAA", new int[] { 1, 0 }, new String[] {".c......", "........"}));
+        recs.add(new SimpleCortexRecord("ACTACAGCAACTACATGACCAGTACTCAGAG", new int[] { 0, 1 }, new String[] {"........", "..g.A..."}));
+        recs.add(new SimpleCortexRecord("ACTACATGACCAGTACTCAGAGAGAAGCCCA", new int[] { 0, 1 }, new String[] {"........", "a......T"}));
+        recs.add(new SimpleCortexRecord("ACTACGACTACAGCAACTACATGACCAGTAC", new int[] { 0, 1 }, new String[] {"........", ".c.....T"}));
+        recs.add(new SimpleCortexRecord("ACTATACGAAATAGGGCCACGATTTTTATTC", new int[] { 1, 0 }, new String[] {"....A...", "........"}));
+        recs.add(new SimpleCortexRecord("ACTCAGAGAGAAGCCCATAATAGGCGCGGCC", new int[] { 0, 1 }, new String[] {"........", "...t.C.."}));
+        recs.add(new SimpleCortexRecord("ACTGGGGGGCCACGACACTACGACTACAGCA", new int[] { 0, 1 }, new String[] {"........", "....A..."}));
+        recs.add(new SimpleCortexRecord("AGCAACTACATGACCAGTACTCAGAGAGAAG", new int[] { 0, 1 }, new String[] {"........", ".c...C.."}));
+        recs.add(new SimpleCortexRecord("AGGGCCACGATTTTTATTCAGAGCATACGAT", new int[] { 1, 0 }, new String[] {"...tA...", "........"}));
+        recs.add(new SimpleCortexRecord("AGTACTCAGAGAGAAGCCCATAATAGGCGCG", new int[] { 0, 1 }, new String[] {"........", ".c....G."}));
+        recs.add(new SimpleCortexRecord("AGTACTGGTCATGTAGTTGCTGTAGTCGTAG", new int[] { 0, 1 }, new String[] {"........", "..g....T"}));
+        recs.add(new SimpleCortexRecord("AGTTGCTGTAGTCGTAGTGTCGTGGCCCCCC", new int[] { 0, 1 }, new String[] {"........", "...tA..."}));
+        recs.add(new SimpleCortexRecord("ATACGAAATAGGGCCACGATTTTTATTCAGA", new int[] { 1, 0 }, new String[] {"...t..G.", "........"}));
+        recs.add(new SimpleCortexRecord("ATAGGGCCACGATTTTTATTCAGAGCATACG", new int[] { 1, 0 }, new String[] {"a...A...", "........"}));
+        recs.add(new SimpleCortexRecord("ATGACCAGTACTCAGAGAGAAGCCCATAATA", new int[] { 0, 1 }, new String[] {"........", ".c....G."}));
+        recs.add(new SimpleCortexRecord("ATGCTCTGAATAAAAATCGTGGCCCTATTTC", new int[] { 1, 0 }, new String[] {"...t..G.", "........"}));
+        recs.add(new SimpleCortexRecord("ATGGGCTTCTCTCTGAGTACTGGTCATGTAG", new int[] { 0, 1 }, new String[] {"........", "...t...T"}));
+        recs.add(new SimpleCortexRecord("ATGTAGTTGCTGTAGTCGTAGTGTCGTGGCC", new int[] { 0, 1 }, new String[] {"........", ".c...C.."}));
+        recs.add(new SimpleCortexRecord("ATTATGGGCTTCTCTCTGAGTACTGGTCATG", new int[] { 0, 1 }, new String[] {"........", "...t...T"}));
+        recs.add(new SimpleCortexRecord("CAACTACATGACCAGTACTCAGAGAGAAGCC", new int[] { 0, 1 }, new String[] {"........", "..g..C.."}));
+        recs.add(new SimpleCortexRecord("CACGACACTACGACTACAGCAACTACATGAC", new int[] { 0, 1 }, new String[] {"........", ".c...C.."}));
+        recs.add(new SimpleCortexRecord("CACGATTTTTATTCAGAGCATACGATACAGA", new int[] { 1, 0 }, new String[] {".c..A...", "........"}));
+        recs.add(new SimpleCortexRecord("CACTACGACTACAGCAACTACATGACCAGTA", new int[] { 0, 1 }, new String[] {"........", "a....C.."}));
+        recs.add(new SimpleCortexRecord("CAGCAACTACATGACCAGTACTCAGAGAGAA", new int[] { 0, 1 }, new String[] {"........", "a.....G."}));
+        recs.add(new SimpleCortexRecord("CAGTACTCAGAGAGAAGCCCATAATAGGCGC", new int[] { 0, 1 }, new String[] {"........", ".c....G."}));
+        recs.add(new SimpleCortexRecord("CATGTAGTTGCTGTAGTCGTAGTGTCGTGGC", new int[] { 0, 1 }, new String[] {"........", "...t.C.."}));
+        recs.add(new SimpleCortexRecord("CCACGACACTACGACTACAGCAACTACATGA", new int[] { 0, 1 }, new String[] {"........", "..g..C.."}));
+        recs.add(new SimpleCortexRecord("CCACGATTTTTATTCAGAGCATACGATACAG", new int[] { 1, 0 }, new String[] {"..g.A...", "........"}));
+        recs.add(new SimpleCortexRecord("CCAGTACTCAGAGAGAAGCCCATAATAGGCG", new int[] { 0, 1 }, new String[] {"........", "a....C.."}));
+        recs.add(new SimpleCortexRecord("CCGCGCCTATTATGGGCTTCTCTCTGAGTAC", new int[] { 0, 1 }, new String[] {"........", "..g....T"}));
+        recs.add(new SimpleCortexRecord("CCTATTATGGGCTTCTCTCTGAGTACTGGTC", new int[] { 0, 1 }, new String[] {"........", "..g.A..."}));
+        recs.add(new SimpleCortexRecord("CGAAATAGGGCCACGATTTTTATTCAGAGCA", new int[] { 1, 0 }, new String[] {"a......T", "........"}));
+        recs.add(new SimpleCortexRecord("CGACACTACGACTACAGCAACTACATGACCA", new int[] { 0, 1 }, new String[] {"........", "a.....G."}));
+        recs.add(new SimpleCortexRecord("CGACTACAGCAACTACATGACCAGTACTCAG", new int[] { 0, 1 }, new String[] {"........", "a...A..."}));
+        recs.add(new SimpleCortexRecord("CTACAGCAACTACATGACCAGTACTCAGAGA", new int[] { 0, 1 }, new String[] {"........", "a.....G."}));
+        recs.add(new SimpleCortexRecord("CTATACGAAATAGGGCCACGATTTTTATTCA", new int[] { 1, 0 }, new String[] {"a.....G.", "........"}));
+        recs.add(new SimpleCortexRecord("CTATTATGGGCTTCTCTCTGAGTACTGGTCA", new int[] { 0, 1 }, new String[] {"........", ".c.....T"}));
+        recs.add(new SimpleCortexRecord("CTCAGAGAGAAGCCCATAATAGGCGCGGCCC", new int[] { 0, 1 }, new String[] {"........", "a......."}));
+        recs.add(new SimpleCortexRecord("CTCTCTGAGTACTGGTCATGTAGTTGCTGTA", new int[] { 0, 1 }, new String[] {"........", "...t..G."}));
+        recs.add(new SimpleCortexRecord("CTCTGAATAAAAATCGTGGCCCTATTTCGTA", new int[] { 1, 0 }, new String[] {"..g....T", "........"}));
+        recs.add(new SimpleCortexRecord("CTGAATAAAAATCGTGGCCCTATTTCGTATA", new int[] { 1, 0 }, new String[] {"...t..G.", "........"}));
+        recs.add(new SimpleCortexRecord("CTGGGGGGCCACGACACTACGACTACAGCAA", new int[] { 0, 1 }, new String[] {"........", "a....C.."}));
+        recs.add(new SimpleCortexRecord("CTGGTCATGTAGTTGCTGTAGTCGTAGTGTC", new int[] { 0, 1 }, new String[] {"........", "a.....G."}));
+        recs.add(new SimpleCortexRecord("GACTACAGCAACTACATGACCAGTACTCAGA", new int[] { 0, 1 }, new String[] {"........", ".c....G."}));
+        recs.add(new SimpleCortexRecord("GAGTACTGGTCATGTAGTTGCTGTAGTCGTA", new int[] { 0, 1 }, new String[] {"........", "...t..G."}));
+        recs.add(new SimpleCortexRecord("GCAACTACATGACCAGTACTCAGAGAGAAGC", new int[] { 0, 1 }, new String[] {"........", "a....C.."}));
+        recs.add(new SimpleCortexRecord("GCCACGATTTTTATTCAGAGCATACGATACA", new int[] { 1, 0 }, new String[] {"..g...G.", "........"}));
+        recs.add(new SimpleCortexRecord("GCCGCGCCTATTATGGGCTTCTCTCTGAGTA", new int[] { 0, 1 }, new String[] {"........", "..g..C.."}));
+        recs.add(new SimpleCortexRecord("GGCCACGATTTTTATTCAGAGCATACGATAC", new int[] { 1, 0 }, new String[] {"..g.A...", "........"}));
+        recs.add(new SimpleCortexRecord("GGGCCACGACACTACGACTACAGCAACTACA", new int[] { 0, 1 }, new String[] {"........", "..g....T"}));
+        recs.add(new SimpleCortexRecord("GGGCCACGATTTTTATTCAGAGCATACGATA", new int[] { 1, 0 }, new String[] {"a....C..", "........"}));
+        recs.add(new SimpleCortexRecord("GGGGCCACGACACTACGACTACAGCAACTAC", new int[] { 0, 1 }, new String[] {"........", "..g.A..."}));
+        recs.add(new SimpleCortexRecord("GGGGGCCACGACACTACGACTACAGCAACTA", new int[] { 0, 1 }, new String[] {"........", "..g..C.."}));
+        recs.add(new SimpleCortexRecord("GTTGCTGTAGTCGTAGTGTCGTGGCCCCCCA", new int[] { 0, 1 }, new String[] {"........", "a.....G."}));
+        recs.add(new SimpleCortexRecord("TACATGACCAGTACTCAGAGAGAAGCCCATA", new int[] { 0, 1 }, new String[] {"........", ".c..A..."}));
+        recs.add(new SimpleCortexRecord("TAGGGCCACGATTTTTATTCAGAGCATACGA", new int[] { 1, 0 }, new String[] {"a......T", "........"}));
     }
 
     @Test
     public void getShortSampleNames() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
-        Assert.assertEquals("ref", cg.getColor(0).getSampleName());
-        Assert.assertEquals("ref_ss", cg.getColor(1).getSampleName());
+        Assert.assertEquals("one", cg.getColor(0).getSampleName());
+        Assert.assertEquals("two", cg.getColor(1).getSampleName());
     }
 
     @Test
     public void numRecordsTest() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
-        Assert.assertEquals(85, cg.getNumRecords());
+        Assert.assertEquals(66, cg.getNumRecords());
     }
 
     @Test
     public void getLeftAndRightEdges() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         CortexRecord cr = cg.next();
 
@@ -118,100 +183,9 @@ public class CortexGraphTest {
 
     private List<SimpleCortexRecord> recs;
 
-    @BeforeClass
-    public void initialize() {
-        recs = new ArrayList<>();
-
-        recs.add(new SimpleCortexRecord("GTATTTGCAGTATTTGGAATAAATTTCCAAC", new int[] {1,0}, new String[] {"..g.A...", "........"}));
-        recs.add(new SimpleCortexRecord("GGAAATTTATTCCAAATACTGCAAATACCCC", new int[] {1,0}, new String[] {"...tA...", "........"}));
-        recs.add(new SimpleCortexRecord("GTATTTGCAGTATTTGTAATAAATTTCCAAC", new int[] {0,1}, new String[] {"........", "..g.A..."}));
-        recs.add(new SimpleCortexRecord("AAATCATCTGTTGGAAATTTATTACAAATAC", new int[] {0,1}, new String[] {"........", ".c.....T"}));
-        recs.add(new SimpleCortexRecord("GGTATTTGCAGTATTTGTAATAAATTTCCAA", new int[] {0,1}, new String[] {"........", "..g..C.."}));
-        recs.add(new SimpleCortexRecord("AAAAAACCAAATCATCTGTTGGAAATTTATT", new int[] {1,1}, new String[] {"a....C..", "a...A..."}));
-        recs.add(new SimpleCortexRecord("AAAATCGTTTTGGGGTATTTGCAGTATTTGT", new int[] {0,1}, new String[] {"........", "..g.A..."}));
-        recs.add(new SimpleCortexRecord("GCAAATACCCCAAAACGATTTTCTATAGCTA", new int[] {1,1}, new String[] {"...t...T", "...t...T"}));
-        recs.add(new SimpleCortexRecord("ATCATCTGTTGGAAATTTATTACAAATACTG", new int[] {0,1}, new String[] {"........", "a....C.."}));
-        recs.add(new SimpleCortexRecord("AAACCAAATCATCTGTTGGAAATTTATTACA", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("AACCAAATCATCTGTTGGAAATTTATTACAA", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("CGTTTTGGGGTATTTGCAGTATTTGGAATAA", new int[] {1,0}, new String[] {"...tA...", "........"}));
-        recs.add(new SimpleCortexRecord("CTGCAAATACCCCAAAACGATTTTCTATAGC", new int[] {1,1}, new String[] {"a......T", "a......T"}));
-        recs.add(new SimpleCortexRecord("GAAATTTATTCCAAATACTGCAAATACCCCA", new int[] {1,0}, new String[] {"..g.A...", "........"}));
-        recs.add(new SimpleCortexRecord("AAATACCCCAAAACGATTTTCTATAGCTATG", new int[] {1,1}, new String[] {".c.....T", ".c.....T"}));
-        recs.add(new SimpleCortexRecord("CAAATCATCTGTTGGAAATTTATTCCAAATA", new int[] {1,0}, new String[] {".c...C..", "........"}));
-        recs.add(new SimpleCortexRecord("ATTTATTACAAATACTGCAAATACCCCAAAA", new int[] {0,1}, new String[] {"........", "a....C.."}));
-        recs.add(new SimpleCortexRecord("AAAAAAACCAAATCATCTGTTGGAAATTTAT", new int[] {1,1}, new String[] {".......T", ".......T"}));
-        recs.add(new SimpleCortexRecord("AAACCAAATCATCTGTTGGAAATTTATTCCA", new int[] {1,0}, new String[] {"a...A...", "........"}));
-        recs.add(new SimpleCortexRecord("AATACCCCAAAACGATTTTCTATAGCTATGT", new int[] {1,1}, new String[] {"a...A...", "a...A..."}));
-        recs.add(new SimpleCortexRecord("ATTTGCAGTATTTGGAATAAATTTCCAACAG", new int[] {1,0}, new String[] {"...tA...", "........"}));
-        recs.add(new SimpleCortexRecord("ATCGTTTTGGGGTATTTGCAGTATTTGGAAT", new int[] {1,0}, new String[] {"a...A...", "........"}));
-        recs.add(new SimpleCortexRecord("AAAATCGTTTTGGGGTATTTGCAGTATTTGG", new int[] {1,0}, new String[] {"..g.A...", "........"}));
-        recs.add(new SimpleCortexRecord("GCAGTATTTGGAATAAATTTCCAACAGATGA", new int[] {1,0}, new String[] {"...t...T", "........"}));
-        recs.add(new SimpleCortexRecord("ATACCCCAAAACGATTTTCTATAGCTATGTA", new int[] {1,1}, new String[] {"a.....G.", "a.....G."}));
-        recs.add(new SimpleCortexRecord("GTTTTGGGGTATTTGCAGTATTTGGAATAAA", new int[] {1,0}, new String[] {".c.....T", "........"}));
-        recs.add(new SimpleCortexRecord("AAATCGTTTTGGGGTATTTGCAGTATTTGTA", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("ATTTGTAATAAATTTCCAACAGATGATTTGG", new int[] {0,1}, new String[] {"........", "...t...T"}));
-        recs.add(new SimpleCortexRecord("ATTTATTCCAAATACTGCAAATACCCCAAAA", new int[] {1,0}, new String[] {"a....C..", "........"}));
-        recs.add(new SimpleCortexRecord("TCTGTTGGAAATTTATTACAAATACTGCAAA", new int[] {0,1}, new String[] {"........", "a......T"}));
-        recs.add(new SimpleCortexRecord("AAATCGTTTTGGGGTATTTGCAGTATTTGGA", new int[] {1,0}, new String[] {"a...A...", "........"}));
-        recs.add(new SimpleCortexRecord("CAAATACTGCAAATACCCCAAAACGATTTTC", new int[] {1,1}, new String[] {".c.....T", "a......T"}));
-        recs.add(new SimpleCortexRecord("AAAAACCAAATCATCTGTTGGAAATTTATTA", new int[] {0,1}, new String[] {"........", "a....C.."}));
-        recs.add(new SimpleCortexRecord("AAACGATTTTCTATAGCTATGTAGTCATGCA", new int[] {1,1}, new String[] {"a.......", "a......."}));
-        recs.add(new SimpleCortexRecord("AATTTATTCCAAATACTGCAAATACCCCAAA", new int[] {1,0}, new String[] {"a...A...", "........"}));
-        recs.add(new SimpleCortexRecord("AATTTATTACAAATACTGCAAATACCCCAAA", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("TACTGCAAATACCCCAAAACGATTTTCTATA", new int[] {1,1}, new String[] {"a.....G.", "a.....G."}));
-        recs.add(new SimpleCortexRecord("TCTGTTGGAAATTTATTCCAAATACTGCAAA", new int[] {1,0}, new String[] {"a......T", "........"}));
-        recs.add(new SimpleCortexRecord("CAAATCATCTGTTGGAAATTTATTACAAATA", new int[] {0,1}, new String[] {"........", ".c...C.."}));
-        recs.add(new SimpleCortexRecord("ATCTGTTGGAAATTTATTACAAATACTGCAA", new int[] {0,1}, new String[] {"........", ".c..A..."}));
-        recs.add(new SimpleCortexRecord("ATTTGCAGTATTTGTAATAAATTTCCAACAG", new int[] {0,1}, new String[] {"........", "...tA..."}));
-        recs.add(new SimpleCortexRecord("ACCAAATCATCTGTTGGAAATTTATTCCAAA", new int[] {1,0}, new String[] {"a......T", "........"}));
-        recs.add(new SimpleCortexRecord("CCCCAAAACGATTTTCTATAGCTATGTAGTC", new int[] {1,1}, new String[] {"a...A...", "a...A..."}));
-        recs.add(new SimpleCortexRecord("AAATTTATTCCAAATACTGCAAATACCCCAA", new int[] {1,0}, new String[] {"..g.A...", "........"}));
-        recs.add(new SimpleCortexRecord("ACTGCAAATACCCCAAAACGATTTTCTATAG", new int[] {1,1}, new String[] {"...t.C..", "...t.C.."}));
-        recs.add(new SimpleCortexRecord("ATCGTTTTGGGGTATTTGCAGTATTTGTAAT", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("AAAACCAAATCATCTGTTGGAAATTTATTAC", new int[] {0,1}, new String[] {"........", "a...A..."}));
-        recs.add(new SimpleCortexRecord("GGGTATTTGCAGTATTTGGAATAAATTTCCA", new int[] {1,0}, new String[] {"..g.A...", "........"}));
-        recs.add(new SimpleCortexRecord("AAATTTATTACAAATACTGCAAATACCCCAA", new int[] {0,1}, new String[] {"........", "..g.A..."}));
-        recs.add(new SimpleCortexRecord("TATTTGCAGTATTTGTAATAAATTTCCAACA", new int[] {0,1}, new String[] {"........", "..g...G."}));
-        recs.add(new SimpleCortexRecord("AAATCATCTGTTGGAAATTTATTCCAAATAC", new int[] {1,0}, new String[] {".c.....T", "........"}));
-        recs.add(new SimpleCortexRecord("CATCTGTTGGAAATTTATTCCAAATACTGCA", new int[] {1,0}, new String[] {"...tA...", "........"}));
-        recs.add(new SimpleCortexRecord("ATCATCTGTTGGAAATTTATTCCAAATACTG", new int[] {1,0}, new String[] {"a....C..", "........"}));
-        recs.add(new SimpleCortexRecord("GGGTATTTGCAGTATTTGTAATAAATTTCCA", new int[] {0,1}, new String[] {"........", "..g.A..."}));
-        recs.add(new SimpleCortexRecord("AAATACTGCAAATACCCCAAAACGATTTTCT", new int[] {1,1}, new String[] {".c..A...", ".c..A..."}));
-        recs.add(new SimpleCortexRecord("ATACTGCAAATACCCCAAAACGATTTTCTAT", new int[] {1,1}, new String[] {"a...A...", "a...A..."}));
-        recs.add(new SimpleCortexRecord("AAAACGATTTTCTATAGCTATGTAGTCATGC", new int[] {1,1}, new String[] {".c..A...", ".c..A..."}));
-        recs.add(new SimpleCortexRecord("AATCGTTTTGGGGTATTTGCAGTATTTGTAA", new int[] {0,1}, new String[] {"........", "a......T"}));
-        recs.add(new SimpleCortexRecord("CATCTGTTGGAAATTTATTACAAATACTGCA", new int[] {0,1}, new String[] {"........", "...tA..."}));
-        recs.add(new SimpleCortexRecord("TATTCCAAATACTGCAAATACCCCAAAACGA", new int[] {1,0}, new String[] {"...t...T", "........"}));
-        recs.add(new SimpleCortexRecord("AAAAACCAAATCATCTGTTGGAAATTTATTC", new int[] {1,0}, new String[] {"a....C..", "........"}));
-        recs.add(new SimpleCortexRecord("ATAGCTATAGAAAATCGTTTTGGGGTATTTG", new int[] {1,1}, new String[] {".c...C..", ".c...C.."}));
-        recs.add(new SimpleCortexRecord("GCAGTATTTGTAATAAATTTCCAACAGATGA", new int[] {0,1}, new String[] {"........", "...t...T"}));
-        recs.add(new SimpleCortexRecord("CCCAAAACGATTTTCTATAGCTATGTAGTCA", new int[] {1,1}, new String[] {".c.....T", ".c.....T"}));
-        recs.add(new SimpleCortexRecord("AATCGTTTTGGGGTATTTGCAGTATTTGGAA", new int[] {1,0}, new String[] {"a......T", "........"}));
-        recs.add(new SimpleCortexRecord("AAAACCAAATCATCTGTTGGAAATTTATTCC", new int[] {1,0}, new String[] {"a...A...", "........"}));
-        recs.add(new SimpleCortexRecord("AGCTATAGAAAATCGTTTTGGGGTATTTGCA", new int[] {1,1}, new String[] {"...t..G.", "...t..G."}));
-        recs.add(new SimpleCortexRecord("CAAAACGATTTTCTATAGCTATGTAGTCATG", new int[] {1,1}, new String[] {".c...C..", ".c...C.."}));
-        recs.add(new SimpleCortexRecord("TATTTGCAGTATTTGGAATAAATTTCCAACA", new int[] {1,0}, new String[] {"..g...G.", "........"}));
-        recs.add(new SimpleCortexRecord("TATTACAAATACTGCAAATACCCCAAAACGA", new int[] {0,1}, new String[] {"........", "...t...T"}));
-        recs.add(new SimpleCortexRecord("ATCTGTTGGAAATTTATTCCAAATACTGCAA", new int[] {1,0}, new String[] {".c..A...", "........"}));
-        recs.add(new SimpleCortexRecord("AATACTGCAAATACCCCAAAACGATTTTCTA", new int[] {1,1}, new String[] {"a......T", "a......T"}));
-        recs.add(new SimpleCortexRecord("ACCCCAAAACGATTTTCTATAGCTATGTAGT", new int[] {1,1}, new String[] {"...t.C..", "...t.C.."}));
-        recs.add(new SimpleCortexRecord("CTACATAGCTATAGAAAATCGTTTTGGGGTA", new int[] {1,1}, new String[] {"a......T", "a......T"}));
-        recs.add(new SimpleCortexRecord("ATTTGGAATAAATTTCCAACAGATGATTTGG", new int[] {1,0}, new String[] {"...t...T", "........"}));
-        recs.add(new SimpleCortexRecord("ACCAAATCATCTGTTGGAAATTTATTACAAA", new int[] {0,1}, new String[] {"........", "a......T"}));
-        recs.add(new SimpleCortexRecord("AATCATCTGTTGGAAATTTATTCCAAATACT", new int[] {1,0}, new String[] {"a.....G.", "........"}));
-        recs.add(new SimpleCortexRecord("ATGACTACATAGCTATAGAAAATCGTTTTGG", new int[] {1,1}, new String[] {".c....G.", ".c....G."}));
-        recs.add(new SimpleCortexRecord("AATCATCTGTTGGAAATTTATTACAAATACT", new int[] {0,1}, new String[] {"........", "a.....G."}));
-        recs.add(new SimpleCortexRecord("CGTTTTGGGGTATTTGCAGTATTTGTAATAA", new int[] {0,1}, new String[] {"........", "...tA..."}));
-        recs.add(new SimpleCortexRecord("GGAAATTTATTACAAATACTGCAAATACCCC", new int[] {0,1}, new String[] {"........", "...tA..."}));
-        recs.add(new SimpleCortexRecord("GAAATTTATTACAAATACTGCAAATACCCCA", new int[] {0,1}, new String[] {"........", "..g.A..."}));
-        recs.add(new SimpleCortexRecord("GGTATTTGCAGTATTTGGAATAAATTTCCAA", new int[] {1,0}, new String[] {"..g..C..", "........"}));
-        recs.add(new SimpleCortexRecord("GTTTTGGGGTATTTGCAGTATTTGTAATAAA", new int[] {0,1}, new String[] {"........", ".c.....T"}));
-        recs.add(new SimpleCortexRecord("AACCAAATCATCTGTTGGAAATTTATTCCAA", new int[] {1,0}, new String[] {"a...A...", "........"}));
-    }
-
     @Test
     public void recordsAreCorrect() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         int index = 0;
         for (CortexRecord cr : cg) {
@@ -225,7 +199,7 @@ public class CortexGraphTest {
 
     @Test
     public void constructRecordsFromString() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (CortexRecord cr : cg) {
             CortexRecord nr = new CortexRecord(cr.toString());
@@ -236,7 +210,7 @@ public class CortexGraphTest {
 
     @Test
     public void constructRecords() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (CortexRecord cr : cg) {
             String sk = cr.getKmerAsString();
@@ -258,7 +232,7 @@ public class CortexGraphTest {
 
     @Test
     public void constructRcRecords() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (CortexRecord cr : cg) {
             String sk = SequenceUtils.reverseComplement(cr.getKmerAsString());
@@ -268,8 +242,8 @@ public class CortexGraphTest {
 
             for (int c = 0; c < cr.getNumColors(); c++) {
                 coverageList.add(cr.getCoverage(c));
-                inEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c, true)));
-                outEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c, true)));
+                inEdgesList.add(new HashSet<>(cr.getOutEdgesAsStrings(c, true)));
+                outEdgesList.add(new HashSet<>(cr.getInEdgesAsStrings(c, true)));
             }
 
             CortexRecord nr = new CortexRecord(sk, coverageList, inEdgesList, outEdgesList);
@@ -280,7 +254,7 @@ public class CortexGraphTest {
 
     @Test
     public void testGetRecord() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (int i = 10; i >= 0; i--) {
             CortexRecord cr = cg.getRecord(i);
@@ -292,7 +266,7 @@ public class CortexGraphTest {
 
     @Test
     public void testEncodeBinaryKmer() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (int i = 10; i >= 0; i--) {
             CortexRecord cr = cg.getRecord(i);
@@ -305,6 +279,7 @@ public class CortexGraphTest {
         }
     }
 
+    /*
     @Test
     public void getBigKmerTest() {
         CortexGraph cg = new CortexGraph("testdata/Pf3D7_01_v3.k95.ctx");
@@ -320,19 +295,21 @@ public class CortexGraphTest {
             Assert.assertEquals(kmer, CortexRecord.decodeBinaryKmer(newbk, cr.getKmerSize(), cr.getKmerBits()));
         }
     }
+    */
 
-
+    /*
     @Test(expectedExceptions = CortexJDKException.class)
     public void testUnsortedFindRecordThrowsException() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
         String targetKmer = "ACCAAATCATCTGTTGGAAATTTATTACAAA";
 
         cg.findRecord(targetKmer);
     }
+    */
 
     @Test
     public void testSortedFindRecord() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.sorted.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         for (SimpleCortexRecord scr : recs) {
             CortexRecord cr = cg.findRecord(scr.kmer);
@@ -344,7 +321,7 @@ public class CortexGraphTest {
 
     @Test
     public void testFindNonExistentRecord() {
-        CortexGraph cg = new CortexGraph("testdata/smallgraph.sorted.ctx");
+        CortexGraph cg = new CortexGraph("testdata/two_short_contigs.ctx");
 
         String nonExistentRecord = "NTTTTGGGGTATTTGCAGTATTTGGAATAAA";
 

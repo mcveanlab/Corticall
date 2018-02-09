@@ -1,5 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.sw;
 
+import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -46,26 +48,11 @@ class EDNAFULL implements ScoringMatrix{
                 char qc = q.charAt(0);
                 acceptable.add(qc);
                 if(scoreMat[sc][qc] < 100){
-                    System.out.println(sc+"-"+qc+" duplicate pair?");
+                    throw new CortexJDKException(sc+"-"+qc+" duplicate pair?");
                 }
                 scoreMat[sc][qc] = Integer.parseInt(pt.get(jj));
             }
         }
-		/*
-		ArrayList<Character> aa = new ArrayList<>(acceptable);
-		for(Character k:aa){
-			for(Character q:aa){
-				int sc3 = scoreMat[q][k];
-				int sc4 = scoreMat[k][q];
-				if(sc3 == sc4){
-					System.out.println(k+"-"+q+" OK "+sc3);
-				}else{
-					System.out.println(k+q+" is different, "+sc3+","+sc4+",");
-				}
-			}
-		}
-		*/
-
     }
 
 

@@ -11,7 +11,7 @@ import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman2;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -22,13 +22,11 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
@@ -312,7 +310,7 @@ public class ExploreCandidates extends Module {
     }
 
     private List<VariantContext> trimToAlleles(String traversalColorContig, String backgroundColorContig, int offset, String ov, String iv, int numNovels) {
-        SmithWaterman2 sw = new SmithWaterman2();
+        SmithWaterman sw = new SmithWaterman();
         String[] aligns = sw.getAlignment(traversalColorContig, backgroundColorContig);
 
         List<VariantContext> vcs = new ArrayList<>();

@@ -32,7 +32,7 @@ public class KmerLookupTest {
     private String expectedSource = "test";
 
     public KmerLookupTest() {
-        File testFa = new File("tests/two_short_contigs.fa");
+        File testFa = new File("testdata/two_short_contigs.fa");
         File testFai = new File(testFa.getAbsolutePath() + ".fai");
         File testDict = new File(testFa.getAbsolutePath() + ".dict");
 
@@ -113,7 +113,6 @@ public class KmerLookupTest {
     @Test
     public void findKmerBySequence() {
         for (String sk : expectedIntervals.keySet()) {
-            System.out.println(sk + " " + expectedIntervals.get(sk) + " " + kl.find(sk));
             Assert.assertEquals(expectedIntervals.get(sk), kl.find(sk));
         }
     }

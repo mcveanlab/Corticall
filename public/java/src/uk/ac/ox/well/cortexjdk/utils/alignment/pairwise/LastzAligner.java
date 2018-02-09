@@ -145,8 +145,6 @@ public class LastzAligner implements ExternalAligner {
             String result = ProcessExecutor.executeAndReturnResult(String.format("%s %s[multiple] %s --format=%s --queryhspbest=1", lastzPath, hsx, tempQuery.getAbsolutePath(), format));
 
             tempQuery.delete();
-
-            System.out.println(result);
         } catch (IOException e) {
             throw new CortexJDKException("IOException: " + e);
         }

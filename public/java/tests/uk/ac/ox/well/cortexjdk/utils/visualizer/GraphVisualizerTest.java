@@ -9,7 +9,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 
 public class GraphVisualizerTest {
-    @Test
+    @Test(enabled = false)
     public void testVisualizer() {
         DirectedGraph<CortexVertex, CortexEdge> g = new DefaultDirectedGraph<>(CortexEdge.class);
 
@@ -46,9 +46,5 @@ public class GraphVisualizerTest {
         }
 
         GraphVisualizer gv = new GraphVisualizer(9000);
-
-        //int response = gv.display(g);
-
-        //System.out.println("Response: " + response);
     }
 }

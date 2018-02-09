@@ -17,7 +17,7 @@ import java.util.Map;
 public class TestBwaAligner {
     @Test
     public void testAlignment() {
-        String ref = "tests/two_short_contigs.fa";
+        String ref = "testdata/two_short_contigs.fa";
         Map<String, String> expectedAlignments = new HashMap<>();
         expectedAlignments.put("TTCTGTATCGTATGCTCTGAATAAAAATCGTGGCCCTATTTCGTATAGT", "unknown\t0\t1\t0\t60\t49M\t*\t0\t0\tTTCTGTATCGTATGCTCTGAATAAAAATCGTGGCCCTATTTCGTATAGT\t*\tNM:i:0");
         expectedAlignments.put("GGGCCGCGCCTATTATGGGCTTCTCTCTGAGTACTGGTCATGTAGTTGCTGTAGTCGTAGTGTCGTGGCCCCCCAGT", "unknown\t0\t2\t0\t60\t77M\t*\t0\t0\tGGGCCGCGCCTATTATGGGCTTCTCTCTGAGTACTGGTCATGTAGTTGCTGTAGTCGTAGTGTCGTGGCCCCCCAGT\t*\tNM:i:0");
