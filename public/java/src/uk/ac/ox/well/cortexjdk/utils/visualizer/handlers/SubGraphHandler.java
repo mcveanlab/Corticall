@@ -47,7 +47,7 @@ public class SubGraphHandler extends BaseHandler {
             TraversalEngine e = new TraversalEngineFactory()
                     .graph(graph)
                     .rois(rois)
-                    .traversalColor(0)
+                    .traversalColors(0)
                     .stoppingRule(ExplorationStopper.class)
                     .make();
         }

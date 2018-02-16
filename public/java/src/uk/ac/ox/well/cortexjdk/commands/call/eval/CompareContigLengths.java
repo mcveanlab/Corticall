@@ -22,10 +22,7 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.BubbleClosingStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -60,7 +57,7 @@ public class CompareContigLengths extends Module {
         }
 
         TraversalEngine eo = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
+                .traversalColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .joiningColors(GRAPH.getColorsForSampleNames(REFERENCES.keySet()))
                 .combinationOperator(OR)
                 .stoppingRule(NovelContinuationStopper.class)
@@ -70,7 +67,7 @@ public class CompareContigLengths extends Module {
                 .make();
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
+                .traversalColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .joiningColors(GRAPH.getColorsForSampleNames(REFERENCES.keySet()))
                 .combinationOperator(OR)
                 .stoppingRule(NovelContinuationStopper.class)
@@ -108,7 +105,7 @@ public class CompareContigLengths extends Module {
                 }
             }
 
-            out.println(Joiner.on("\t").join(ck, w.size(), l.size(), TraversalEngine.toContig(w), TraversalEngine.toContig(l)));
+            out.println(Joiner.on("\t").join(ck, w.size(), l.size(), TraversalUtils.toContig(w), TraversalUtils.toContig(l)));
             log.info("  {} {} {}", ck, w.size(), l.size());
 
             pm.update();
@@ -468,7 +465,7 @@ public class CompareContigLengths extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(parent))
+                .traversalColors(GRAPH.getColorForSampleName(parent))
                 .joiningColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .recruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()))
                 .traversalDirection(FORWARD)
@@ -544,8 +541,8 @@ public class CompareContigLengths extends Module {
                             altPath.add(w.get(j));
                         }
 
-                        String refContig = TraversalEngine.toContig(refPath);
-                        String altContig = TraversalEngine.toContig(altPath);
+                        String refContig = TraversalUtils.toContig(refPath);
+                        String altContig = TraversalUtils.toContig(altPath);
 
                         LittleBubble lb = new LittleBubble();
                         lb.refContig = refContig;

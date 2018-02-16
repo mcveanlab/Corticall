@@ -15,13 +15,10 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -115,7 +112,7 @@ public class ComputeInheritance extends Module {
 
                 String sk = ck.getKmerAsString();
                 List<CortexVertex> contigChild = new ArrayList<>();
-                contigChild.add(new CortexVertex(new CortexByteKmer(sk), GRAPH.findRecord(sk)));
+                contigChild.add(new CortexVertexFactory().bases(sk).record(GRAPH.findRecord(sk)).make());
 
                 CortexVertex source = null;
                 e.seek(sk);
@@ -175,7 +172,7 @@ public class ComputeInheritance extends Module {
                             Interval destinationInterval = destinationIntervals.iterator().next();
 
                             if (sourceInterval.getContig().equals(destinationInterval.getContig())) {
-                                Pair<String, String> alleles = trimToAlleles(TraversalEngine.toContig(contigChild), TraversalEngine.toContig(contigParent));
+                                Pair<String, String> alleles = trimToAlleles(TraversalUtils.toContig(contigChild), TraversalUtils.toContig(contigParent));
 
                                 Map<String, String> te = new LinkedHashMap<>();
                                 te.put("chrom", sourceInterval.getContig());

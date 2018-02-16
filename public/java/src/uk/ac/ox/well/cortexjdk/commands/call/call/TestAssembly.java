@@ -13,6 +13,7 @@ import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -56,8 +57,8 @@ public class TestAssembly extends Module {
             List<CortexVertex> gw = e.assemble(sk);
             List<CortexVertex> gd = e.walk(sk);
 
-            String cd = TraversalEngine.toContig(gd);
-            String cw = TraversalEngine.toContig(gw);
+            String cd = TraversalUtils.toContig(gd);
+            String cw = TraversalUtils.toContig(gw);
 
             String contig = USE_DFS ? cd : cw;
 
@@ -71,7 +72,7 @@ public class TestAssembly extends Module {
 
     private TraversalEngine configureTraversalEngine() {
         return new TraversalEngineFactory()
-                    .traversalColor(0)
+                    .traversalColors(0)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .graph(GRAPH)

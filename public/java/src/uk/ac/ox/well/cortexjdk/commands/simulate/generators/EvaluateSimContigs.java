@@ -13,6 +13,7 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalUtils;
 
 import java.util.*;
 
@@ -34,12 +35,12 @@ public class EvaluateSimContigs extends Module {
         int childColor = GRAPH.getColorForSampleName(ROI.getColor(0).getSampleName());
 
         TraversalEngine er = new TraversalEngineFactory()
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .graph(GRAPH)
                 .make();
 
         TraversalEngine el = new TraversalEngineFactory()
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .graph(GRAPH)
                 .links(LINKS)
                 .make();
@@ -59,8 +60,8 @@ public class EvaluateSimContigs extends Module {
                 List<CortexVertex> elw = el.walk(rr.getKmerAsString());
                 //List<CortexVertex> ell = longWalk(seen, el, rr.getCanonicalKmer());
 
-                List<SAMRecord> srw = REF.getAligner().align(TraversalEngine.toContig(erw));
-                List<SAMRecord> slw = REF.getAligner().align(TraversalEngine.toContig(elw));
+                List<SAMRecord> srw = REF.getAligner().align(TraversalUtils.toContig(erw));
+                List<SAMRecord> slw = REF.getAligner().align(TraversalUtils.toContig(elw));
 
                 String out = Joiner.on(" ").join(rr.getKmerAsString(), erw.size(), elw.size());
                 log.info("{} {}", rr.getCanonicalKmer(), out);

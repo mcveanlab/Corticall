@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.assembler;
 
 import htsjdk.samtools.util.BlockCompressedOutputStream;
+import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -34,12 +35,12 @@ public class TempLinksAssembler {
             String haplotypeRev = SequenceUtils.reverseComplement(haplotypeFwd);
 
             for (String haplotype : Arrays.asList(haplotypeFwd, haplotypeRev)) {
-                Map<String, String> links = new HashMap<>();
+                Map<Pair<String, Integer>, String> links = new HashMap<>();
 
-                for (int j = 0; j <= haplotype.length() - graph.getKmerSize() - 1; j++) {
-                    String sk0 = haplotype.substring(j, j + graph.getKmerSize());
-                    String sk1 = haplotype.substring(j + 1, j + graph.getKmerSize() + 1);
-                    String edge = haplotype.substring(j + graph.getKmerSize(), j + graph.getKmerSize() + 1);
+                for (int j = 1; j <= haplotype.length() - graph.getKmerSize(); j++) {
+                    String sk0 = haplotype.substring(j - 1, j - 1 + graph.getKmerSize());
+                    String sk1 = haplotype.substring(j, j + graph.getKmerSize());
+                    String edge = haplotype.substring(j + graph.getKmerSize() - 1, j + graph.getKmerSize());
 
                     if (g.outDegreeOf(sk0) > 1 && g.containsVertex(sk1)) {
                         for (int i = 1; i <= j; i++) {
@@ -47,24 +48,25 @@ public class TempLinksAssembler {
                             if (g.inDegreeOf(ski) > 1) {
                                 String skim1 = haplotype.substring(i-1, i-1 + graph.getKmerSize());
 
-                                if (!links.containsKey(skim1)) {
-                                    links.put(skim1, "");
+                                Pair<String, Integer> pskim1 = new Pair<>(skim1, i);
+                                if (!links.containsKey(pskim1)) {
+                                    links.put(pskim1, "");
                                 }
 
-                                links.put(skim1, links.get(skim1) + edge);
+                                links.put(pskim1, links.get(pskim1) + edge);
                             }
                         }
                     }
                 }
 
-                for (String anchor : links.keySet()) {
-                    CanonicalKmer ck = new CanonicalKmer(anchor);
+                for (Pair<String, Integer> p : links.keySet()) {
+                    CanonicalKmer ck = new CanonicalKmer(p.getFirst());
 
                     if (!linkMap.containsKey(ck)) {
                         linkMap.put(ck, new HashSet<>());
                     }
 
-                    linkMap.get(ck).add(new CortexJunctionsRecord(!ck.isFlipped(), links.get(anchor).length(), links.get(anchor).length(), new int[] { 1 }, links.get(anchor)));
+                    linkMap.get(ck).add(new CortexJunctionsRecord(!ck.isFlipped(), links.get(p).length(), links.get(p).length(), new int[] { 1 }, links.get(p)));
                 }
             }
         }

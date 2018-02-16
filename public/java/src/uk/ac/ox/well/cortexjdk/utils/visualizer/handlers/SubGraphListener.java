@@ -10,6 +10,7 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
+import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertexFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class SubGraphListener extends BaseHandler {
             for (int i = 0; i <= seq.length() - kmerSize; i++) {
                 String kmer = seq.substring(i, i + kmerSize);
 
-                CortexVertex cv = new CortexVertex(new CortexByteKmer(kmer.getBytes()), null);
+                CortexVertex cv = new CortexVertexFactory().bases(kmer).make();
                 g.addVertex(cv);
 
                 if (lv != null) {

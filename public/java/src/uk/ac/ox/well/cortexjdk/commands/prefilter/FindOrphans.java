@@ -66,7 +66,7 @@ public class FindOrphans extends Module {
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalDirection(BOTH)
                 .combinationOperator(AND)
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .joiningColors(parentColors)
                 .stoppingRule(OrphanStopper.class)
                 .rois(ROI)

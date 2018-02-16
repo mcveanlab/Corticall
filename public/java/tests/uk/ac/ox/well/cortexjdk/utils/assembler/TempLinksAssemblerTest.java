@@ -38,10 +38,10 @@ public class TempLinksAssemblerTest {
             Random rng = new Random(0);
 
             List<String> sequences = new ArrayList<>();
-//            for (int i = 0; i < 100; i++) {
-//                String seq = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(rng.nextInt(190) + 10));
-//                sequences.add(seq);
-//            }
+            for (int i = 0; i < 10; i++) {
+                String seq = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(rng.nextInt(190) + 10));
+                sequences.add(seq);
+            }
 
             String repeat = new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(5));
 
@@ -83,10 +83,21 @@ public class TempLinksAssemblerTest {
 
                     int numLinks = 0;
                     for (CortexLinksRecord clr : ll) {
+                        //if (!clr.equals(l.get(clr.getKmer()))) {
+                            //TempLinksAssembler.buildLinks(g, haplotypes, "test");
+                            //System.out.println("Weird again: \n" + clr + "\n" + l.get(clr.getKmer()));
+                        //}
+
                         Assert.assertTrue(l.containsKey(clr.getKmer()));
+                        Assert.assertEquals(clr, l.get(clr.getKmer()));
 
                         numLinks += clr.getJunctions().size();
                     }
+
+                    //if (ll.getNumKmersWithLinks() != l.size()) {
+                        //TempLinksAssembler.buildLinks(g, haplotypes, "test");
+                        //System.out.println("Huh, weird: " + ll.getNumKmersWithLinks() + " " + l.size());
+                    //}
 
                     Assert.assertEquals(ll.getNumKmersWithLinks(), l.size());
                     Assert.assertEquals(ll.getNumLinks(), numLinks);

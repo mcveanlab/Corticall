@@ -1,7 +1,5 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
-import org.jgrapht.Graphs;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -10,8 +8,6 @@ import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 public class TraversalEngineFactory {
     private TraversalEngineConfiguration configuration = new TraversalEngineConfiguration();
@@ -20,119 +16,64 @@ public class TraversalEngineFactory {
 
     public TraversalEngineFactory combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator op) { configuration.setGraphCombinationOperator(op); return this; }
     public TraversalEngineFactory traversalDirection(TraversalEngineConfiguration.TraversalDirection td) { configuration.setTraversalDirection(td); return this; }
+
     public TraversalEngineFactory connectAllNeighbors(boolean connectAllNeighbors) { configuration.setConnectAllNeighbors(connectAllNeighbors); return this; }
-    public TraversalEngineFactory discardFailedBranches(boolean discard) { configuration.setDiscardFailedBranches(discard); return this; }
-    public TraversalEngineFactory markFailedBranches(boolean mark) { configuration.setMarkFailedBranches(mark); return this; }
+    public TraversalEngineFactory maxBranchLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 
-    public TraversalEngineFactory traversalColor(int color) { configuration.setTraversalColor(color); return this; }
+    public TraversalEngineFactory traversalColors() { configuration.setTraversalColor(-1); return this; }
+    public TraversalEngineFactory traversalColors(int color) { configuration.setTraversalColor(color); return this; }
 
+    public TraversalEngineFactory joiningColors() { configuration.getJoiningColors().clear(); return this; }
     public TraversalEngineFactory joiningColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
     public TraversalEngineFactory joiningColors(Collection<Integer> colors) { configuration.getJoiningColors().addAll(colors); return this; }
 
+    public TraversalEngineFactory recruitmentColors() { configuration.getRecruitmentColors().clear(); return this; }
     public TraversalEngineFactory recruitmentColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getRecruitmentColors().add(c)); return this; }
     public TraversalEngineFactory recruitmentColors(Collection<Integer> colors) { configuration.getRecruitmentColors().addAll(colors); return this; }
 
+    public TraversalEngineFactory secondaryColors() { configuration.getSecondaryColors().clear(); return this; }
     public TraversalEngineFactory secondaryColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getSecondaryColors().add(c)); return this; }
     public TraversalEngineFactory secondaryColors(Collection<Integer> colors) { configuration.getSecondaryColors().addAll(colors); return this; }
-
-    public TraversalEngineFactory sink(String sink) {
-        Set<String> sinks = new HashSet<>();
-        sinks.add(sink);
-
-        configuration.setSink(sinks);
-
-        return this;
-    }
-
-    public TraversalEngineFactory sink(String... sink) {
-        Set<String> sinks = new HashSet<>();
-        for (String s : sink) {
-            sinks.add(s);
-        }
-
-        configuration.setSink(sinks);
-
-        return this;
-    }
-
-    public TraversalEngineFactory sink(Set<String> sinks) {
-        configuration.setSink(sinks);
-
-        return this;
-    }
-
-    /*
-    public TraversalEngineFactory sink(CortexVertex sink) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        s.addVertex(sink);
-
-        configuration.setSink(s);
-
-        return this;
-    }
-
-    public TraversalEngineFactory sink(CortexVertex... sinks) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        for (CortexVertex sink : sinks) {
-            s.addVertex(sink);
-        }
-
-        configuration.setSink(s);
-
-        return this;
-    }
-
-    public TraversalEngineFactory sink(Collection<CortexVertex> sinks) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> s = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        Graphs.addAllVertices(s, sinks);
-
-        configuration.setSink(s);
-
-        return this;
-    }
-
-    public TraversalEngineFactory sink(DirectedWeightedPseudograph<CortexVertex, CortexEdge> sink) { configuration.setSink(sink); return this; }
-    */
 
     public TraversalEngineFactory stoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { configuration.setStoppingRule(stoppingRule); return this; }
 
     public TraversalEngineFactory graph(DeBruijnGraph graph) { configuration.setGraph(graph); return this; }
     public TraversalEngineFactory rois(DeBruijnGraph rois) { configuration.setRois(rois); return this; }
 
-    public TraversalEngineFactory links(CortexLinks... links) {
-        if (links != null) {
-            Arrays.stream(links).forEach(l -> configuration.getLinks().add(l));
-        }
-        return this;
-    }
+    public TraversalEngineFactory links() { configuration.getLinks().clear(); return this; }
+    public TraversalEngineFactory links(CortexLinks... links) { if (links != null) { Arrays.stream(links).forEach(l -> configuration.getLinks().add(l)); } return this; }
+    public TraversalEngineFactory links(Collection<CortexLinks> links) { if (links != null) { configuration.getLinks().addAll(links); } return this; }
 
-    public TraversalEngineFactory links(Collection<CortexLinks> links) {
-        if (links != null) {
-            configuration.getLinks().addAll(links);
-        }
-        return this;
-    }
-
-    public TraversalEngineFactory references(IndexedReference... lookups) {
-        if (lookups != null) {
-            Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r));
-        }
-        return this;
-    }
-
-    public TraversalEngineFactory references(Collection<IndexedReference> lookups) {
-        if (lookups != null) {
-            configuration.getReferences().addAll(lookups);
-        }
-        return this;
-    }
-
-    public TraversalEngineFactory maxBranchLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
+    public TraversalEngineFactory references() { configuration.getReferences().clear(); return this; }
+    public TraversalEngineFactory references(IndexedReference... lookups) { if (lookups != null) { Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r)); } return this; }
+    public TraversalEngineFactory references(Collection<IndexedReference> lookups) { if (lookups != null) { configuration.getReferences().addAll(lookups); } return this; }
 
     public TraversalEngine make() {
-        configuration.getJoiningColors().forEach(c -> { if (c < 0) throw new CortexJDKException("Joining colors must be greater than 0 (provided " + c + ")"); });
-        configuration.getRecruitmentColors().forEach(c -> { if (c < 0) throw new CortexJDKException("Recruitment colors must be greater than 0 (provided " + c + ")"); });
-        configuration.getSecondaryColors().forEach(c -> { if (c < 0) throw new CortexJDKException("Secondary colors must be greater than 0 (provided " + c + ")"); });
+        if (configuration.getTraversalColor() == -1) {
+            throw new CortexJDKException("Traversal color(s) must be specified.");
+        }
+
+        if (configuration.getTraversalColor() >= configuration.getGraph().getNumColors()) {
+            throw new CortexJDKException("Traversal colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + configuration.getTraversalColor() + ")");
+        }
+
+        configuration.getJoiningColors().forEach(c -> {
+            if (c < 0 || c >= configuration.getGraph().getNumColors()) {
+                throw new CortexJDKException("Joining colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + c + ")");
+            }
+        });
+
+        configuration.getRecruitmentColors().forEach(c -> {
+            if (c < 0 || c >= configuration.getGraph().getNumColors()) {
+                throw new CortexJDKException("Recruitment colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + c + ")");
+            }
+        });
+
+        configuration.getSecondaryColors().forEach(c -> {
+            if (c < 0 || c >= configuration.getGraph().getNumColors()) {
+                throw new CortexJDKException("Secondary colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + c + ")");
+            }
+        });
 
         if (configuration.getGraph() == null) { throw new CortexJDKException("Must provide graph to traverse."); }
 

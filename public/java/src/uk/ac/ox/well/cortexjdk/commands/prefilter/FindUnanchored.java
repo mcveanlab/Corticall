@@ -18,6 +18,7 @@ import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalUtils;
 
 import java.io.File;
 import java.util.*;
@@ -69,7 +70,7 @@ public class FindUnanchored extends Module {
                 .make(log);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .joiningColors(parentColors)
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)
@@ -90,7 +91,7 @@ public class FindUnanchored extends Module {
 
         for (CanonicalKmer rk : rois) {
             if (!used.contains(rk)) {
-                String contig = TraversalEngine.toContig(e.walk(rk.getKmerAsString()));
+                String contig = TraversalUtils.toContig(e.walk(rk.getKmerAsString()));
 
                 Set<CanonicalKmer> seenRois = new HashSet<>();
                 List<String> pieces = new ArrayList<>();

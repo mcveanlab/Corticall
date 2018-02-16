@@ -37,7 +37,7 @@ public class CortexLinksTest {
         Assert.assertEquals(5, ctp.getKmerSize());
         Assert.assertEquals(21, ctp.getNumKmersInGraph());
         Assert.assertEquals(4, ctp.getNumKmersWithLinks());
-        Assert.assertEquals(4, ctp.getNumLinks());
+        Assert.assertEquals(6, ctp.getNumLinks());
 
         int numKmersWithLinks = 0;
         int numLinks = 0;

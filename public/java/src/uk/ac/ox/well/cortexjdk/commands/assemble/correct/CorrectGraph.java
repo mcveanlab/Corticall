@@ -63,8 +63,8 @@ public class CorrectGraph extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                //.traversalColor(0)
-                .traversalColor(1)
+                //.traversalColors(0)
+                .traversalColors(1)
                 .recruitmentColors(refColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
@@ -107,7 +107,7 @@ public class CorrectGraph extends Module {
                                 if (cr != null && cr.getCoverage(0) > 0) {
                                     //CortexRecord dr = cc.findRecord(ck);
                                     //CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), dr);
-                                    CortexVertex cv = new CortexVertex(new CortexByteKmer(sk), cr);
+                                    CortexVertex cv = new CortexVertexFactory().bases(sk).record(cr).make();
 
                                     cvs[i] = cv;
                                 }

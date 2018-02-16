@@ -17,13 +17,10 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -106,7 +103,7 @@ public class ComputeAssemblyQuality extends Module {
 
             String sk = ck.getKmerAsString();
             List<CortexVertex> contigEval = new ArrayList<>();
-            contigEval.add(new CortexVertex(new CortexByteKmer(sk), cr));
+            contigEval.add(new CortexVertexFactory().bases(sk).record(cr).make());
 
             CortexVertex source = null;
             e.seek(sk);
@@ -166,7 +163,7 @@ public class ComputeAssemblyQuality extends Module {
                         Interval destinationInterval = destinationIntervals.iterator().next();
 
                         if (sourceInterval.getContig().equals(destinationInterval.getContig())) {
-                            Pair<String, String> alleles = trimToAlleles(TraversalEngine.toContig(contigEval), TraversalEngine.toContig(contigComp));
+                            Pair<String, String> alleles = trimToAlleles(TraversalUtils.toContig(contigEval), TraversalUtils.toContig(contigComp));
 
                             Map<String, String> te = new LinkedHashMap<>();
                             te.put("chrom", sourceInterval.getContig());

@@ -3,16 +3,15 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class CortexLinksRecord {
     private String kmer;
-    private List<CortexJunctionsRecord> cjs;
+    private Set<CortexJunctionsRecord> cjs = new HashSet<>();
 
-    public CortexLinksRecord(String skmer, List<CortexJunctionsRecord> cjs) {
+    public CortexLinksRecord(String skmer, Collection<CortexJunctionsRecord> cjs) {
         this.kmer = skmer;
-        this.cjs = cjs;
+        this.cjs.addAll(cjs);
     }
 
     public CortexLinksRecord(byte[] block) {
@@ -23,7 +22,6 @@ public class CortexLinksRecord {
         kmer = kmerLine[0];
         int numLinks = Integer.valueOf(kmerLine[1]);
 
-        cjs = new ArrayList<>();
         for (int i = 0; i < numLinks; i++) {
             String[] linkLine = lines[i + 1].split("\\s+");
 
@@ -64,26 +62,23 @@ public class CortexLinksRecord {
     public CortexByteKmer getKmerAsByteKmer() { return new CortexByteKmer(kmer.getBytes()); }
     public String getKmerAsString() { return kmer; }
     public CanonicalKmer getKmer() { return new CanonicalKmer(kmer); }
-    public List<CortexJunctionsRecord> getJunctions() { return cjs; }
+    public Collection<CortexJunctionsRecord> getJunctions() { return cjs; }
 
-    public boolean equals(Object obj) {
-        if (obj instanceof CortexLinksRecord) {
-            List<CortexJunctionsRecord> js = getJunctions();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-            boolean junctionsAreEqual = true;
+        CortexLinksRecord that = (CortexLinksRecord) o;
 
-            if (cjs.size() == js.size()) {
-                for (int i = 0; i < js.size(); i++) {
-                    if (!cjs.get(i).equals(js.get(i))) {
-                        junctionsAreEqual = false;
-                        break;
-                    }
-                }
-            }
+        if (kmer != null ? !kmer.equals(that.kmer) : that.kmer != null) return false;
+        return cjs != null ? cjs.equals(that.cjs) : that.cjs == null;
+    }
 
-            return (junctionsAreEqual && kmer.equals(((CortexLinksRecord) obj).getKmerAsString()));
-        }
-
-        return false;
+    @Override
+    public int hashCode() {
+        int result = kmer != null ? kmer.hashCode() : 0;
+        result = 31 * result + (cjs != null ? cjs.hashCode() : 0);
+        return result;
     }
 }

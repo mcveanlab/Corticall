@@ -36,7 +36,7 @@ public class ReadToGraphAligner {
             this.colors.add(c);
 
             engines[c] = new TraversalEngineFactory()
-                    .traversalColor(c)
+                    .traversalColors(c)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .maxBranchLength(5000)
@@ -60,7 +60,7 @@ public class ReadToGraphAligner {
             this.colors.add(c);
 
             engines[c] = new TraversalEngineFactory()
-                    .traversalColor(c)
+                    .traversalColors(c)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .maxBranchLength(5000)
@@ -152,11 +152,11 @@ public class ReadToGraphAligner {
 
                 if (!cachedDists.get(c).containsKey(key)) {
                     if (g == null) {
-                        TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).sink(sk2).make();
+                        TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).make();
                         g = ef.dfs(sk1);
 
                         if (g == null) {
-                            TraversalEngine eb = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).sink(sk1).make();
+                            TraversalEngine eb = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).make();
                             g = eb.dfs(sk2);
                         }
                     } else {
@@ -186,7 +186,7 @@ public class ReadToGraphAligner {
                         }
 
                         for (String newOut : newOuts) {
-                            TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).sink(newIns).make();
+                            TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).make();
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g1 = ef.dfs(newOut);
 
                             if (g1 != null) {
@@ -195,7 +195,7 @@ public class ReadToGraphAligner {
                         }
 
                         for (String newIn : newIns) {
-                            TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).sink(newOuts).make();
+                            TraversalEngine ef = new TraversalEngineFactory().configuration(engines[c].getConfiguration()).make();
                             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g1 = ef.dfs(newIn);
 
                             if (g1 != null) {
@@ -205,8 +205,8 @@ public class ReadToGraphAligner {
                     }
 
                     if (g != null) {
-                        CortexVertex vSource = TraversalEngine.findVertex(g, ck1);
-                        CortexVertex vSink = TraversalEngine.findVertex(g, ck2);
+                        CortexVertex vSource = TraversalUtils.findVertex(g, ck1);
+                        CortexVertex vSink = TraversalUtils.findVertex(g, ck2);
 
                         if (vSource != null && vSink != null) {
                             List<GraphPath<CortexVertex, CortexEdge>> ps = cachedPaths.get(c).containsKey(key) ? cachedPaths.get(c).get(key) : new PathFinder(g, c).getPaths(vSource, vSink);

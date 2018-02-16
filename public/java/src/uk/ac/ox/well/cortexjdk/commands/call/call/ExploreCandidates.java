@@ -71,7 +71,7 @@ public class ExploreCandidates extends Module {
                 .create();
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(getTraversalColor(GRAPH, ROIS))
+                .traversalColors(getTraversalColor(GRAPH, ROIS))
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
                 .graph(GRAPH)
@@ -212,35 +212,35 @@ public class ExploreCandidates extends Module {
 
                     for (String iv : ivs) {
                         TraversalEngine ef = new TraversalEngineFactory()
-                                .traversalColor(c)
+                                .traversalColors(c)
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
                                 .graph(GRAPH)
                                 .links(LINKS)
                                 .rois(ROIS)
-                                .sink(iv)
+                                //.sink(iv)
                                 .maxBranchLength(10000)
                                 .stoppingRule(DestinationStopper.class)
                                 .make();
 
                         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(ov);
-                        List<CortexVertex> backgroundWalk = TraversalEngine.toWalk(g, ov);
+                        List<CortexVertex> backgroundWalk = TraversalUtils.toWalk(g, ov);
 
                         if (g == null) {
                             TraversalEngine eb = new TraversalEngineFactory()
-                                    .traversalColor(c)
+                                    .traversalColors(c)
                                     .traversalDirection(REVERSE)
                                     .combinationOperator(OR)
                                     .graph(GRAPH)
                                     .links(LINKS)
                                     .rois(ROIS)
-                                    .sink(ov)
+                                    //.sink(ov)
                                     .maxBranchLength(10000)
                                     .stoppingRule(DestinationStopper.class)
                                     .make();
 
                             g = eb.dfs(iv);
-                            backgroundWalk = TraversalEngine.toWalk(g, iv);
+                            backgroundWalk = TraversalUtils.toWalk(g, iv);
                         }
 
                         if (backgroundWalk.size() > 0) {
@@ -272,8 +272,8 @@ public class ExploreCandidates extends Module {
                     }
 
                     if (traversalWalkFinal.size() > 0 && backgroundWalkFinal.size() > 0 && numNovelsFinal > 0) {
-                        String backgroundColorContig = TraversalEngine.toContig(backgroundWalkFinal);
-                        String traversalColorContig = TraversalEngine.toContig(traversalWalkFinal);
+                        String backgroundColorContig = TraversalUtils.toContig(backgroundWalkFinal);
+                        String traversalColorContig = TraversalUtils.toContig(traversalWalkFinal);
 
                         String kmerStart = ivFinal.substring(1, ivFinal.length() - 1);
                         String kmerStop = ov.substring(1, ov.length() - 1);
@@ -416,8 +416,8 @@ public class ExploreCandidates extends Module {
     }
 
     private Set<String> divergenceDegree(CortexVertex v, boolean goForward, int traversalColor, int comparisonColor) {
-        Map<Integer, Set<CortexByteKmer>> outEdges = TraversalEngine.getAllNextKmers(v.getCortexRecord(), !v.getKmerAsString().equalsIgnoreCase(v.getCanonicalKmer().getKmerAsString()));
-        Map<Integer, Set<CortexByteKmer>> inEdges = TraversalEngine.getAllPrevKmers(v.getCortexRecord(), !v.getKmerAsString().equalsIgnoreCase(v.getCanonicalKmer().getKmerAsString()));
+        Map<Integer, Set<CortexByteKmer>> outEdges = TraversalUtils.getAllNextKmers(v.getCortexRecord(), !v.getKmerAsString().equalsIgnoreCase(v.getCanonicalKmer().getKmerAsString()));
+        Map<Integer, Set<CortexByteKmer>> inEdges = TraversalUtils.getAllPrevKmers(v.getCortexRecord(), !v.getKmerAsString().equalsIgnoreCase(v.getCanonicalKmer().getKmerAsString()));
         Map<Integer, Set<CortexByteKmer>> edges = goForward ? outEdges : inEdges;
 
         Set<CortexByteKmer> remainingEdges = edges.get(comparisonColor);
