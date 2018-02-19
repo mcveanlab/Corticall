@@ -106,7 +106,7 @@ public class TraversalEngineTest {
 
         for (int c = 0; c < 3; c++) {
             TraversalEngine e = new TraversalEngineFactory()
-                    .traversalColors(c)
+                    .traversalColor(c)
                     .graph(g)
                     .stoppingRule(ContigStopper.class)
                     .make();
@@ -127,7 +127,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 5);
 
         TraversalEngineFactory f = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("kid"))
+                .traversalColor(g.getColorForSampleName("kid"))
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.AND)
                 .traversalDirection(BOTH)
                 .connectAllNeighbors(false)
@@ -161,7 +161,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 5);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("test"))
+                .traversalColor(g.getColorForSampleName("test"))
                 .stoppingRule(ContigStopper.class)
                 .graph(g)
                 .make();
@@ -184,7 +184,7 @@ public class TraversalEngineTest {
         CortexLinks l = TempLinksAssembler.buildLinks(g, reads, "test");
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("test"))
+                .traversalColor(g.getColorForSampleName("test"))
                 .stoppingRule(ContigStopper.class)
                 .graph(g)
                 .links(l)
@@ -203,7 +203,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("mom"))
+                .traversalColor(g.getColorForSampleName("mom"))
                 .graph(g)
                 .make();
 
@@ -230,7 +230,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("mom"))
+                .traversalColor(g.getColorForSampleName("mom"))
                 .graph(g)
                 .make();
 
@@ -257,7 +257,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("kid"))
+                .traversalColor(g.getColorForSampleName("kid"))
                 .graph(g)
                 .make();
 
@@ -284,7 +284,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, 7);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("kid"))
+                .traversalColor(g.getColorForSampleName("kid"))
                 .graph(g)
                 .make();
 
@@ -314,7 +314,7 @@ public class TraversalEngineTest {
         CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, kmerSize);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(g.getColorForSampleName("kid"))
+                .traversalColor(g.getColorForSampleName("kid"))
                 .graph(g)
                 .make();
 
@@ -331,4 +331,27 @@ public class TraversalEngineTest {
         }
     }
 
+    @Test
+    public void testDfsSourceToSingleSink() {
+        int kmerSize = 5;
+        String hap = "GTGTGCTAGGTCTATAGTTATAGGCGCGTCTCCGCAAAAATCGT";
+        String source = hap.substring(0, kmerSize);
+        String sink = hap.substring(hap.length() - kmerSize, hap.length());
+
+        Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
+        haplotypes.put("mom", Arrays.asList(hap));
+
+        CortexGraph g = TempGraphAssembler.buildGraph(haplotypes, kmerSize);
+        CortexLinks l = TempLinksAssembler.buildLinks(g, haplotypes, "mom");
+
+        TraversalEngine e = new TraversalEngineFactory()
+                .traversalColor(g.getColorForSampleName("mom"))
+                .graph(g)
+                .links(l)
+                .make();
+
+        String contig = TraversalUtils.toContig(TraversalUtils.toWalk(e.dfs(source, sink), source));
+
+        Assert.assertEquals(contig, haplotypes.get("mom").iterator().next());
+    }
 }

@@ -72,7 +72,7 @@ public class FindTips extends Module {
                 TraversalEngine e = new TraversalEngineFactory()
                         .traversalDirection(BOTH)
                         .combinationOperator(AND)
-                        .traversalColors(childColor)
+                        .traversalColor(childColor)
                         .joiningColors(parentColors)
                         .stoppingRule(ContigStopper.class)
                         .rois(ROI)

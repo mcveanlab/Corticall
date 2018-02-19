@@ -14,7 +14,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class Join extends Module {
-    @Argument(fullName="graphs", shortName="g", doc="Graphs")
+    @Argument(fullName="graph", shortName="g", doc="Graph")
     public ArrayList<CortexGraph> GRAPHS;
 
     @Output

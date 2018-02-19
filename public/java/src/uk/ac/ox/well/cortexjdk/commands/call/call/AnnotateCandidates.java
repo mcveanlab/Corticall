@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.commands.call.call;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.fastq.FastqRecord;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -41,10 +42,11 @@ public class AnnotateCandidates extends Module {
         HTreeMap<Integer, FastqRecord[]> dbReadsEnd1Out = initializeDbReadsOutMap(dbOut, true);
         HTreeMap<Integer, FastqRecord[]> dbReadsEnd2Out = initializeDbReadsOutMap(dbOut, false);
 
+        Map<Integer, Integer> walkLengths = getWalkLengths(dbContigsIn);
         Map<CanonicalKmer, Set<Integer>> kmers = loadKmersInContigs(dbContigsIn, dbContigsOut);
         Map<Integer, Set<Pair<FastqRecord, FastqRecord>>> reads = annotateKmersWithReads(kmers);
 
-        writeReadsToDatabase(reads, dbReadsEnd1Out, dbReadsEnd2Out);
+        writeReadsToDatabase(walkLengths, reads, dbReadsEnd1Out, dbReadsEnd2Out);
 
         dbOut.commit();
         dbOut.close();
@@ -84,45 +86,67 @@ public class AnnotateCandidates extends Module {
 
     private Map<Integer, Set<Pair<FastqRecord, FastqRecord>>> annotateKmersWithReads(Map<CanonicalKmer, Set<Integer>> kmers) {
         Map<Integer, Set<Pair<FastqRecord, FastqRecord>>> reads = new HashMap<>();
+        for (CanonicalKmer ck : kmers.keySet()) {
+            for (int contigIndex : kmers.get(ck)) {
+                if (!reads.containsKey(contigIndex)) {
+                    reads.put(contigIndex, new HashSet<>());
+                }
+            }
+        }
 
         int kmerSize = kmers.keySet().iterator().next().length();
-        int numReadsStored = 0;
+        int numPairsStored = 0;
 
         for (File readFile : READ_FILES) {
+            Reads readsSource = new Reads(readFile);
+
             ProgressMeter pm = new ProgressMeterFactory()
-                    .header("Processing reads from " + readFile.getName() + "...")
+                    .header("Processing reads from " + Joiner.on(":").join(readsSource.getFile()) + "...")
                     .message("reads processed")
                     .updateRecord(1000000)
                     .make(log);
 
-            Reads readsSource = new Reads(readFile);
             for (Pair<FastqRecord, FastqRecord> p : readsSource) {
+                Set<Integer> contigIndices = new HashSet<>();
+
                 for (FastqRecord fr : Arrays.asList(p.getFirst(), p.getSecond())) {
                     if (fr != null) {
                         for (int i = 0; i <= fr.length() - kmerSize; i++) {
                             CanonicalKmer ck = new CanonicalKmer(fr.getReadString().substring(i, i + kmerSize));
 
                             if (kmers.containsKey(ck)) {
-                                for (Integer contigIndex : kmers.get(ck)) {
-                                    if (!reads.containsKey(contigIndex)) {
-                                        reads.put(contigIndex, new HashSet<>());
-                                    }
-
-                                    reads.get(contigIndex).add(p);
-                                    numReadsStored++;
-                                }
-
-                                break;
+                                contigIndices.addAll(kmers.get(ck));
                             }
                         }
                     }
                 }
 
-                pm.update("reads processed (" + numReadsStored + " stored)");
+                if (contigIndices.size() > 0) {
+                    for (int contigIndex : contigIndices) {
+                        reads.get(contigIndex).add(p);
+                    }
+                    numPairsStored++;
+                }
+
+                pm.update("paired reads processed (" + numPairsStored + " stored)");
             }
         }
 
         return reads;
+    }
+
+    @NotNull
+    private Map<Integer, Integer> getWalkLengths(HTreeMap<Integer, CortexVertex[]> dbContigs) {
+        Map<Integer, Integer> walkLengths = new HashMap<>();
+
+        for (Object o : dbContigs.keySet()) {
+            int contigIndex = (Integer) o;
+            List<CortexVertex> w = getWalk(dbContigs, o);
+
+            walkLengths.put(contigIndex, w.size());
+        }
+
+        return walkLengths;
     }
 
     @NotNull
@@ -159,19 +183,12 @@ public class AnnotateCandidates extends Module {
         return kmers;
     }
 
-    private void writeReadsToDatabase(Map<Integer, Set<Pair<FastqRecord, FastqRecord>>> reads, HTreeMap<Integer, FastqRecord[]> dbReadsEnd1Out , HTreeMap<Integer, FastqRecord[]> dbReadsEnd2Out) {
-        int numReads = 0;
-        for (int contigIndex : reads.keySet()) {
-            numReads += reads.get(contigIndex).size();
-        }
-
-        ProgressMeter pm = new ProgressMeterFactory()
-                .header("Writing records to database...")
-                .message("records written")
-                .maxRecord(numReads)
-                .make(log);
+    private void writeReadsToDatabase(Map<Integer, Integer> walkLengths, Map<Integer, Set<Pair<FastqRecord, FastqRecord>>> reads, HTreeMap<Integer, FastqRecord[]> dbReadsEnd1Out , HTreeMap<Integer, FastqRecord[]> dbReadsEnd2Out) {
+        log.info("Writing records to database...");
 
         for (int contigIndex : reads.keySet()) {
+            log.info("  contig={}: walk_length={} num_reads={}", contigIndex, walkLengths.get(contigIndex), reads.get(contigIndex).size());
+
             Set<Pair<FastqRecord, FastqRecord>> rps = reads.get(contigIndex);
 
             FastqRecord[] e1 = new FastqRecord[rps.size()];
@@ -183,14 +200,10 @@ public class AnnotateCandidates extends Module {
                 e2[i] = rp.getSecond();
 
                 i++;
-
-                pm.update();
             }
 
             dbReadsEnd1Out.put(contigIndex, e1);
             dbReadsEnd2Out.put(contigIndex, e2);
-
-            pm.update();
         }
     }
 

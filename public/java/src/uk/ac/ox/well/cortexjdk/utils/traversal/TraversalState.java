@@ -2,6 +2,8 @@ package uk.ac.ox.well.cortexjdk.utils.traversal;
 
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 final public class TraversalState<V> {
@@ -13,9 +15,9 @@ final public class TraversalState<V> {
     final private int currentGraphSize;
     final private int numAdjacentEdges;
     final private boolean childrenAlreadyTraversed;
-    final private Set<String> sinks;
     final private DeBruijnGraph rois;
     final private boolean reachedMaxBranchLength;
+    final private Set<String> sinks;
 
     public TraversalState(V currentVertex,
                           boolean goForward,
@@ -26,8 +28,9 @@ final public class TraversalState<V> {
                           int numAdjacentEdges,
                           boolean childrenAlreadyTraversed,
                           boolean reachedMaxBranchLength,
-                          Set<String> sinks,
-                          DeBruijnGraph rois) {
+                          DeBruijnGraph rois,
+                          String... sinks
+    ) {
         this.currentVertex = currentVertex;
         this.goForward = goForward;
         this.traversalColor = traversalColor;
@@ -36,9 +39,12 @@ final public class TraversalState<V> {
         this.currentGraphSize = currentGraphSize;
         this.numAdjacentEdges = numAdjacentEdges;
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
-        this.sinks = sinks;
         this.rois = rois;
         this.reachedMaxBranchLength = reachedMaxBranchLength;
+
+        Set<String> s = new HashSet<>();
+        s.addAll(Arrays.asList(sinks));
+        this.sinks = s;
     }
 
     public V getCurrentVertex() { return currentVertex; }

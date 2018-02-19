@@ -33,7 +33,7 @@ public class SendToVisualizer extends Module {
     @Argument(fullName="kmer", shortName="k", doc="Kmer")
     public String KMER;
 
-    @Argument(fullName="traversalColors", shortName="t", doc="Traversal color")
+    @Argument(fullName="traversalColor", shortName="t", doc="Traversal color")
     public Integer TRAVERSAL_COLOR;
 
     @Argument(fullName="name", shortName="n", doc="Name to give to subgraph")
@@ -56,7 +56,7 @@ public class SendToVisualizer extends Module {
 
         TraversalEngine e = new TraversalEngineFactory()
                 .graph(GRAPH)
-                .traversalColors(TRAVERSAL_COLOR)
+                .traversalColor(TRAVERSAL_COLOR)
                 .secondaryColors(secondaryColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)

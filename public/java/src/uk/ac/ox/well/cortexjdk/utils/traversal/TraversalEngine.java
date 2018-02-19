@@ -19,8 +19,6 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 public class TraversalEngine {
     final private TraversalEngineConfiguration ec;
 
-    public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
-
     private CortexByteKmer curKmer = null;
     private CortexByteKmer prevKmer;
     private CortexByteKmer nextKmer;
@@ -31,6 +29,8 @@ public class TraversalEngine {
     private LinkStore linkStore;
     private boolean goForward;
 
+    public TraversalEngine(TraversalEngineConfiguration ec) { this.ec = ec; }
+
     public final TraversalEngineConfiguration getConfiguration() { return ec; }
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(Collection<String> sources) {
@@ -38,22 +38,35 @@ public class TraversalEngine {
     }
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(Collection<String> sources, Collection<String> sinks) {
-        return null;
+        String[] asinks = sinks == null ? new String[0] : sinks.toArray(new String[sinks.size()]);
+
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
+        for (String source : sources) {
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = dfs(source, asinks);
+
+            if (dfs == null) {
+                dfs = g;
+            } else {
+                Graphs.addGraph(dfs, g);
+            }
+        }
+
+        return dfs;
     }
 
     public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CanonicalKmer source) {
         return dfs(source.getKmerAsString());
     }
 
-    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String source) {
+    public DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(String source, String... sinks) {
         CortexVertex cv = new CortexVertexFactory()
                 .bases(source)
                 .record(ec.getGraph().findRecord(source))
                 .copyIndex(0)
                 .make();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, new HashSet<>()) : null;
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, new HashSet<>()) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, new HashSet<>(), sinks) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, new HashSet<>(), sinks) : null;
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
 
@@ -119,154 +132,6 @@ public class TraversalEngine {
         }
 
         return contig;
-    }
-
-    private TraversalStoppingRule<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stopperClass) {
-        try {
-            return stopperClass.newInstance();
-        } catch (InstantiationException e) {
-            throw new CortexJDKException("Could not instantiate stoppingRule: ", e);
-        } catch (IllegalAccessException e) {
-            throw new CortexJDKException("Illegal access while trying to instantiate stoppingRule: ", e);
-        }
-    }
-
-    @Nullable
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visitedOld) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        // Account for vertices visited in progenitor branches (but not other progeny branches)
-        Set<CortexVertex> visited = new HashSet<>(visitedOld);
-
-        // If links are available, reset the state of the LinkStore
-        if (!ec.getLinks().isEmpty()) {
-            seek(cv.getKmerAsString());
-        }
-
-        // Instantiate a new stopping rule per branch
-        TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
-
-        Set<CortexVertex> avs;
-
-        do {
-            Set<CortexVertex> pvs = getPrevVertices(cv.getKmerAsByteKmer());
-            Set<CortexVertex> nvs = getNextVertices(cv.getKmerAsByteKmer());
-            avs = goForward ? nvs : pvs;
-
-            if (!ec.getLinks().isEmpty()) {
-                // If we have links, then we are permitted to traverse some vertices multiple times.  Include a copy
-                // count for those vertices so that we can distinguish each copy in the resulting subgraph.
-
-                CortexVertex qv = null;
-                if (goForward && hasNext()) {
-                    qv = next();
-                } else if (!goForward && hasPrevious()) {
-                    qv = previous();
-                }
-
-                if (qv != null) {
-                    CortexVertex lv = null;
-                    do {
-                        int copyIndex;
-                        if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
-                        else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
-
-                        lv = new CortexVertexFactory()
-                                .bases(qv.getKmerAsString())
-                                .record(qv.getCortexRecord())
-                                .copyIndex(copyIndex)
-                                .make();
-                    } while (visited.contains(lv));
-
-                    avs = new HashSet<>();
-                    avs.add(lv);
-                }
-            }
-
-            // Connect all neighboring vertices to the graph (useful for visualization)
-            if (ec.connectAllNeighbors()) {
-                connectVertex(g, cv, pvs, nvs);
-            }
-
-            // Avoid traversing infinite loops by removing from traversal consideration
-            // those vertices that have already been incorporated into the graph.
-            Set<CortexVertex> seen = new HashSet<>();
-            for (CortexVertex av : avs) {
-                if (visited.contains(av)) {
-                    seen.add(av);
-                }
-            }
-            avs.removeAll(seen);
-
-            boolean previouslyVisited = visited.contains(cv);
-            visited.add(cv);
-
-            // Decide if we should keep exploring the graph or not
-            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
-
-            if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
-                if (avs.size() == 1) {
-                    if (goForward) { connectVertex(g, cv, null, avs);  }
-                    else           { connectVertex(g, cv, avs,  null); }
-
-                    cv = avs.iterator().next();
-                } else {
-                    boolean childrenWereSuccessful = false;
-
-                    for (CortexVertex av : avs) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited);
-
-                        if (branch != null) {
-                            if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av));  }
-                            else           { connectVertex(branch, cv, Collections.singleton(av),  null); }
-
-                            Graphs.addGraph(g, branch);
-                            childrenWereSuccessful = true;
-                        } else {
-                            // could mark a rejected traversal here rather than just throwing it away
-                        }
-                    }
-
-                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getSink(), ec.getRois());
-
-                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
-                        return g;
-                    } else {
-                        // could mark a rejected traversal here rather than just throwing it away
-                    }
-                }
-            } else if (stoppingRule.traversalSucceeded()) {
-                return g;
-            } else {
-                return null;
-            }
-        } while (avs.size() == 1);
-
-        return null;
-    }
-
-    private void connectVertex(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexVertex cv, Set<CortexVertex> pvs, Set<CortexVertex> nvs) {
-        g.addVertex(cv);
-
-        if (pvs != null) {
-            for (CortexVertex pv : pvs) {
-                g.addVertex(pv);
-
-                if (!g.containsEdge(pv, cv)) {
-                    g.addEdge(pv, cv, new CortexEdge(ec.getTraversalColor(), 1.0));
-                }
-            }
-        }
-
-        if (nvs != null) {
-            for (CortexVertex nv : nvs) {
-                g.addVertex(nv);
-
-                if (!g.containsEdge(cv, nv)) {
-                    g.addEdge(cv, nv, new CortexEdge(ec.getTraversalColor(), 1.0));
-                }
-            }
-        }
     }
 
     public Set<CortexVertex> getPrevVertices(CortexByteKmer sk) {
@@ -346,20 +211,6 @@ public class TraversalEngine {
         }
 
         return nextVertices;
-    }
-
-    public Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexByteKmer sk) {
-        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
-        CortexRecord cr = ec.getGraph().findRecord(ck);
-
-        return TraversalUtils.getAllPrevKmers(cr, ck.isFlipped());
-    }
-
-    public Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexByteKmer sk) {
-        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
-        CortexRecord cr = ec.getGraph().findRecord(ck);
-
-        return TraversalUtils.getAllNextKmers(cr, ck.isFlipped());
     }
 
     public CortexVertex next() {
@@ -442,6 +293,188 @@ public class TraversalEngine {
         return cv;
     }
 
+    public void seek(String sk) {
+        if (sk != null) {
+            curKmer = new CortexByteKmer(sk.getBytes());
+
+            Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
+            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getKmerAsByteKmer() : null;
+
+            Set<CortexVertex> nextKmers = getNextVertices(curKmer);
+            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getKmerAsByteKmer() : null;
+
+            linkStore = new LinkStore();
+            seen = new HashSet<>();
+            specificLinksFiles = null;
+        }
+    }
+
+    public boolean hasNext() { return nextKmer != null; }
+
+    public boolean hasPrevious() { return prevKmer != null; }
+
+    private Map<Integer, Set<CortexByteKmer>> getAllPrevKmers(CortexByteKmer sk) {
+        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
+        CortexRecord cr = ec.getGraph().findRecord(ck);
+
+        return TraversalUtils.getAllPrevKmers(cr, ck.isFlipped());
+    }
+
+    private Map<Integer, Set<CortexByteKmer>> getAllNextKmers(CortexByteKmer sk) {
+        CanonicalKmer ck = new CanonicalKmer(sk.getKmer());
+        CortexRecord cr = ec.getGraph().findRecord(ck);
+
+        return TraversalUtils.getAllNextKmers(cr, ck.isFlipped());
+    }
+
+    @Nullable
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visitedOld, String... sinks) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        // Account for vertices visited in progenitor branches (but not other progeny branches)
+        Set<CortexVertex> visited = new HashSet<>(visitedOld);
+
+        // If links are available, reset the state of the LinkStore
+        if (!ec.getLinks().isEmpty()) {
+            seek(cv.getKmerAsString());
+        }
+
+        // Instantiate a new stopping rule per branch
+        TraversalStoppingRule<CortexVertex, CortexEdge> stoppingRule = instantiateStopper(ec.getStoppingRule());
+
+        Set<CortexVertex> avs;
+
+        do {
+            Set<CortexVertex> pvs = getPrevVertices(cv.getKmerAsByteKmer());
+            Set<CortexVertex> nvs = getNextVertices(cv.getKmerAsByteKmer());
+            avs = goForward ? nvs : pvs;
+
+            if (!ec.getLinks().isEmpty()) {
+                // If we have links, then we are permitted to traverse some vertices multiple times.  Include a copy
+                // count for those vertices so that we can distinguish each copy in the resulting subgraph.
+
+                CortexVertex qv = null;
+                if (goForward && hasNext()) {
+                    qv = next();
+                } else if (!goForward && hasPrevious()) {
+                    qv = previous();
+                }
+
+                if (qv != null) {
+                    CortexVertex lv = null;
+                    do {
+                        int copyIndex;
+                        if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
+                        else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
+
+                        lv = new CortexVertexFactory()
+                                .bases(qv.getKmerAsString())
+                                .record(qv.getCortexRecord())
+                                .copyIndex(copyIndex)
+                                .make();
+                    } while (visited.contains(lv));
+
+                    avs = new HashSet<>();
+                    avs.add(lv);
+                }
+            }
+
+            // Connect all neighboring vertices to the graph (useful for visualization)
+            if (ec.connectAllNeighbors()) {
+                connectVertex(g, cv, pvs, nvs);
+            }
+
+            // Avoid traversing infinite loops by removing from traversal consideration
+            // those vertices that have already been incorporated into the graph.
+            Set<CortexVertex> seen = new HashSet<>();
+            for (CortexVertex av : avs) {
+                if (visited.contains(av)) {
+                    seen.add(av);
+                }
+            }
+            avs.removeAll(seen);
+
+            boolean previouslyVisited = visited.contains(cv);
+            visited.add(cv);
+
+            // Decide if we should keep exploring the graph or not
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+
+            if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
+                if (avs.size() == 1) {
+                    if (goForward) { connectVertex(g, cv, null, avs);  }
+                    else           { connectVertex(g, cv, avs,  null); }
+
+                    cv = avs.iterator().next();
+                } else {
+                    boolean childrenWereSuccessful = false;
+
+                    for (CortexVertex av : avs) {
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited);
+
+                        if (branch != null) {
+                            if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av));  }
+                            else           { connectVertex(branch, cv, Collections.singleton(av),  null); }
+
+                            Graphs.addGraph(g, branch);
+                            childrenWereSuccessful = true;
+                        } else {
+                            // could mark a rejected traversal here rather than just throwing it away
+                        }
+                    }
+
+                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+
+                    if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
+                        return g;
+                    } else {
+                        // could mark a rejected traversal here rather than just throwing it away
+                    }
+                }
+            } else if (stoppingRule.traversalSucceeded()) {
+                return g;
+            } else {
+                return null;
+            }
+        } while (avs.size() == 1);
+
+        return null;
+    }
+
+    private TraversalStoppingRule<CortexVertex, CortexEdge> instantiateStopper(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stopperClass) {
+        try {
+            return stopperClass.newInstance();
+        } catch (InstantiationException e) {
+            throw new CortexJDKException("Could not instantiate stoppingRule: ", e);
+        } catch (IllegalAccessException e) {
+            throw new CortexJDKException("Illegal access while trying to instantiate stoppingRule: ", e);
+        }
+    }
+
+    private void connectVertex(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexVertex cv, Set<CortexVertex> pvs, Set<CortexVertex> nvs) {
+        g.addVertex(cv);
+
+        if (pvs != null) {
+            for (CortexVertex pv : pvs) {
+                g.addVertex(pv);
+
+                if (!g.containsEdge(pv, cv)) {
+                    g.addEdge(pv, cv, new CortexEdge(pv, cv, ec.getTraversalColor(), 1.0));
+                }
+            }
+        }
+
+        if (nvs != null) {
+            for (CortexVertex nv : nvs) {
+                g.addVertex(nv);
+
+                if (!g.containsEdge(cv, nv)) {
+                    g.addEdge(cv, nv, new CortexEdge(cv, nv, ec.getTraversalColor(), 1.0));
+                }
+            }
+        }
+    }
+
     private Pair<CortexByteKmer, Set<String>> getAdjacentKmer(CortexByteKmer kmer, Set<CortexVertex> adjKmers, boolean goForward) {
         Pair<String, Set<String>> choicePair = linkStore.getNextJunctionChoice();
         String choice = choicePair.getFirst();
@@ -499,38 +532,18 @@ public class TraversalEngine {
                     if (goForward) {
                         CanonicalKmer nk = nextKmer == null ? null : new CanonicalKmer(nextKmer.getKmer());
                         if (nextKmer != null && lm.containsKey(nk)) {
-                            linkStore.add(nextKmer, lm.get(nk), goForward, lm.getSource());
+                            linkStore.add(nextKmer, lm.get(nk), true, lm.getSource());
                         }
                     } else {
                         CanonicalKmer pk = prevKmer == null ? null : new CanonicalKmer(prevKmer.getKmer());
                         if (prevKmer != null && lm.containsKey(pk)) {
-                            linkStore.add(prevKmer, lm.get(pk), goForward, lm.getSource());
+                            linkStore.add(prevKmer, lm.get(pk), false, lm.getSource());
                         }
                     }
                 }
             }
         }
     }
-
-    public void seek(String sk) {
-        if (sk != null) {
-            curKmer = new CortexByteKmer(sk.getBytes());
-
-            Set<CortexVertex> prevKmers = getPrevVertices(curKmer);
-            prevKmer = (prevKmers.size() == 1) ? prevKmers.iterator().next().getKmerAsByteKmer() : null;
-
-            Set<CortexVertex> nextKmers = getNextVertices(curKmer);
-            nextKmer = (nextKmers.size() == 1) ? nextKmers.iterator().next().getKmerAsByteKmer() : null;
-
-            linkStore = new LinkStore();
-            seen = new HashSet<>();
-            specificLinksFiles = null;
-        }
-    }
-
-    public boolean hasNext() { return nextKmer != null; }
-
-    public boolean hasPrevious() { return prevKmer != null; }
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> addSecondaryColors(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> m = new DirectedWeightedPseudograph<>(CortexEdge.class);
@@ -558,7 +571,7 @@ public class TraversalEngine {
 
                             g2.addVertex(pv);
                             if (!g2.containsEdge(pv, v)) {
-                                g2.addEdge(pv, v, new CortexEdge(c, 1.0));
+                                g2.addEdge(pv, v, new CortexEdge(pv, v, c, 1.0));
                             }
                         }
 
@@ -567,7 +580,7 @@ public class TraversalEngine {
 
                             g2.addVertex(nv);
                             if (!g2.containsEdge(v, nv)) {
-                                g2.addEdge(v, nv, new CortexEdge(c, 1.0));
+                                g2.addEdge(v, nv, new CortexEdge(v, nv, c, 1.0));
                             }
                         }
                     }

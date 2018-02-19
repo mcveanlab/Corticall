@@ -72,7 +72,7 @@ public class TestAssembly extends Module {
 
     private TraversalEngine configureTraversalEngine() {
         return new TraversalEngineFactory()
-                    .traversalColors(0)
+                    .traversalColor(0)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .graph(GRAPH)

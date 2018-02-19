@@ -22,8 +22,8 @@ import static uk.ac.ox.well.cortexjdk.utils.io.reads.Reads.SeqType.*;
 public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator<Pair<FastqRecord, FastqRecord>> {
     public enum SeqType { FASTQ, SAM, FASTA, TEXT }
 
+    private File[] files;
     private FastqReader[] fqends;
-//    private FqReader[] fqends;
     private SAMRecordIterator[] sams;
     private FastaSequenceFile[] faends;
     private LineReader[] lends;
@@ -41,11 +41,15 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
             throw new CortexJDKException("Too many files provided for paired-end mode (" + Joiner.on(", ").join(pieces));
         }
 
+        files = new File[numEnds];
+
         for (int i = 0; i < numEnds; i++) {
             String readsPath = pieces[i];
 
             if (! new File(readsPath).exists()) {
                 throw new CortexJDKException("File not found: '" + readsPath + "'");
+            } else {
+                files[i] = new File(readsPath);
             }
 
             if (readsPath.endsWith(".fastq.gz") || readsPath.endsWith(".fq.gz") || readsPath.endsWith(".fastq") || readsPath.endsWith(".fq")) {
@@ -156,4 +160,6 @@ public class Reads implements Iterable<Pair<FastqRecord, FastqRecord>>, Iterator
 
         return p;
     }
+
+    public File[] getFile() { return files; }
 }

@@ -39,7 +39,7 @@ public class GraphVisualizerTest {
                 g.addVertex(cv);
 
                 if (lv != null) {
-                    g.addEdge(lv, cv, new CortexEdge(q, 1.0));
+                    g.addEdge(lv, cv, new CortexEdge(lv, cv, q, 1.0));
                 }
 
                 lv = cv;

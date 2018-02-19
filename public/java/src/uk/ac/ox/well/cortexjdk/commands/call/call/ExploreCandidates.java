@@ -71,7 +71,7 @@ public class ExploreCandidates extends Module {
                 .create();
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColors(getTraversalColor(GRAPH, ROIS))
+                .traversalColor(getTraversalColor(GRAPH, ROIS))
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
                 .graph(GRAPH)
@@ -114,6 +114,7 @@ public class ExploreCandidates extends Module {
                 for (int c : colors) {
                     displayContigAndAnnotations(w, range, c, used);
 
+                    /*
                     Map<Integer, VariantContext> nvcs = callVariantsAgainstBackground(w, range, c, used);
 
                     log.info("        backgroundColor={} backgroundName={} nvcs={}", c, GRAPH.getSampleName(c), nvcs.size());
@@ -124,6 +125,7 @@ public class ExploreCandidates extends Module {
 
                     log.info("    ==");
                     log.info("");
+                    */
                 }
 
                 numContigs++;
@@ -167,10 +169,10 @@ public class ExploreCandidates extends Module {
             t3.append(w.get(i).getCortexRecord().getCoverage(c) > 0 ? "1" : " ");
         }
 
-        log.info("    {}", t0.toString());
-        log.info("    {}", t1.toString());
-        log.info("    {}", t2.toString());
-        log.info("    {}", t3.toString());
+        log.info("    {} {}", c, t0.toString());
+        log.info("    {} {}", c, t1.toString());
+        log.info("    {} {}", c, t2.toString());
+        log.info("    {} {}", c, t3.toString());
     }
 
     private Map<Integer, VariantContext> callVariantsAgainstBackground(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
@@ -212,7 +214,7 @@ public class ExploreCandidates extends Module {
 
                     for (String iv : ivs) {
                         TraversalEngine ef = new TraversalEngineFactory()
-                                .traversalColors(c)
+                                .traversalColor(c)
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
                                 .graph(GRAPH)
@@ -228,7 +230,7 @@ public class ExploreCandidates extends Module {
 
                         if (g == null) {
                             TraversalEngine eb = new TraversalEngineFactory()
-                                    .traversalColors(c)
+                                    .traversalColor(c)
                                     .traversalDirection(REVERSE)
                                     .combinationOperator(OR)
                                     .graph(GRAPH)

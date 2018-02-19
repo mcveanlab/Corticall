@@ -34,12 +34,12 @@ public class AssembleWithReferenceAssist extends Module {
     @Override
     public void execute() {
         TraversalEngine e0 = new TraversalEngineFactory()
-                .traversalColors(0)
+                .traversalColor(0)
                 .graph(GRAPH)
                 .make();
 
         TraversalEngine el = new TraversalEngineFactory()
-                .traversalColors(0)
+                .traversalColor(0)
                 .graph(GRAPH)
                 .links(LINKS)
                 //.references(REF)

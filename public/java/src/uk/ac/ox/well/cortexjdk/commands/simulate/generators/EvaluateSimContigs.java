@@ -35,12 +35,12 @@ public class EvaluateSimContigs extends Module {
         int childColor = GRAPH.getColorForSampleName(ROI.getColor(0).getSampleName());
 
         TraversalEngine er = new TraversalEngineFactory()
-                .traversalColors(childColor)
+                .traversalColor(childColor)
                 .graph(GRAPH)
                 .make();
 
         TraversalEngine el = new TraversalEngineFactory()
-                .traversalColors(childColor)
+                .traversalColor(childColor)
                 .graph(GRAPH)
                 .links(LINKS)
                 .make();

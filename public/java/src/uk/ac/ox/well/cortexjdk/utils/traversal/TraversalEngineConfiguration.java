@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.traversal;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
 import java.util.Collection;
@@ -28,7 +29,7 @@ public class TraversalEngineConfiguration {
 
     private int maxLength = 75000;
 
-    private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule;
+    private Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule = ContigStopper.class;
 
     private DeBruijnGraph graph;
     private DeBruijnGraph rois;
@@ -74,6 +75,4 @@ public class TraversalEngineConfiguration {
 
     public void setMaxWalkLength(int maxLength) { this.maxLength = maxLength; }
     public int getMaxBranchLength() { return maxLength; }
-
-    public Set<String> getSink() { return new HashSet<>(); }
 }

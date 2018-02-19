@@ -12,6 +12,22 @@ import java.util.*;
 public class TraversalUtils {
     private TraversalUtils() {}
 
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(List<CortexVertex> walk, int color) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        CortexVertex pv = walk.get(0);
+        g.addVertex(pv);
+
+        for (int i = 1; i < walk.size(); i++) {
+            CortexVertex nv = walk.get(i);
+
+            g.addVertex(nv);
+            g.addEdge(pv, nv, new CortexEdge(pv, nv, color, 1.0));
+        }
+
+        return g;
+    }
+
     public static String toContig(List<CortexVertex> walk) {
         StringBuilder sb = new StringBuilder();
 

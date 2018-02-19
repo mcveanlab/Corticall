@@ -36,7 +36,7 @@ public class ReadToGraphAligner {
             this.colors.add(c);
 
             engines[c] = new TraversalEngineFactory()
-                    .traversalColors(c)
+                    .traversalColor(c)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .maxBranchLength(5000)
@@ -60,7 +60,7 @@ public class ReadToGraphAligner {
             this.colors.add(c);
 
             engines[c] = new TraversalEngineFactory()
-                    .traversalColors(c)
+                    .traversalColor(c)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .maxBranchLength(5000)

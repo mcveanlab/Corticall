@@ -37,7 +37,7 @@ public class BubbleCaller {
         this.bc = bc;
 
         eOpen = new TraversalEngineFactory()
-                .traversalColors(bc.getAlternateColor())
+                .traversalColor(bc.getAlternateColor())
                 .joiningColors(bc.getReferenceColors())
                 .traversalDirection(BOTH)
                 .combinationOperator(AND)
@@ -49,7 +49,7 @@ public class BubbleCaller {
 
         for (int pc : bc.getReferenceColors()) {
             TraversalEngine eClose = new TraversalEngineFactory()
-                    .traversalColors(pc)
+                    .traversalColor(pc)
                     .joiningColors(bc.getReferenceColors())
                     .traversalDirection(FORWARD)
                     .combinationOperator(OR)

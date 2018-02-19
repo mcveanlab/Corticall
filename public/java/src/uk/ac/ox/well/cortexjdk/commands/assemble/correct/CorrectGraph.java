@@ -13,7 +13,6 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexMap;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.reads.Reads;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.GapClosingStopper;
@@ -63,8 +62,8 @@ public class CorrectGraph extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                //.traversalColors(0)
-                .traversalColors(1)
+                //.traversalColor(0)
+                .traversalColor(1)
                 .recruitmentColors(refColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)

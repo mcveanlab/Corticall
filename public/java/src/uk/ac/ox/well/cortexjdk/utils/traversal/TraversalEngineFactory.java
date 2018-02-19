@@ -20,8 +20,8 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory connectAllNeighbors(boolean connectAllNeighbors) { configuration.setConnectAllNeighbors(connectAllNeighbors); return this; }
     public TraversalEngineFactory maxBranchLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 
-    public TraversalEngineFactory traversalColors() { configuration.setTraversalColor(-1); return this; }
-    public TraversalEngineFactory traversalColors(int color) { configuration.setTraversalColor(color); return this; }
+    public TraversalEngineFactory traversalColor() { configuration.setTraversalColor(-1); return this; }
+    public TraversalEngineFactory traversalColor(int color) { configuration.setTraversalColor(color); return this; }
 
     public TraversalEngineFactory joiningColors() { configuration.getJoiningColors().clear(); return this; }
     public TraversalEngineFactory joiningColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
@@ -74,6 +74,8 @@ public class TraversalEngineFactory {
                 throw new CortexJDKException("Secondary colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + c + ")");
             }
         });
+
+        if (configuration.getStoppingRule() == null) { throw new CortexJDKException("Must provide stopping rule for graph traversal"); }
 
         if (configuration.getGraph() == null) { throw new CortexJDKException("Must provide graph to traverse."); }
 
