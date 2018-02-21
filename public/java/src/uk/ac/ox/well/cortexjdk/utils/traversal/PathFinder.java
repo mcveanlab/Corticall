@@ -45,7 +45,7 @@ public class PathFinder {
     }
 
     public List<GraphPath<CortexVertex, CortexEdge>> getPaths(CortexVertex startVertex, CortexVertex endVertex, CanonicalKmer constraint, boolean accept) {
-        KShortestPaths<CortexVertex, CortexEdge> ksp = new KShortestPaths<>(g, 10);
+        KShortestPaths<CortexVertex, CortexEdge> ksp = new KShortestPaths<>(g, 10, 500);
 
         List<GraphPath<CortexVertex, CortexEdge>> pathsFiltered = new ArrayList<>();
 

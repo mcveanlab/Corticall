@@ -226,7 +226,7 @@ public class ExploreCandidates extends Module {
                                 .make();
 
                         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(ov);
-                        List<CortexVertex> backgroundWalk = TraversalUtils.toWalk(g, ov);
+                        List<CortexVertex> backgroundWalk = TraversalUtils.toWalk(g, ov, c);
 
                         if (g == null) {
                             TraversalEngine eb = new TraversalEngineFactory()
@@ -242,7 +242,7 @@ public class ExploreCandidates extends Module {
                                     .make();
 
                             g = eb.dfs(iv);
-                            backgroundWalk = TraversalUtils.toWalk(g, iv);
+                            backgroundWalk = TraversalUtils.toWalk(g, iv, c);
                         }
 
                         if (backgroundWalk.size() > 0) {

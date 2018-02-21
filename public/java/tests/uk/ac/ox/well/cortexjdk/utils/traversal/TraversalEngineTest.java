@@ -350,7 +350,7 @@ public class TraversalEngineTest {
                 .links(l)
                 .make();
 
-        String contig = TraversalUtils.toContig(TraversalUtils.toWalk(e.dfs(source, sink), source));
+        String contig = TraversalUtils.toContig(TraversalUtils.toWalk(e.dfs(source, sink), source, g.getColorForSampleName("mom")));
 
         Assert.assertEquals(contig, haplotypes.get("mom").iterator().next());
     }

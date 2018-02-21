@@ -5,6 +5,7 @@ import htsjdk.samtools.fastq.FastqRecord;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.mapdb.DB;
@@ -18,6 +19,7 @@ import uk.ac.ox.well.cortexjdk.utils.alignment.graph.ReadToGraphAligner;
 import uk.ac.ox.well.cortexjdk.utils.alignment.graph.SingleEndAlignmentInfo;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.containers.ContainerUtils;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
@@ -25,6 +27,7 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ExplorationStopper;
@@ -82,34 +85,86 @@ public class PlotCandidates extends Module {
 
         Set<CanonicalKmer> rois = loadRois(ROIS);
 
-        for (Integer contigIndex : contigsMap.getKeys()) {
+        Set<Integer> contigIndices = new TreeSet<>(contigsMap.getKeys());
+        for (Integer contigIndex : contigIndices) {
             List<CortexVertex> w = getWalk(contigsMap, contigIndex);
 
             List<Pair<Integer, Integer>> regions = getRegions(rois, w, 200);
             int subcontigStart = regions.get(0).getFirst();
             int subcontigStop  = regions.get(regions.size() - 1).getSecond();
 
+            Map<CanonicalKmer, Integer> contigKmers = new HashMap<>();
             List<CortexVertex> ws = new ArrayList<>();
             for (int i = subcontigStart; i < subcontigStop; i++) {
                 ws.add(w.get(i));
+
+                contigKmers.put(w.get(i).getCanonicalKmer(), 0);
             }
+
+            /*
+            List<FastqRecord> readsEnd1 = getReads(readsMapEnd1, contigIndex);
+            List<FastqRecord> readsEnd2 = getReads(readsMapEnd2, contigIndex);
+            for (int i = 0; i < readsEnd1.size(); i++) {
+                for (FastqRecord fq : Arrays.asList(readsEnd1.get(i), readsEnd2.get(i))) {
+                    for (int j = 0; j <= fq.length() - GRAPH.getKmerSize(); j++) {
+                        CanonicalKmer ck = new CanonicalKmer(fq.getReadString().substring(j, j + GRAPH.getKmerSize()));
+
+                        if (contigKmers.containsKey(ck)) {
+                            ContainerUtils.increment(contigKmers, ck);
+                        }
+                    }
+                }
+            }
+
+            for (CanonicalKmer ck : contigKmers.keySet()) {
+                log.info("  contig: {} {}", ck, contigKmers.get(ck));
+            }
+            */
 
             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
             for (int i = 0; i < ws.size(); i++) {
                 g.addVertex(ws.get(i));
+                if (i > 0) {
+                    g.addEdge(ws.get(i-1), ws.get(i), new CortexEdge(ws.get(i-1), ws.get(i), sampleColor, 1.0));
+                }
             }
 
-            log.info("{} {} {} {}", contigIndex, w.size(), subcontigStart, subcontigStop);
+            log.info("{}/{} {} {} {} {} {}", contigIndex, contigIndices.size(), w.size(), subcontigStart, subcontigStop, g.vertexSet().size(), g.edgeSet().size());
 
+            fillInOtherColors(g, colors);
+            closeGaps(g, colors);
+
+            log.info("{}/{} {} {} {} {} {}", contigIndex, contigIndices.size(), w.size(), subcontigStart, subcontigStop, g.vertexSet().size(), g.edgeSet().size());
+
+            /*
             for (int c : colors) {
-                for (int i = 0; i < ws.size() - 1; i++) {
-                    CortexVertex v0 = ws.get(i);
-                    CortexVertex v1 = ws.get(1);
+                log.info("{}/{} {} {} {} {} {}", contigIndex, contigIndices.size(), w.size(), subcontigStart, subcontigStop, g.vertexSet().size(), g.edgeSet().size());
+
+                for (CortexVertex v0 : g.vertexSet()) {
+                    Set<CortexVertex> vs1 = new HashSet<>(Graphs.successorListOf(g, v0));
 
                     Set<String> nks = convertToStrings(TraversalUtils.getAllNextKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString())).get(c));
 
-                    if (nks.contains(v1.getKmerAsString())) {
-                        g.addEdge(v0, v1, new CortexEdge(v0, v1, c, 1.0));
+                    for (CortexVertex v1 : vs1) {
+                        if (nks.contains(v1.getKmerAsString())) {
+                            g.addEdge(v0, v1, new CortexEdge(v0, v1, c, 1.0));
+                        }
+                    }
+                }
+            }
+            */
+
+            /*
+            for (int c : colors) {
+                for (CortexVertex v0 : g.vertexSet()) {
+                    Set<CortexVertex> vs1 = new HashSet<>(Graphs.successorListOf(g, v0));
+
+                    Set<String> nks = convertToStrings(TraversalUtils.getAllNextKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString())).get(c));
+
+                    for (CortexVertex v1 : vs1) {
+                        if (nks.contains(v1.getKmerAsString())) {
+                            g.addEdge(v0, v1, new CortexEdge(v0, v1, c, 1.0));
+                        }
                     }
                 }
 
@@ -118,7 +173,7 @@ public class PlotCandidates extends Module {
                         .traversalDirection(FORWARD)
                         .combinationOperator(OR)
                         .stoppingRule(ExplorationStopper.class)
-                        .maxBranchLength(1000)
+                        .maxBranchLength(100)
                         .graph(GRAPH)
                         .links(LINKS)
                         .make();
@@ -128,7 +183,7 @@ public class PlotCandidates extends Module {
                         .traversalDirection(REVERSE)
                         .combinationOperator(OR)
                         .stoppingRule(ExplorationStopper.class)
-                        .maxBranchLength(1000)
+                        .maxBranchLength(100)
                         .graph(GRAPH)
                         .links(LINKS)
                         .make();
@@ -169,103 +224,117 @@ public class PlotCandidates extends Module {
 
             log.info("  {} {}", g.vertexSet().size(), g.edgeSet().size());
 
-            g.
+            Map<CanonicalKmer, CortexVertex> mv = new HashMap<>();
+            for (CortexVertex v : g.vertexSet()) {
+                mv.put(v.getCanonicalKmer(), v);
+            }
 
-            //List<FastqRecord> readsEnd1 = getReads(readsMapEnd1, contigIndex);
-            //List<FastqRecord> readsEnd2 = getReads(readsMapEnd2, contigIndex);
+            List<FastqRecord> readsEnd1 = getReads(readsMapEnd1, contigIndex);
+            List<FastqRecord> readsEnd2 = getReads(readsMapEnd2, contigIndex);
 
-            /*
-            Map<CanonicalKmer, Integer> contigKmers = getRegionKmers(cvs, new Pair<>(0, cvs.size() - 1));
+            int numReads = 0, numPairsMapped = 0;
+            for (int i = 0; i < readsEnd1.size(); i++) {
+                List<List<CortexVertex>> pairKmers = new ArrayList<>();
+                int numEndsMapped = 0;
 
-            List<Pair<Integer, Integer>> regions = getRegions(rois, cvs);
+                for (FastqRecord fq : Arrays.asList(readsEnd1.get(i), readsEnd2.get(i))) {
+                    List<CortexVertex> readKmers = new ArrayList<>();
 
-            Set<String> lines = new TreeSet<>();
+                    boolean endIsMapped = false;
+                    for (int j = 0; j <= fq.length() - GRAPH.getKmerSize(); j++) {
+                        CanonicalKmer ck = new CanonicalKmer(fq.getReadString().substring(j, j + GRAPH.getKmerSize()));
 
-            for (int ri = 0; ri < regions.size(); ri++) {
-                Pair<Integer, Integer> region = regions.get(ri);
-
-                for (int limit : Arrays.asList(region.getFirst(), region.getSecond())) {
-                    List<String> fields = new ArrayList<>();
-                    fields.add("limit");
-                    fields.add(String.valueOf(contigIndex));
-                    fields.add(String.valueOf(limit));
-                    fields.add("NA");
-                    for (int bc : backgroundColors) {
-                        fields.add("NA");
-                        fields.add("NA");
-                    }
-
-                    lines.add(Joiner.on("\t").join(fields));
-                }
-
-                Map<CanonicalKmer, Integer> regionKmers = getRegionKmers(cvs, region);
-                List<Pair<FastqRecord, FastqRecord>> regionReads = getRegionReads(readsEnd1, readsEnd2, regionKmers);
-
-                ProgressMeter pm = new ProgressMeterFactory()
-                        .header("Processing reads for contig " + contigIndex + " (len=" + cvs.size() + ") region " + ri + " (" + region.getFirst() + "-" + region.getSecond() + ")")
-                        .message("reads processed")
-                        .maxRecord(regionReads.size())
-                        .make(log);
-
-                ReadToGraphAligner ga = new ReadToGraphAligner(GRAPH, LINKS, colors);
-
-                for (CanonicalKmer ck : regionKmers.keySet()) {
-                    if (rois.contains(ck)) {
-                        List<String> fields = new ArrayList<>();
-                        fields.add("novel");
-                        fields.add(String.valueOf(contigIndex));
-                        fields.add(String.valueOf(regionKmers.get(ck)));
-                        fields.add("NA");
-                        for (int bc : backgroundColors) {
-                            fields.add("NA");
-                            fields.add("NA");
-                        }
-
-                        lines.add(Joiner.on("\t").join(fields));
-                    }
-                }
-
-                for (int i = 0; i < regionReads.size(); i++) {
-                    pm.update();
-
-                    FastqRecord fqEnd1 = regionReads.get(i).getFirst();
-                    FastqRecord fqEnd2 = regionReads.get(i).getSecond();
-
-                    PairedEndAlignmentInfo pai = ga.align(fqEnd1, fqEnd2);
-
-                    Pair<Integer, Integer> ext1 = getExtent(contigKmers, fqEnd1);
-                    Pair<Integer, Integer> ext2 = getExtent(contigKmers, fqEnd2);
-                    Pair<Integer, Integer> extent = getExtent(contigKmers, fqEnd1, fqEnd2);
-
-                    //log.info("  {}/{} {} {} {} {} {}", i, regionReads.size(), extent.getFirst(), extent.getSecond(), Joiner.on(" ").withKeyValueSeparator(" => ").join(pai.getAlignmentDistanceMap()), fqEnd1.getReadString(), fqEnd2.getReadString());
-                    //log.info("  * {} {} {}", ext1, ext2, extent);
-
-                    List<String> fields = new ArrayList<>();
-                    fields.add("read");
-                    fields.add(String.valueOf(contigIndex));
-                    fields.add(String.valueOf(extent.getFirst()));
-                    fields.add(pai.getAlignmentDistanceMap().get(sampleColor).size() == 0 ? "NA" : String.valueOf(pai.getAlignmentDistanceMap().get(sampleColor).iterator().next()));
-
-                    for (int bc : backgroundColors) {
-                        fields.add(pai.getAlignmentDistanceMap().get(bc).size() == 0 ? "NA" : String.valueOf(pai.getAlignmentDistanceMap().get(bc).iterator().next()));
-                    }
-
-                    for (SingleEndAlignmentInfo sai : Arrays.asList(pai.getFirstEndAlignment(), pai.getSecondEndAlignment())) {
-                        for (int c : backgroundColors) {
-                            fields.add(String.valueOf(sai.isSplitRead(sampleColor, c)));
+                        if (mv.containsKey(ck)) {
+                            readKmers.add(mv.get(ck));
+                            endIsMapped = true;
                         }
                     }
 
-                    lines.add(Joiner.on("\t").join(fields));
+                    pairKmers.add(readKmers);
+                    if (endIsMapped) {
+                        numEndsMapped++;
+                    }
+                }
+
+                if (numEndsMapped == 2) {
+                    numPairsMapped++;
+
+                    CortexVertex v0 = pairKmers.get(0).get(0);
+                    CortexVertex v1 = pairKmers.get(1).get(pairKmers.get(1).size() - 1);
+
+                    PathFinder pf = new PathFinder(g, sampleColor);
+                    GraphPath<CortexVertex, CortexEdge> gp = pf.getPath(v0, v1);
+
+                    log.info("  pair: {} {} {}", sampleColor, i, gp == null ? 0 : gp.getLength());
                 }
             }
 
-            for (String line : lines) {
-                out.println(line);
-            }
-
-            out.flush();
+            log.info("  numReads: {} numPairsMapped: {}", numReads, numPairsMapped);
             */
+        }
+    }
+
+    private void fillInOtherColors(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, Set<Integer> colors) {
+        for (int c : colors) {
+            for (CortexVertex v0 : g.vertexSet()) {
+                Set<CortexVertex> vs1 = new HashSet<>(Graphs.successorListOf(g, v0));
+
+                Set<String> nks = convertToStrings(TraversalUtils.getAllNextKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString())).get(c));
+
+                for (CortexVertex v1 : vs1) {
+                    if (nks.contains(v1.getKmerAsString())) {
+                        g.addEdge(v0, v1, new CortexEdge(v0, v1, c, 1.0));
+                    }
+                }
+            }
+        }
+    }
+
+    private void closeGaps(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, Set<Integer> colors) {
+        for (int c : colors) {
+            Set<String> sources = new HashSet<>();
+            Set<String> sinks = new HashSet<>();
+
+            for (CortexVertex v : g.vertexSet()) {
+                Set<String> vs = new HashSet<>();
+                Graphs.successorListOf(g, v).forEach(nv -> vs.add(nv.getKmerAsString()));
+
+                Set<String> remainingNext = convertToStrings(TraversalUtils.getAllNextKmers(v.getCortexRecord(), !v.getKmerAsString().equals(v.getCanonicalKmer().getKmerAsString())).get(c));
+                remainingNext.removeAll(vs);
+
+                sources.addAll(remainingNext);
+
+                Set<String> vp = new HashSet<>();
+                Graphs.predecessorListOf(g, v).forEach(pv -> vp.add(pv.getKmerAsString()));
+
+                Set<String> remainingPrev = convertToStrings(TraversalUtils.getAllPrevKmers(v.getCortexRecord(), !v.getKmerAsString().equals(v.getCanonicalKmer().getKmerAsString())).get(c));
+                remainingPrev.removeAll(vp);
+
+                sinks.addAll(remainingNext);
+            }
+
+            TraversalEngine ef = new TraversalEngineFactory()
+                    .traversalColor(c)
+                    .traversalDirection(FORWARD)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .graph(GRAPH)
+                    .links(LINKS)
+                    .make();
+
+            TraversalEngine er = new TraversalEngineFactory()
+                    .traversalColor(c)
+                    .traversalDirection(REVERSE)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .graph(GRAPH)
+                    .links(LINKS)
+                    .make();
+
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gf = ef.dfs(sources, sinks);
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gr = er.dfs(sinks, sources);
+
+            log.info("  {}: {} {} {} {}", c, sources.size(), sinks.size(), gf == null ? 0 : gf.vertexSet().size(), gr == null ? 0 : gr.vertexSet().size());
         }
     }
 

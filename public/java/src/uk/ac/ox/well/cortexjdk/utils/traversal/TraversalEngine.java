@@ -93,11 +93,9 @@ public class TraversalEngine {
         return null;
     }
 
-    public List<CortexVertex> walk(CanonicalKmer seed) { return TraversalUtils.toWalk(dfs(seed.getKmerAsString()), seed.getKmerAsString()); }
+    public List<CortexVertex> walk(CanonicalKmer seed) { return TraversalUtils.toWalk(dfs(seed.getKmerAsString()), seed.getKmerAsString(), ec.getTraversalColor()); }
 
-    public List<CortexVertex> walk(String seed) {
-        return TraversalUtils.toWalk(dfs(seed), seed);
-    }
+    public List<CortexVertex> walk(String seed) { return TraversalUtils.toWalk(dfs(seed), seed, ec.getTraversalColor()); }
 
     public List<CortexVertex> assemble(String seed) {
         List<CortexVertex> contig = new ArrayList<>();
@@ -364,8 +362,10 @@ public class TraversalEngine {
                     CortexVertex lv = null;
                     do {
                         int copyIndex;
-                        if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
-                        else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
+                        //if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
+                        //else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
+                        if (goForward) { copyIndex = lv == null ? 0 : lv.getCopyIndex() + 1; }
+                        else { copyIndex = lv == null ? 0 : lv.getCopyIndex() - 1; }
 
                         lv = new CortexVertexFactory()
                                 .bases(qv.getKmerAsString())
