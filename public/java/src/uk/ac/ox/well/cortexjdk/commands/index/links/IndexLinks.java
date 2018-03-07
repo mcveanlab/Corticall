@@ -38,6 +38,10 @@ public class IndexLinks extends Module {
         Path bgzipPath = Paths.get(LINKS.getFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz"));
         Path indexPath = Paths.get(LINKS.getFile().getAbsolutePath().replace(".ctp.gz", ".ctp.bgz.idx"));
 
+        if (indexPath.toFile().exists()) {
+            indexPath.toFile().delete();
+        }
+
         BlockCompressedOutputStream bc = new BlockCompressedOutputStream(bgzipPath.toFile().getAbsolutePath(), 9);
 
         log.info("Writing bgzipped links and link index to:");
