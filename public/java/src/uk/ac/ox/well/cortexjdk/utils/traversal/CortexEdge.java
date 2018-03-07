@@ -8,7 +8,6 @@ import java.util.*;
  * Created by kiran on 10/05/2017.
  */
 public class CortexEdge extends DefaultWeightedEdge {
-    //private Set<CortexVertex> vertices = new TreeSet<>(Comparator.comparing(CortexVertex::getKmerAsString));
     private Set<CortexVertex> vertices = new LinkedHashSet<>();
 
     private int color = -1;

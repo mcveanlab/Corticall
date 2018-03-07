@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.call;
+package uk.ac.ox.well.cortexjdk.commands.discover.candidates;
 
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -72,7 +72,7 @@ public class TestAssembly extends Module {
 
     private TraversalEngine configureTraversalEngine() {
         return new TraversalEngineFactory()
-                    .traversalColor(0)
+                    .traversalColors(0)
                     .traversalDirection(BOTH)
                     .combinationOperator(OR)
                     .graph(GRAPH)

@@ -9,8 +9,13 @@ public class TipEndStopper extends AbstractTraversalStoppingRule<CortexVertex, C
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
         // We should accept this branch if we run out of edges to navigate
 
-        boolean hasNoIncomingEdges = s.getCurrentVertex().getCortexRecord().getInDegree(s.getTraversalColor()) == 0;
-        boolean hasNoOutgoingEdges = s.getCurrentVertex().getCortexRecord().getOutDegree(s.getTraversalColor()) == 0;
+        boolean hasNoIncomingEdges = false;
+        boolean hasNoOutgoingEdges = false;
+
+        for (int c : s.getTraversalColors()) {
+            hasNoIncomingEdges |= s.getCurrentVertex().getCortexRecord().getInDegree(c) == 0;
+            hasNoOutgoingEdges |= s.getCurrentVertex().getCortexRecord().getOutDegree(c) == 0;
+        }
 
         return hasNoIncomingEdges || hasNoOutgoingEdges;
     }

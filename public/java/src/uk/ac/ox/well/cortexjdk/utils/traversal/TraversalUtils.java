@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.utils.traversal;
 
+import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -19,11 +20,214 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 public class TraversalUtils {
     private TraversalUtils() {}
 
-    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> fillGaps(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexGraph graph, List<CortexLinks> links) {
+    /*
+    public static Map<Integer, List<List<List<CortexVertex>>>> fill(List<CortexVertex> w, CortexGraph graph, List<CortexLinks> links, Set<Integer> sampleColors, List<Set<Integer>> backgroundColors) {
+        Map<Integer, List<List<List<CortexVertex>>>> mss = new HashMap<>();
+
+        for (Set<Integer> cs : backgroundColors) {
+            List<List<CortexVertex>> ms = new ArrayList<>();
+            List<CortexVertex> m = new ArrayList<>();
+
+            for (int i = 0; i < w.size(); i++) {
+                CortexVertex v0 = w.get(i);
+                CortexVertex v1 = i + 1 < w.size() ? w.get(i + 1) : null;
+
+                Set<String> remainingNext = convertToStrings(TraversalUtils.getAllNextKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString())).get(c));
+
+                for (int c : cs) {
+                    if (v0.getCortexRecord().getCoverage(c) > 0) {
+                        m.add(v0);
+                        break;
+                    }
+                }
+
+                if (v1 != null && !remainingNext.contains(v1.getKmerAsString())) {
+                    if (m.size() > 0) {
+                        ms.add(m);
+                    }
+
+                    m = new ArrayList<>();
+                }
+            }
+
+            if (m.size() > 0) {
+                ms.add(m);
+            }
+
+            TraversalEngine ef = new TraversalEngineFactory()
+                    .traversalColors(cs)
+                    //.recruitmentColors(sampleColor)
+                    .traversalDirection(FORWARD)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
+                    .graph(graph)
+                    .links(links)
+                    .make();
+
+            TraversalEngine er = new TraversalEngineFactory()
+                    .traversalColors(cs)
+                    //.recruitmentColors(sampleColor)
+                    .traversalDirection(REVERSE)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
+                    .graph(graph)
+                    .links(links)
+                    .make();
+
+            List<List<List<CortexVertex>>> q = new ArrayList<>();
+            for (int i = 0; i < ms.size() - 1; i++) {
+                //q.add(Collections.singletonList(ms.get(i)));
+
+                CortexVertex source = ms.get(i).get(ms.get(i).size() - 1);
+                CortexVertex sink   = ms.get(i+1).get(0);
+
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> gFill = ef.dfs(source.getKmerAsString(), sink.getKmerAsString());
+                if (gFill == null) {
+                    gFill = er.dfs(sink.getKmerAsString(), source.getKmerAsString());
+                }
+
+                List<List<CortexVertex>> llc = new ArrayList<>();
+                if (gFill != null) {
+                    PathFinder pf = new PathFinder(gFill, cs.iterator().next());
+                    List<GraphPath<CortexVertex, CortexEdge>> gps = pf.getPaths(source, sink);
+
+                    for (GraphPath<CortexVertex, CortexEdge> gp : gps) {
+                        llc.add(gp.getVertexList());
+                    }
+                }
+
+                if (llc.size() == 0) {
+                    q.add(Collections.singletonList(ms.get(i)));
+                } else if (llc.size() == 1) {
+                    ms.get(i).addAll(llc.get(0));
+                    q.add(Collections.singletonList(ms.get(i)));
+                } else {
+                    q.add(Collections.singletonList(ms.get(i)));
+                    q.add(llc);
+                }
+            }
+
+            q.add(Collections.singletonList(ms.get(ms.size() - 1)));
+
+            mss.put(cs.iterator().next(), q);
+        }
+
+        return mss;
+    }
+    */
+
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> fillGaps(List<CortexVertex> w, CortexGraph graph, List<CortexLinks> links, Set<Integer> colors) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gAll = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        for (int c : colors) {
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+            for (int i = 0; i < w.size(); i++) {
+                CortexVertex v1 = w.get(i);
+
+                if (v1.getCortexRecord().getCoverage(c) > 0) {
+                    g.addVertex(v1);
+
+                    //Set<String> anks = convertToStrings(TraversalUtils.getAllPrevKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString())).get(c));
+                    if (i > 0 && w.get(i - 1).getCortexRecord().getCoverage(c) > 0) {
+                        g.addEdge(w.get(i - 1), v1, new CortexEdge(w.get(i - 1), v1, c, 1.0));
+                    }
+                }
+            }
+
+            Set<String> sources = new HashSet<>();
+            Set<String> sinks = new HashSet<>();
+
+            for (CortexVertex v : g.vertexSet()) {
+                Set<String> vs = new HashSet<>();
+                for (CortexEdge e : g.outgoingEdgesOf(v)) {
+                    if (e.getColor() == c) {
+                        vs.add(g.getEdgeTarget(e).getKmerAsString());
+                    }
+                }
+
+                Set<String> remainingNext = convertToStrings(TraversalUtils.getAllNextKmers(v.getCortexRecord(), !v.getKmerAsString().equals(v.getCanonicalKmer().getKmerAsString())).get(c));
+                remainingNext.removeAll(vs);
+
+                if (remainingNext.size() > 0) {
+                    sources.add(v.getKmerAsString());
+                }
+
+                Set<String> vp = new HashSet<>();
+                for (CortexEdge e : g.incomingEdgesOf(v)) {
+                    if (e.getColor() == c) {
+                        vp.add(g.getEdgeSource(e).getKmerAsString());
+                    }
+                }
+
+                Set<String> remainingPrev = convertToStrings(TraversalUtils.getAllPrevKmers(v.getCortexRecord(), !v.getKmerAsString().equals(v.getCanonicalKmer().getKmerAsString())).get(c));
+                remainingPrev.removeAll(vp);
+
+                if (remainingPrev.size() > 0) {
+                    sinks.add(v.getKmerAsString());
+                }
+            }
+
+            TraversalEngine ef = new TraversalEngineFactory()
+                    .traversalColors(c)
+                    .traversalDirection(FORWARD)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
+                    .graph(graph)
+                    .links(links)
+                    .make();
+
+            TraversalEngine er = new TraversalEngineFactory()
+                    .traversalColors(c)
+                    .traversalDirection(REVERSE)
+                    .combinationOperator(OR)
+                    .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
+                    .graph(graph)
+                    .links(links)
+                    .make();
+
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gFill = ef.dfs(sources, sinks);
+            if (gFill == null) {
+                gFill = er.dfs(sinks, sources);
+            }
+
+            if (gFill != null) {
+                Graphs.addGraph(g, gFill);
+            }
+
+            Graphs.addGraph(gAll, g);
+        }
+
+        return gAll;
+    }
+
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> fillGaps(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, CortexGraph graph, List<CortexLinks> links, Set<Integer> colors) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> gFilled = new DirectedWeightedPseudograph<>(CortexEdge.class);
         Graphs.addGraph(gFilled, g);
 
-        for (int c = 0; c < graph.getNumColors(); c++) {
+        Set<String> availableVertices = new HashSet<>();
+
+        for (CortexEdge e : g.edgeSet()) {
+            CortexVertex v0 = g.getEdgeSource(e);
+            CortexVertex v1 = g.getEdgeTarget(e);
+
+            availableVertices.add(v0.getKmerAsString());
+            availableVertices.add(v1.getKmerAsString());
+
+            Map<Integer, Set<CortexByteKmer>> anks = TraversalUtils.getAllNextKmers(v0.getCortexRecord(), !v0.getKmerAsString().equals(v0.getCanonicalKmer().getKmerAsString()));
+            for (int c : colors) {
+                Set<String> nks = convertToStrings(anks.get(c));
+
+                if (nks.contains(v1.getKmerAsString())) {
+                    gFilled.addEdge(v0, v1, new CortexEdge(v0, v1, c, 1.0));
+                }
+            }
+        }
+
+        for (int c : colors) {
             Set<String> sources = new HashSet<>();
             Set<String> sinks = new HashSet<>();
 
@@ -39,8 +243,17 @@ public class TraversalUtils {
                 remainingNext.removeAll(vs);
 
                 if (remainingNext.size() > 0) {
-                    sources.add(v.getKmerAsString());
-                    //sources.addAll(remainingNext);
+//                    boolean presentInGraph = false;
+//                    for (String rn : remainingNext) {
+//                        if (availableVertices.contains(rn)) {
+//                            presentInGraph = true;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (presentInGraph) {
+                        sources.add(v.getKmerAsString());
+//                    }
                 }
 
                 Set<String> vp = new HashSet<>();
@@ -54,25 +267,36 @@ public class TraversalUtils {
                 remainingPrev.removeAll(vp);
 
                 if (remainingPrev.size() > 0) {
-                    sinks.add(v.getKmerAsString());
-                    //sinks.addAll(remainingPrev);
+//                    boolean presentInGraph = false;
+//                    for (String rp : remainingPrev) {
+//                        if (availableVertices.contains(rp)) {
+//                            presentInGraph = true;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (presentInGraph) {
+                        sinks.add(v.getKmerAsString());
+//                    }
                 }
             }
 
             TraversalEngine ef = new TraversalEngineFactory()
-                    .traversalColor(c)
+                    .traversalColors(c)
                     .traversalDirection(FORWARD)
                     .combinationOperator(OR)
                     .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
                     .graph(graph)
                     .links(links)
                     .make();
 
             TraversalEngine er = new TraversalEngineFactory()
-                    .traversalColor(c)
+                    .traversalColors(c)
                     .traversalDirection(REVERSE)
                     .combinationOperator(OR)
                     .stoppingRule(DestinationStopper.class)
+                    .maxBranchLength(1000)
                     .graph(graph)
                     .links(links)
                     .make();
@@ -100,7 +324,7 @@ public class TraversalUtils {
         return es;
     }
 
-    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(List<CortexVertex> walk) {
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> toGraph(List<CortexVertex> walk, Set<Integer> colors) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         CortexVertex pv = walk.get(0);
@@ -111,7 +335,7 @@ public class TraversalUtils {
 
             g.addVertex(nv);
 
-            for (int c = 0; c < pv.getCortexRecord().getNumColors(); c++) {
+            for (int c : colors) {
                 if (pv.getCortexRecord().getCoverage(c) > 0 && nv.getCortexRecord().getCoverage(c) > 0) {
                     g.addEdge(pv, nv, new CortexEdge(pv, nv, c, 1.0));
                 }
@@ -121,6 +345,23 @@ public class TraversalUtils {
         }
 
         return g;
+    }
+
+    public static DirectedWeightedPseudograph<CortexVertex, CortexEdge> subsetGraph(DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, int color) {
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gs = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
+        for (CortexEdge e : g.edgeSet()) {
+            if (e.getColor() == color) {
+                CortexVertex s = g.getEdgeSource(e);
+                CortexVertex t = g.getEdgeTarget(e);
+
+                gs.addVertex(s);
+                gs.addVertex(t);
+                gs.addEdge(s, t, e);
+            }
+        }
+
+        return gs;
     }
 
     public static String toContig(List<CortexVertex> walk) {
@@ -161,7 +402,6 @@ public class TraversalUtils {
             Set<CortexVertex> seen = new HashSet<>();
             CortexVertex cv = seed;
             while (cv != null && !seen.contains(cv)) {
-                //List<CortexVertex> nvs = Graphs.successorListOf(g, cv)
                 List<CortexVertex> nvs = new ArrayList<>();
                 for (CortexEdge e : g.outgoingEdgesOf(cv)) {
                     if (e.getColor() == color) {
@@ -204,7 +444,6 @@ public class TraversalUtils {
             seen = new HashSet<>();
             cv = seed;
             while (cv != null && !seen.contains(cv)) {
-                //List<CortexVertex> pvs = Graphs.predecessorListOf(g, cv);
                 List<CortexVertex> pvs = new ArrayList<>();
                 for (CortexEdge e : g.incomingEdgesOf(cv)) {
                     if (e.getColor() == color) {

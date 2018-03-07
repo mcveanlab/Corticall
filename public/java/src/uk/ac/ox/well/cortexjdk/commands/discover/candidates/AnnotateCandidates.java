@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.call;
+package uk.ac.ox.well.cortexjdk.commands.discover.candidates;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.fastq.FastqRecord;

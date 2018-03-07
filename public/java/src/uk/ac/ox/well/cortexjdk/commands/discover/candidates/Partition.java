@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.call;
+package uk.ac.ox.well.cortexjdk.commands.discover.candidates;
 
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -34,7 +34,7 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
-public class ExploreCandidates extends Module {
+public class Partition extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 
@@ -71,7 +71,7 @@ public class ExploreCandidates extends Module {
                 .create();
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(getTraversalColor(GRAPH, ROIS))
+                .traversalColors(getTraversalColor(GRAPH, ROIS))
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
                 .graph(GRAPH)
@@ -214,7 +214,7 @@ public class ExploreCandidates extends Module {
 
                     for (String iv : ivs) {
                         TraversalEngine ef = new TraversalEngineFactory()
-                                .traversalColor(c)
+                                .traversalColors(c)
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
                                 .graph(GRAPH)
@@ -230,7 +230,7 @@ public class ExploreCandidates extends Module {
 
                         if (g == null) {
                             TraversalEngine eb = new TraversalEngineFactory()
-                                    .traversalColor(c)
+                                    .traversalColors(c)
                                     .traversalDirection(REVERSE)
                                     .combinationOperator(OR)
                                     .graph(GRAPH)

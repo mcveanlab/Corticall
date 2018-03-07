@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.roi;
+package uk.ac.ox.well.cortexjdk.commands.discover.roi;
 
 import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;

@@ -12,7 +12,12 @@ public class NovelKmerAggregationStopper extends AbstractTraversalStoppingRule<C
 
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        boolean childHasCoverage = s.getCurrentVertex().getCortexRecord().getCoverage(s.getTraversalColor()) > 0;
+        boolean childHasCoverage = false;
+
+        for (int c : s.getTraversalColors()) {
+            childHasCoverage |= s.getCurrentVertex().getCortexRecord().getCoverage(c) > 0;
+        }
+
         boolean parentsHaveCoverage = false;
 
         for (int c : s.getJoiningColors()) {

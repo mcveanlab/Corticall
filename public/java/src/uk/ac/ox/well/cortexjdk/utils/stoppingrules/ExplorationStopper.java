@@ -7,7 +7,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalState;
 public class ExplorationStopper extends AbstractTraversalStoppingRule<CortexVertex, CortexEdge> {
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
-        return (s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || s.getCurrentJunctionDepth() >= 5);
+        return (s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || s.getCurrentJunctionDepth() >= 3);
     }
 
     @Override

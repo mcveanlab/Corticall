@@ -70,7 +70,7 @@ public class FindUnanchored extends Module {
                 .make(log);
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .joiningColors(parentColors)
                 .combinationOperator(TraversalEngineConfiguration.GraphCombinationOperator.OR)
                 .traversalDirection(TraversalEngineConfiguration.TraversalDirection.BOTH)

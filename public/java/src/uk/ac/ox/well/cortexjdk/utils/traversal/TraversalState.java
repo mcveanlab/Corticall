@@ -9,7 +9,7 @@ import java.util.Set;
 final public class TraversalState<V> {
     final private V currentVertex;
     final private boolean goForward;
-    final private int traversalColor;
+    final private Set<Integer> traversalColors;
     final private Set<Integer> joiningColors;
     final private int currentJunctionDepth;
     final private int currentGraphSize;
@@ -21,7 +21,7 @@ final public class TraversalState<V> {
 
     public TraversalState(V currentVertex,
                           boolean goForward,
-                          int traversalColor,
+                          Set<Integer> traversalColors,
                           Set<Integer> joiningColors,
                           int currentJunctionDepth,
                           int currentGraphSize,
@@ -33,7 +33,7 @@ final public class TraversalState<V> {
     ) {
         this.currentVertex = currentVertex;
         this.goForward = goForward;
-        this.traversalColor = traversalColor;
+        this.traversalColors = traversalColors;
         this.joiningColors = joiningColors;
         this.currentJunctionDepth = currentJunctionDepth;
         this.currentGraphSize = currentGraphSize;
@@ -51,7 +51,7 @@ final public class TraversalState<V> {
 
     public boolean goForward() { return goForward; }
 
-    public int getTraversalColor() { return traversalColor; }
+    public Set<Integer> getTraversalColors() { return traversalColors; }
 
     public Set<Integer> getJoiningColors() { return joiningColors; }
 

@@ -37,7 +37,7 @@ public class BubbleCaller {
         this.bc = bc;
 
         eOpen = new TraversalEngineFactory()
-                .traversalColor(bc.getAlternateColor())
+                .traversalColors(bc.getAlternateColor())
                 .joiningColors(bc.getReferenceColors())
                 .traversalDirection(BOTH)
                 .combinationOperator(AND)
@@ -49,7 +49,7 @@ public class BubbleCaller {
 
         for (int pc : bc.getReferenceColors()) {
             TraversalEngine eClose = new TraversalEngineFactory()
-                    .traversalColor(pc)
+                    .traversalColors(pc)
                     .joiningColors(bc.getReferenceColors())
                     .traversalDirection(FORWARD)
                     .combinationOperator(OR)
@@ -76,7 +76,7 @@ public class BubbleCaller {
     }
 
     /*
-    public Set<Bubble> call(String seed) {
+    public Set<Bubble> candidates(String seed) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> gc = eOpen.dfs(seed);
 
         Set<Bubble> bubbles = new HashSet<>();

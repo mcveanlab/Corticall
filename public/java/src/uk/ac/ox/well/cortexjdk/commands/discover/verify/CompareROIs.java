@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.verify;
+package uk.ac.ox.well.cortexjdk.commands.discover.verify;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;

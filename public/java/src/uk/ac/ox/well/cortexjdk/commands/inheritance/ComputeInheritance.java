@@ -98,7 +98,7 @@ public class ComputeInheritance extends Module {
         for (int c : childColors) {
             CortexRecord cr = GRAPH.findRecord(ck);
             if (cr.getCoverage(c) > 0) {
-                e.getConfiguration().setTraversalColor(c);
+                e.getConfiguration().setTraversalColors(c);
 
                 int parentThatSharesChildAllele = -1;
                 int parentThatDoesNotShareChildAllele = -1;
@@ -139,7 +139,7 @@ public class ComputeInheritance extends Module {
                 }
 
                 if (source != null && destination != null) {
-                    e.getConfiguration().setTraversalColor(parentThatDoesNotShareChildAllele);
+                    e.getConfiguration().setTraversalColors(parentThatDoesNotShareChildAllele);
 
                     List<CortexVertex> contigParent = new ArrayList<>();
                     contigParent.add(source);

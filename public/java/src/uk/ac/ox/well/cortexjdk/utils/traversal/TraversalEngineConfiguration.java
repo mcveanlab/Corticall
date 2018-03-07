@@ -6,10 +6,8 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.TraversalStoppingRule;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Created by kiran on 05/05/2017.
@@ -18,7 +16,7 @@ public class TraversalEngineConfiguration {
     public enum GraphCombinationOperator { AND, OR }
     public enum TraversalDirection { BOTH, FORWARD, REVERSE }
 
-    private int traversalColor = -1;
+    private Set<Integer> traversalColors = new LinkedHashSet<>();
     private Set<Integer> joiningColors = new TreeSet<>();
     private Set<Integer> recruitmentColors = new TreeSet<>();
     private Set<Integer> secondaryColors = new TreeSet<>();
@@ -45,18 +43,21 @@ public class TraversalEngineConfiguration {
     public boolean connectAllNeighbors() { return connectAllNeighbors; }
     public void setConnectAllNeighbors(boolean connectAllNeighbors) { this.connectAllNeighbors = connectAllNeighbors; }
 
-    public int getTraversalColor() { return traversalColor; }
-    public void setTraversalColor(int traversalColor) { this.traversalColor = traversalColor; }
+    public Set<Integer> getTraversalColors() { return traversalColors; }
+    public void setTraversalColors(Collection<Integer> traversalColors) { this.traversalColors = new LinkedHashSet<>(traversalColors); }
+    public void setTraversalColors(int... traversalColors) { Arrays.stream(traversalColors).forEach(c -> this.traversalColors.add(c)); }
 
     public Set<Integer> getJoiningColors() { return joiningColors; }
     public void setJoiningColors(Collection<Integer> joiningColors) { this.joiningColors = new TreeSet<>(joiningColors); }
+    public void setJoiningColors(int... joiningColors) { Arrays.stream(joiningColors).forEach(c -> this.joiningColors.add(c)); }
 
     public Set<Integer> getRecruitmentColors() { return recruitmentColors; }
     public void setRecruitmentColors(Collection<Integer> recruitmentColors) { this.recruitmentColors = new TreeSet<>(recruitmentColors); }
-    public void setRecruitmentColors(int recruitmentColor) { this.recruitmentColors = new TreeSet<>(); this.recruitmentColors.add(recruitmentColor); }
+    public void setRecruitmentColors(int... recruitmentColors) { Arrays.stream(recruitmentColors).forEach(c -> this.recruitmentColors.add(c)); }
 
     public Set<Integer> getSecondaryColors() { return secondaryColors; }
     public void setSecondaryColors(Collection<Integer> secondaryColors) { this.secondaryColors = new TreeSet<>(secondaryColors); }
+    public void setSecondaryColors(int... secondaryColors) { Arrays.stream(secondaryColors).forEach(c -> this.secondaryColors.add(c)); }
 
     public Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> getStoppingRule() { return stoppingRule; }
     public void setStoppingRule(Class<? extends TraversalStoppingRule<CortexVertex, CortexEdge>> stoppingRule) { this.stoppingRule = stoppingRule; }

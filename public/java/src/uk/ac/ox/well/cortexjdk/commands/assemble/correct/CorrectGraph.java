@@ -62,8 +62,8 @@ public class CorrectGraph extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                //.traversalColor(0)
-                .traversalColor(1)
+                //.traversalColors(0)
+                .traversalColors(1)
                 .recruitmentColors(refColors)
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)

@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.recover;
+package uk.ac.ox.well.cortexjdk.commands.discover.recover;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;

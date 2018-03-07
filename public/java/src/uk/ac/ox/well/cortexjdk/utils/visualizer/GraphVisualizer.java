@@ -96,7 +96,7 @@ public class GraphVisualizer {
             wr.flush();
             wr.close();
 
-            //return con.getResponseCode();
+            con.getResponseCode();
         } catch (MalformedURLException e) {
             throw new CortexJDKException("Malformed URL", e);
         } catch (IOException e) {

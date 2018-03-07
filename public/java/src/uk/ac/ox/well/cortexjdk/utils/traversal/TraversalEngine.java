@@ -44,10 +44,12 @@ public class TraversalEngine {
         for (String source : sources) {
             DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = dfs(source, asinks);
 
-            if (dfs == null) {
-                dfs = g;
-            } else {
-                Graphs.addGraph(dfs, g);
+            if (g != null) {
+                if (dfs == null) {
+                    dfs = g;
+                } else {
+                    Graphs.addGraph(dfs, g);
+                }
             }
         }
 
@@ -93,9 +95,9 @@ public class TraversalEngine {
         return null;
     }
 
-    public List<CortexVertex> walk(CanonicalKmer seed) { return TraversalUtils.toWalk(dfs(seed.getKmerAsString()), seed.getKmerAsString(), ec.getTraversalColor()); }
+    public List<CortexVertex> walk(CanonicalKmer seed) { return TraversalUtils.toWalk(dfs(seed.getKmerAsString()), seed.getKmerAsString(), ec.getTraversalColors().iterator().next()); }
 
-    public List<CortexVertex> walk(String seed) { return TraversalUtils.toWalk(dfs(seed), seed, ec.getTraversalColor()); }
+    public List<CortexVertex> walk(String seed) { return TraversalUtils.toWalk(dfs(seed), seed, ec.getTraversalColors().iterator().next()); }
 
     public List<CortexVertex> assemble(String seed) {
         List<CortexVertex> contig = new ArrayList<>();
@@ -137,8 +139,13 @@ public class TraversalEngine {
 
         Map<Integer, Set<CortexByteKmer>> prevKmers = getAllPrevKmers(sk);
 
-        if (prevKmers.get(ec.getTraversalColor()).size() > 0) {
-            for (CortexByteKmer prevKmer : prevKmers.get(ec.getTraversalColor())) {
+        Set<CortexByteKmer> combinedPrevKmers = new HashSet<>();
+        for (int c : ec.getTraversalColors()) {
+            combinedPrevKmers.addAll(prevKmers.get(c));
+        }
+
+        if (combinedPrevKmers.size() > 0) {
+            for (CortexByteKmer prevKmer : combinedPrevKmers) {
                 prevVertices.add(new CortexVertexFactory()
                         .bases(prevKmer)
                         .record(ec.getGraph().findRecord(prevKmer))
@@ -176,8 +183,14 @@ public class TraversalEngine {
         Set<CortexVertex> nextVertices = new HashSet<>();
 
         Map<Integer, Set<CortexByteKmer>> nextKmers = getAllNextKmers(sk);
-        if (nextKmers.get(ec.getTraversalColor()).size() > 0) {
-            for (CortexByteKmer nextKmer : nextKmers.get(ec.getTraversalColor())) {
+
+        Set<CortexByteKmer> combinedNextKmers = new HashSet<>();
+        for (int c : ec.getTraversalColors()) {
+            combinedNextKmers.addAll(nextKmers.get(c));
+        }
+
+        if (combinedNextKmers.size() > 0) {
+            for (CortexByteKmer nextKmer : combinedNextKmers) {
                 nextVertices.add(new CortexVertexFactory()
                         .bases(nextKmer)
                         .record(ec.getGraph().findRecord(nextKmer))
@@ -398,23 +411,23 @@ public class TraversalEngine {
             visited.add(cv);
 
             // Decide if we should keep exploring the graph or not
-            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
 
             if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
-                    if (goForward) { connectVertex(g, cv, null, avs);  }
-                    else           { connectVertex(g, cv, avs,  null); }
+                    if (goForward) { connectVertex(g, cv, null, avs); }
+                    else           { connectVertex(g, cv, avs, null); }
 
                     cv = avs.iterator().next();
                 } else {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited, sinks);
 
                         if (branch != null) {
-                            if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av));  }
-                            else           { connectVertex(branch, cv, Collections.singleton(av),  null); }
+                            if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av)); }
+                            else           { connectVertex(branch, cv, Collections.singleton(av), null); }
 
                             Graphs.addGraph(g, branch);
                             childrenWereSuccessful = true;
@@ -423,7 +436,7 @@ public class TraversalEngine {
                         }
                     }
 
-                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColor(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
 
                     if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
                         return g;
@@ -459,7 +472,7 @@ public class TraversalEngine {
                 g.addVertex(pv);
 
                 if (!g.containsEdge(pv, cv)) {
-                    g.addEdge(pv, cv, new CortexEdge(pv, cv, ec.getTraversalColor(), 1.0));
+                    g.addEdge(pv, cv, new CortexEdge(pv, cv, ec.getTraversalColors().iterator().next(), 1.0));
                 }
             }
         }
@@ -469,7 +482,7 @@ public class TraversalEngine {
                 g.addVertex(nv);
 
                 if (!g.containsEdge(cv, nv)) {
-                    g.addEdge(cv, nv, new CortexEdge(cv, nv, ec.getTraversalColor(), 1.0));
+                    g.addEdge(cv, nv, new CortexEdge(cv, nv, ec.getTraversalColors().iterator().next(), 1.0));
                 }
             }
         }
@@ -508,9 +521,15 @@ public class TraversalEngine {
     private void initializeLinkStore(boolean goForward) {
         specificLinksFiles = new HashSet<>();
 
+        Set<String> traversalSamples = new HashSet<>();
+        for (int c : ec.getTraversalColors()) {
+            traversalSamples.add(ec.getGraph().getSampleName(c));
+        }
+
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : ec.getLinks()) {
-                if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
+                //if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColors()))) {
+                if (traversalSamples.contains(lm.getHeader().getSampleNameForColor(0))) {
                     specificLinksFiles.add(lm);
 
                     CanonicalKmer ck = new CanonicalKmer(curKmer.getKmer());
@@ -523,10 +542,16 @@ public class TraversalEngine {
     }
 
     private void updateLinkStore(boolean goForward) {
+        Set<String> traversalSamples = new HashSet<>();
+        for (int c : ec.getTraversalColors()) {
+            traversalSamples.add(ec.getGraph().getSampleName(c));
+        }
+
         specificLinksFiles = new HashSet<>();
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : ec.getLinks()) {
-                if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColor()))) {
+                //if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColors()))) {
+                if (traversalSamples.contains(lm.getHeader().getSampleNameForColor(0))) {
                     specificLinksFiles.add(lm);
 
                     if (goForward) {
@@ -554,7 +579,7 @@ public class TraversalEngine {
             Map<CortexByteKmer, Map<Integer, Set<CortexByteKmer>>> nkscache = new HashMap<>();
 
             for (int c : ec.getSecondaryColors()) {
-                if (c != ec.getTraversalColor()) {
+                if (!ec.getTraversalColors().contains(c)) {
                     DirectedWeightedPseudograph<CortexVertex, CortexEdge> g2 = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
                     for (CortexVertex v : g.vertexSet()) {

@@ -8,9 +8,13 @@ public class OrphanStopper extends AbstractTraversalStoppingRule<CortexVertex, C
     @Override
     public boolean hasTraversalSucceeded(TraversalState<CortexVertex> s) {
         // We should accept this branch if we make it to the end of our traversal and there are no more edges to navigate
+        boolean hasNoIncomingEdges = false;
+        boolean hasNoOutgoingEdges = false;
+        for (int c : s.getTraversalColors()) {
+            hasNoIncomingEdges |= s.getCurrentVertex().getCortexRecord().getInDegree(c) == 0;
+            hasNoOutgoingEdges |= s.getCurrentVertex().getCortexRecord().getOutDegree(c) == 0;
 
-        boolean hasNoIncomingEdges = s.getCurrentVertex().getCortexRecord().getInDegree(s.getTraversalColor()) == 0;
-        boolean hasNoOutgoingEdges = s.getCurrentVertex().getCortexRecord().getOutDegree(s.getTraversalColor()) == 0;
+        }
 
         return hasNoIncomingEdges || hasNoOutgoingEdges;
     }

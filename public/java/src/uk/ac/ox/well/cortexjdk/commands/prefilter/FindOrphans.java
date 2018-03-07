@@ -25,7 +25,7 @@ import java.util.Set;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 
-@Description(text="Find chains of orphaned kmers (those that don't ever connect to parents)")
+@Description(text="Find chains of orphaned kmers (those that don't ever weight to parents)")
 public class FindOrphans extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
@@ -66,7 +66,7 @@ public class FindOrphans extends Module {
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalDirection(BOTH)
                 .combinationOperator(AND)
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .joiningColors(parentColors)
                 .stoppingRule(OrphanStopper.class)
                 .rois(ROI)

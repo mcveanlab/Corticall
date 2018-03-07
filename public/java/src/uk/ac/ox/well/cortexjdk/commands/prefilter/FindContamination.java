@@ -74,7 +74,7 @@ public class FindContamination extends Module {
         TraversalEngine e = new TraversalEngineFactory()
                 .traversalDirection(BOTH)
                 .combinationOperator(OR)
-                .traversalColor(childColor)
+                .traversalColors(childColor)
                 .joiningColors(parentColors)
                 .stoppingRule(ContaminantStopper.class)
                 .rois(ROI)

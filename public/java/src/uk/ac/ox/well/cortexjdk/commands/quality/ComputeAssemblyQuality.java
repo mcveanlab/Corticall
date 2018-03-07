@@ -99,7 +99,7 @@ public class ComputeAssemblyQuality extends Module {
     private Map<String, String> callVariant(CortexCollection cc, int evalColor, int compColor, TraversalEngine e, CanonicalKmer ck) {
         CortexRecord cr = cc.findRecord(ck);
         if (cr.getCoverage(evalColor) > 0) {
-            e.getConfiguration().setTraversalColor(evalColor);
+            e.getConfiguration().setTraversalColors(evalColor);
 
             String sk = ck.getKmerAsString();
             List<CortexVertex> contigEval = new ArrayList<>();
@@ -130,7 +130,7 @@ public class ComputeAssemblyQuality extends Module {
             }
 
             if (source != null && destination != null) {
-                e.getConfiguration().setTraversalColor(compColor);
+                e.getConfiguration().setTraversalColors(compColor);
 
                 List<CortexVertex> contigComp = new ArrayList<>();
                 contigComp.add(source);

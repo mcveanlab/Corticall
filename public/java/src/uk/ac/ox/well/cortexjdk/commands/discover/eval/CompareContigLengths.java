@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.call.eval;
+package uk.ac.ox.well.cortexjdk.commands.discover.eval;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.CigarElement;
@@ -57,7 +57,7 @@ public class CompareContigLengths extends Module {
         }
 
         TraversalEngine eo = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
+                .traversalColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .joiningColors(GRAPH.getColorsForSampleNames(REFERENCES.keySet()))
                 .combinationOperator(OR)
                 .stoppingRule(NovelContinuationStopper.class)
@@ -67,7 +67,7 @@ public class CompareContigLengths extends Module {
                 .make();
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
+                .traversalColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .joiningColors(GRAPH.getColorsForSampleNames(REFERENCES.keySet()))
                 .combinationOperator(OR)
                 .stoppingRule(NovelContinuationStopper.class)
@@ -465,7 +465,7 @@ public class CompareContigLengths extends Module {
         }
 
         TraversalEngine e = new TraversalEngineFactory()
-                .traversalColor(GRAPH.getColorForSampleName(parent))
+                .traversalColors(GRAPH.getColorForSampleName(parent))
                 .joiningColors(GRAPH.getColorForSampleName(ROI.getSampleName(0)))
                 .recruitmentColors(GRAPH.getColorForSampleName(REFERENCES.get(parent).getSources().iterator().next()))
                 .traversalDirection(FORWARD)

@@ -20,8 +20,9 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory connectAllNeighbors(boolean connectAllNeighbors) { configuration.setConnectAllNeighbors(connectAllNeighbors); return this; }
     public TraversalEngineFactory maxBranchLength(int maxLength) { configuration.setMaxWalkLength(maxLength); return this; }
 
-    public TraversalEngineFactory traversalColor() { configuration.setTraversalColor(-1); return this; }
-    public TraversalEngineFactory traversalColor(int color) { configuration.setTraversalColor(color); return this; }
+    public TraversalEngineFactory traversalColors() { configuration.getTraversalColors().clear(); return this; }
+    public TraversalEngineFactory traversalColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getTraversalColors().add(c)); return this; }
+    public TraversalEngineFactory traversalColors(Collection<Integer> colors) { configuration.getTraversalColors().addAll(colors); return this; }
 
     public TraversalEngineFactory joiningColors() { configuration.getJoiningColors().clear(); return this; }
     public TraversalEngineFactory joiningColors(int... colors) { Arrays.stream(colors).forEach(c -> configuration.getJoiningColors().add(c)); return this; }
@@ -49,12 +50,14 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory references(Collection<IndexedReference> lookups) { if (lookups != null) { configuration.getReferences().addAll(lookups); } return this; }
 
     public TraversalEngine make() {
-        if (configuration.getTraversalColor() == -1) {
+        if (configuration.getTraversalColors().size() == 0) {
             throw new CortexJDKException("Traversal color(s) must be specified.");
         }
 
-        if (configuration.getTraversalColor() >= configuration.getGraph().getNumColors()) {
-            throw new CortexJDKException("Traversal colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + configuration.getTraversalColor() + ")");
+        for (int c : configuration.getTraversalColors()) {
+            if (c >= configuration.getGraph().getNumColors()) {
+                throw new CortexJDKException("Traversal colors must be between 0 and " + configuration.getGraph().getNumColors() + " (provided " + c + ")");
+            }
         }
 
         configuration.getJoiningColors().forEach(c -> {
