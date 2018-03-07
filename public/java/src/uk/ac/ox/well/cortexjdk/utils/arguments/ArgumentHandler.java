@@ -25,7 +25,6 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksIterable;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinksMap;
 import uk.ac.ox.well.cortexjdk.utils.io.xmfa.XMFASequenceFile;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.samples.SampleOrganizer;
 
 import java.awt.*;
 import java.io.*;
@@ -309,8 +308,6 @@ public class ArgumentHandler {
                 return new VCFFileReader(new File(value), false);
             } else if (type.equals(Color.class)) {
                 return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
-            } else if (type.equals(SampleOrganizer.class)) {
-                return new SampleOrganizer(value);
             } else if (type.equals(CortexGraphWriter.class)) {
                 return new CortexGraphWriter(value);
             //} else if (type.equals(CortexCollection.class)) {
