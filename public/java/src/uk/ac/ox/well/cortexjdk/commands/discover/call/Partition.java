@@ -1,17 +1,12 @@
-package uk.ac.ox.well.cortexjdk.commands.discover.candidates;
+package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
-import htsjdk.variant.variantcontext.Allele;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.apache.commons.math3.util.Pair;
-import org.jgrapht.graph.DirectedWeightedPseudograph;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
@@ -19,10 +14,8 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
-import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
@@ -31,8 +24,6 @@ import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class Partition extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
@@ -41,17 +32,8 @@ public class Partition extends Module {
     @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
     public ArrayList<CortexLinks> LINKS;
 
-    //@Argument(fullName = "references", shortName = "R", doc = "References", required=false)
-    //public ArrayList<IndexedReference> REFERENCES;
-
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROIS;
-
-    @Argument(fullName = "background", shortName = "b", doc = "Background color name")
-    public HashSet<String> BACKGROUNDS;
-
-    @Argument(fullName = "windowAroundRois", shortName = "w", doc = "Window of consideration around variants")
-    public Integer WINDOW = 100;
 
     @Output
     public File out;
@@ -76,19 +58,11 @@ public class Partition extends Module {
                 .combinationOperator(OR)
                 .graph(GRAPH)
                 .links(LINKS)
-                //.references(REFERENCES)
                 .rois(ROIS)
                 .stoppingRule(NovelContinuationStopper.class)
                 .make();
 
         Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
-//        Map<CanonicalKmer, List<CortexVertex>> usedAll = loadRois(ROIS);
-//        Map<CanonicalKmer, List<CortexVertex>> used = new HashMap<>();
-//        used.put(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC"), usedAll.get(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC")));
-
-        List<Integer> colors = new ArrayList<>();
-        colors.add(getTraversalColor(GRAPH, ROIS));
-        colors.addAll(getBackgroundColors(GRAPH, BACKGROUNDS));
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -98,7 +72,6 @@ public class Partition extends Module {
 
         int numContigs = 0;
         for (CanonicalKmer ck : used.keySet()) {
-        //for (CanonicalKmer ck : Arrays.asList(new CanonicalKmer("AACTTAGGTCTTACTTCTACTAACTTAGGTCTTACATTAACTAACTC"))) {
             pm.update();
 
             if (used.get(ck) == null) {
@@ -107,26 +80,8 @@ public class Partition extends Module {
                 dbContigs.put(numContigs, w.toArray(new CortexVertex[w.size()]));
 
                 Pair<Integer, Integer> numMarked = markUsedRois(used, w);
-                Pair<Integer, Integer> range = getNovelKmerRange(used, w);
 
                 log.info("  * contig={} seed={} len={} numNewlyMarked={} numAlreadyMarked={}", numContigs, ck, w.size(), numMarked.getFirst(), numMarked.getSecond());
-
-                for (int c : colors) {
-                    displayContigAndAnnotations(w, range, c, used);
-
-                    /*
-                    Map<Integer, VariantContext> nvcs = callVariantsAgainstBackground(w, range, c, used);
-
-                    log.info("        backgroundColor={} backgroundName={} nvcs={}", c, GRAPH.getSampleName(c), nvcs.size());
-
-                    for (int offset : nvcs.keySet()) {
-                        log.info("        w={} v0={} v1={} offset={} vc={}", w.size(), range.getFirst(), range.getSecond(), offset, nvcs.get(offset));
-                    }
-
-                    log.info("    ==");
-                    log.info("");
-                    */
-                }
 
                 numContigs++;
             }
@@ -145,6 +100,40 @@ public class Partition extends Module {
         dbOut.close();
     }
 
+    private Pair<Integer, Integer> markUsedRois(Map<CanonicalKmer, List<CortexVertex>> used, List<CortexVertex> w) {
+        int numNewlyMarked = 0, numAlreadyMarked = 0;
+        for (CortexVertex v : w) {
+            if (used.containsKey(v.getCanonicalKmer()) && used.get(v.getCanonicalKmer()) != null) {
+                numAlreadyMarked++;
+            }
+        }
+
+        for (CortexVertex v : w) {
+            if (used.containsKey(v.getCanonicalKmer())) {
+                if ((used.get(v.getCanonicalKmer()) == null || w.size() > used.get(v.getCanonicalKmer()).size())) {
+                    used.put(v.getCanonicalKmer(), w);
+                    numNewlyMarked++;
+                }
+            }
+        }
+
+        return new Pair<>(numNewlyMarked, numAlreadyMarked);
+    }
+
+    private Map<CanonicalKmer, List<CortexVertex>> loadRois(CortexGraph rois) {
+        Map<CanonicalKmer, List<CortexVertex>> used = new HashMap<>();
+        for (CortexRecord cr : rois) {
+            used.put(cr.getCanonicalKmer(), null);
+        }
+
+        return used;
+    }
+
+    private int getTraversalColor(DeBruijnGraph graph, CortexGraph rois) {
+        return graph.getColorForSampleName(rois.getSampleName(0));
+    }
+
+    /*
     private void displayContigAndAnnotations(List<CortexVertex> w, Pair<Integer, Integer> range, int c, Map<CanonicalKmer, List<CortexVertex>> used) {
         StringBuilder t0 = new StringBuilder();
         StringBuilder t1 = new StringBuilder();
@@ -296,21 +285,6 @@ public class Partition extends Module {
         return nvcs;
     }
 
-    private Pair<Integer, Integer> getNovelKmerRange(Map<CanonicalKmer, List<CortexVertex>> used, List<CortexVertex> w) {
-        int q0 = -1, q1 = -1;
-        for (int i = 0; i < w.size(); i++) {
-            if (used.containsKey(w.get(i).getCanonicalKmer())) {
-                if (q0 == -1) { q0 = i; }
-                q1 = i;
-            }
-        }
-
-        int s0 = q0 - WINDOW >= 0 ? q0 - WINDOW : 0;
-        int s1 = q1 + WINDOW < w.size() - 1 ? q1 + WINDOW : w.size() - 1;
-
-        return new Pair<>(s0, s1);
-    }
-
     private List<VariantContext> trimToAlleles(String traversalColorContig, String backgroundColorContig, int offset, String ov, String iv, int numNovels) {
         SmithWaterman sw = new SmithWaterman();
         String[] aligns = sw.getAlignment(traversalColorContig, backgroundColorContig);
@@ -380,39 +354,6 @@ public class Partition extends Module {
         return vc;
     }
 
-    private Pair<Integer, Integer> markUsedRois(Map<CanonicalKmer, List<CortexVertex>> used, List<CortexVertex> w) {
-        int numNewlyMarked = 0, numAlreadyMarked = 0;
-        for (CortexVertex v : w) {
-            if (used.containsKey(v.getCanonicalKmer()) && used.get(v.getCanonicalKmer()) != null) {
-                numAlreadyMarked++;
-            }
-        }
-
-        for (CortexVertex v : w) {
-            if (used.containsKey(v.getCanonicalKmer())) {
-                if ((used.get(v.getCanonicalKmer()) == null || w.size() > used.get(v.getCanonicalKmer()).size())) {
-                    used.put(v.getCanonicalKmer(), w);
-                    numNewlyMarked++;
-                }
-            }
-        }
-
-        return new Pair<>(numNewlyMarked, numAlreadyMarked);
-    }
-
-    private Map<CanonicalKmer, List<CortexVertex>> loadRois(CortexGraph rois) {
-        Map<CanonicalKmer, List<CortexVertex>> used = new HashMap<>();
-        for (CortexRecord cr : rois) {
-            used.put(cr.getCanonicalKmer(), null);
-        }
-
-        return used;
-    }
-
-    private int getTraversalColor(DeBruijnGraph graph, CortexGraph rois) {
-        return graph.getColorForSampleName(rois.getSampleName(0));
-    }
-
     private Collection<Integer> getBackgroundColors(DeBruijnGraph graph, Set<String> parentNames) {
         return graph.getColorsForSampleNames(parentNames);
     }
@@ -432,4 +373,6 @@ public class Partition extends Module {
 
         return remainingEdgeStrs;
     }
+    */
 }
+

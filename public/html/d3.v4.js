@@ -10528,7 +10528,7 @@ var tree = function() {
   // subtree and + means right subtree. For summing up the modifiers along the
   // contour, we use respective variables si+, si-, so-, and so+. Whenever two
   // nodes of the inside contours conflict, we compute the left one of the
-  // greatest uncommon ancestors using the function ANCESTOR and candidates MOVE
+  // greatest uncommon ancestors using the function ANCESTOR and call MOVE
   // SUBTREE to shift the subtree and prepare the shifts of smaller subtrees.
   // Finally, we add a new thread (if necessary).
   function apportion(v, w, ancestor) {

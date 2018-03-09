@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble.trusted;
+package uk.ac.ox.well.cortexjdk.playground.assemble.trusted;
 
 import uk.ac.ox.well.cortexjdk.commands.Module;
 

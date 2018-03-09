@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble.correct;
+package uk.ac.ox.well.cortexjdk.playground.assemble.correct;
 
 import htsjdk.samtools.fastq.FastqRecord;
 import org.apache.commons.math3.util.Pair;

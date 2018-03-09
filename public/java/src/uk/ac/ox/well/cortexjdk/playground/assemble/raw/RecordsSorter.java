@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
+package uk.ac.ox.well.cortexjdk.playground.assemble.raw;
 
 import org.slf4j.Logger;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;

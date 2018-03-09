@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.discover.candidates;
+package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.fastq.FastqRecord;
@@ -21,7 +21,7 @@ import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import java.io.File;
 import java.util.*;
 
-public class AnnotateCandidates extends Module {
+public class AnnotateReads extends Module {
     @Argument(fullName="db", shortName="d", doc="Database")
     public File DB_FILE;
 

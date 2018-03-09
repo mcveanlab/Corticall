@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.assemble.raw;
+package uk.ac.ox.well.cortexjdk.playground.assemble.raw;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;

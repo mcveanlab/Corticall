@@ -76,7 +76,7 @@ public class BubbleCaller {
     }
 
     /*
-    public Set<Bubble> candidates(String seed) {
+    public Set<Bubble> call(String seed) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> gc = eOpen.dfs(seed);
 
         Set<Bubble> bubbles = new HashSet<>();
