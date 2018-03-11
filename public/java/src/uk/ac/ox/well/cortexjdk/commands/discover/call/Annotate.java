@@ -15,6 +15,7 @@ import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.alignment.mosaic.MosaicAligner;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -73,6 +74,12 @@ public class Annotate extends Module {
     @Output(fullName="variantsOut", shortName="vo", doc="Variants out")
     public PrintStream vout;
 
+    @Output(fullName="targetOut", shortName="to", doc="Target out")
+    public PrintStream tout;
+
+    @Output(fullName="panelOut", shortName="po", doc="Panel out")
+    public PrintStream pout;
+
     @Override
     public void execute() {
         log.info("Loading contigs from database...");
@@ -84,6 +91,8 @@ public class Annotate extends Module {
 
         String sample = ROIS.getSampleName(0);
         Set<CanonicalKmer> rois = loadRois(ROIS);
+
+        MosaicAligner ma = new MosaicAligner();
 
         Set<Integer> contigIndices = new TreeSet<>(contigsMap.getKeys());
         for (Integer contigIndex : contigIndices) {
@@ -126,147 +135,28 @@ public class Annotate extends Module {
                 }
             }
 
-            for (BackgroundInference.BackgroundGroup bg : Arrays.asList(PARENT)) {
-                Triple<List<String>, double[][][], List<String>> f = bf.prepare(bg);
-                List<String> stateList = f.getLeft();
-                double[][][] a = f.getMiddle();
-                List<String> stateSeq = f.getRight();
-
-                log.info("  {} {}", stateList.size(), Joiner.on(",").join(stateList));
-
-                //printContigMatrix(contigIndex, rois, ws, a, stateList, stateSeq, bg.toString());
-
-                List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
-
-                List<Integer> acolors = new ArrayList<>();
-                if (bg.equals(PARENT)) {
-                    acolors.addAll(GRAPH.getColorsForSampleNames(MOTHER));
-                    acolors.addAll(GRAPH.getColorsForSampleNames(FATHER));
-                } else {
-                    acolors.addAll(GRAPH.getColorsForSampleNames(REFERENCE.keySet()));
+            Map<String, String> targets = new LinkedHashMap<>();
+            List<Pair<String, Interval>> ls = bf.getStates(PARENT, 10);
+            for (Pair<String, Interval> l : ls) {
+                Interval it = l.getSecond();
+                if (it.getStart() < 0) {
+                    it = new Interval(it.getContig(), 1, it.getEnd(), it.isNegativeStrand(), it.getName());
                 }
 
-                for (Pair<Integer, Integer> region : regions) {
-                    String childContig = "";
-
-                    int offset = 0;
-                    int finalColor = -1;
-                    String contig = "";
-                    int finalDovetail = 0;
-                    String finalOverlap = "";
-
-                    for (int c : acolors) {
-                        TraversalEngine ef = new TraversalEngineFactory()
-                                .traversalColors(c)
-                                .traversalDirection(FORWARD)
-                                .combinationOperator(OR)
-                                .stoppingRule(ContigStopper.class)
-                                .graph(GRAPH)
-                                .links(LINKS)
-                                .make();
-
-                        TraversalEngine er = new TraversalEngineFactory()
-                                .traversalColors(c)
-                                .traversalDirection(REVERSE)
-                                .combinationOperator(OR)
-                                .stoppingRule(ContigStopper.class)
-                                .graph(GRAPH)
-                                .links(LINKS)
-                                .make();
-
-                        for (int expand = 1; expand < 10 && contig.isEmpty(); expand++) {
-                            int left = region.getFirst() - expand;
-                            if (left < 0) { left = 0; }
-
-                            int right = region.getSecond() + expand;
-                            if (right >= ws.size()) { right = ws.size() - 1; }
-
-                            String source = ws.get(left).getKmerAsString();
-                            String sink = ws.get(right).getKmerAsString();
-
-                            List<CortexVertex> wss = new ArrayList<>();
-                            for (int j = left; j <= right; j++) {
-                                wss.add(ws.get(j));
-                            }
-
-                            childContig = TraversalUtils.toContig(wss);
-
-                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = null;
-                            if (g == null) { g = ef.dfs(source, sink); }
-                            if (g == null) { g = er.dfs(sink, source); }
-
-                            if (g != null) {
-                                CortexVertex cvSource = TraversalUtils.findVertex(g, source);
-                                CortexVertex cvSink = TraversalUtils.findVertex(g, sink);
-
-                                if (cvSource != null) {
-                                    if (cvSink == null) {
-                                        List<CortexVertex> cvs = TraversalUtils.toWalk(g, source, c);
-                                        contig = TraversalUtils.toContig(cvs);
-
-                                        int largestDovetail = 0;
-
-                                        for (int dovetail = 1; dovetail < GRAPH.getKmerSize(); dovetail++) {
-                                            String tail = contig.substring(contig.length() - dovetail, contig.length());
-                                            String head = sink.substring(0, dovetail);
-
-                                            if (tail.equals(head) && dovetail > largestDovetail) {
-                                                largestDovetail = dovetail;
-                                                finalOverlap = head;
-                                            }
-                                        }
-
-                                        if (largestDovetail >= 10 && largestDovetail > 0) {
-                                            contig += sink.substring(largestDovetail, sink.length());
-                                            finalDovetail = largestDovetail;
-                                            finalColor = c;
-                                            offset = left;
-                                        }
-                                    } else {
-                                        PathFinder pf = new PathFinder(g, c);
-                                        List<GraphPath<CortexVertex, CortexEdge>> gps = pf.getPaths(cvSource, cvSink);
-
-                                        for (GraphPath<CortexVertex, CortexEdge> gp : gps) {
-                                            List<CortexVertex> cvs = gp.getVertexList();
-                                            contig = TraversalUtils.toContig(cvs);
-                                            finalDovetail = contig.length();
-                                            finalOverlap = contig;
-                                            finalColor = c;
-                                            offset = left;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    log.info("  region: {}-{}", region.getFirst(), region.getSecond());
-                    if (finalColor >= 0) {
-                        log.info("  - {} {} {} {} {} {}",
-                                String.format("%3d", finalColor),
-                                String.format("%-20s", GRAPH.getSampleName(finalColor)),
-                                finalDovetail,
-                                finalOverlap.length(),
-                                contig.length(),
-                                contig
-                        );
-
-                        SmithWaterman sw = new SmithWaterman();
-                        String[] al = sw.getAlignment(childContig, contig);
-
-                        log.info("  - kid {}", al[0]);
-                        log.info("  - par {}", al[1]);
-
-                        List<Triple<Integer, String, String>> calls = call(al);
-
-                        for (Triple<Integer, String, String> call : calls) {
-                            vout.println(Joiner.on("\t").join(contigIndex, call.getLeft() + offset, call.getMiddle(), call.getRight()));
-                        }
-
-                        log.info("");
-                    }
+                int maxLength = BACKGROUNDS.get(l.getFirst()).getReferenceSequence().getSequenceDictionary().getSequence(it.getContig()).getSequenceLength();
+                if (it.getEnd() >= maxLength) {
+                    it = new Interval(it.getContig(), it.getStart(), maxLength - 1, it.isNegativeStrand(), it.getName());
                 }
+
+                String seq = BACKGROUNDS.get(l.getFirst()).find(it);
+                String targetName = l.getFirst() + ":" + it.getContig() + ":" + it.getStart() + "-" + it.getEnd() + ":" + (it.isPositiveStrand() ? "+" : "-");
+                targets.put(targetName, seq);
             }
+
+            ma.align(TraversalUtils.toContig(ws), targets);
+
+            log.info("\n{}", ma);
+
         }
     }
 
@@ -318,53 +208,6 @@ public class Annotate extends Module {
         }
 
         return ws;
-    }
-
-    private void printContigMatrix(int contigIndex, Set<CanonicalKmer> rois, List<CortexVertex> ws, double[][][] a, List<String> stateList, List<String> stateSeq, String suffix) {
-        Map<Integer, String> stateMap = new HashMap<>();
-        for (int i = 0; i < stateList.size(); i++) {
-            stateMap.put(i, stateList.get(i));
-        }
-
-        try {
-            PrintStream fout = new PrintStream(out.getAbsolutePath() + "/contig" + contigIndex + "." + suffix + ".matrix.txt");
-
-            for (int i = 0; i < a.length; i++) {
-                for (int s0 = 0; s0 < a[i].length; s0++) {
-                    for (int s1 = 0; s1 < a[i][s0].length; s1++) {
-                        String n0 = stateMap.get(s0);
-                        String n1 = stateMap.get(s1);
-
-                        fout.println(Joiner.on("\t").join(i, s0, s1, n0, n1, a[i][s0][s1], rois.contains(ws.get(i).getCanonicalKmer())));
-                    }
-                }
-            }
-
-            fout.close();
-
-            PrintStream pout = new PrintStream(out.getAbsolutePath() + "/contig" + contigIndex + "." + suffix + ".path.txt");
-
-            int sampleColor = GRAPH.getColorForSampleName(ROIS.getSampleName(0));
-            for (int i = 0; i < a.length; i++) {
-                int covChild = ws.get(i).getCortexRecord().getCoverage(sampleColor);
-
-                int covMother = 0;
-                for (int c : GRAPH.getColorsForSampleNames(MOTHER)) {
-                    covMother = Math.max(covMother, ws.get(i).getCortexRecord().getCoverage(c));
-                }
-
-                int covFather = 0;
-                for (int c : GRAPH.getColorsForSampleNames(FATHER)) {
-                    covFather = Math.max(covFather, ws.get(i).getCortexRecord().getCoverage(c));
-                }
-
-                pout.println(Joiner.on("\t").join(i, stateList.indexOf(stateSeq.get(i)), stateSeq.get(i), ws.get(i).getKmerAsString(), covChild, covMother, covFather));
-            }
-
-            pout.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
     }
 
     @NotNull
