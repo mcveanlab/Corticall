@@ -176,8 +176,8 @@ public class Call extends Module {
 
                                 for (int k = variantStart - GRAPH.getKmerSize(); k < variantStart + childAllele.length() + GRAPH.getKmerSize(); k++) {
                                     if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
-                                        log.info("debug: {} {}", k, childContig.length());
-                                        String qrs = childContig.substring(k, contig.length());
+                                        //log.info("debug: {} {}", k, childContig.length());
+                                        String qrs = childContig.substring(k, childContig.length() - 1);
                                         qrs = qrs.replaceAll("-", "");
                                         if (qrs.length() > GRAPH.getKmerSize()) {
                                             CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
