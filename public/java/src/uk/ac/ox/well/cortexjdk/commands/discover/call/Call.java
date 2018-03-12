@@ -143,7 +143,7 @@ public class Call extends Module {
 
                 MosaicAligner ma = new MosaicAligner();
 
-                List<Pair<String, Interval>> parentIntervals = IntervalCombiner.getIntervals(ws, BACKGROUNDS, 100, 10);
+                List<Pair<String, Interval>> parentIntervals = IntervalCombiner.getIntervals(ws, BACKGROUNDS, 100, 5);
 
                 for (int f = 0; f < parentIntervals.size(); f++) {
                     log.info("{} {} {}", f, parentIntervals.get(f).getFirst(), parentIntervals.get(f).getSecond());
