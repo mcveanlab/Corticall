@@ -144,6 +144,11 @@ public class Call extends Module {
                 MosaicAligner ma = new MosaicAligner();
 
                 List<Pair<String, Interval>> parentIntervals = IntervalCombiner.getIntervals(ws, BACKGROUNDS, 100, 10);
+
+                for (int f = 0; f < parentIntervals.size(); f++) {
+                    log.info("{} {} {}", f, parentIntervals.get(f).getFirst(), parentIntervals.get(f).getSecond());
+                }
+
                 Map<String, String> parentTracks = loadSequences(parentIntervals, BACKGROUNDS);
                 List<Pair<String, String>> pAlignments = ma.align(contig, parentTracks);
                 //log.info("\n{}", ma);
