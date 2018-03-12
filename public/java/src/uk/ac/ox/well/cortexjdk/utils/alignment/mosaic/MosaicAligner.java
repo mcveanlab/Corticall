@@ -2,7 +2,6 @@ package uk.ac.ox.well.cortexjdk.utils.alignment.mosaic;
 
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.math3.util.Pair;
-import uk.ac.ox.well.cortexjdk.Main;
 
 import java.util.*;
 

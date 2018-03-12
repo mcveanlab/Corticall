@@ -86,192 +86,230 @@ public class Call extends Module {
         int sampleColor = GRAPH.getColorForSampleName(ROIS.getSampleName(0));
 
         Set<Integer> contigIndices = new TreeSet<>(contigsMap.getKeys());
+        int variantIndex = 0;
         for (Integer contigIndex : contigIndices) {
             List<CortexVertex> w = getWalk(contigsMap, contigIndex);
-            List<CortexVertex> ws = subsetContig(rois, w, 100);
+            List<CortexVertex> as = subsetContig(rois, w, 100);
 
-            String contig = TraversalUtils.toContig(ws);
+            List<List<CortexVertex>> pieces = new ArrayList<>();
+            if (as.size() > 1500) {
+                for (int i = 0; i < as.size(); i++) {
+                    if (rois.contains(as.get(i).getCanonicalKmer())) {
+                        int left = 0, right = 0;
 
-            log.info("contig {}/{}: {} ({})", contigIndex, contigsMap.size(), w.size(), ws.size());
+                        int windowLeft = i - 100;
+                        for (left = i - 1; left > 0 && left >= windowLeft; left--) {
+                            if (rois.contains(as.get(left).getCanonicalKmer())) {
+                                windowLeft = left - 100;
+                            }
+                        }
 
-            /*
-            List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
-            Map<String, String> asmTracks = new HashMap<>();
-            for (Set<String> css : Arrays.asList(MOTHER, FATHER)) {
-                List<CortexVertex> lv = getParentalContig(sampleColor, ws, regions, css);
+                        int windowRight = i + 100;
+                        for (right = i + 1; right < as.size() - 2 && right <= windowRight; right++) {
+                            if (rois.contains(as.get(right).getCanonicalKmer())) {
+                                windowRight = right + 100;
+                            }
+                        }
 
-                String lc = TraversalUtils.toContig(lv);
+                        pieces.add(as.subList(left, right));
 
-                if (!lc.equals(contig)) {
-                    asmTracks.put(css.iterator().next(), TraversalUtils.toContig(lv));
+                        i = right;
+                    }
                 }
+            } else {
+                pieces.add(as);
             }
-            List<Pair<String, String>> aAlignments = ma.align(contig, asmTracks);
-            log.info("\n{}", ma);
-            */
 
-            MosaicAligner ma = new MosaicAligner();
+            for (List<CortexVertex> ws : pieces) {
+                String contig = TraversalUtils.toContig(ws);
 
-            List<Pair<String, Interval>> parentIntervals = IntervalCombiner.getIntervals(ws, BACKGROUNDS, 100, 10);
-            Map<String, String> parentTracks = loadSequences(parentIntervals, BACKGROUNDS);
-            List<Pair<String, String>> pAlignments = ma.align(contig, parentTracks);
-            //log.info("\n{}", ma);
+                log.info("contig {}/{}: {} ({})", contigIndex, contigsMap.size(), w.size(), ws.size());
 
-            StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', pAlignments.get(0).getSecond().length()));
-            int numKmersMarked = 0;
-            for (int i = 0; i <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize(); i++) {
-                int gapsize = GRAPH.getKmerSize() - pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize()).replaceAll("-", "").length();
+                /*
+                List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
+                Map<String, String> asmTracks = new HashMap<>();
+                for (Set<String> css : Arrays.asList(MOTHER, FATHER)) {
+                    List<CortexVertex> lv = getParentalContig(sampleColor, ws, regions, css);
 
-                if (i + GRAPH.getKmerSize() + gapsize <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize()) {
-                    CanonicalKmer ck = new CanonicalKmer(pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize() + gapsize).replaceAll("-", ""));
+                    String lc = TraversalUtils.toContig(lv);
 
-                    if (rois.contains(ck)) {
-                        numKmersMarked++;
-                        for (int j = i; j < i + GRAPH.getKmerSize() + gapsize; j++) {
-                            sb.setCharAt(j, 'v');
+                    if (!lc.equals(contig)) {
+                        asmTracks.put(css.iterator().next(), TraversalUtils.toContig(lv));
+                    }
+                }
+                List<Pair<String, String>> aAlignments = ma.align(contig, asmTracks);
+                log.info("\n{}", ma);
+                */
+
+                MosaicAligner ma = new MosaicAligner();
+
+                List<Pair<String, Interval>> parentIntervals = IntervalCombiner.getIntervals(ws, BACKGROUNDS, 100, 10);
+                Map<String, String> parentTracks = loadSequences(parentIntervals, BACKGROUNDS);
+                List<Pair<String, String>> pAlignments = ma.align(contig, parentTracks);
+                //log.info("\n{}", ma);
+
+                StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', pAlignments.get(0).getSecond().length()));
+                int numKmersMarked = 0;
+                for (int i = 0; i <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize(); i++) {
+                    int gapsize = GRAPH.getKmerSize() - pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize()).replaceAll("-", "").length();
+
+                    if (i + GRAPH.getKmerSize() + gapsize <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize()) {
+                        CanonicalKmer ck = new CanonicalKmer(pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize() + gapsize).replaceAll("-", ""));
+
+                        if (rois.contains(ck)) {
+                            numKmersMarked++;
+                            for (int j = i; j < i + GRAPH.getKmerSize() + gapsize; j++) {
+                                sb.setCharAt(j, 'v');
+                            }
                         }
                     }
                 }
-            }
 
-            if (numKmersMarked == 0) {
-                sb = new StringBuilder(StringUtil.repeatCharNTimes('v', pAlignments.get(0).getSecond().length()));
-            }
+                if (numKmersMarked == 0) {
+                    sb = new StringBuilder(StringUtil.repeatCharNTimes('v', pAlignments.get(0).getSecond().length()));
+                }
 
-            log.info("{} {}", sb.toString(), numKmersMarked);
-            for (Pair<String, String> p : pAlignments) {
-                log.info("{} {}", p.getSecond(), p.getFirst());
-            }
+                log.info("{} {}", sb.toString(), numKmersMarked);
+                for (Pair<String, String> p : pAlignments) {
+                    log.info("{} {}", p.getSecond(), p.getFirst());
+                }
 
-            List<Triple<Integer, String, String>> variants = new ArrayList<>();
-            List<Set<CanonicalKmer>> allNovelKmers = new ArrayList<>();
+                List<Triple<Integer, String, String>> variants = new ArrayList<>();
+                List<Set<CanonicalKmer>> allNovelKmers = new ArrayList<>();
 
-            int variantStart = -1;
-            StringBuilder childAllele = new StringBuilder();
-            StringBuilder parentAllele = new StringBuilder();
-            Set<CanonicalKmer> novelKmers = new HashSet<>();
+                int variantStart = -1;
+                StringBuilder childAllele = new StringBuilder();
+                StringBuilder parentAllele = new StringBuilder();
+                Set<CanonicalKmer> novelKmers = new HashSet<>();
 
-            String childContig = pAlignments.get(0).getSecond();
-            for (int j = 1; j < pAlignments.size(); j++) {
-                String parentContig = pAlignments.get(j).getSecond();
+                String childContig = pAlignments.get(0).getSecond();
+                for (int j = 1; j < pAlignments.size(); j++) {
+                    String parentContig = pAlignments.get(j).getSecond();
 
-                for (int i = 0; i < parentContig.length(); i++) {
-                    if (sb.charAt(i) == 'v') {
-                        if (childContig.charAt(i) != parentContig.charAt(i) && parentContig.charAt(i) != ' ') {
-                            if (variantStart == -1) {
-                                variantStart = i;
+                    for (int i = 0; i < parentContig.length(); i++) {
+                        if (sb.charAt(i) == 'v') {
+                            if (childContig.charAt(i) != parentContig.charAt(i) && parentContig.charAt(i) != ' ') {
+                                if (variantStart == -1) {
+                                    variantStart = i;
 
-                                if (i > 0 && (childContig.charAt(i) == '-' || parentContig.charAt(i) == '-')) {
-                                    variantStart--;
-                                    childAllele.append(childContig.charAt(i-1));
-                                    parentAllele.append(parentContig.charAt(i-1));
+                                    if (i > 0 && (childContig.charAt(i) == '-' || parentContig.charAt(i) == '-')) {
+                                        variantStart--;
+                                        childAllele.append(childContig.charAt(i - 1));
+                                        parentAllele.append(parentContig.charAt(i - 1));
+                                    }
                                 }
-                            }
 
-                            if (childContig.charAt(i) != '-') { childAllele.append(childContig.charAt(i)); }
-                            if (parentContig.charAt(i) != '-') { parentAllele.append(parentContig.charAt(i)); }
-                        } else {
-                            if (variantStart >= 0) {
-                                variants.add(Triple.of(variantStart, childAllele.toString(), parentAllele.toString()));
+                                if (childContig.charAt(i) != '-') {
+                                    childAllele.append(childContig.charAt(i));
+                                }
+                                if (parentContig.charAt(i) != '-') {
+                                    parentAllele.append(parentContig.charAt(i));
+                                }
+                            } else {
+                                if (variantStart >= 0) {
+                                    variants.add(Triple.of(variantStart, childAllele.toString(), parentAllele.toString()));
 
-                                for (int k = variantStart - GRAPH.getKmerSize(); k < variantStart + childAllele.length() + GRAPH.getKmerSize(); k++) {
-                                    if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
-                                        //log.info("debug: {} {}", k, childContig.length());
-                                        String qrs = childContig.substring(k, childContig.length() - 1);
-                                        qrs = qrs.replaceAll("-", "");
-                                        if (qrs.length() > GRAPH.getKmerSize()) {
-                                            CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
+                                    for (int k = variantStart - GRAPH.getKmerSize(); k < variantStart + childAllele.length() + GRAPH.getKmerSize(); k++) {
+                                        if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
+                                            //log.info("debug: {} {}", k, childContig.length());
+                                            String qrs = childContig.substring(k, childContig.length() - 1);
+                                            qrs = qrs.replaceAll("-", "");
+                                            if (qrs.length() > GRAPH.getKmerSize()) {
+                                                CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
 
-                                            if (rois.contains(ck)) {
-                                                novelKmers.add(ck);
+                                                if (rois.contains(ck)) {
+                                                    novelKmers.add(ck);
+                                                }
                                             }
                                         }
+
                                     }
 
+                                    allNovelKmers.add(novelKmers);
+
+                                    variantStart = -1;
+                                    childAllele = new StringBuilder();
+                                    parentAllele = new StringBuilder();
+                                    novelKmers = new HashSet<>();
                                 }
-
-                                allNovelKmers.add(novelKmers);
-
-                                variantStart = -1;
-                                childAllele = new StringBuilder();
-                                parentAllele = new StringBuilder();
-                                novelKmers = new HashSet<>();
-                            }
-                        }
-                    }
-                }
-            }
-
-            int q = 0;
-            for (int j = 1; j < pAlignments.size() - 1; j++) {
-                q += pAlignments.get(j).getSecond().length();
-                variants.add(Triple.of(q, pAlignments.get(j).getFirst(), pAlignments.get(j+1).getFirst()));
-
-                for (int k = q - GRAPH.getKmerSize(); k < q + childAllele.length() + GRAPH.getKmerSize(); k++) {
-                    if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
-                        String qrs = childContig.substring(k, contig.length()).replaceAll("-", "");
-                        if (qrs.length() > GRAPH.getKmerSize()) {
-                            CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
-
-                            if (rois.contains(ck)) {
-                                novelKmers.add(ck);
                             }
                         }
                     }
                 }
 
-                allNovelKmers.add(novelKmers);
-            }
+                int q = 0;
+                for (int j = 1; j < pAlignments.size() - 1; j++) {
+                    q += pAlignments.get(j).getSecond().length();
+                    variants.add(Triple.of(q, pAlignments.get(j).getFirst(), pAlignments.get(j + 1).getFirst()));
 
-            if (variantStart >= 0) {
-                variants.add(Triple.of(variantStart, childAllele.toString(), parentAllele.toString()));
+                    for (int k = q - GRAPH.getKmerSize(); k < q + childAllele.length() + GRAPH.getKmerSize(); k++) {
+                        if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
+                            String qrs = childContig.substring(k, contig.length()).replaceAll("-", "");
+                            if (qrs.length() > GRAPH.getKmerSize()) {
+                                CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
 
-                for (int k = variantStart - GRAPH.getKmerSize(); k < variantStart + childAllele.length() + GRAPH.getKmerSize(); k++) {
-                    if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
-                        String qrs = childContig.substring(k, contig.length()).replaceAll("-", "");
-                        if (qrs.length() > GRAPH.getKmerSize()) {
-                            CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
-
-                            if (rois.contains(ck)) {
-                                novelKmers.add(ck);
+                                if (rois.contains(ck)) {
+                                    novelKmers.add(ck);
+                                }
                             }
                         }
                     }
+
+                    allNovelKmers.add(novelKmers);
                 }
 
-                allNovelKmers.add(novelKmers);
-            }
+                if (variantStart >= 0) {
+                    variants.add(Triple.of(variantStart, childAllele.toString(), parentAllele.toString()));
 
-            for (int i = 0; i < variants.size(); i++) {
-                Triple<Integer, String, String> variant = variants.get(i);
-                log.info("  {} {}", variant, allNovelKmers.get(i).size());
+                    for (int k = variantStart - GRAPH.getKmerSize(); k < variantStart + childAllele.length() + GRAPH.getKmerSize(); k++) {
+                        if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {
+                            String qrs = childContig.substring(k, contig.length()).replaceAll("-", "");
+                            if (qrs.length() > GRAPH.getKmerSize()) {
+                                CanonicalKmer ck = new CanonicalKmer(qrs.substring(0, GRAPH.getKmerSize()));
 
-                for (CanonicalKmer ck : allNovelKmers.get(i)) {
-                    usedRois.get(ck).add(contigIndex + ":" + i);
+                                if (rois.contains(ck)) {
+                                    novelKmers.add(ck);
+                                }
+                            }
+                        }
+                    }
+
+                    allNovelKmers.add(novelKmers);
                 }
 
-                out.println(Joiner.on("\t").join(contigIndex, i, variant.getLeft(), variant.getMiddle(), variant.getRight(), Joiner.on(",").join(allNovelKmers.get(i))));
-            }
+                for (int i = 0; i < variants.size(); i++) {
+                    Triple<Integer, String, String> variant = variants.get(i);
+                    log.info("  {} {}", variant, allNovelKmers.get(i).size());
 
-            for (CanonicalKmer ck : usedRois.keySet()) {
-                if (usedRois.get(ck).size() == 0) {
-                    aout.println(ck + "\tNA");
-                } else {
-                    aout.println(ck + "\t" + Joiner.on(",").join(usedRois.get(ck)));
+                    for (CanonicalKmer ck : allNovelKmers.get(i)) {
+                        usedRois.get(ck).add(String.valueOf(variantIndex));
+                    }
+
+                    out.println(Joiner.on("\t").join(variantIndex, contigIndex, i, variant.getLeft(), variant.getMiddle(), variant.getRight(), Joiner.on(",").join(allNovelKmers.get(i))));
+
+                    variantIndex++;
                 }
-            }
 
-            /*
-            for (String refid : REFERENCE.keySet()) {
-                Map<String, IndexedReference> ref = new HashMap<>();
-                ref.put(refid, REFERENCE.get(refid));
+                for (CanonicalKmer ck : usedRois.keySet()) {
+                    if (usedRois.get(ck).size() == 0) {
+                        aout.println(ck + "\tNA");
+                    } else {
+                        aout.println(ck + "\t" + Joiner.on(",").join(usedRois.get(ck)));
+                    }
+                }
 
-                List<Pair<String, Interval>> refIntervals = IntervalCombiner.getIntervals(ws, ref, 100, 10);
-                Map<String, String> refTracks = loadSequences(refIntervals, ref);
-                List<Pair<String, String>> rAlignments = ma.align(contig, refTracks);
-                log.info("\n{}", ma);
+                /*
+                for (String refid : REFERENCE.keySet()) {
+                    Map<String, IndexedReference> ref = new HashMap<>();
+                    ref.put(refid, REFERENCE.get(refid));
+
+                    List<Pair<String, Interval>> refIntervals = IntervalCombiner.getIntervals(ws, ref, 100, 10);
+                    Map<String, String> refTracks = loadSequences(refIntervals, ref);
+                    List<Pair<String, String>> rAlignments = ma.align(contig, refTracks);
+                    log.info("\n{}", ma);
+                }
+                */
             }
-            */
         }
     }
 
