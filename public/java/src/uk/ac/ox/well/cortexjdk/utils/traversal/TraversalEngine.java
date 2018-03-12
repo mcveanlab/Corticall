@@ -528,7 +528,6 @@ public class TraversalEngine {
 
         if (!ec.getLinks().isEmpty()) {
             for (ConnectivityAnnotations lm : ec.getLinks()) {
-                //if (lm.getHeader().getSampleNameForColor(0).equals(ec.getGraph().getSampleName(ec.getTraversalColors()))) {
                 if (traversalSamples.contains(lm.getHeader().getSampleNameForColor(0))) {
                     specificLinksFiles.add(lm);
 
