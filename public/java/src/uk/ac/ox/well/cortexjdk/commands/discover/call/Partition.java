@@ -2,11 +2,6 @@ package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
 import org.apache.commons.math3.util.Pair;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
-import org.mapdb.serializer.SerializerArray;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
@@ -20,7 +15,6 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
