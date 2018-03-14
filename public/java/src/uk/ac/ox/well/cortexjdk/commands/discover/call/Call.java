@@ -150,16 +150,16 @@ public class Call extends Module {
                 }
 
                 Map<String, String> parentTracks = loadSequences(parentIntervals, BACKGROUNDS);
-                List<Pair<String, String>> pAlignments = ma.align(contig, parentTracks);
+                List<Triple<String, Pair<Integer, Integer>, String>> pAlignments = ma.align(contig, parentTracks);
                 //log.info("\n{}", ma);
 
-                StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', pAlignments.get(0).getSecond().length()));
+                StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', pAlignments.get(0).getRight().length()));
                 int numKmersMarked = 0;
-                for (int i = 0; i <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize(); i++) {
-                    int gapsize = GRAPH.getKmerSize() - pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize()).replaceAll("-", "").length();
+                for (int i = 0; i <= pAlignments.get(0).getRight().length() - GRAPH.getKmerSize(); i++) {
+                    int gapsize = GRAPH.getKmerSize() - pAlignments.get(0).getRight().substring(i, i + GRAPH.getKmerSize()).replaceAll("-", "").length();
 
-                    if (i + GRAPH.getKmerSize() + gapsize <= pAlignments.get(0).getSecond().length() - GRAPH.getKmerSize()) {
-                        CanonicalKmer ck = new CanonicalKmer(pAlignments.get(0).getSecond().substring(i, i + GRAPH.getKmerSize() + gapsize).replaceAll("-", ""));
+                    if (i + GRAPH.getKmerSize() + gapsize <= pAlignments.get(0).getRight().length() - GRAPH.getKmerSize()) {
+                        CanonicalKmer ck = new CanonicalKmer(pAlignments.get(0).getRight().substring(i, i + GRAPH.getKmerSize() + gapsize).replaceAll("-", ""));
 
                         if (rois.contains(ck)) {
                             numKmersMarked++;
@@ -171,12 +171,12 @@ public class Call extends Module {
                 }
 
                 if (numKmersMarked == 0) {
-                    sb = new StringBuilder(StringUtil.repeatCharNTimes('v', pAlignments.get(0).getSecond().length()));
+                    sb = new StringBuilder(StringUtil.repeatCharNTimes('v', pAlignments.get(0).getRight().length()));
                 }
 
                 log.info("{} {}", sb.toString(), numKmersMarked);
-                for (Pair<String, String> p : pAlignments) {
-                    log.info("{} {}", p.getSecond(), p.getFirst());
+                for (Triple<String, Pair<Integer, Integer>, String> p : pAlignments) {
+                    log.info("{} {}", p.getRight(), p.getLeft());
                 }
 
                 List<Triple<Integer, String, String>> variants = new ArrayList<>();
@@ -187,9 +187,9 @@ public class Call extends Module {
                 StringBuilder parentAllele = new StringBuilder();
                 Set<CanonicalKmer> novelKmers = new HashSet<>();
 
-                String childContig = pAlignments.get(0).getSecond();
+                String childContig = pAlignments.get(0).getRight();
                 for (int j = 1; j < pAlignments.size(); j++) {
-                    String parentContig = pAlignments.get(j).getSecond();
+                    String parentContig = pAlignments.get(j).getRight();
 
                     for (int i = 0; i < parentContig.length(); i++) {
                         if (sb.charAt(i) == 'v') {
@@ -244,8 +244,8 @@ public class Call extends Module {
 
                 int q = 0;
                 for (int j = 1; j < pAlignments.size() - 1; j++) {
-                    q += pAlignments.get(j).getSecond().length();
-                    variants.add(Triple.of(q, pAlignments.get(j).getFirst(), pAlignments.get(j + 1).getFirst()));
+                    q += pAlignments.get(j).getRight().length();
+                    variants.add(Triple.of(q, pAlignments.get(j).getLeft(), pAlignments.get(j + 1).getLeft()));
 
                     for (int k = q - GRAPH.getKmerSize(); k < q + childAllele.length() + GRAPH.getKmerSize(); k++) {
                         if (k >= 0 && k <= childContig.length() - GRAPH.getKmerSize()) {

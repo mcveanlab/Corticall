@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.mosaic;
 
 import htsjdk.samtools.util.StringUtil;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -40,13 +41,13 @@ public class TestMosaicAligner {
         targets.put("template1", templates[1]);
 
         MosaicAligner ma = new MosaicAligner();
-        List<Pair<String, String>> ps = ma.align(query, targets);
+        List<Triple<String, Pair<Integer, Integer>, String>> ps = ma.align(query, targets);
 
         Assert.assertEquals(ks.size(), ps.size());
 
         for (int i = 0; i < ks.size(); i++) {
-            Assert.assertEquals(ps.get(i).getFirst(), ks.get(i).getFirst());
-            Assert.assertTrue(unsharedKmers(ps.get(i).getSecond().replaceAll(" ", ""), ks.get(i).getSecond().replaceAll(" ", ""), 47) <= 2);
+            Assert.assertEquals(ps.get(i).getLeft(), ks.get(i).getFirst());
+            Assert.assertTrue(unsharedKmers(ps.get(i).getRight().replaceAll(" ", ""), ks.get(i).getSecond().replaceAll(" ", ""), 47) <= 2);
         }
     }
 

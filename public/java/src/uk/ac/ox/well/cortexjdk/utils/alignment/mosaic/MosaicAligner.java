@@ -1,7 +1,9 @@
 package uk.ac.ox.well.cortexjdk.utils.alignment.mosaic;
 
 import htsjdk.samtools.util.StringUtil;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.util.Pair;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 
 import java.util.*;
 
@@ -75,10 +77,10 @@ public class MosaicAligner {
     private double[] si;
     private double[] lsi;
 
-    private List<Pair<String, String>> alignment;
+    private List<Triple<String, Pair<Integer, Integer>, String>> alignment;
     private String editTrack;
 
-    public List<Pair<String, String>> align(String query, Map<String, String> targets) {
+    public List<Triple<String, Pair<Integer, Integer>, String>> align(String query, Map<String, String> targets) {
         initialize(query, targets);
 
         Map<String, String> panel = new LinkedHashMap<>();
@@ -157,13 +159,6 @@ public class MosaicAligner {
         sizeL -= query.length();
 
         double lsizeL = Math.log(sizeL);
-
-//        double[][][] vt_m = m1_m;
-//        double[][][] vt_i = m1_i;
-//        double[][][] vt_d = m1_d;
-//        double[][][] tb_m = m2_m;
-//        double[][][] tb_i = m2_i;
-//        double[][][] tb_d = m2_d;
 
         int seq = 1;
         for (String target : panel.values()) {
@@ -373,7 +368,8 @@ public class MosaicAligner {
             }
         }
 
-        alignment.add(new Pair<>(seqs.get(0).getFirst(), sb.toString()));
+        String section = sb.toString();
+        alignment.add(Triple.of(seqs.get(0).getFirst(), getExtent(panel.get(seqs.get(0).getFirst()), section), sb.toString()));
 
         // Prepare matching track
         sb = new StringBuilder();
@@ -401,7 +397,9 @@ public class MosaicAligner {
         sb = new StringBuilder();
         for (i = cp; i <= 2*maxl; i++) {
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
-                alignment.add(new Pair<>(currentTrack, sb.toString()));
+                //alignment.add(new Pair<>(currentTrack, sb.toString()));
+                section = sb.toString();
+                alignment.add(Triple.of(currentTrack, getExtent(panel.get(currentTrack), section), sb.toString()));
 
                 currentTrack = seqs.get(maxpath_copy[i]-1).getFirst();
                 sb = new StringBuilder();
@@ -415,7 +413,25 @@ public class MosaicAligner {
             }
         }
 
-        alignment.add(new Pair<>(currentTrack, sb.toString()));
+        section = sb.toString();
+        alignment.add(Triple.of(currentTrack, getExtent(panel.get(currentTrack), section), sb.toString()));
+    }
+
+    private Pair<Integer, Integer> getExtent(String target, String query) {
+        SmithWaterman sw = new SmithWaterman();
+        String[] a = sw.getAlignment(query, target.replaceAll("[- ]", ""));
+
+        int start = -1, end = 0;
+        for (int i = 0; i < a[0].length(); i++) {
+            if (a[0].charAt(i) != 'X' && a[0].charAt(i) != '-' && a[1].charAt(i) != 'X' && a[1].charAt(i) != '-' && a[0].charAt(i) == a[1].charAt(i)) {
+                if (start == -1) {
+                    start = i;
+                }
+                end = i;
+            }
+        }
+
+        return Pair.create(start, end);
     }
 
     private int convert(char c) {
@@ -433,17 +449,19 @@ public class MosaicAligner {
     public String toString() {
         int maxNameLength = 0;
         for (int i = 0; i < alignment.size(); i++) {
-            maxNameLength = Math.max(maxNameLength, alignment.get(i).getFirst().length());
+            String name = String.format("%s (%d-%d)", alignment.get(i).getLeft(), alignment.get(i).getMiddle().getFirst(), alignment.get(i).getMiddle().getSecond());
+            maxNameLength = Math.max(maxNameLength, name.length());
         }
         String format = "%" + maxNameLength + "s";
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Mllk: ").append(llk).append("\n");
 
         for (int i = 0; i < alignment.size(); i++) {
-            sb.append(String.format(format, alignment.get(i).getFirst()))
+            String name = String.format("%s (%d-%d)", alignment.get(i).getLeft(), alignment.get(i).getMiddle().getFirst(), alignment.get(i).getMiddle().getSecond());
+
+            sb.append(String.format(format, name))
               .append(" ")
-              .append(alignment.get(i).getSecond())
+              .append(alignment.get(i).getRight())
               .append("\n");
 
             if (i == 0) {
@@ -453,6 +471,11 @@ public class MosaicAligner {
                   .append("\n");
             }
         }
+
+        sb.append("\n")
+          .append("Mllk: ")
+          .append(llk)
+          .append("\n");
 
         return sb.toString();
     }
