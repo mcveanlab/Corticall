@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.discover.call;
+package uk.ac.ox.well.cortexjdk.utils.alignment.intervalcombiner;
 
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
