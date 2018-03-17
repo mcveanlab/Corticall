@@ -92,21 +92,63 @@ public class FindPaths extends Module {
                 }
 
                 if (targets.size() > 0) {
+                    String trimmedQuery = trimQuery(ws, targets, rois);
+
                     log.info("{} ({} {})", query, rseq.getName().split(" ")[0], query.length());
                     for (String targetName : targets.keySet()) {
                         log.info("{} ({} {})", targets.get(targetName), targetName, targets.get(targetName).length());
                     }
 
                     MosaicAligner ma = new MosaicAligner();
-                    List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(query, targets);
+                    //List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(query, targets);
+                    List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery, targets);
 
                     //String noveltyTrack = makeNoveltyTrack(rois, query, lps);
 
                     //log.info("\n{}\n{}", noveltyTrack, ma);
+                    log.info("\n{}", ma);
                     log.info("");
                 }
             }
         }
+    }
+
+    private String trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
+        int firstIndex = Integer.MAX_VALUE, lastIndex = 0;
+        int firstNovel = -1, lastNovel = -1;
+
+        Map<CanonicalKmer, Integer> pos = new HashMap<>();
+        for (int i = 0; i < ws.size(); i++) {
+            pos.put(ws.get(i).getCanonicalKmer(), i);
+
+            if (rois.contains(ws.get(i).getCanonicalKmer())) {
+                if (firstNovel == -1) {
+                    firstNovel = i;
+                }
+
+                lastNovel = i;
+            }
+        }
+
+        for (String target : targets.values()) {
+            for (int i = 0; i <= target.length() - GRAPH.getKmerSize(); i++) {
+                String sk = target.substring(i, i + GRAPH.getKmerSize());
+                CanonicalKmer ck = new CanonicalKmer(sk);
+
+                if (pos.containsKey(ck)) {
+                    int index = pos.get(ck);
+
+                    if (index < firstIndex) { firstIndex = index; }
+                    if (index > lastIndex) { lastIndex = index; }
+
+                }
+            }
+        }
+
+        if (firstNovel < firstIndex) { firstIndex = firstNovel; }
+        if (lastNovel > lastIndex) { lastIndex = lastNovel; }
+
+        return TraversalUtils.toContig(ws.subList(firstIndex, lastIndex));
     }
 
     /*

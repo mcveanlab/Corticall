@@ -63,13 +63,14 @@ public class Partition extends Module {
                 List<CortexVertex> w = TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
 
                 int numNovelsInSubgraph = countNovels(used, g);
+                int subgraphSize = g == null ? 0 : g.vertexSet().size();
 
                 Pair<Integer, Integer> numMarked = markUsedRois(used, w);
 
-                out.println(">contig" + numContigs + " seed=" + ck + " subgraphSize=" + g.vertexSet().size() + " contigSize=" + w.size() + " novelsInSubgraph=" + numNovelsInSubgraph + " novelsNewlyMarked=" + numMarked.getFirst() + " novelsPreviouslyMarked=" + numMarked.getSecond());
+                out.println(">contig" + numContigs + " seed=" + ck + " subgraphSize=" + subgraphSize + " contigSize=" + w.size() + " novelsInSubgraph=" + numNovelsInSubgraph + " novelsNewlyMarked=" + numMarked.getFirst() + " novelsPreviouslyMarked=" + numMarked.getSecond());
                 out.println(TraversalUtils.toContig(w));
 
-                log.info("  * contig{} seed={} subgraphSize={} contigSize={} novelsInSubgraph={} novelsNewlyMarked={} novelsPreviouslyMarked={}", numContigs, ck, g.vertexSet().size(), w.size(), numNovelsInSubgraph, numMarked.getFirst(), numMarked.getSecond());
+                log.info("  * contig{} seed={} subgraphSize={} contigSize={} novelsInSubgraph={} novelsNewlyMarked={} novelsPreviouslyMarked={}", numContigs, ck, subgraphSize, w.size(), numNovelsInSubgraph, numMarked.getFirst(), numMarked.getSecond());
 
                 numContigs++;
             }
