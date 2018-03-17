@@ -91,16 +91,15 @@ public class MosaicAligner {
         this.term = term;
     }
 
-    public List<Triple<String, Pair<Integer, Integer>, String>> align(String query, Map<String, String> targets) {
+    //public List<Triple<String, Pair<Integer, Integer>, String>> align(String query, Map<String, String> targets) {
+    public List<Triple<String, String, Pair<Integer, Integer>>> align(String query, Map<String, String> targets) {
         initialize(query, targets);
 
         Map<String, String> panel = new LinkedHashMap<>();
         panel.put("query", query);
         panel.putAll(targets);
 
-        alignAll(panel);
-
-        return alignment;
+        return alignAll(panel);
     }
 
     private void initialize(String query, Map<String, String> targets) {
@@ -159,7 +158,7 @@ public class MosaicAligner {
         return maxLength;
     }
 
-    private void alignAll(Map<String, String> panel) {
+    private List<Triple<String, String, Pair<Integer, Integer>>> alignAll(Map<String, String> panel) {
         String query = panel.values().iterator().next();
 
         int l1 = query.length();
@@ -370,16 +369,26 @@ public class MosaicAligner {
         }
 
         StringBuilder sb = new StringBuilder();
+        int posStart = -1;
+        int posEnd = -1;
+
         int i = 0;
         for (i = cp, pos_target = 1; i <= 2*maxl; i++) {
             if (maxpath_state[i] == 3) { sb.append("-"); }
             else {
+                if (posStart == -1) {
+                    posStart = pos_target-1;
+                }
+                posEnd = pos_target-1;
+
                 sb.append(seqs.get(0).getValue().charAt(pos_target-1));
                 pos_target++;
             }
         }
 
-        String section = sb.toString();
+        List<Triple<String, String, Pair<Integer, Integer>>> path = new ArrayList<>();
+        path.add(Triple.of("query", sb.toString(), Pair.create(posStart, posEnd)));
+
         alignment.add(Triple.of(seqs.get(0).getFirst(), Pair.create(0, 0), sb.toString()));
 
         // Prepare matching track
@@ -406,17 +415,30 @@ public class MosaicAligner {
         // Prepare copying tracks
         String currentTrack = seqs.get(maxpath_copy[cp]-1).getFirst();
         sb = new StringBuilder();
+        posStart = -1;
+        posEnd = -1;
+
         boolean uppercase = true;
         for (i = cp; i <= 2*maxl; i++) {
             if (i > cp && maxpath_copy[i] == maxpath_copy[i-1] && Math.abs(maxpath_pos[i] - maxpath_pos[i - 1]) > 1) {
                 uppercase = !uppercase;
+
+                if (posStart != posEnd) {
+                    path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
+                    posStart = maxpath_pos[i] - 1;
+                    posEnd = maxpath_pos[i] - 1;
+                }
             }
 
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
                 uppercase = true;
-                //alignment.add(new Pair<>(currentTrack, sb.toString()));
-                section = sb.toString();
                 alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
+
+                if (posStart != posEnd) {
+                    path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
+                    posStart = maxpath_pos[i] - 1;
+                    posEnd = maxpath_pos[i] - 1;
+                }
 
                 currentTrack = seqs.get(maxpath_copy[i]-1).getFirst();
                 sb = new StringBuilder();
@@ -429,13 +451,23 @@ public class MosaicAligner {
                 char c = seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1);
                 c = uppercase ? Character.toUpperCase(c) : Character.toLowerCase(c);
 
+                if (posStart == -1) {
+                    posStart = maxpath_pos[i] - 1;
+                }
+                posEnd = maxpath_pos[i] - 1;
+
                 //sb.append(seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1));
                 sb.append(c);
             }
         }
 
-        section = sb.toString();
+        if (posStart != posEnd) {
+            path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
+        }
+
         alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
+
+        return path;
     }
 
     private int convert(char c) {

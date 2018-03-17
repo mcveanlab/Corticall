@@ -98,21 +98,22 @@ public class FindPaths extends Module {
                     }
 
                     MosaicAligner ma = new MosaicAligner();
-                    List<Triple<String, Pair<Integer, Integer>, String>> lps = ma.align(query, targets);
+                    List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(query, targets);
 
-                    String noveltyTrack = makeNoveltyTrack(rois, query, lps);
+                    //String noveltyTrack = makeNoveltyTrack(rois, query, lps);
 
-                    log.info("\n{}\n{}", noveltyTrack, ma);
+                    //log.info("\n{}\n{}", noveltyTrack, ma);
                     log.info("");
                 }
             }
         }
     }
 
-    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, Pair<Integer, Integer>, String>> lps) {
+    /*
+    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, Integer, Integer>> lps) {
         int maxLength = 0;
-        for (Triple<String, Pair<Integer, Integer>, String> lp : lps) {
-            String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getMiddle().getFirst(), lp.getMiddle().getSecond());
+        for (Triple<String, Integer, Integer> lp : lps) {
+            String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getMiddle(), lp.getRight());
             maxLength = Math.max(maxLength, name.length());
         }
 
@@ -135,6 +136,7 @@ public class FindPaths extends Module {
 
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
     }
+    */
 
     private void labelTargets(Map<String, String> targets, Set<String> parentName, String name, List<CortexVertex> l) {
         String cl = TraversalUtils.toContig(l);

@@ -15,7 +15,7 @@ public class TestMosaicAligner {
         String[] templates = { new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(1000)),
                                new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(1000)) };
 
-        List<Pair<String, String>> ks = new ArrayList<>();
+        List<Triple<String, String, Pair<Integer, Integer>>> ks = new ArrayList<>();
 
         StringBuilder rb = new StringBuilder();
         int lastIndex = 0;
@@ -24,16 +24,16 @@ public class TestMosaicAligner {
             String subsection = templates[phase].substring(lastIndex, recomb);
             rb.append(subsection);
 
-            ks.add(Pair.create("template" + phase, StringUtil.repeatCharNTimes(' ', lastIndex) + subsection));
+            ks.add(Triple.of("template" + phase, StringUtil.repeatCharNTimes(' ', lastIndex) + subsection, Pair.create(lastIndex, recomb - 1)));
 
             phase = phase == 0 ? 1 : 0;
             lastIndex = recomb;
         }
-        ks.add(Pair.create("template" + phase, StringUtil.repeatCharNTimes(' ', 800) + templates[phase].substring(lastIndex, templates[0].length() - 1)));
+        ks.add(Triple.of("template" + phase, StringUtil.repeatCharNTimes(' ', 800) + templates[phase].substring(lastIndex, templates[0].length() - 1), Pair.create(lastIndex, 999)));
 
         String subsection = templates[phase].substring(lastIndex, templates[0].length() - 1);
         rb.append(subsection);
-        ks.add(0, Pair.create("query", rb.toString()));
+        ks.add(0, Triple.of("query", rb.toString(), Pair.create(0, rb.length())));
 
         String query = rb.toString();
         Map<String, String> targets = new HashMap<>();
@@ -41,13 +41,13 @@ public class TestMosaicAligner {
         targets.put("template1", templates[1]);
 
         MosaicAligner ma = new MosaicAligner();
-        List<Triple<String, Pair<Integer, Integer>, String>> ps = ma.align(query, targets);
+        List<Triple<String, String, Pair<Integer, Integer>>> ps = ma.align(query, targets);
 
         Assert.assertEquals(ks.size(), ps.size());
 
         for (int i = 0; i < ks.size(); i++) {
-            Assert.assertEquals(ps.get(i).getLeft(), ks.get(i).getFirst());
-            Assert.assertTrue(unsharedKmers(ps.get(i).getRight().replaceAll(" ", ""), ks.get(i).getSecond().replaceAll(" ", ""), 47) <= 2);
+            Assert.assertEquals(ps.get(i).getLeft(), ks.get(i).getLeft());
+            Assert.assertTrue(unsharedKmers(ps.get(i).getMiddle().replaceAll(" ", ""), ks.get(i).getMiddle().replaceAll(" ", ""), 47) <= 2);
         }
     }
 

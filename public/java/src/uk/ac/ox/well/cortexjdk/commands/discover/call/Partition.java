@@ -88,9 +88,11 @@ public class Partition extends Module {
     private int countNovels(Map<CanonicalKmer, List<CortexVertex>> used, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
         int numNovels = 0;
 
-        for (CortexVertex v : g.vertexSet()) {
-            if (used.containsKey(v.getCanonicalKmer())) {
-                numNovels++;
+        if (g != null) {
+            for (CortexVertex v : g.vertexSet()) {
+                if (used.containsKey(v.getCanonicalKmer())) {
+                    numNovels++;
+                }
             }
         }
 
