@@ -33,9 +33,6 @@ public class FindTips extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="child", shortName="c", doc="Child")
-    public String CHILD;
-
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
@@ -44,13 +41,13 @@ public class FindTips extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
+        int childColor = GRAPH.getColorForSampleName(ROI.getSampleName(0));
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         //Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
         log.info("Colors:");
-        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
-        log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
+        log.info(" -   child: {}", childColor);
+        log.info(" - parents: {}", parentColors);
         //log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -82,24 +79,26 @@ public class FindTips extends Module {
 
                 List<CortexVertex> l = e.walk(rr.getKmerAsString());
 
-                boolean leftNovelEnd = used.containsKey(l.get(0).getCanonicalKmer());
-                boolean noLeftEdges = e.getPrevVertices(l.get(0).getKmerAsByteKmer()).size() == 0;
+                if (l.size() > 0) {
+                    boolean leftNovelEnd = used.containsKey(l.get(0).getCanonicalKmer());
+                    boolean noLeftEdges = e.getPrevVertices(l.get(0).getKmerAsByteKmer()).size() == 0;
 
-                boolean rightNovelEnd = used.containsKey(l.get(l.size() - 1).getCanonicalKmer());
-                boolean noRightEdges = e.getNextVertices(l.get(l.size() - 1).getKmerAsByteKmer()).size() == 0;
+                    boolean rightNovelEnd = used.containsKey(l.get(l.size() - 1).getCanonicalKmer());
+                    boolean noRightEdges = e.getNextVertices(l.get(l.size() - 1).getKmerAsByteKmer()).size() == 0;
 
-                boolean isTip = (leftNovelEnd && noLeftEdges) || (rightNovelEnd && noRightEdges);
+                    boolean isTip = (leftNovelEnd && noLeftEdges) || (rightNovelEnd && noRightEdges);
 
-                if (isTip) {
-                    numTipChains++;
-                }
+                    if (isTip) {
+                        numTipChains++;
+                    }
 
-                for (CortexVertex cv : l) {
-                    if (used.containsKey(cv.getCanonicalKmer())) {
-                        used.put(cv.getCanonicalKmer(), true);
+                    for (CortexVertex cv : l) {
+                        if (used.containsKey(cv.getCanonicalKmer())) {
+                            used.put(cv.getCanonicalKmer(), true);
 
-                        if (isTip) {
-                            tips.add(cv.getCanonicalKmer());
+                            if (isTip) {
+                                tips.add(cv.getCanonicalKmer());
+                            }
                         }
                     }
                 }

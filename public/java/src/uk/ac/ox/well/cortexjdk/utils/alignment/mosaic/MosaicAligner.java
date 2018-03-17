@@ -10,11 +10,13 @@ import java.util.*;
 public class MosaicAligner {
     // constants
     private static final double SMALL = -1e32;
-    private static final double DEFAULT_DEL = 0.025;
-    private static final double DEFAULT_EPS = 0.75;
-    private static final double DEFAULT_REC = 0.0001;
-    private static final double DEFAULT_TERM = 0.001;
-    //private static final double DEFAULT_PMATCH = 0.0;
+
+    // transition probabilities
+    private double DEFAULT_DEL = 0.025;
+    private double DEFAULT_EPS = 0.75;
+    private double DEFAULT_REC = 0.0001;
+    private double DEFAULT_TERM = 0.001;
+    //private double DEFAULT_PMATCH = 0.0;
 
     // params
     private double del = DEFAULT_DEL;
@@ -79,6 +81,15 @@ public class MosaicAligner {
 
     private List<Triple<String, Pair<Integer, Integer>, String>> alignment;
     private String editTrack;
+
+    public MosaicAligner() { }
+
+    public MosaicAligner(double del, double eps, double rho , double term) {
+        this.del = del;
+        this.eps = eps;
+        this.rho = rho;
+        this.term = term;
+    }
 
     public List<Triple<String, Pair<Integer, Integer>, String>> align(String query, Map<String, String> targets) {
         initialize(query, targets);
@@ -369,7 +380,7 @@ public class MosaicAligner {
         }
 
         String section = sb.toString();
-        alignment.add(Triple.of(seqs.get(0).getFirst(), getExtent(panel.get(seqs.get(0).getFirst()), section), sb.toString()));
+        alignment.add(Triple.of(seqs.get(0).getFirst(), Pair.create(0, 0), sb.toString()));
 
         // Prepare matching track
         sb = new StringBuilder();
@@ -395,11 +406,17 @@ public class MosaicAligner {
         // Prepare copying tracks
         String currentTrack = seqs.get(maxpath_copy[cp]-1).getFirst();
         sb = new StringBuilder();
+        boolean uppercase = true;
         for (i = cp; i <= 2*maxl; i++) {
+            if (i > cp && maxpath_copy[i] == maxpath_copy[i-1] && Math.abs(maxpath_pos[i] - maxpath_pos[i - 1]) > 1) {
+                uppercase = !uppercase;
+            }
+
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
+                uppercase = true;
                 //alignment.add(new Pair<>(currentTrack, sb.toString()));
                 section = sb.toString();
-                alignment.add(Triple.of(currentTrack, getExtent(panel.get(currentTrack), section), sb.toString()));
+                alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
 
                 currentTrack = seqs.get(maxpath_copy[i]-1).getFirst();
                 sb = new StringBuilder();
@@ -409,29 +426,16 @@ public class MosaicAligner {
             if (maxpath_state[i] == 2) {
                 sb.append("-");
             } else {
-                sb.append(seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1));
+                char c = seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1);
+                c = uppercase ? Character.toUpperCase(c) : Character.toLowerCase(c);
+
+                //sb.append(seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1));
+                sb.append(c);
             }
         }
 
         section = sb.toString();
-        alignment.add(Triple.of(currentTrack, getExtent(panel.get(currentTrack), section), sb.toString()));
-    }
-
-    private Pair<Integer, Integer> getExtent(String target, String query) {
-        SmithWaterman sw = new SmithWaterman();
-        String[] a = sw.getAlignment(query, target.replaceAll("[- ]", ""));
-
-        int start = -1, end = 0;
-        for (int i = 0; i < a[0].length(); i++) {
-            if (a[0].charAt(i) != 'X' && a[0].charAt(i) != '-' && a[1].charAt(i) != 'X' && a[1].charAt(i) != '-' && a[0].charAt(i) == a[1].charAt(i)) {
-                if (start == -1) {
-                    start = i;
-                }
-                end = i;
-            }
-        }
-
-        return Pair.create(start, end);
+        alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
     }
 
     private int convert(char c) {

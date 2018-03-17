@@ -1,6 +1,5 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
-import com.google.common.base.Joiner;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -12,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
-import org.mapdb.Atomic;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.alignment.mosaic.MosaicAligner;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
@@ -24,10 +22,12 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CortexByteKmer;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -35,7 +35,6 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalUtils.getAllNextKmers;
 
 public class FindPaths extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
@@ -65,6 +64,9 @@ public class FindPaths extends Module {
     @Output
     public PrintStream out;
 
+    @Output(fullName="gdir", shortName="gdir", doc="GFA1 dir")
+    public File gdir;
+
     @Override
     public void execute() {
         Set<CanonicalKmer> rois = loadRois(ROIS);
@@ -84,40 +86,30 @@ public class FindPaths extends Module {
 
                 Map<String, String> targets = new HashMap<>();
                 for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
-                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = assembleSections(rois, ws, regions, parentName);
+                    Map<String, String> newTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
 
-                    addToTargetList(targets, parentName, g);
+                    targets.putAll(newTargets);
                 }
 
                 if (targets.size() > 0) {
+                    log.info("{} ({} {})", query, rseq.getName().split(" ")[0], query.length());
+                    for (String targetName : targets.keySet()) {
+                        log.info("{} ({} {})", targets.get(targetName), targetName, targets.get(targetName).length());
+                    }
+
                     MosaicAligner ma = new MosaicAligner();
                     List<Triple<String, Pair<Integer, Integer>, String>> lps = ma.align(query, targets);
 
-                    String noveltyTrack = getNoveltyTrack(rois, query, lps);
+                    String noveltyTrack = makeNoveltyTrack(rois, query, lps);
 
                     log.info("\n{}\n{}", noveltyTrack, ma);
+                    log.info("");
                 }
             }
         }
     }
 
-    private void addToTargetList(Map<String, String> targets, Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
-        ConnectivityInspector<CortexVertex, CortexEdge> ci = new ConnectivityInspector<>(g);
-        int index = 0;
-
-        for (Set<CortexVertex> s : ci.connectedSets()) {
-            String name = String.format("%s:contig%d", parentName.iterator().next(), index);
-            index++;
-
-            List<CortexVertex> l = extractContig(parentName, g, s);
-
-            if (l.size() > 0) {
-                labelTargets(targets, parentName, name, l);
-            }
-        }
-    }
-
-    private String getNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, Pair<Integer, Integer>, String>> lps) {
+    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, Pair<Integer, Integer>, String>> lps) {
         int maxLength = 0;
         for (Triple<String, Pair<Integer, Integer>, String> lp : lps) {
             String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getMiddle().getFirst(), lp.getMiddle().getSecond());
@@ -142,32 +134,6 @@ public class FindPaths extends Module {
         }
 
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
-    }
-
-    @NotNull
-    private List<CortexVertex> extractContig(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, Set<CortexVertex> s) {
-        List<CortexVertex> l = TraversalUtils.toWalk(g, s.iterator().next().getKmerAsString(), g.edgeSet().iterator().next().getColor());
-
-        if (l.size() == 0 && s.size() > 0) {
-            TraversalEngine e = new TraversalEngineFactory()
-                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                    .combinationOperator(OR)
-                    .traversalDirection(BOTH)
-                    .stoppingRule(ContigStopper.class)
-                    .maxBranchLength(2*s.size())
-                    .graph(GRAPH)
-                    .links(LINKS)
-                    .make();
-
-            for (CortexVertex v : s) {
-                List<CortexVertex> ll = e.walk(v.getKmerAsString());
-
-                if (ll.size() > l.size()) {
-                    l = ll;
-                }
-            }
-        }
-        return l;
     }
 
     private void labelTargets(Map<String, String> targets, Set<String> parentName, String name, List<CortexVertex> l) {
@@ -213,11 +179,15 @@ public class FindPaths extends Module {
     }
 
     @NotNull
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> assembleSections(Set<CanonicalKmer> rois, List<CortexVertex> ws, List<Pair<Integer, Integer>> regions, Set<String> parentName) {
+    private Map<String, String> assembleCandidateHaplotypes(Set<CanonicalKmer> rois, List<CortexVertex> ws, List<Pair<Integer, Integer>> regions, Set<String> parentName) {
+        Map<String, String> targets = new HashMap<>();
+
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
+
         List<List<CortexVertex>> walks = new ArrayList<>();
         List<String> contigs = new ArrayList<>();
 
+        // First build the non-novel stretches
         for (int i = 0; i < regions.size(); i++) {
             int lastEnd = i == 0 ? 0 : regions.get(i-1).getSecond();
             int nextStart = i == regions.size() - 1 ? ws.size() - 1 : regions.get(i+1).getFirst();
@@ -242,31 +212,180 @@ public class FindPaths extends Module {
             }
         }
 
-        for (int i = 0; i < walks.size() - 1; i++) {
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
-            for (int j = i + 1; j < walks.size() && gm.vertexSet().size() == 0; j++) {
-                gm = assembleMiddle(parentName, walks.get(i), walks.get(j));
-            }
+        targets.putAll(assembleGapClosedCandidates(parentName, g, walks));
 
-            Graphs.addGraph(g, gm);
+        if (targets.size() == 0) {
+            targets.putAll(assembleDovetailCandidates(parentName, g, walks));
+        }
 
-            TraversalEngine e = new TraversalEngineFactory()
+//        targets.putAll(extractTargets(parentName, g, "gapped"));
+//        targets.putAll(assembleFlankCandidates(parentName, g, walks));
+
+        return targets;
+    }
+
+    private Map<String, String> assembleFlankCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
+        // Now assume the gaps are uncloseable and just assemble the flanks a bit farther
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        Graphs.addGraph(gm, g);
+
+        for (int i = 0; i < walks.size(); i++) {
+            TraversalEngine ef = new TraversalEngineFactory()
                     .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                    .traversalDirection(BOTH)
+                    .traversalDirection(FORWARD)
                     .combinationOperator(OR)
                     .stoppingRule(ContigStopper.class)
-                    .maxBranchLength(2*GRAPH.getKmerSize())
+                    .maxBranchLength(500)
                     .graph(GRAPH)
                     .links(LINKS)
                     .make();
 
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gb = e.dfs(walks.get(i).get(0).getKmerAsString());
-            if (gb != null) { Graphs.addGraph(g, gb); }
+            TraversalEngine er = new TraversalEngineFactory()
+                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                    .traversalDirection(REVERSE)
+                    .combinationOperator(OR)
+                    .stoppingRule(ContigStopper.class)
+                    .maxBranchLength(500)
+                    .graph(GRAPH)
+                    .links(LINKS)
+                    .make();
 
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gf = e.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString());
-            if (gf != null) { Graphs.addGraph(g, gf); }
+            if (i < walks.size() - 1) {
+                Graphs.addGraph(gm, ef.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
+            }
+
+            if (i > 0) {
+                Graphs.addGraph(gm, er.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
+            }
         }
-        return g;
+
+        return extractTargets(parentName, gm, "flanks");
+    }
+
+    private Map<String, String> assembleDovetailCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
+        // Now try dovetail overlaps with remaining gaps
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        Graphs.addGraph(gm, g);
+
+        int numDovetailOverlaps = 0;
+
+        for (int i = 0; i < walks.size() - 1; i++) {
+            String cb = TraversalUtils.toContig(walks.get(i));
+            String ca = TraversalUtils.toContig(walks.get(i+1));
+
+            int longestMatch = 0;
+            for (int j = 1; j < cb.length() && j < ca.length(); j++) {
+                if (cb.substring(cb.length() - j, cb.length()).equals(ca.substring(0, j))) {
+                    longestMatch = j;
+                }
+            }
+
+            if (longestMatch > 11) {
+                String cc = cb + ca.substring(longestMatch, ca.length());
+
+                CortexVertex v0 = null;
+                for (int j = 0; j <= cc.length() - GRAPH.getKmerSize(); j++) {
+                    String sk = cc.substring(j, j + GRAPH.getKmerSize());
+                    CortexRecord cr = GRAPH.findRecord(sk);
+
+                    CortexVertex v = new CortexVertexFactory()
+                            .bases(sk)
+                            .record(cr)
+                            .make();
+
+                    gm.addVertex(v);
+
+                    if (v0 != null) {
+                        gm.addEdge(v0, v, new CortexEdge(v0, v, GRAPH.getColorsForSampleNames(parentName).iterator().next(), 1.0f));
+                    }
+
+                    v0 = v;
+                }
+
+                numDovetailOverlaps++;
+            }
+        }
+
+        Map<String, String> targets = new HashMap<>();
+        if (numDovetailOverlaps > 0) {
+            targets.putAll(extractTargets(parentName, gm, "dovetail"));
+        }
+
+        return targets;
+    }
+
+    private Map<String, String> assembleGapClosedCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
+        // Now bridge any gaps that we can
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
+        Graphs.addGraph(gm, g);
+
+        int numGapsFilled = 0;
+
+        for (int i = 0; i < walks.size() - 1; i++) {
+            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gg = new DirectedWeightedPseudograph<>(CortexEdge.class);
+            for (int j = i + 1; j < walks.size() && gg.vertexSet().size() == 0; j++) {
+                gg = assembleMiddle(parentName, walks.get(i), walks.get(j));
+            }
+
+            if (gg.vertexSet().size() > 0) {
+                Graphs.addGraph(gm, gg);
+                numGapsFilled++;
+            } else {
+                TraversalEngine ef = new TraversalEngineFactory()
+                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                        .traversalDirection(FORWARD)
+                        .combinationOperator(OR)
+                        .stoppingRule(ContigStopper.class)
+                        .maxBranchLength(500)
+                        .graph(GRAPH)
+                        .links(LINKS)
+                        .make();
+
+                TraversalEngine er = new TraversalEngineFactory()
+                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                        .traversalDirection(REVERSE)
+                        .combinationOperator(OR)
+                        .stoppingRule(ContigStopper.class)
+                        .maxBranchLength(500)
+                        .graph(GRAPH)
+                        .links(LINKS)
+                        .make();
+
+                if (i < walks.size() - 1) {
+                    Graphs.addGraph(gm, ef.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
+                }
+
+                if (i > 0) {
+                    Graphs.addGraph(gm, er.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
+                }
+            }
+        }
+
+        Map<String, String> targets = new HashMap<>();
+        if (numGapsFilled > 0) {
+            targets.putAll(extractTargets(parentName, gm, "gapfilled"));
+        }
+
+        return targets;
+    }
+
+    private Map<String, String> extractTargets(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String suffix) {
+        Map<String, String> targets = new HashMap<>();
+        ConnectivityInspector<CortexVertex, CortexEdge> ci = new ConnectivityInspector<>(g);
+        int targetIndex = 0;
+        for (Set<CortexVertex> cs : ci.connectedSets()) {
+            List<CortexVertex> cl = TraversalUtils.toWalk(g, cs.iterator().next().getKmerAsString(), g.edgeSet().iterator().next().getColor());
+
+            String cc = TraversalUtils.toContig(cl);
+            String id = String.format("%s:contig%d_%s", parentName.iterator().next(), targetIndex, suffix);
+
+            if (cc.length() > 0) {
+                targets.put(id, cc);
+                targetIndex++;
+            }
+        }
+
+        return targets;
     }
 
     private DirectedWeightedPseudograph<CortexVertex, CortexEdge> assembleMiddle(Set<String> parentName, List<CortexVertex> wLeft, List<CortexVertex> wRight) {
@@ -295,7 +414,7 @@ public class FindPaths extends Module {
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
                                 .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(10000)
+                                .maxBranchLength(1000)
                                 .graph(GRAPH)
                                 .links(LINKS)
                                 .make();
@@ -305,7 +424,7 @@ public class FindPaths extends Module {
                                 .traversalDirection(REVERSE)
                                 .combinationOperator(OR)
                                 .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(10000)
+                                .maxBranchLength(1000)
                                 .graph(GRAPH)
                                 .links(LINKS)
                                 .make();
