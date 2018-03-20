@@ -391,7 +391,7 @@ public class TraversalUtils {
 
         CortexVertex seed = null;
         for (CortexVertex v : g.vertexSet()) {
-            if (v.getKmerAsString().equals(sk) && v.getCortexRecord().getCoverage(color) > 0 && (seed == null || v.getCopyIndex() < seed.getCopyIndex())) {
+            if (v.getKmerAsString().equals(sk) && v.getCortexRecord() != null && v.getCortexRecord().getCoverage(color) > 0 && (seed == null || v.getCopyIndex() < seed.getCopyIndex())) {
                 seed = v;
             }
         }

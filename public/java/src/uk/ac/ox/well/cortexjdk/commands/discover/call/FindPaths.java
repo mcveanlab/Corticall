@@ -64,53 +64,85 @@ public class FindPaths extends Module {
     @Output
     public PrintStream out;
 
-    @Output(fullName="gdir", shortName="gdir", doc="GFA1 dir")
-    public File gdir;
-
     @Override
     public void execute() {
         Set<CanonicalKmer> rois = loadRois(ROIS);
 
+        List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence rseq;
         while ((rseq = PARTITIONS.nextSequence()) != null) {
-            log.info("{}", rseq.getName());
+            rseqs.add(rseq);
+        }
 
-            List<CortexVertex> w = loadChildWalk(rseq, GRAPH, LINKS);
+        for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
+            rseq = rseqs.get(rseqIndex);
+
+            List<CortexVertex> w = loadChildWalk(rseq, GRAPH);
             List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 100, 500);
+
+            log.info("Partition {}/{} (sections={}, fullname={})", (rseqIndex+1), rseqs.size(), sections.size(), rseq.getName());
 
             for (Triple<Integer, Integer, List<CortexVertex>> section : sections) {
                 List<CortexVertex> ws = section.getRight();
-                String query = TraversalUtils.toContig(ws);
-
                 List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
 
                 Map<String, String> targets = new HashMap<>();
                 for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
                     Map<String, String> newTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
 
-                    targets.putAll(newTargets);
+                    for (String label : newTargets.keySet()) {
+                        String background = label.split(":")[0];
+                        String seq = newTargets.get(label);
+
+                        String newLabel = label;
+
+                        if (BACKGROUNDS.containsKey(background)) {
+                            SAMRecord a = getBestAlignment(seq, background);
+
+                            if (a != null) {
+                                newLabel = String.format("%s:%s:%d-%d:%s:%s", background, a.getReferenceName(), a.getAlignmentStart(), a.getAlignmentEnd(), a.getReadNegativeStrandFlag() ? "-" : "+", a.getCigarString());
+                            }
+                        }
+
+                        targets.put(newLabel, seq);
+                    }
                 }
 
                 if (targets.size() > 0) {
                     String trimmedQuery = trimQuery(ws, targets, rois);
 
-                    log.info("{} ({} {})", query, rseq.getName().split(" ")[0], query.length());
-                    for (String targetName : targets.keySet()) {
-                        log.info("{} ({} {})", targets.get(targetName), targetName, targets.get(targetName).length());
-                    }
-
                     MosaicAligner ma = new MosaicAligner();
-                    //List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(query, targets);
+
                     List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery, targets);
-
-                    //String noveltyTrack = makeNoveltyTrack(rois, query, lps);
-
-                    //log.info("\n{}\n{}", noveltyTrack, ma);
-                    log.info("\n{}", ma);
+                    log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), ma);
                     log.info("");
                 }
             }
         }
+    }
+
+    private SAMRecord getBestAlignment(String query, String background) {
+        List<SAMRecord> a = BACKGROUNDS.get(background).align(query.replaceAll("[- ]", ""));
+
+        a.sort((s1, s2) -> {
+            int s1length = s1.getAlignmentEnd() - s1.getAlignmentStart();
+            int nm1 = s1.getIntegerAttribute("NM");
+
+            int s2length = s2.getAlignmentEnd() - s2.getAlignmentStart();
+            int nm2 = s2.getIntegerAttribute("NM");
+
+            if (s1length != s2length) {
+                return s1length > s2length ? -1 : 1;
+            }
+
+            if (nm1 != nm2) {
+                return nm1 < nm2 ? -1 : 1;
+            }
+
+            return 0;
+        });
+
+        return a.size() > 0 ? a.get(0) : null;
     }
 
     private String trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
@@ -151,15 +183,14 @@ public class FindPaths extends Module {
         return TraversalUtils.toContig(ws.subList(firstIndex, lastIndex));
     }
 
-    /*
-    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, Integer, Integer>> lps) {
+    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps) {
         int maxLength = 0;
-        for (Triple<String, Integer, Integer> lp : lps) {
-            String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getMiddle(), lp.getRight());
+        for (Triple<String, String, Pair<Integer, Integer>> lp : lps) {
+            String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getRight().getFirst(), lp.getRight().getSecond());
             maxLength = Math.max(maxLength, name.length());
         }
 
-        StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', query.length()));
+        StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', query.length() + 1));
         for (int i = 0; i <= query.length() - GRAPH.getKmerSize(); i++) {
             CanonicalKmer ck = new CanonicalKmer(query.substring(i, i + GRAPH.getKmerSize()));
 
@@ -170,56 +201,13 @@ public class FindPaths extends Module {
             }
         }
 
-        for (int i = 0; i < lps.get(0).getRight().length(); i++) {
-            if (lps.get(0).getRight().charAt(i) == '-') {
+        for (int i = 0; i < lps.get(0).getMiddle().length(); i++) {
+            if (lps.get(0).getMiddle().charAt(i) == '-') {
                 sb.insert(i, sb.charAt(i) == '*' ? '*' : ' ');
             }
         }
 
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
-    }
-    */
-
-    private void labelTargets(Map<String, String> targets, Set<String> parentName, String name, List<CortexVertex> l) {
-        String cl = TraversalUtils.toContig(l);
-
-        if (BACKGROUNDS != null) {
-            for (String pn : parentName) {
-                if (BACKGROUNDS.containsKey(pn)) {
-                    List<SAMRecord> srs = BACKGROUNDS.get(pn).align(cl);
-
-                    if (srs.size() > 0) {
-                        srs.sort((s1, s2) -> {
-                            int s1length = s1.getAlignmentEnd() - s1.getAlignmentStart();
-                            int nm1 = s1.getIntegerAttribute("NM");
-
-                            int s2length = s2.getAlignmentEnd() - s2.getAlignmentStart();
-                            int nm2 = s2.getIntegerAttribute("NM");
-
-                            if (s1length != s2length) {
-                                return s1length > s2length ? -1 : 1;
-                            }
-
-                            if (nm1 != nm2) {
-                                return nm1 < nm2 ? -1 : 1;
-                            }
-
-                            return 0;
-                        });
-
-                        SAMRecord sr = srs.get(0);
-                        Interval it = new Interval(sr.getReferenceName(), sr.getAlignmentStart(), sr.getAlignmentEnd(), sr.getReadNegativeStrandFlag(), sr.getCigarString());
-
-                        String seq = BACKGROUNDS.get(pn).find(it);
-                        targets.put(String.format("%s:%s:%d-%d:%s:%s", pn, it.getContig(), it.getStart(), it.getEnd(), it.isPositiveStrand() ? "+" : "-", it.getName()), seq);
-                    } else {
-                        targets.put(name, cl);
-                    }
-                }
-            }
-        } else {
-            targets.put(name, cl);
-        }
     }
 
     @NotNull
@@ -266,44 +254,6 @@ public class FindPaths extends Module {
 //        targets.putAll(assembleFlankCandidates(parentName, g, walks));
 
         return targets;
-    }
-
-    private Map<String, String> assembleFlankCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
-        // Now assume the gaps are uncloseable and just assemble the flanks a bit farther
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        Graphs.addGraph(gm, g);
-
-        for (int i = 0; i < walks.size(); i++) {
-            TraversalEngine ef = new TraversalEngineFactory()
-                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                    .traversalDirection(FORWARD)
-                    .combinationOperator(OR)
-                    .stoppingRule(ContigStopper.class)
-                    .maxBranchLength(500)
-                    .graph(GRAPH)
-                    .links(LINKS)
-                    .make();
-
-            TraversalEngine er = new TraversalEngineFactory()
-                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                    .traversalDirection(REVERSE)
-                    .combinationOperator(OR)
-                    .stoppingRule(ContigStopper.class)
-                    .maxBranchLength(500)
-                    .graph(GRAPH)
-                    .links(LINKS)
-                    .make();
-
-            if (i < walks.size() - 1) {
-                Graphs.addGraph(gm, ef.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
-            }
-
-            if (i > 0) {
-                Graphs.addGraph(gm, er.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
-            }
-        }
-
-        return extractTargets(parentName, gm, "flanks");
     }
 
     private Map<String, String> assembleDovetailCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
@@ -575,7 +525,7 @@ public class FindPaths extends Module {
         return rois;
     }
 
-    private List<CortexVertex> loadChildWalk(ReferenceSequence seq, CortexGraph graph, List<CortexLinks> links) {
+    private List<CortexVertex> loadChildWalk(ReferenceSequence seq, CortexGraph graph) {
         List<CortexVertex> w = new ArrayList<>();
 
         Map<String, Integer> seenCount = new HashMap<>();

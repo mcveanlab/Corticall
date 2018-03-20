@@ -389,7 +389,7 @@ public class MosaicAligner {
         List<Triple<String, String, Pair<Integer, Integer>>> path = new ArrayList<>();
         path.add(Triple.of("query", sb.toString(), Pair.create(posStart, posEnd)));
 
-        alignment.add(Triple.of(seqs.get(0).getFirst(), Pair.create(0, 0), sb.toString()));
+        alignment.add(Triple.of(seqs.get(0).getFirst(), Pair.create(posStart, posEnd), sb.toString()));
 
         // Prepare matching track
         sb = new StringBuilder();
@@ -432,7 +432,7 @@ public class MosaicAligner {
 
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
                 uppercase = true;
-                alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
+                alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
 
                 if (posStart != posEnd) {
                     path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
@@ -465,7 +465,7 @@ public class MosaicAligner {
             path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
         }
 
-        alignment.add(Triple.of(currentTrack, Pair.create(0, 0), sb.toString()));
+        alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
 
         return path;
     }
