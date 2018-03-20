@@ -89,7 +89,10 @@ public class CompareContigLengths extends Module {
             }
         }
 
-        out.println(Joiner.on("\t").join("kmer", "id", "type", Joiner.on("\t").join(FASTAS.keySet())));
+        List<String> keys = new ArrayList<>(FASTAS.keySet());
+        keys.sort(Comparator.naturalOrder());
+
+        out.println(Joiner.on("\t").join("kmer", "id", "type", Joiner.on("\t").join(keys)));
         for (CanonicalKmer ck : m.keySet()) {
             Triple<String, String, Map<String, Integer>> t = m.get(ck);
 
@@ -98,7 +101,7 @@ public class CompareContigLengths extends Module {
             fields.add(t.getLeft());
             fields.add(t.getMiddle());
 
-            for (String key : FASTAS.keySet()) {
+            for (String key : keys) {
                 fields.add(String.valueOf(t.getRight().get(key)));
             }
 
