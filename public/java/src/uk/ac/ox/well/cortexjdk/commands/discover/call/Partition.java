@@ -12,6 +12,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
@@ -46,6 +47,16 @@ public class Partition extends Module {
                 .stoppingRule(NovelContinuationStopper.class)
                 .make();
 
+        TraversalEngine ec = new TraversalEngineFactory()
+                .traversalColors(getTraversalColor(GRAPH, ROIS))
+                .traversalDirection(BOTH)
+                .combinationOperator(OR)
+                .graph(GRAPH)
+                .links(LINKS)
+                .rois(ROIS)
+                .stoppingRule(ContigStopper.class)
+                .make();
+
         Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -61,6 +72,20 @@ public class Partition extends Module {
             if (used.get(ck) == null) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(ck);
                 List<CortexVertex> w = TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
+
+                if (w.size() == 0) {
+                    g = ec.dfs(ck);
+                    w = TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
+                }
+
+                if (w.size() == 0) {
+                    w = new ArrayList<>();
+                    w.add(new CortexVertexFactory()
+                            .bases(ck.getKmerAsString())
+                            .record(GRAPH.findRecord(ck.getKmerAsString()))
+                            .make()
+                    );
+                }
 
                 int numNovelsInSubgraph = countNovels(used, g);
                 int subgraphSize = g == null ? 0 : g.vertexSet().size();
