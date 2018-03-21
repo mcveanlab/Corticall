@@ -7,6 +7,8 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -46,8 +48,18 @@ public class ComputeKmerPairMatrix extends Module {
         int[][] m = new int[matrixIndex][matrixIndex];
         int kmerSize = ids.keySet().iterator().next().length();
 
-        ReferenceSequence rseq;
-        while ((rseq = CONTIGS.nextSequence()) != null) {
+        List<ReferenceSequence> rseqs = new ArrayList<>();
+        ReferenceSequence aseq;
+        while ((aseq = CONTIGS.nextSequence()) != null) {
+            rseqs.add(aseq);
+        }
+
+//        ProgressMeter pm = new ProgressMeterFactory()
+//                .maxRecord(rseqs.size())
+
+        for (ReferenceSequence rseq : rseqs) {
+            log.info("{}", rseq.getName());
+
             String seq = rseq.getBaseString();
 
             List<CanonicalKmer> cks = new ArrayList<>();

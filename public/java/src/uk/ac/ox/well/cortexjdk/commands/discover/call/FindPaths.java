@@ -58,8 +58,8 @@ public class FindPaths extends Module {
     @Argument(fullName="background", shortName="b", doc="Background", required=false)
     public HashMap<String, IndexedReference> BACKGROUNDS;
 
-    @Argument(fullName="reference", shortName="R", doc="Reference", required=false)
-    public HashMap<String, IndexedReference> REFERENCE;
+    //@Argument(fullName="reference", shortName="R", doc="Reference", required=false)
+    //public HashMap<String, IndexedReference> REFERENCE;
 
     @Output
     public PrintStream out;
@@ -115,6 +115,12 @@ public class FindPaths extends Module {
 
                     List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery, targets);
                     log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), ma);
+
+                    List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
+                    for (Pair<Integer, Integer> nr : nrs) {
+                        log.info("  {} {}", nr.getFirst(), nr.getSecond());
+                    }
+
                     log.info("");
                 }
             }
@@ -208,6 +214,32 @@ public class FindPaths extends Module {
         }
 
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
+    }
+
+    private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps) {
+        String noveltyTrack = makeNoveltyTrack(rois, query, lps);
+
+        List<Pair<Integer, Integer>> regions = new ArrayList<>();
+        int start = -1;
+        int stop = noveltyTrack.length() - 1;
+        for (int i = 0; i < noveltyTrack.length(); i++) {
+            if (noveltyTrack.charAt(i) == '*') {
+                if (start == -1) { start = i; }
+                stop = i;
+            } else {
+                if (start >= 0) {
+                    regions.add(Pair.create(start, stop));
+                    start = -1;
+                    stop = noveltyTrack.length() - 1;
+                }
+            }
+        }
+
+        if (start >= 0) {
+            regions.add(Pair.create(start, stop));
+        }
+
+        return regions;
     }
 
     @NotNull
