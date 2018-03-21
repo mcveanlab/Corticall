@@ -40,7 +40,7 @@ public class TrimPartitions extends Module {
             String seq = rseq.getBaseString();
 
             List<CortexVertex> w = new ArrayList<>();
-            int start = Integer.MAX_VALUE;
+            int start = seq.length() - ROI.getKmerSize();
             int stop = 0;
             for (int i = 0; i <= seq.length() - ROI.getKmerSize(); i++) {
                 String sk = seq.substring(i, i + ROI.getKmerSize());
