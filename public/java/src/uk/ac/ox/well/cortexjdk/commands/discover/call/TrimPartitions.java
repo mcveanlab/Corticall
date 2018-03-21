@@ -57,8 +57,10 @@ public class TrimPartitions extends Module {
             start = (start - 100 >= 0) ? start - 100 : 0;
             stop = (stop + 100 < w.size() - 1) ? stop + 100 : w.size() - 1;
 
-            out.println(">" + rseq.getName());
-            out.println(TraversalUtils.toContig(w.subList(start, stop)));
+            if (w.size() > 0) {
+                out.println(">" + rseq.getName());
+                out.println(TraversalUtils.toContig(w.subList(start, stop)));
+            }
         }
     }
 }
