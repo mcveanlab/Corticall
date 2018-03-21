@@ -58,8 +58,8 @@ public class FindPaths extends Module {
     @Argument(fullName="background", shortName="b", doc="Background", required=false)
     public HashMap<String, IndexedReference> BACKGROUNDS;
 
-    //@Argument(fullName="reference", shortName="R", doc="Reference", required=false)
-    //public HashMap<String, IndexedReference> REFERENCE;
+    @Argument(fullName="reference", shortName="R", doc="Reference", required=false)
+    public HashMap<String, IndexedReference> REFERENCE;
 
     @Output
     public PrintStream out;
@@ -218,6 +218,7 @@ public class FindPaths extends Module {
 
     private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps) {
         String noveltyTrack = makeNoveltyTrack(rois, query, lps);
+        noveltyTrack = noveltyTrack.replaceAll("^\\s+novel ", "");
 
         List<Pair<Integer, Integer>> regions = new ArrayList<>();
         int start = -1;
