@@ -72,6 +72,9 @@ public class Call extends Module {
     @Argument(fullName="background", shortName="b", doc="Background", required=false)
     public HashMap<String, IndexedReference> BACKGROUNDS;
 
+    @Argument(fullName="contigName", shortName="cn", doc="Contigs to process", required=false)
+    public HashSet<String> CONTIG_NAMES;
+
     //@Argument(fullName="reference", shortName="R", doc="Reference", required=false)
     //public HashMap<String, IndexedReference> REFERENCE;
 
@@ -186,9 +189,10 @@ public class Call extends Module {
         List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence rseq;
         while ((rseq = PARTITIONS.nextSequence()) != null) {
-            //if (rseq.getName().startsWith("contig55 ")) {
+            String[] name = rseq.getName().split(" ");
+            if (CONTIG_NAMES == null || CONTIG_NAMES.contains(name[0])) {
                 rseqs.add(rseq);
-            //}
+            }
         }
         return rseqs;
     }
@@ -215,6 +219,16 @@ public class Call extends Module {
         return targets;
     }
 
+    private boolean hasAlignedBase(List<Triple<String, String, Pair<Integer, Integer>>> lps, int j) {
+        for (int i = 1; i < lps.size(); i++) {
+            if (lps.get(0).getMiddle().charAt(j) == lps.get(i).getMiddle().charAt(j)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private List<VariantContext> getDNMList(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, int partitionIndex, int sectionIndex, Set<CanonicalKmer> rois) {
         List<VariantContext> vcs = new ArrayList<>();
 
@@ -237,8 +251,19 @@ public class Call extends Module {
             boolean isExactRepeat = false;
             List<CanonicalKmer> cks = new ArrayList<>();
 
-            for (int j = nr.getFirst(); j <= nr.getSecond() || (j < lps.get(0).getMiddle().length() && (childAllele.length() > 0 || parentAllele.length() > 0)); j++) {
-                String novelRegion = lps.get(0).getMiddle().substring(nr.getFirst(), nr.getSecond()).replaceAll("[- ]", "");
+
+            int leftLimit = nr.getFirst();
+            while (leftLimit > 0 && !hasAlignedBase(lps, leftLimit)) {
+                leftLimit--;
+            }
+
+            int rightLimit = nr.getSecond();
+            while (rightLimit < lps.get(0).getMiddle().length() - 1 && !hasAlignedBase(lps, rightLimit)) {
+                rightLimit++;
+            }
+
+            for (int j = leftLimit; j <= rightLimit || (j < lps.get(0).getMiddle().length() && (childAllele.length() > 0 || parentAllele.length() > 0)); j++) {
+                String novelRegion = lps.get(0).getMiddle().substring(leftLimit, rightLimit).replaceAll("[- ]", "");
                 for (int i = 0; i <= novelRegion.length() - GRAPH.getKmerSize(); i++) {
                     CanonicalKmer ck = new CanonicalKmer(novelRegion.substring(i, i + GRAPH.getKmerSize()));
                     if (rois.contains(ck)) {
@@ -558,8 +583,8 @@ public class Call extends Module {
             }
 
             cks = new ArrayList<>();
-            for (int j = nr.getFirst(); j < nr.getSecond(); j++) {
-                String novelRegion = lps.get(0).getMiddle().substring(nr.getFirst(), nr.getSecond()).replaceAll("[- ]", "");
+            for (int j = leftLimit; j < rightLimit; j++) {
+                String novelRegion = lps.get(0).getMiddle().substring(leftLimit, rightLimit).replaceAll("[- ]", "");
                 for (int i = 0; i <= novelRegion.length() - GRAPH.getKmerSize(); i++) {
                     CanonicalKmer ck = new CanonicalKmer(novelRegion.substring(i, i + GRAPH.getKmerSize()));
                     if (rois.contains(ck)) {
@@ -575,7 +600,7 @@ public class Call extends Module {
                         stateBefore = i;
                         posBefore = j;
 
-                        for (int k = j; k >= nr.getFirst(); k--) {
+                        for (int k = j; k >= leftLimit; k--) {
                             befSequence.insert(0, lps.get(0).getMiddle().charAt(k));
                             posBefore = k;
 
@@ -596,7 +621,7 @@ public class Call extends Module {
                         stateAfter = i;
                         posAfter = j + 1;
 
-                        for (int k = j + 1; k < nr.getSecond(); k--) {
+                        for (int k = j + 1; k < rightLimit; k--) {
                             aftSequence.append(lps.get(0).getMiddle().charAt(k));
                             posAfter = k;
 
