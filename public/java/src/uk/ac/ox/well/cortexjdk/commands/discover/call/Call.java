@@ -221,7 +221,7 @@ public class Call extends Module {
 
     private boolean hasAlignedBase(List<Triple<String, String, Pair<Integer, Integer>>> lps, int j) {
         for (int i = 1; i < lps.size(); i++) {
-            if (lps.get(0).getMiddle().charAt(j) == lps.get(i).getMiddle().charAt(j)) {
+            if (j < lps.get(i).getMiddle().length() && lps.get(0).getMiddle().charAt(j) == lps.get(i).getMiddle().charAt(j)) {
                 return true;
             }
         }
