@@ -27,6 +27,6 @@ public class NahrStopper extends AbstractTraversalStoppingRule<CortexVertex, Cor
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        return !foundNovels && (s.getCurrentGraphSize() >= 1000 || s.getCurrentJunctionDepth() >= 2 || s.getNumAdjacentEdges() == 0);
+        return !foundNovels && (s.getCurrentBranchSize() >= 1000 || s.getCurrentJunctionDepth() >= 2 || s.getNumAdjacentEdges() == 0);
     }
 }

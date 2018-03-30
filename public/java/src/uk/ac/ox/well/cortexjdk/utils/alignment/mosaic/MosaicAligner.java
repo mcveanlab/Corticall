@@ -79,12 +79,12 @@ public class MosaicAligner {
     private double[] si;
     private double[] lsi;
 
-    private List<Triple<String, Pair<Integer, Integer>, String>> alignment;
+    private List<Triple<String, String, Pair<Integer, Integer>>> path;
     private String editTrack;
 
     public MosaicAligner() { }
 
-    public MosaicAligner(double del, double eps, double rho , double term) {
+    public MosaicAligner(double del, double eps, double rho, double term) {
         this.del = del;
         this.eps = eps;
         this.rho = rho;
@@ -103,6 +103,24 @@ public class MosaicAligner {
     }
 
     private void initialize(String query, Map<String, String> targets) {
+        // params
+        ldel = Math.log(del);
+        leps = Math.log(eps);
+        lrho = Math.log(rho);
+        lterm = Math.log(term);
+
+        piM = 0.75;
+        piI = 1 - piM;
+        mm = 1 - 2*del - rho - term;
+        gm = 1 - eps - rho - term;
+        dm = 1 - eps;
+
+        lpiM = Math.log(piM);
+        lpiI = Math.log(piI);
+        lmm = Math.log(mm);
+        lgm = Math.log(gm);
+        ldm = Math.log(dm);
+
         this.nseq = targets.size() + 1;
         this.maxl = getMaxLength(query, targets);
 
@@ -146,7 +164,7 @@ public class MosaicAligner {
             lsi[i] = Math.log(emiss_gap_nt[i]);
         }
 
-        alignment = new ArrayList<>();
+        path = new ArrayList<>();
     }
 
     private int getMaxLength(String query, Map<String, String> targets) {
@@ -386,10 +404,7 @@ public class MosaicAligner {
             }
         }
 
-        List<Triple<String, String, Pair<Integer, Integer>>> path = new ArrayList<>();
-        path.add(Triple.of("query", sb.toString(), Pair.create(posStart, posEnd)));
-
-        alignment.add(Triple.of(seqs.get(0).getFirst(), Pair.create(posStart, posEnd), sb.toString()));
+        path.add(Triple.of(seqs.get(0).getFirst(), sb.toString(), Pair.create(posStart, posEnd)));
 
         // Prepare matching track
         sb = new StringBuilder();
@@ -417,25 +432,31 @@ public class MosaicAligner {
         sb = new StringBuilder();
         posStart = -1;
         posEnd = -1;
+        int lastKnownPos = -1;
 
         boolean uppercase = true;
         for (i = cp; i <= 2*maxl; i++) {
-            if (i > cp && maxpath_copy[i] == maxpath_copy[i-1] && Math.abs(maxpath_pos[i] - maxpath_pos[i - 1]) > 1) {
+            if (i > cp && maxpath_copy[i] == maxpath_copy[i-1] && Math.abs(maxpath_pos[i] - maxpath_pos[i - 1]) > 1 || maxpath_pos[i] == lastKnownPos + 1) {
                 uppercase = !uppercase;
+                lastKnownPos = maxpath_pos[i - 1];
 
                 if (posStart != posEnd) {
-                    path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
+                    //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
+                    //path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                     posStart = maxpath_pos[i] - 1;
                     posEnd = maxpath_pos[i] - 1;
                 }
+
+                //sb = new StringBuilder();
+                //sb.append(StringUtil.repeatCharNTimes(' ', i - cp));
             }
 
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
+                //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
+                path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                 uppercase = true;
-                alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
 
                 if (posStart != posEnd) {
-                    path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                     posStart = maxpath_pos[i] - 1;
                     posEnd = maxpath_pos[i] - 1;
                 }
@@ -456,16 +477,12 @@ public class MosaicAligner {
                 }
                 posEnd = maxpath_pos[i] - 1;
 
-                //sb.append(seqs.get(maxpath_copy[i] - 1).getSecond().charAt(maxpath_pos[i] - 1));
                 sb.append(c);
             }
         }
 
-        if (posStart != posEnd) {
-            path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
-        }
-
-        alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
+        path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
+        //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
 
         return path;
     }
@@ -484,20 +501,20 @@ public class MosaicAligner {
     @Override
     public String toString() {
         int maxNameLength = 0;
-        for (int i = 0; i < alignment.size(); i++) {
-            String name = String.format("%s (%d-%d)", alignment.get(i).getLeft(), alignment.get(i).getMiddle().getFirst(), alignment.get(i).getMiddle().getSecond());
+        for (int i = 0; i < path.size(); i++) {
+            String name = String.format("%s (%d-%d)", path.get(i).getLeft(), path.get(i).getRight().getFirst(), path.get(i).getRight().getSecond());
             maxNameLength = Math.max(maxNameLength, name.length());
         }
         String format = "%" + maxNameLength + "s";
 
         StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < alignment.size(); i++) {
-            String name = String.format("%s (%d-%d)", alignment.get(i).getLeft(), alignment.get(i).getMiddle().getFirst(), alignment.get(i).getMiddle().getSecond());
+        for (int i = 0; i < path.size(); i++) {
+            String name = String.format("%s (%d-%d)", path.get(i).getLeft(), path.get(i).getRight().getFirst(), path.get(i).getRight().getSecond());
 
             sb.append(String.format(format, name))
               .append(" ")
-              .append(alignment.get(i).getRight())
+              .append(path.get(i).getMiddle())
               .append("\n");
 
             if (i == 0) {

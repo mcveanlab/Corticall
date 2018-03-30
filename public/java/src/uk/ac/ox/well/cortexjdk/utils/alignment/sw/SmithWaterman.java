@@ -39,6 +39,9 @@ public class SmithWaterman {
     double penalO = 10;
     double penalE = 0.5;
 
+    //double penalO = 1;
+    //double penalE = 0.1;
+
 
     public SWResult align(String qq,String ss){
         String qq2 = qq.replaceAll("^[\\s]*>[^\\r\\n]*[\\r\\n]+","");

@@ -13,6 +13,7 @@ final public class TraversalState<V> {
     final private Set<Integer> joiningColors;
     final private int currentJunctionDepth;
     final private int currentGraphSize;
+    final private int currentBranchSize;
     final private int numAdjacentEdges;
     final private boolean childrenAlreadyTraversed;
     final private DeBruijnGraph rois;
@@ -23,8 +24,9 @@ final public class TraversalState<V> {
                           boolean goForward,
                           Set<Integer> traversalColors,
                           Set<Integer> joiningColors,
-                          int currentJunctionDepth,
                           int currentGraphSize,
+                          int currentJunctionDepth,
+                          int currentBranchSize,
                           int numAdjacentEdges,
                           boolean childrenAlreadyTraversed,
                           boolean reachedMaxBranchLength,
@@ -35,8 +37,9 @@ final public class TraversalState<V> {
         this.goForward = goForward;
         this.traversalColors = traversalColors;
         this.joiningColors = joiningColors;
-        this.currentJunctionDepth = currentJunctionDepth;
         this.currentGraphSize = currentGraphSize;
+        this.currentJunctionDepth = currentJunctionDepth;
+        this.currentBranchSize = currentBranchSize;
         this.numAdjacentEdges = numAdjacentEdges;
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
         this.rois = rois;
@@ -55,9 +58,11 @@ final public class TraversalState<V> {
 
     public Set<Integer> getJoiningColors() { return joiningColors; }
 
+    public int getCurrentGraphSize() { return currentGraphSize; }
+
     public int getCurrentJunctionDepth() { return currentJunctionDepth; }
 
-    public int getCurrentGraphSize() { return currentGraphSize; }
+    public int getCurrentBranchSize() { return currentBranchSize; }
 
     public int getNumAdjacentEdges() { return numAdjacentEdges; }
 

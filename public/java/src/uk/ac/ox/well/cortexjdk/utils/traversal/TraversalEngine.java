@@ -67,8 +67,8 @@ public class TraversalEngine {
                 .copyIndex(0)
                 .make();
 
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, new HashSet<>(), sinks) : null;
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, new HashSet<>(), sinks) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, 0, new HashSet<>(), sinks) : null;
+        DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, 0, new HashSet<>(), sinks) : null;
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
 
@@ -339,7 +339,7 @@ public class TraversalEngine {
     }
 
     @Nullable
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentJunctionDepth, Set<CortexVertex> visitedOld, String... sinks) {
+    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs(CortexVertex cv, boolean goForward, int currentGraphSize, int currentJunctionDepth, Set<CortexVertex> visitedOld, String... sinks) {
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
 
         // Account for vertices visited in progenitor branches (but not other progeny branches)
@@ -375,8 +375,6 @@ public class TraversalEngine {
                     CortexVertex lv = null;
                     do {
                         int copyIndex;
-                        //if (goForward) { copyIndex = lv == null ? 1 : lv.getCopyIndex() + 1; }
-                        //else { copyIndex = lv == null ? -1 : lv.getCopyIndex() - 1; }
                         if (goForward) { copyIndex = lv == null ? 0 : lv.getCopyIndex() + 1; }
                         else { copyIndex = lv == null ? 0 : lv.getCopyIndex() - 1; }
 
@@ -411,7 +409,7 @@ public class TraversalEngine {
             visited.add(cv);
 
             // Decide if we should keep exploring the graph or not
-            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+            TraversalState<CortexVertex> ts = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentGraphSize + g.vertexSet().size(), currentJunctionDepth, g.vertexSet().size(), avs.size(), false, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
 
             if (!previouslyVisited && stoppingRule.keepGoing(ts)) {
                 if (avs.size() == 1) {
@@ -423,7 +421,7 @@ public class TraversalEngine {
                     boolean childrenWereSuccessful = false;
 
                     for (CortexVertex av : avs) {
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentJunctionDepth + 1, visited, sinks);
+                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> branch = dfs(av, goForward, currentGraphSize + g.vertexSet().size(), currentJunctionDepth + 1, visited, sinks);
 
                         if (branch != null) {
                             if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av)); }
@@ -436,7 +434,7 @@ public class TraversalEngine {
                         }
                     }
 
-                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
+                    TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentGraphSize + g.vertexSet().size(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
 
                     if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
                         return g;
