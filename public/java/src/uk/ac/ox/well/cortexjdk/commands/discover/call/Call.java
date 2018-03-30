@@ -132,46 +132,50 @@ public class Call extends Module {
             List<CortexVertex> w = loadChildWalk(rseq, GRAPH);
             List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 100, 500);
 
-            log.info("Partition {}/{} (sections={}, fullname={})", (rseqIndex+1), rseqs.size(), sections.size(), rseq.getName());
+            if (sections == null) {
+                log.info("Partition {}/{} (sections={}, fullname={}) [skipped]", (rseqIndex + 1), rseqs.size(), 0, rseq.getName());
+            } else {
+                log.info("Partition {}/{} (sections={}, fullname={})", (rseqIndex + 1), rseqs.size(), sections.size(), rseq.getName());
 
-            for (int sectionIndex = 0; sectionIndex < sections.size(); sectionIndex++) {
-                Triple<Integer, Integer, List<CortexVertex>> section = sections.get(sectionIndex);
+                for (int sectionIndex = 0; sectionIndex < sections.size(); sectionIndex++) {
+                    Triple<Integer, Integer, List<CortexVertex>> section = sections.get(sectionIndex);
 
-                List<CortexVertex> ws = section.getRight();
-                List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
+                    List<CortexVertex> ws = section.getRight();
+                    List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
 
-                Map<String, String> targets = new HashMap<>();
-                for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
-                    Map<String, String> unlabeledTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
-                    Map<String, String> labeledTargets = labelTargets(unlabeledTargets);
+                    Map<String, String> targets = new HashMap<>();
+                    for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                        Map<String, String> unlabeledTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
+                        Map<String, String> labeledTargets = labelTargets(unlabeledTargets);
 
-                    targets.putAll(labeledTargets);
-                }
-
-                if (targets.size() > 0) {
-                    String trimmedQuery = trimQuery(ws, targets, rois);
-
-                    List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery, targets);
-                    log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), mb);
-
-                    List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
-                    List<VariantContext> vcs = getDNMList(lps, nrs, rseq.getName().split(" ")[0], rseqIndex, sectionIndex, rois);
-
-                    for (VariantContext vc : vcs) {
-                        Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
-                        attrs.remove("NOVELS");
-                        log.info("{}:{}-{} type={} alleles=[{}] attr={{}}",
-                                vc.getContig(),
-                                vc.getStart(),
-                                vc.getEnd(),
-                                vc.getType(),
-                                Joiner.on(", ").join(vc.getAlleles()),
-                                Joiner.on(", ").withKeyValueSeparator('=').join(attrs)
-                        );
-
-                        svcs.add(vc);
+                        targets.putAll(labeledTargets);
                     }
-                    log.info("");
+
+                    if (targets.size() > 0) {
+                        String trimmedQuery = trimQuery(ws, targets, rois);
+
+                        List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery, targets);
+                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), mb);
+
+                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
+                        List<VariantContext> vcs = getDNMList(lps, nrs, rseq.getName().split(" ")[0], rseqIndex, sectionIndex, rois);
+
+                        for (VariantContext vc : vcs) {
+                            Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
+                            attrs.remove("NOVELS");
+                            log.info("{}:{}-{} type={} alleles=[{}] attr={{}}",
+                                    vc.getContig(),
+                                    vc.getStart(),
+                                    vc.getEnd(),
+                                    vc.getType(),
+                                    Joiner.on(", ").join(vc.getAlleles()),
+                                    Joiner.on(", ").withKeyValueSeparator('=').join(attrs)
+                            );
+
+                            svcs.add(vc);
+                        }
+                        log.info("");
+                    }
                 }
             }
         }
@@ -1231,34 +1235,42 @@ public class Call extends Module {
     private List<Triple<Integer, Integer, List<CortexVertex>>> sectionContig(Set<CanonicalKmer> rois, List<CortexVertex> w, int window, int novelDistanceSplit) {
         List<Pair<Integer, Integer>> regions = getRegions(rois, w);
 
-        int subcontigStart = regions.get(0).getFirst() - window;
-        if (subcontigStart < 0) { subcontigStart = 0; }
-
-        int subcontigStop  = regions.get(regions.size() - 1).getSecond() + window;
-        if (subcontigStop >= w.size()) { subcontigStop = w.size() - 1; }
-
-        List<Pair<Integer, Integer>> sections = new ArrayList<>();
-        for (int i = 0; i < regions.size() - 1; i++) {
-            if (regions.get(i+1).getFirst() - regions.get(i).getSecond() > novelDistanceSplit) {
-                sections.add(Pair.create(subcontigStart, regions.get(i).getSecond() + window));
-
-                subcontigStart = regions.get(i+1).getFirst() - window;
-            }
-        }
-
-        sections.add(Pair.create(subcontigStart, subcontigStop));
-
-        List<Triple<Integer, Integer, List<CortexVertex>>> wss = new ArrayList<>();
-        for (Pair<Integer, Integer> section : sections) {
-            List<CortexVertex> ws = new ArrayList<>();
-            for (int i = section.getFirst(); i <= section.getSecond(); i++) {
-                ws.add(w.get(i));
+        if (regions.size() > 0) {
+            int subcontigStart = regions.get(0).getFirst() - window;
+            if (subcontigStart < 0) {
+                subcontigStart = 0;
             }
 
-            wss.add(Triple.of(section.getFirst(), section.getSecond(), ws));
+            int subcontigStop = regions.get(regions.size() - 1).getSecond() + window;
+            if (subcontigStop >= w.size()) {
+                subcontigStop = w.size() - 1;
+            }
+
+            List<Pair<Integer, Integer>> sections = new ArrayList<>();
+            for (int i = 0; i < regions.size() - 1; i++) {
+                if (regions.get(i + 1).getFirst() - regions.get(i).getSecond() > novelDistanceSplit) {
+                    sections.add(Pair.create(subcontigStart, regions.get(i).getSecond() + window));
+
+                    subcontigStart = regions.get(i + 1).getFirst() - window;
+                }
+            }
+
+            sections.add(Pair.create(subcontigStart, subcontigStop));
+
+            List<Triple<Integer, Integer, List<CortexVertex>>> wss = new ArrayList<>();
+            for (Pair<Integer, Integer> section : sections) {
+                List<CortexVertex> ws = new ArrayList<>();
+                for (int i = section.getFirst(); i <= section.getSecond(); i++) {
+                    ws.add(w.get(i));
+                }
+
+                wss.add(Triple.of(section.getFirst(), section.getSecond(), ws));
+            }
+
+            return wss;
         }
 
-        return wss;
+        return null;
     }
 
     @NotNull

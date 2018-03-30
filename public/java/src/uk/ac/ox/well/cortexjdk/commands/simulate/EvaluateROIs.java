@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.simulate.generators;
+package uk.ac.ox.well.cortexjdk.commands.simulate;
 
 import com.google.common.base.Joiner;
 import uk.ac.ox.well.cortexjdk.commands.Module;
