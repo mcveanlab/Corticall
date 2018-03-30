@@ -307,27 +307,31 @@ public class Call extends Module {
                                 if (parentAllele.length() != 1 || childAllele.length() != 1) {
                                     if (positiveStrand) {
                                         if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                                            parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                                             if (isAtEnd) {
                                                 childAllele.append(".");
                                             }
                                         } else {
                                             variantStart = alleleEnd + 1;
-                                            parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.insert(0, ".");
                                         }
                                     } else {
                                         if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                                            parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                                             if (isAtStart) {
                                                 childAllele.insert(0, ".");
                                             }
                                         } else {
                                             variantStart = alleleStart - 1;
-                                            parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                                             childAllele.append(".");
                                         }
@@ -457,27 +461,31 @@ public class Call extends Module {
                 if (parentAllele.length() != 1 || childAllele.length() != 1) {
                     if (positiveStrand) {
                         if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                            parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                             if (isAtEnd) {
                                 childAllele.append(".");
                             }
                         } else {
                             variantStart = alleleEnd + 1;
-                            parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.insert(0, ".");
                         }
                     } else {
                         if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                            parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
+                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
                             if (isAtStart) {
                                 childAllele.insert(0, ".");
                             }
                         } else {
                             variantStart = alleleStart - 1;
-                            parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
+                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
                             childAllele.append(".");
                         }
@@ -621,7 +629,7 @@ public class Call extends Module {
                         stateAfter = i;
                         posAfter = j + 1;
 
-                        for (int k = j + 1; k < rightLimit; k--) {
+                        for (int k = j + 1; k <= rightLimit; k--) {
                             aftSequence.append(lps.get(0).getMiddle().charAt(k));
                             posAfter = k;
 
