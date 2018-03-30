@@ -18,7 +18,6 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.JunctionlessDestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.PrintStream;
