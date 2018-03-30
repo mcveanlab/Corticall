@@ -81,6 +81,9 @@ public class Call extends Module {
     @Output
     public File out;
 
+    @Output(fullName="accountingOut", shortName="ao", doc="Accounting out")
+    public PrintStream aout;
+
     @Override
     public void execute() {
         Set<CanonicalKmer> rois = loadRois(ROIS);
@@ -111,7 +114,6 @@ public class Call extends Module {
         vcfHeader.setSequenceDictionary(ssd);
         vcw.writeHeader(vcfHeader);
 
-        MosaicAligner ma = new MosaicAligner(0.15, 0.99, 0.0001,  0.001);
         MosaicAligner mb = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
 
         Set<VariantContext> svcs = new TreeSet<>((v1, v2) -> {
@@ -152,11 +154,8 @@ public class Call extends Module {
                     List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery, targets);
                     log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), mb);
 
-                    //List<Triple<String, String, Pair<Integer, Integer>>> lpsb = mb.align(trimmedQuery, targets);
-                    //log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lpsb), mb);
-
                     List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
-                    List<VariantContext> vcs = getDNMList(lps, nrs, rseqIndex, sectionIndex, rois);
+                    List<VariantContext> vcs = getDNMList(lps, nrs, rseq.getName().split(" ")[0], rseqIndex, sectionIndex, rois);
 
                     for (VariantContext vc : vcs) {
                         Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
@@ -177,11 +176,39 @@ public class Call extends Module {
             }
         }
 
+        Map<CanonicalKmer, String> acct = new TreeMap<>();
+        for (CanonicalKmer ck : rois) {
+            acct.put(ck, "absent");
+        }
+
+        int variantId = 0;
         for (VariantContext vc : svcs) {
-            vcw.add(vc);
+            String id = String.format("CC%d", variantId);
+
+            vcw.add(new VariantContextBuilder(vc)
+                .rmAttribute("NOVELS")
+                .id(id)
+                .make()
+            );
+
+            for (String sk : vc.getAttributeAsString("NOVELS", "").split(",")) {
+                if (sk.length() > 0) {
+                    CanonicalKmer ck = new CanonicalKmer(sk);
+
+                    if (acct.containsKey(ck)) {
+                        acct.put(ck, id);
+                    }
+                }
+            }
+
+            variantId++;
         }
 
         vcw.close();
+
+        for (CanonicalKmer ck : acct.keySet()) {
+            aout.println(Joiner.on("\t").join(ck, acct.get(ck)));
+        }
     }
 
     @NotNull
@@ -229,7 +256,7 @@ public class Call extends Module {
         return false;
     }
 
-    private List<VariantContext> getDNMList(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, int partitionIndex, int sectionIndex, Set<CanonicalKmer> rois) {
+    private List<VariantContext> getDNMList(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, String contigName, int partitionIndex, int sectionIndex, Set<CanonicalKmer> rois) {
         List<VariantContext> vcs = new ArrayList<>();
 
         Set<String> bs = new HashSet<>();
@@ -417,6 +444,7 @@ public class Call extends Module {
                                         .chr(chrName)
                                         .start(aStart)
                                         .alleles(refAllele, altAllele)
+                                        .attribute("CONTIG", contigName)
                                         .attribute("PARTITION", partitionIndex)
                                         .attribute("SECTION", sectionIndex)
                                         .attribute("NOVELS", Joiner.on(",").join(cks))
@@ -571,6 +599,7 @@ public class Call extends Module {
                         .chr(chrName)
                         .start(aStart)
                         .alleles(refAllele, altAllele)
+                        .attribute("CONTIG", contigName)
                         .attribute("PARTITION", partitionIndex)
                         .attribute("SECTION", sectionIndex)
                         .attribute("NOVELS", Joiner.on(",").join(cks))
@@ -661,6 +690,7 @@ public class Call extends Module {
                             .start(pieces0.length > 3 ? Integer.valueOf(pieces0[3]) : partitionIndex)
                             .stop(pieces0.length > 3 ? Integer.valueOf(pieces0[3]) : partitionIndex)
                             .alleles(alleles0)
+                            .attribute("CONTIG", contigName)
                             .attribute("PARTITION", partitionIndex)
                             .attribute("SECTION", sectionIndex)
                             .attribute("NOVELS", Joiner.on(",").join(cks))
@@ -683,6 +713,7 @@ public class Call extends Module {
                             .start(pieces1.length > 3 ? Integer.valueOf(pieces1[2]) : partitionIndex)
                             .stop(pieces1.length > 3 ? Integer.valueOf(pieces1[2]) : partitionIndex)
                             .alleles(alleles1)
+                            .attribute("CONTIG", contigName)
                             .attribute("PARTITION", partitionIndex)
                             .attribute("SECTION", sectionIndex)
                             .attribute("NOVELS", Joiner.on(",").join(cks))

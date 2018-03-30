@@ -18,6 +18,7 @@ import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.cortexjdk.utils.stoppingrules.JunctionlessDestinationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
 
 import java.io.PrintStream;
@@ -36,15 +37,21 @@ public class ComputeInheritance extends Module {
     @Argument(fullName="parent", shortName="p", doc="Parents")
     public HashMap<String, String> PARENTS;
 
+    @Argument(fullName="child", shortName="c", doc="Children")
+    public HashSet<String> CHILDREN;
+
+    @Argument(fullName="ref", shortName="rn", doc="Ref")
+    public String REF_NAME;
+
     @Output
     public PrintStream out;
 
     @Override
     public void execute() {
-        int refColor = GRAPH.getColorForSampleName("ref");
+        int refColor = GRAPH.getColorForSampleName(REF_NAME);
         Set<Integer> parentColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(PARENTS.values())));
         Set<Integer> draftColors = new TreeSet<>(GRAPH.getColorsForSampleNames(new ArrayList<>(REFERENCES.keySet())));
-        Set<Integer> childColors = getChildColors(parentColors, draftColors, refColor);
+        Set<Integer> childColors = new TreeSet<>(GRAPH.getColorsForSampleNames(CHILDREN));
 
         log.info("Colors:");
         log.info("  - parents:  {}", parentColors);
@@ -59,9 +66,8 @@ public class ComputeInheritance extends Module {
     }
 
     private int callVariants(Set<Integer> parentColors, Set<Integer> childColors, Set<CanonicalKmer> seeds) {
-        TraversalEngine e = new TraversalEngineFactory()
-                .graph(GRAPH)
-                .make();
+        TraversalEngineFactory ef = new TraversalEngineFactory()
+                .graph(GRAPH);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Building contigs")
@@ -73,7 +79,7 @@ public class ComputeInheritance extends Module {
 
         int numVariants = 0;
         for (CanonicalKmer ck : seeds) {
-            Map<String, String> te = callVariant(parentColors, childColors, e, ck);
+            Map<String, String> te = callVariant(parentColors, childColors, ef, ck);
 
             if (te != null) {
                 Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("pos")), Integer.valueOf(te.get("pos")));
@@ -94,11 +100,12 @@ public class ComputeInheritance extends Module {
         return numVariants;
     }
 
-    private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngine e, CanonicalKmer ck) {
+    private Map<String, String> callVariant(Set<Integer> parentColors, Set<Integer> childColors, TraversalEngineFactory f, CanonicalKmer ck) {
         for (int c : childColors) {
             CortexRecord cr = GRAPH.findRecord(ck);
             if (cr.getCoverage(c) > 0) {
-                e.getConfiguration().setTraversalColors(c);
+                //f.getConfiguration().setTraversalColors(c);
+                TraversalEngine e = f.traversalColors(c).make();
 
                 int parentThatSharesChildAllele = -1;
                 int parentThatDoesNotShareChildAllele = -1;
@@ -360,7 +367,7 @@ public class ComputeInheritance extends Module {
             }
         }
 
-        return numChildrenWithCoverage > 1 && numChildrenWithCoverage < numChildren;
+        return numChildren == 1 || (numChildrenWithCoverage > 1 && numChildrenWithCoverage < numChildren);
     }
 
     private boolean isSinglyConnected(CortexRecord cr) {
