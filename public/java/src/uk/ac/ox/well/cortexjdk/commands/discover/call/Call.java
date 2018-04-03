@@ -1,10 +1,12 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
+import com.google.api.services.genomics.model.Variant;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -157,7 +159,6 @@ public class Call extends Module {
 
                         List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
                         List<VariantContext> vcs = getDNMList(lps, nrs, rseq.getName().split(" ")[0], rseqIndex, sectionIndex, rois);
-                        List<VariantContext> vcsMerged = mergeVCs(vcs);
 
                         for (VariantContext vc : vcs) {
                             Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
@@ -216,18 +217,6 @@ public class Call extends Module {
         for (CanonicalKmer ck : acct.keySet()) {
             aout.println(Joiner.on("\t").join(ck, acct.get(ck)));
         }
-    }
-
-    private List<VariantContext> mergeVCs(List<VariantContext> vcs) {
-        /*
-        vcs.sort((o1, o2) -> {
-            if (!o1.getContig().equals(o2.getContig())) {
-
-            }
-        });
-        */
-
-        return vcs;
     }
 
     @NotNull
