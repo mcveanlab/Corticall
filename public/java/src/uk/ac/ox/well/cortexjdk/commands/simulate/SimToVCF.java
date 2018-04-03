@@ -112,6 +112,8 @@ public class SimToVCF extends Module {
                             .computeEndFromAlleles(alleles, pos)
                             .attribute("SIM_TYPE", te.get("type"))
                             .attribute("INDEX", te.get("index"))
+                            .attribute("OLD_HAP", oldHap.toUpperCase())
+                            .attribute("NEW_HAP", newHap.toUpperCase())
                             .noGenotypes()
                             .make();
 
