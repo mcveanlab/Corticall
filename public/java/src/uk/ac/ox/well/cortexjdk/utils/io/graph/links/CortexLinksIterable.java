@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 
@@ -169,7 +170,13 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     private CortexLinksRecord getNextRecord() {
         if (recordsSeen < numKmersWithLinks) {
             try {
-                String[] kmerLine = buffered.readLine().split("\\s+");
+                String line = buffered.readLine();
+
+                if (line == null) {
+                    Main.getLogger().info("{} {} null record", recordsSeen, numKmersWithLinks);
+                }
+
+                String[] kmerLine = line.split("\\s+");
 
                 String kmer = kmerLine[0];
                 int numLinks = Integer.valueOf(kmerLine[1]);

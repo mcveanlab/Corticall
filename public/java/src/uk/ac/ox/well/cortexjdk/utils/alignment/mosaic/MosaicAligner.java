@@ -496,6 +496,10 @@ public class MosaicAligner {
         return 0;
     }
 
+    public double getMaximumLogLikelihood() {
+        return llk;
+    }
+
     @Override
     public String toString() {
         int maxNameLength = 0;

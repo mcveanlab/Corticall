@@ -91,13 +91,15 @@ public class Call extends Module {
         Set<VariantContext> svcs = buildVariantSorter(sd);
         VariantContextWriter vcw = buildVariantWriter(sd);
 
-        MosaicAligner mb = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
+        MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
 
         for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
             ReferenceSequence rseq = rseqs.get(rseqIndex);
 
             List<CortexVertex> w = loadChildWalk(rseq, GRAPH);
-            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 100, 500);
+            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 100, 2000);
+
+            Set<VariantContextBuilder> vcs = buildVariantContextBuilderSorter(sd);
 
             if (sections == null) {
                 log.info("Partition {}/{} (sections={}, fullname={}) [skipped]", (rseqIndex + 1), rseqs.size(), 0, rseq.getName());
@@ -110,52 +112,60 @@ public class Call extends Module {
                     List<CortexVertex> ws = section.getRight();
                     List<Pair<Integer, Integer>> regions = getRegions(rois, ws);
 
-                    Map<String, String> targets = new HashMap<>();
+                    Map<String, Map<String, String>> allTargets = new HashMap<>();
+                    allTargets.put("all", new HashMap<>());
                     for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
-                        targets.putAll(assembleCandidateHaplotypes(rois, ws, regions, parentName));
+                        Map<String, String> parentalTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
+
+                        allTargets.get("all").putAll(parentalTargets);
+                        allTargets.put(parentName.iterator().next(), parentalTargets);
                     }
 
-                    if (targets.size() > 0) {
-                        Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, targets, rois);
+                    if (allTargets.get("all").size() > 0) {
+                        Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, allTargets.get("all"), rois);
 
-                        List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery.getRight(), targets);
-                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery.getRight(), lps, true), mb);
+                        String bestTagName = "all";
+                        double llk = Double.MIN_VALUE;
+                        for (String tagName : allTargets.keySet()) {
+                            ma.align(trimmedQuery.getRight(), allTargets.get(tagName));
+
+                            if (ma.getMaximumLogLikelihood() > llk) {
+                                bestTagName = tagName;
+                                llk = ma.getMaximumLogLikelihood();
+                            }
+                        }
+
+                        Map<String, String> targets = allTargets.get(bestTagName);
+
+                        List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), targets);
+                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery.getRight(), lps, true), ma);
 
                         List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery.getRight(), lps, true);
 
                         List<VariantContextBuilder> calls = new ArrayList<>();
-                        calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
-                        calls.addAll(callLargeBubbles(lps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
-                        calls.addAll(callBreakpoints(lps, nrs, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
+                        calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                        calls.addAll(callLargeBubbles(lps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                        calls.addAll(callBreakpoints(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
 
                         List<VariantContextBuilder> merged = merge(lps, calls);
 
                         merged.forEach(v -> log.info("{}", v.make()));
                         log.info("");
 
-                        /*
-                        for (VariantContext vc : vcs) {
-                            Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
-                            attrs.remove("NOVELS");
-                            log.info("{}:{}-{} type={} alleles=[{}] attr={{}}",
-                                    vc.getContig(),
-                                    vc.getStart(),
-                                    vc.getEnd(),
-                                    vc.getType(),
-                                    Joiner.on(", ").join(vc.getAlleles()),
-                                    Joiner.on(", ").withKeyValueSeparator('=').join(attrs)
-                            );
-
-                            VariantContext newVc = new VariantContextBuilder(vc)
-                                    .attribute("CHILD_HAP", TraversalUtils.toContig(ws))
-                                    .make();
-
-                            svcs.add(newVc);
-                        }
-                        log.info("");
-                        */
+                        vcs.addAll(merged);
                     }
                 }
+            }
+
+            String ws = TraversalUtils.toContig(w);
+
+            for (VariantContextBuilder vcb : vcs) {
+                log.info("{}", vcb.make());
+                log.info("{} {} {}",
+                        ws.charAt(vcb.make().getStart()),
+                        ws.substring(vcb.make().getStart(), vcb.make().getStart() + 1),
+                        ws.substring(vcb.make().getStart() - 10, vcb.make().getStart() + 1)
+                );
             }
         }
 
@@ -372,8 +382,8 @@ public class Call extends Module {
 
         for (Pair<Integer, Integer> nr : nrs) {
             VariantContextBuilder vcb = new VariantContextBuilder();
-            char prevBase = 'N';
-            int start = nr.getFirst();
+            char prevBase = getChildColumn(lps, nr.getFirst() - 1);
+            int start = nr.getFirst() - 1;
             StringBuilder cBuilder = null;
             StringBuilder pBuilder = null;
 
@@ -522,11 +532,36 @@ public class Call extends Module {
         }
 
         return new TreeSet<>((v1, v2) -> {
-            int sid0 = sid.get(v1.getContig());
-            int sid1 = sid.get(v2.getContig());
+            if (v1 != null && v2 != null) {
+                int sid0 = sid.getOrDefault(v1.getContig(), 0);
+                int sid1 = sid.getOrDefault(v2.getContig(), 0);
+
+                if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+                if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+                if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
+            }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private Set<VariantContextBuilder> buildVariantContextBuilderSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((vb1, vb2) -> {
+            VariantContext v1 = vb1.make();
+            VariantContext v2 = vb2.make();
+
+            int sid0 = sid.getOrDefault(v1.getContig(), 0);
+            int sid1 = sid.getOrDefault(v2.getContig(), 0);
 
             if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
             if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+            if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
 
             return 0;
         });
