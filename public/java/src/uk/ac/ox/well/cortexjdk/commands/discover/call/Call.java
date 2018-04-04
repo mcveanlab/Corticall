@@ -1,12 +1,10 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
-import com.google.api.services.genomics.model.Variant;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
-import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -89,42 +87,11 @@ public class Call extends Module {
         Set<CanonicalKmer> rois = loadRois(ROIS);
         List<ReferenceSequence> rseqs = loadPartitions();
 
-        List<SAMSequenceRecord> ssrs = new ArrayList<>();
-        for (String id : BACKGROUNDS.keySet()) {
-            IndexedReference ir = BACKGROUNDS.get(id);
-            ssrs.addAll(ir.getReferenceSequence().getSequenceDictionary().getSequences());
-            ssrs.add(new SAMSequenceRecord(id + "_unknown", rseqs.size()));
-        }
-        SAMSequenceDictionary ssd = new SAMSequenceDictionary(ssrs);
-
-        Map<String, Integer> sid = new HashMap<>();
-        for (int i = 0; i < ssrs.size(); i++) {
-            sid.put(ssrs.get(i).getSequenceName(), i);
-        }
-
-        VariantContextWriter vcw = new VariantContextWriterBuilder()
-                .setOutputFile(out)
-                .setOutputFileType(VCF)
-                .setOption(Options.DO_NOT_WRITE_GENOTYPES)
-                .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
-                .unsetOption(Options.INDEX_ON_THE_FLY)
-                .build();
-
-        VCFHeader vcfHeader = new VCFHeader();
-        vcfHeader.setSequenceDictionary(ssd);
-        vcw.writeHeader(vcfHeader);
+        SAMSequenceDictionary sd = buildMergedSequenceDictionary(rseqs);
+        Set<VariantContext> svcs = buildVariantSorter(sd);
+        VariantContextWriter vcw = buildVariantWriter(sd);
 
         MosaicAligner mb = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
-
-        Set<VariantContext> svcs = new TreeSet<>((v1, v2) -> {
-            int sid0 = sid.get(v1.getContig());
-            int sid1 = sid.get(v2.getContig());
-
-            if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
-            if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
-
-            return 0;
-        });
 
         for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
             ReferenceSequence rseq = rseqs.get(rseqIndex);
@@ -145,21 +112,28 @@ public class Call extends Module {
 
                     Map<String, String> targets = new HashMap<>();
                     for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
-                        Map<String, String> unlabeledTargets = assembleCandidateHaplotypes(rois, ws, regions, parentName);
-                        Map<String, String> labeledTargets = labelTargets(unlabeledTargets);
-
-                        targets.putAll(labeledTargets);
+                        targets.putAll(assembleCandidateHaplotypes(rois, ws, regions, parentName));
                     }
 
                     if (targets.size() > 0) {
-                        String trimmedQuery = trimQuery(ws, targets, rois);
+                        Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, targets, rois);
 
-                        List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery, targets);
-                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery, lps), mb);
+                        List<Triple<String, String, Pair<Integer, Integer>>> lps = mb.align(trimmedQuery.getRight(), targets);
+                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery.getRight(), lps, true), mb);
 
-                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery, lps);
-                        List<VariantContext> vcs = getDNMList(lps, nrs, rseq.getName().split(" ")[0], rseqIndex, sectionIndex, rois);
+                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery.getRight(), lps, true);
 
+                        List<VariantContextBuilder> calls = new ArrayList<>();
+                        calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
+                        calls.addAll(callLargeBubbles(lps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
+                        calls.addAll(callBreakpoints(lps, nrs, rseq.getName().split(" ")[0], section.getLeft(), section.getMiddle()));
+
+                        List<VariantContextBuilder> merged = merge(lps, calls);
+
+                        merged.forEach(v -> log.info("{}", v.make()));
+                        log.info("");
+
+                        /*
                         for (VariantContext vc : vcs) {
                             Map<String, Object> attrs = new HashMap<>(vc.getAttributes());
                             attrs.remove("NOVELS");
@@ -179,11 +153,316 @@ public class Call extends Module {
                             svcs.add(newVc);
                         }
                         log.info("");
+                        */
                     }
                 }
             }
         }
 
+        writeVariants(rois, svcs, vcw);
+    }
+
+    private List<VariantContextBuilder> merge(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<VariantContextBuilder> calls) {
+        if (calls.size() <= 1) {
+            return calls;
+        }
+
+        List<VariantContextBuilder> merged = new ArrayList<>();
+
+        for (int i = 0; i < calls.size(); i++) {
+            if (i + 1 <= calls.size() - 1) {
+                int start0 = calls.get(i).make().getAttributeAsInt("start", 0);
+                int stop0 = calls.get(i).make().getAttributeAsInt("stop", 0);
+                int start1 = calls.get(i + 1).make().getAttributeAsInt("start", 500);
+                int stop1 = calls.get(i + 1).make().getAttributeAsInt("stop", 500);
+
+                if (start1 - stop0 < 10 && !calls.get(i).make().isSymbolicOrSV() && !calls.get(i+1).make().isSymbolicOrSV()) {
+                    StringBuilder cBuilder = new StringBuilder();
+                    StringBuilder pBuilder = new StringBuilder();
+
+                    for (int j = start0; j < stop1; j++) {
+                        char c = getChildColumn(lps, j);
+                        char p = getParentalColumn(lps, j);
+
+                        if (c != '-') {
+                            cBuilder.append(c);
+                        }
+                        if (p != '-') {
+                            pBuilder.append(p);
+                        }
+                    }
+
+                    List<Allele> alleles = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
+
+                    char prevBase = getChildColumn(lps, start0);
+                    char nextBase = getChildColumn(lps, stop1);
+
+                    int sectionStart = calls.get(i).make().getAttributeAsInt("sectionStart", 0);
+
+                    VariantContextBuilder vcb = new VariantContextBuilder(calls.get(i))
+                            .alleles(alleles)
+                            .start(sectionStart + start0)
+                            .computeEndFromAlleles(alleles, sectionStart + start0)
+                            .attribute("start", start0)
+                            .attribute("stop", stop1)
+                            .attribute("variantStart", sectionStart + start0)
+                            .attribute("variantStop", sectionStart + stop1)
+                            .attribute("prevBase", prevBase)
+                            .attribute("nextBase", nextBase);
+
+                    if (cBuilder.substring(1, cBuilder.length()).equals(SequenceUtils.reverseComplement(pBuilder.substring(1, pBuilder.length())))) {
+                        vcb.attribute("SVTYPE", "INV");
+                    }
+
+                    merged.add(vcb);
+
+                    i = i + 1;
+                } else {
+                    merged.add(calls.get(i));
+                }
+            } else {
+                merged.add(calls.get(i));
+            }
+        }
+
+        return merged;
+    }
+
+    private List<VariantContextBuilder> callLargeBubbles(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, Map<String, String> targets, String contigName, int sectionStart, int sectionStop) {
+        List<VariantContextBuilder> vcbs = new ArrayList<>();
+
+        for (Pair<Integer, Integer> nr : nrs) {
+            for (int i = nr.getFirst(); i <= nr.getSecond(); i++) {
+                if (isRecomb(lps, i)) {
+                    Pair<Integer, Integer> partners = recombPartners(lps, i);
+
+                    String name0 = lps.get(partners.getFirst()).getLeft();
+                    String name1 = lps.get(partners.getSecond()).getLeft();
+
+                    if (name0.equals(name1)) {
+                        String target = targets.get(lps.get(partners.getFirst()).getLeft());
+
+                        int start = lps.get(partners.getFirst()).getRight().getSecond() + 1;
+                        int stop = lps.get(partners.getSecond()).getRight().getFirst();
+
+                        if (stop > start) {
+                            int variantStart = sectionStart + i;
+                            int variantStop = sectionStart + i + 1;
+
+                            char prevBase = Character.toUpperCase(getParentalColumn(lps, i));
+                            char nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1));
+
+                            String subtarget = target.substring(start, stop);
+
+                            List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
+
+                            VariantContextBuilder vcb = new VariantContextBuilder()
+                                    .noID()
+                                    .noGenotypes()
+                                    .chr(contigName)
+                                    .alleles(alleles)
+                                    .start(variantStart)
+                                    .computeEndFromAlleles(alleles, sectionStart + i)
+                                    .attribute("start", i)
+                                    .attribute("stop", i + 1)
+                                    .attribute("sectionStart", sectionStart)
+                                    .attribute("sectionStop", sectionStop)
+                                    .attribute("variantStart", variantStart)
+                                    .attribute("variantStop", variantStop)
+                                    .attribute("contigName", contigName)
+                                    .attribute("prevBase", prevBase)
+                                    .attribute("nextBase", nextBase);
+
+                            vcbs.add(vcb);
+                        }
+                    }
+                }
+            }
+        }
+
+        return vcbs;
+    }
+
+    private List<VariantContextBuilder> callBreakpoints(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, String contigName, int sectionStart, int sectionStop) {
+        List<VariantContextBuilder> vcbs = new ArrayList<>();
+
+        for (Pair<Integer, Integer> nr : nrs) {
+            for (int i = nr.getFirst(); i <= nr.getSecond(); i++) {
+                if (isRecomb(lps, i)) {
+                    Pair<Integer, Integer> partners = recombPartners(lps, i);
+
+                    String name0 = lps.get(partners.getFirst()).getLeft();
+                    String name1 = lps.get(partners.getSecond()).getLeft();
+
+                    if (!name0.equals(name1)) {
+                        int prevPos = i, nextPos = i + 1;
+
+                        StringBuilder nextIns = new StringBuilder();
+                        while (getParentalColumn(lps, prevPos) == '-') {
+                            nextIns.insert(0, getChildColumn(lps, prevPos));
+                            prevPos--;
+                        }
+                        nextIns.insert(0, getChildColumn(lps, prevPos));
+                        char prevBase = getChildColumn(lps, prevPos);
+
+                        StringBuilder prevIns = new StringBuilder();
+                        while (getParentalColumn(lps, nextPos) == '-') {
+                            prevIns.append(getChildColumn(lps, nextPos));
+                            nextPos++;
+                        }
+                        prevIns.append(getChildColumn(lps, nextPos));
+                        char nextBase = getChildColumn(lps, nextPos);
+
+                        List<Allele> a0 = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create("]" + name1 + ":" + nextPos + "]" + nextIns.toString()));
+                        List<Allele> a1 = Arrays.asList(Allele.create(String.valueOf(nextBase), true), Allele.create(prevIns.toString() + "[" + name0 + ":" + prevPos + "["));
+
+                        String mate0 = String.format("bnd_%s_%d", contigName, sectionStart + prevPos);
+                        String mate1 = String.format("bnd_%s_%d", contigName, sectionStart + nextPos);
+
+                        VariantContextBuilder vcb0 = new VariantContextBuilder()
+                                .id(mate0)
+                                .noGenotypes()
+                                .chr(contigName)
+                                .alleles(a0)
+                                .start(sectionStart + prevPos)
+                                .stop(sectionStart + prevPos)
+                                .attribute("start", prevPos)
+                                .attribute("stop", prevPos)
+                                .attribute("sectionStart", sectionStart)
+                                .attribute("sectionStop", sectionStop)
+                                .attribute("variantStart", sectionStart + prevPos)
+                                .attribute("variantStop", sectionStart + prevPos)
+                                .attribute("contigName", contigName)
+                                .attribute("prevBase", prevBase)
+                                .attribute("nextBase", nextBase)
+                                .attribute("SVTYPE", "BND")
+                                .attribute("MATEID", mate1);
+
+                        VariantContextBuilder vcb1 = new VariantContextBuilder()
+                                .id(mate1)
+                                .noGenotypes()
+                                .chr(contigName)
+                                .alleles(a1)
+                                .start(sectionStart + nextPos)
+                                .stop(sectionStart + nextPos)
+                                .attribute("start", nextPos)
+                                .attribute("stop", nextPos)
+                                .attribute("sectionStart", sectionStart)
+                                .attribute("sectionStop", sectionStop)
+                                .attribute("variantStart", sectionStart + nextPos)
+                                .attribute("variantStop", sectionStart + nextPos)
+                                .attribute("contigName", contigName)
+                                .attribute("prevBase", prevBase)
+                                .attribute("nextBase", nextBase)
+                                .attribute("SVTYPE", "BND")
+                                .attribute("MATEID", mate0);
+
+                        vcbs.add(vcb0);
+                        vcbs.add(vcb1);
+                    }
+                }
+            }
+        }
+
+        return vcbs;
+    }
+
+    private List<VariantContextBuilder> callSmallBubbles(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, String contigName, int sectionStart, int sectionStop) {
+        List<VariantContextBuilder> vcbs = new ArrayList<>();
+
+        for (Pair<Integer, Integer> nr : nrs) {
+            VariantContextBuilder vcb = new VariantContextBuilder();
+            char prevBase = 'N';
+            int start = nr.getFirst();
+            StringBuilder cBuilder = null;
+            StringBuilder pBuilder = null;
+
+            for (int i = nr.getFirst(); i <= nr.getSecond(); i++) {
+                if (Character.toUpperCase(getChildColumn(lps, i)) == Character.toUpperCase(getParentalColumn(lps, i)) || i == getNumColumns(lps) - 1) {
+                    if (cBuilder != null) {
+                        if (i == getNumColumns(lps) - 1) {
+                            if (getChildColumn(lps, i) != '-') { cBuilder.append(getChildColumn(lps, i)); }
+                            if (getParentalColumn(lps, i) != '-') { pBuilder.append(getParentalColumn(lps, i)); }
+
+                            cBuilder.append(".");
+                        }
+
+                        boolean isSymbolicStart = cBuilder.length() > 0 && cBuilder.charAt(0) == '.';
+                        boolean isSymbolicEnd = cBuilder.length() > 0 && cBuilder.charAt(cBuilder.length() - 1) == '.';
+
+                        int variantStart = sectionStart + start;
+                        int variantStop = sectionStart + i;
+                        char nextBase = i == getNumColumns(lps) - 1 ? 'N' : getChildColumn(lps, i);
+
+                        if (cBuilder.length() == pBuilder.length() && cBuilder.length() == 1) {
+                            variantStart++;
+                            variantStop--;
+                        } else {
+                            if (!isSymbolicStart) {
+                                cBuilder.insert(0, prevBase);
+                                pBuilder.insert(0, prevBase);
+                            } else {
+                                variantStart = variantStop;
+                                start = i;
+                                cBuilder.append(nextBase);
+                                pBuilder.append(nextBase);
+                            }
+                        }
+
+                        List<Allele> alleleStrings = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
+
+                        vcb
+                                .noID()
+                                .noGenotypes()
+                                .chr(contigName)
+                                .alleles(alleleStrings)
+                                .start(variantStart)
+                                .attribute("start", start)
+                                .attribute("stop", i)
+                                .attribute("sectionStart", sectionStart)
+                                .attribute("sectionStop", sectionStop)
+                                .attribute("variantStart", variantStart)
+                                .attribute("variantStop", variantStop)
+                                .attribute("contigName", contigName)
+                                .attribute("prevBase", prevBase)
+                                .attribute("nextBase", nextBase);
+
+                        if (isSymbolicStart || isSymbolicEnd) {
+                            vcb.stop(variantStop)
+                               .attribute("SVTYPE", "BND");
+
+                        } else {
+                            vcb.computeEndFromAlleles(alleleStrings, variantStart);
+                        }
+
+                        vcbs.add(vcb);
+                    }
+
+                    vcb = new VariantContextBuilder();
+                    prevBase = getChildColumn(lps, i);
+                    start = i;
+                    cBuilder = null;
+                    pBuilder = null;
+                } else {
+                    if (cBuilder == null) { cBuilder = new StringBuilder(); }
+                    if (pBuilder == null) { pBuilder = new StringBuilder(); }
+
+                    if (i == 0) { cBuilder.insert(0, "."); }
+
+                    if (getChildColumn(lps, i) != '-') {
+                        cBuilder.append(getChildColumn(lps, i));
+                    }
+                    if (getParentalColumn(lps, i) != '-') {
+                        pBuilder.append(getParentalColumn(lps, i));
+                    }
+                }
+            }
+        }
+
+        return vcbs;
+    }
+
+    private void writeVariants(Set<CanonicalKmer> rois, Set<VariantContext> svcs, VariantContextWriter vcw) {
         Map<CanonicalKmer, String> acct = new TreeMap<>();
         for (CanonicalKmer ck : rois) {
             acct.put(ck, "absent");
@@ -217,6 +496,51 @@ public class Call extends Module {
         for (CanonicalKmer ck : acct.keySet()) {
             aout.println(Joiner.on("\t").join(ck, acct.get(ck)));
         }
+    }
+
+    @NotNull
+    private VariantContextWriter buildVariantWriter(SAMSequenceDictionary ssd) {
+        VariantContextWriter vcw = new VariantContextWriterBuilder()
+                .setOutputFile(out)
+                .setOutputFileType(VCF)
+                .setOption(Options.DO_NOT_WRITE_GENOTYPES)
+                .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
+                .unsetOption(Options.INDEX_ON_THE_FLY)
+                .build();
+
+        VCFHeader vcfHeader = new VCFHeader();
+        vcfHeader.setSequenceDictionary(ssd);
+        vcw.writeHeader(vcfHeader);
+        return vcw;
+    }
+
+    @NotNull
+    private Set<VariantContext> buildVariantSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((v1, v2) -> {
+            int sid0 = sid.get(v1.getContig());
+            int sid1 = sid.get(v2.getContig());
+
+            if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+            if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private SAMSequenceDictionary buildMergedSequenceDictionary(List<ReferenceSequence> rseqs) {
+        List<SAMSequenceRecord> ssrs = new ArrayList<>();
+        for (String id : BACKGROUNDS.keySet()) {
+            IndexedReference ir = BACKGROUNDS.get(id);
+            ssrs.addAll(ir.getReferenceSequence().getSequenceDictionary().getSequences());
+            ssrs.add(new SAMSequenceRecord(id + "_unknown", rseqs.size()));
+        }
+        return new SAMSequenceDictionary(ssrs);
     }
 
     @NotNull
@@ -264,483 +588,6 @@ public class Call extends Module {
         return false;
     }
 
-    private List<VariantContext> getDNMList(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, String contigName, int partitionIndex, int sectionIndex, Set<CanonicalKmer> rois) {
-        List<VariantContext> vcs = new ArrayList<>();
-
-        Set<String> bs = new HashSet<>();
-        for (String ba : BACKGROUNDS.keySet()) {
-            for (SAMSequenceRecord ssr : BACKGROUNDS.get(ba).getReferenceSequence().getSequenceDictionary().getSequences()) {
-                bs.add(ssr.getSequenceName());
-            }
-        }
-
-        for (Pair<Integer, Integer> nr : nrs) {
-            String background = "";
-            int bi = -1;
-            int alleleStart = -1;
-            int alleleEnd = -1;
-            StringBuilder childAllele = new StringBuilder();
-            StringBuilder parentAllele = new StringBuilder();
-            boolean isAtEnd = false;
-            boolean isAtStart = false;
-            boolean isExactRepeat = false;
-            List<CanonicalKmer> cks = new ArrayList<>();
-
-
-            int leftLimit = nr.getFirst();
-            while (leftLimit > 0 && !hasAlignedBase(lps, leftLimit)) {
-                leftLimit--;
-            }
-
-            int rightLimit = nr.getSecond();
-            while (rightLimit < lps.get(0).getMiddle().length() - 1 && !hasAlignedBase(lps, rightLimit)) {
-                rightLimit++;
-            }
-
-            for (int j = leftLimit; j <= rightLimit || (j < lps.get(0).getMiddle().length() && (childAllele.length() > 0 || parentAllele.length() > 0)); j++) {
-                String novelRegion = lps.get(0).getMiddle().substring(leftLimit, rightLimit).replaceAll("[- ]", "");
-                for (int i = 0; i <= novelRegion.length() - GRAPH.getKmerSize(); i++) {
-                    CanonicalKmer ck = new CanonicalKmer(novelRegion.substring(i, i + GRAPH.getKmerSize()));
-                    if (rois.contains(ck)) {
-                        cks.add(ck);
-                    }
-                }
-
-                for (int i = 1; i < lps.size(); i++) {
-                    if (j < lps.get(i).getMiddle().length() && lps.get(i).getMiddle().charAt(j) != ' ') {
-                        if (lps.get(0).getMiddle().charAt(j) != lps.get(i).getMiddle().charAt(j)) {
-                            if (j == 0) { isAtStart = true; }
-                            if (j == lps.get(i).getMiddle().length() - 1) { isAtEnd = true; }
-
-                            if (alleleStart == -1) {
-                                bi = i;
-                                background = lps.get(bi).getLeft();
-                                alleleStart = j;
-                            }
-                            alleleEnd = j;
-
-                            if (lps.get(0).getMiddle().charAt(j) != '-') {
-                                childAllele.append(lps.get(0).getMiddle().charAt(j));
-                            }
-
-                            if (lps.get(bi).getMiddle().charAt(j) != '-') {
-                                parentAllele.append(lps.get(bi).getMiddle().charAt(j));
-                            }
-                        } else {
-                            if (alleleStart >= 0) {
-                                if (!childAllele.toString().equals(parentAllele.toString()) && childAllele.toString().equals(parentAllele.toString().toUpperCase())) {
-                                    parentAllele = new StringBuilder();
-                                    isExactRepeat = true;
-                                }
-
-                                boolean positiveStrand = BACKGROUNDS == null || background.contains(":+:");
-                                int variantStart = positiveStrand ? alleleStart : alleleEnd;
-                                if (parentAllele.length() != 1 || childAllele.length() != 1) {
-                                    variantStart = positiveStrand ? alleleStart - 1 : alleleEnd + 1;
-                                }
-
-                                if (parentAllele.length() != 1 || childAllele.length() != 1) {
-                                    if (positiveStrand) {
-                                        if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
-                                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                                            if (isAtEnd) {
-                                                childAllele.append(".");
-                                            }
-                                        } else {
-                                            variantStart = alleleEnd + 1;
-                                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
-                                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.insert(0, ".");
-                                        }
-                                    } else {
-                                        if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
-                                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                                            if (isAtStart) {
-                                                childAllele.insert(0, ".");
-                                            }
-                                        } else {
-                                            variantStart = alleleStart - 1;
-                                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
-                                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                                            childAllele.append(".");
-                                        }
-                                    }
-                                }
-
-                                String[] bpieces = background.split(":");
-                                String back = bpieces[0];
-                                String chrName = bpieces[1];
-                                int aStart = alleleStart;
-
-                                if (BACKGROUNDS.containsKey(back) && bs.contains(bpieces[1])) {
-                                    String ref = bpieces[1];
-                                    int start = Integer.valueOf(bpieces[2].split("-")[0]);
-                                    int stop = Integer.valueOf(bpieces[2].split("-")[1]);
-                                    boolean isNegative = bpieces[3].equals("-");
-
-                                    Interval it = new Interval(ref, start, stop, isNegative, null);
-
-                                    List<SAMRecord> srs = BACKGROUNDS.get(back).align(lps.get(bi).getMiddle().replaceAll("[- ]", ""));
-                                    SAMRecord sr = null;
-                                    for (SAMRecord samRecord : srs) {
-                                        Interval srit = new Interval(samRecord.getReferenceName(), samRecord.getAlignmentStart(), samRecord.getAlignmentEnd(), samRecord.getReadNegativeStrandFlag(), null);
-
-                                        if (it.intersects(srit)) {
-                                            sr = samRecord;
-                                        }
-                                    }
-
-                                    if (sr != null) {
-                                        Map<Integer, Pair<Character, Interval>> coordMapping = new HashMap<>();
-                                        SmithWaterman sw = new SmithWaterman();
-                                        String[] as = sw.getAlignment(lps.get(bi).getMiddle().replaceAll("[- ]", "").toUpperCase(), sr.getReadString());
-
-                                        List<CigarElement> ces = sr.getCigar().getCigarElements();
-                                        int ce = 0, cl = 0, q = 0, r = 0, ap = sr.getReadNegativeStrandFlag() ? sr.getAlignmentEnd() + 1: sr.getAlignmentStart() + 1;
-                                        for (q = 0; q < as[0].length(); q++, cl++, r++) {
-                                            if (cl == ces.get(ce).getLength()) {
-                                                ce++;
-                                                cl = 0;
-                                            }
-
-                                            while (r < lps.get(bi).getMiddle().length() && (lps.get(bi).getMiddle().charAt(r) == ' ' || lps.get(bi).getMiddle().charAt(r) == '-')) {
-                                                r++;
-                                            }
-
-                                            if (as[1].charAt(q) != '-' || ces.get(ce).getOperator().equals(CigarOperator.M) || ces.get(ce).getOperator().equals(CigarOperator.X)) {
-                                                coordMapping.put(r, Pair.create(as[1].charAt(q), new Interval(sr.getReferenceName(), ap, ap)));
-
-                                                if (sr.getReadNegativeStrandFlag()) {
-                                                    ap--;
-                                                } else {
-                                                    ap++;
-                                                }
-                                            }
-                                        }
-
-                                        //chrName = coordMapping.get(variantStart).getSecond().getContig();
-                                        //aStart = coordMapping.get(variantStart).getSecond().getStart();
-                                        chrName = sr.getReferenceName();
-                                        if (coordMapping.getOrDefault(variantStart, null) != null) {
-                                            aStart = coordMapping.get(variantStart).getSecond().getStart();
-                                        } else {
-                                            for (int w = 1; w <= variantStart; w++) {
-                                                if (coordMapping.containsKey(variantStart - w)) {
-                                                    aStart = coordMapping.get(variantStart - w).getSecond().getStart();
-                                                    break;
-                                                }
-
-                                                if (coordMapping.containsKey(variantStart + w)) {
-                                                    aStart = coordMapping.get(variantStart + w).getSecond().getStart();
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                String refAllele = positiveStrand ? parentAllele.toString() : SequenceUtils.reverseComplement(parentAllele.toString());
-                                String altAllele = positiveStrand ? childAllele.toString() : SequenceUtils.reverseComplement(childAllele.toString());
-
-                                VariantContextBuilder vcb = new VariantContextBuilder()
-                                        .chr(chrName)
-                                        .start(aStart)
-                                        .alleles(refAllele, altAllele)
-                                        .attribute("CONTIG", contigName)
-                                        .attribute("PARTITION", partitionIndex)
-                                        .attribute("SECTION", sectionIndex)
-                                        .attribute("NOVELS", Joiner.on(",").join(cks))
-                                        .noGenotypes();
-
-                                if (isAtEnd || isAtStart) {
-                                    vcb.attribute("SVTYPE", "BND");
-                                    vcb.stop(aStart);
-                                } else {
-                                    vcb.computeEndFromAlleles(Arrays.asList(Allele.create(refAllele, true), Allele.create(altAllele)), aStart);
-                                }
-
-                                if (isExactRepeat) {
-                                    vcb.attribute("IS_EXACT_REPEAT", isExactRepeat);
-                                }
-
-                                vcs.add(vcb.make());
-
-                                background = "";
-                                bi = -1;
-                                alleleStart = -1;
-                                alleleEnd = -1;
-                                childAllele = new StringBuilder();
-                                parentAllele = new StringBuilder();
-                                isAtEnd = false;
-                                isAtStart = false;
-                                //isRepeat = true;
-                                cks = new ArrayList<>();
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (alleleStart >= 0) {
-                boolean positiveStrand = BACKGROUNDS == null || background.contains(":+:");
-                int variantStart = positiveStrand ? alleleStart : alleleEnd;
-                if (parentAllele.length() != 1 || childAllele.length() != 1) {
-                    variantStart = positiveStrand ? alleleStart - 1 : alleleEnd + 1;
-                }
-
-                if (parentAllele.length() != 1 || childAllele.length() != 1) {
-                    if (positiveStrand) {
-                        if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
-                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                            if (isAtEnd) {
-                                childAllele.append(".");
-                            }
-                        } else {
-                            variantStart = alleleEnd + 1;
-                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
-                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.insert(0, ".");
-                        }
-                    } else {
-                        if (variantStart >= 0 && variantStart < lps.get(bi).getMiddle().length()) {
-                            //parentAllele.append(lps.get(bi).getMiddle().charAt(variantStart));
-                            parentAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.append(lps.get(0).getMiddle().charAt(variantStart));
-                            if (isAtStart) {
-                                childAllele.insert(0, ".");
-                            }
-                        } else {
-                            variantStart = alleleStart - 1;
-                            //parentAllele.insert(0, lps.get(bi).getMiddle().charAt(variantStart));
-                            parentAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.insert(0, lps.get(0).getMiddle().charAt(variantStart));
-                            childAllele.append(".");
-                        }
-                    }
-                }
-
-                String[] bpieces = background.split(":");
-                String back = bpieces[0];
-                String chrName = bpieces[1];
-                int aStart = alleleStart;
-
-                if (BACKGROUNDS.containsKey(back) && bs.contains(bpieces[1])) {
-                    String ref = bpieces[1];
-                    int start = Integer.valueOf(bpieces[2].split("-")[0]);
-                    int stop = Integer.valueOf(bpieces[2].split("-")[1]);
-                    boolean isNegative = bpieces[3].equals("-");
-
-                    Interval it = new Interval(ref, start, stop, isNegative, null);
-
-                    List<SAMRecord> srs = BACKGROUNDS.get(back).align(lps.get(bi).getMiddle().replaceAll("[- ]", ""));
-                    SAMRecord sr = null;
-                    for (SAMRecord samRecord : srs) {
-                        Interval srit = new Interval(samRecord.getReferenceName(), samRecord.getAlignmentStart(), samRecord.getAlignmentEnd(), samRecord.getReadNegativeStrandFlag(), null);
-
-                        if (it.intersects(srit)) {
-                            sr = samRecord;
-                        }
-                    }
-
-                    if (sr != null) {
-                        Map<Integer, Pair<Character, Interval>> coordMapping = new HashMap<>();
-                        SmithWaterman sw = new SmithWaterman();
-                        String[] as = sw.getAlignment(lps.get(bi).getMiddle().replaceAll("[- ]", "").toUpperCase(), sr.getReadString());
-
-                        List<CigarElement> ces = sr.getCigar().getCigarElements();
-                        int ce = 0, cl = 0, q = 0, r = 0, ap = sr.getReadNegativeStrandFlag() ? sr.getAlignmentEnd() + 1: sr.getAlignmentStart() + 1;
-                        for (q = 0; q < as[0].length(); q++, cl++, r++) {
-                            if (cl == ces.get(ce).getLength()) {
-                                ce++;
-                                cl = 0;
-                            }
-
-                            while (r < lps.get(bi).getMiddle().length() && (lps.get(bi).getMiddle().charAt(r) == ' ' || lps.get(bi).getMiddle().charAt(r) == '-')) {
-                                r++;
-                            }
-
-                            if (as[1].charAt(q) != '-' || ces.get(ce).getOperator().equals(CigarOperator.M) || ces.get(ce).getOperator().equals(CigarOperator.X)) {
-                                coordMapping.put(r, Pair.create(as[1].charAt(q), new Interval(sr.getReferenceName(), ap, ap)));
-
-                                if (sr.getReadNegativeStrandFlag()) {
-                                    ap--;
-                                } else {
-                                    ap++;
-                                }
-                            }
-                        }
-
-                        //chrName = coordMapping.get(variantStart).getSecond().getContig();
-                        //aStart = coordMapping.get(variantStart).getSecond().getStart();
-                        chrName = sr.getReferenceName();
-                        if (coordMapping.getOrDefault(variantStart, null) != null) {
-                            aStart = coordMapping.get(variantStart).getSecond().getStart();
-                        } else {
-                            for (int w = 1; w <= variantStart; w++) {
-                                if (coordMapping.containsKey(variantStart - w)) {
-                                    aStart = coordMapping.get(variantStart - w).getSecond().getStart();
-                                    break;
-                                }
-
-                                if (coordMapping.containsKey(variantStart + w)) {
-                                    aStart = coordMapping.get(variantStart + w).getSecond().getStart();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                String refAllele = positiveStrand ? parentAllele.toString() : SequenceUtils.reverseComplement(parentAllele.toString());
-                String altAllele = positiveStrand ? childAllele.toString() : SequenceUtils.reverseComplement(childAllele.toString());
-
-                VariantContextBuilder vcb = new VariantContextBuilder()
-                        .chr(chrName)
-                        .start(aStart)
-                        .alleles(refAllele, altAllele)
-                        .attribute("CONTIG", contigName)
-                        .attribute("PARTITION", partitionIndex)
-                        .attribute("SECTION", sectionIndex)
-                        .attribute("NOVELS", Joiner.on(",").join(cks))
-                        .noGenotypes();
-
-                if (isAtEnd || isAtStart) {
-                    vcb.attribute("SVTYPE", "BND");
-                    vcb.stop(aStart);
-                } else {
-                    vcb.computeEndFromAlleles(Arrays.asList(Allele.create(refAllele, true), Allele.create(altAllele)), aStart);
-                }
-
-                if (isExactRepeat) {
-                    vcb.attribute("IS_EXACT_REPEAT", isExactRepeat);
-                }
-
-                vcs.add(vcb.make());
-            }
-
-            cks = new ArrayList<>();
-            for (int j = leftLimit; j < rightLimit; j++) {
-                String novelRegion = lps.get(0).getMiddle().substring(leftLimit, rightLimit).replaceAll("[- ]", "");
-                for (int i = 0; i <= novelRegion.length() - GRAPH.getKmerSize(); i++) {
-                    CanonicalKmer ck = new CanonicalKmer(novelRegion.substring(i, i + GRAPH.getKmerSize()));
-                    if (rois.contains(ck)) {
-                        cks.add(ck);
-                    }
-                }
-
-                int stateBefore = 0;
-                int posBefore = 0;
-                StringBuilder befSequence = new StringBuilder();
-                for (int i = 1; i < lps.size(); i++) {
-                    if (j < lps.get(i).getMiddle().length() && lps.get(i).getMiddle().charAt(j) != ' ' && j + 1 >= lps.get(i).getMiddle().length()) {
-                        stateBefore = i;
-                        posBefore = j;
-
-                        for (int k = j; k >= leftLimit; k--) {
-                            befSequence.insert(0, lps.get(0).getMiddle().charAt(k));
-                            posBefore = k;
-
-                            if (Character.toUpperCase(lps.get(i).getMiddle().charAt(k)) == Character.toUpperCase(lps.get(0).getMiddle().charAt(k))) {
-                                break;
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                int stateAfter = 0;
-                int posAfter = 0;
-                StringBuilder aftSequence = new StringBuilder();
-                for (int i = 1; i < lps.size(); i++) {
-                    if (j + 1 < lps.get(i).getMiddle().length() && lps.get(i).getMiddle().charAt(j) == ' ' && lps.get(i).getMiddle().charAt(j + 1) != ' ') {
-                        stateAfter = i;
-                        posAfter = j + 1;
-
-                        for (int k = j + 1; k <= rightLimit; k--) {
-                            aftSequence.append(lps.get(0).getMiddle().charAt(k));
-                            posAfter = k;
-
-                            if (Character.toUpperCase(lps.get(i).getMiddle().charAt(k)) == Character.toUpperCase(lps.get(0).getMiddle().charAt(k))) {
-                                break;
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                if (stateBefore != 0 && stateAfter != 0) {
-                    String[] pieces0 = lps.get(stateBefore).getLeft().split("[:-]");
-                    String[] pieces1 = lps.get(stateAfter).getLeft().split("[:-]");
-
-                    String id0 = String.format("bnd_p%d_s%d_j%d", partitionIndex, sectionIndex, posBefore);
-                    String id1 = String.format("bnd_p%d_s%d_j%d", partitionIndex, sectionIndex, posAfter);
-
-                    List<Allele> alleles0;
-                    if (pieces1.length > 3) {
-                        alleles0 = Arrays.asList(Allele.create((byte) befSequence.charAt(0), true), Allele.create(befSequence.append("]").append(pieces1[1]).append(":").append(pieces1[2]).append("]").toString()));
-                    } else {
-                        alleles0 = Arrays.asList(Allele.create((byte) befSequence.charAt(0), true), Allele.create(befSequence.append("]").append(pieces1[0]).append(":").append(posBefore).append("]").toString()));
-                    }
-
-                    VariantContext vc0 = new VariantContextBuilder()
-                            .chr(pieces0.length > 3 ? pieces0[1] : (pieces0[0] + "_unknown"))
-                            .start(pieces0.length > 3 ? Integer.valueOf(pieces0[3]) : partitionIndex)
-                            .stop(pieces0.length > 3 ? Integer.valueOf(pieces0[3]) : partitionIndex)
-                            .alleles(alleles0)
-                            .attribute("CONTIG", contigName)
-                            .attribute("PARTITION", partitionIndex)
-                            .attribute("SECTION", sectionIndex)
-                            .attribute("NOVELS", Joiner.on(",").join(cks))
-                            .attribute("SVTYPE", "BND")
-                            .attribute("MATEID", id1)
-                            .attribute("STATE", lps.get(stateBefore).getLeft())
-                            .id(id0)
-                            .noGenotypes()
-                            .make();
-
-                    List<Allele> alleles1;
-                    if (pieces0.length > 3) {
-                        alleles1 = Arrays.asList(Allele.create((byte) aftSequence.charAt(0), true), Allele.create(aftSequence.append("]").append(pieces0[1]).append(":").append(pieces0[3]).append("]").toString()));
-                    } else {
-                        alleles1 = Arrays.asList(Allele.create((byte) aftSequence.charAt(0), true), Allele.create(aftSequence.append("]").append(pieces0[0]).append(":").append(posAfter).append("]").toString()));
-                    }
-
-                    VariantContext vc1 = new VariantContextBuilder()
-                            .chr(pieces1.length > 3 ? pieces1[1] : (pieces1[0] + "_unknown"))
-                            .start(pieces1.length > 3 ? Integer.valueOf(pieces1[2]) : partitionIndex)
-                            .stop(pieces1.length > 3 ? Integer.valueOf(pieces1[2]) : partitionIndex)
-                            .alleles(alleles1)
-                            .attribute("CONTIG", contigName)
-                            .attribute("PARTITION", partitionIndex)
-                            .attribute("SECTION", sectionIndex)
-                            .attribute("NOVELS", Joiner.on(",").join(cks))
-                            .attribute("SVTYPE", "BND")
-                            .attribute("MATEID", id0)
-                            .attribute("STATE", lps.get(stateAfter).getLeft())
-                            .id(id1)
-                            .noGenotypes()
-                            .make();
-
-                    vcs.add(vc0);
-                    vcs.add(vc1);
-                }
-            }
-        }
-
-        return vcs;
-    }
-
     private SAMRecord getBestAlignment(String query, String background) {
         List<SAMRecord> b = BACKGROUNDS.get(background).align(query.replaceAll("[- ]", ""));
 
@@ -778,7 +625,7 @@ public class Call extends Module {
         return a.size() > 0 ? a.get(0) : null;
     }
 
-    private String trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
+    private Triple<Integer, Integer, String> trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
         int firstIndex = Integer.MAX_VALUE, lastIndex = 0;
         int firstNovel = -1, lastNovel = -1;
 
@@ -805,7 +652,6 @@ public class Call extends Module {
 
                     if (index < firstIndex) { firstIndex = index; }
                     if (index > lastIndex) { lastIndex = index; }
-
                 }
             }
         }
@@ -813,10 +659,63 @@ public class Call extends Module {
         if (firstNovel < firstIndex) { firstIndex = firstNovel; }
         if (lastNovel > lastIndex) { lastIndex = lastNovel; }
 
-        return TraversalUtils.toContig(ws.subList(firstIndex, lastIndex));
+        return Triple.of(firstIndex, lastIndex, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex)));
     }
 
-    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps) {
+    private int getNumColumns(List<Triple<String, String, Pair<Integer, Integer>>> lps) {
+        return lps.get(0).getMiddle().length();
+    }
+
+    private Pair<Integer, Integer> recombPartners(List<Triple<String, String, Pair<Integer, Integer>>> lps, int column) {
+        if (lps.size() > 2) {
+            for (int i = 1; i < lps.size(); i++) {
+                if (column == lps.get(i).getMiddle().length() - 1 && lps.get(i).getMiddle().charAt(column) != ' ' &&
+                    column + 1 < lps.get(i + 1).getMiddle().length() && lps.get(i + 1).getMiddle().charAt(column) == ' ' && lps.get(i + 1).getMiddle().charAt(column + 1) != ' ') {
+                    return Pair.create(i, i+1);
+                }
+            }
+        }
+
+        return Pair.create(-1, -1);
+    }
+
+    private boolean isRecomb(List<Triple<String, String, Pair<Integer, Integer>>> lps, int column) {
+        if (lps.size() > 2) {
+            for (int i = 1; i < lps.size(); i++) {
+                if (column == lps.get(i).getMiddle().length() - 1 && lps.get(i).getMiddle().charAt(column) != ' ' &&
+                    column + 1 < lps.get(i + 1).getMiddle().length() && lps.get(i + 1).getMiddle().charAt(column) == ' ' && lps.get(i + 1).getMiddle().charAt(column + 1) != ' ') {
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private char getChildColumn(List<Triple<String, String, Pair<Integer, Integer>>> lps, int column) {
+        if (column >= 0 && column < getNumColumns(lps)) {
+            if (column < lps.get(0).getMiddle().length() && lps.get(0).getMiddle().charAt(column) != ' ') {
+                return lps.get(0).getMiddle().charAt(column);
+            }
+        }
+
+        return 'N';
+    }
+
+    private char getParentalColumn(List<Triple<String, String, Pair<Integer, Integer>>> lps, int column) {
+        if (column >= 0 && column < getNumColumns(lps)) {
+            for (int i = 1; i < lps.size(); i++) {
+                if (column < lps.get(i).getMiddle().length() && lps.get(i).getMiddle().charAt(column) != ' ') {
+                    return lps.get(i).getMiddle().charAt(column);
+                }
+            }
+        }
+
+        return 'N';
+    }
+
+    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
         int maxLength = 0;
         for (Triple<String, String, Pair<Integer, Integer>> lp : lps) {
             String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getRight().getFirst(), lp.getRight().getSecond());
@@ -828,23 +727,41 @@ public class Call extends Module {
             CanonicalKmer ck = new CanonicalKmer(query.substring(i, i + GRAPH.getKmerSize()));
 
             if (rois.contains(ck)) {
-                for (int j = i; j <= i + GRAPH.getKmerSize(); j++) {
+                for (int j = i; j < i + GRAPH.getKmerSize(); j++) {
                     sb.setCharAt(j, '*');
                 }
             }
         }
 
-        for (int i = 0; i < lps.get(0).getMiddle().length(); i++) {
-            if (lps.get(0).getMiddle().charAt(i) == '-') {
+        for (int i = 0; i < getNumColumns(lps); i++) {
+            if (getChildColumn(lps, i) == '-') {
                 sb.insert(i, sb.charAt(i) == '*' ? '*' : ' ');
+            }
+        }
+
+        if (expand) {
+            for (int i = 1; i < getNumColumns(lps); i++) {
+                if (sb.charAt(i) == '*') {
+                    if (sb.charAt(i - 1) != '*' && getParentalColumn(lps, i - 1) == '-') {
+                        for (int j = i - 1; j >= 0 && getParentalColumn(lps, j) == '-'; j--) {
+                            sb.setCharAt(j, '*');
+                        }
+                    }
+
+                    if (sb.charAt(i + 1) != '*' && getParentalColumn(lps, i + 1) == '-') {
+                        for (int j = i + 1; j < getNumColumns(lps) && getParentalColumn(lps, j) == '-'; j++) {
+                            sb.setCharAt(j, '*');
+                        }
+                    }
+                }
             }
         }
 
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
     }
 
-    private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps) {
-        String noveltyTrack = makeNoveltyTrack(rois, query, lps);
+    private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
+        String noveltyTrack = makeNoveltyTrack(rois, query, lps, expand);
         noveltyTrack = noveltyTrack.replaceAll("^\\s+novel ", "");
 
         List<Pair<Integer, Integer>> regions = new ArrayList<>();
@@ -906,9 +823,9 @@ public class Call extends Module {
 
         targets.putAll(assembleGapClosedCandidates(parentName, g, walks, ws));
 
-        if (targets.size() == 0) {
-            targets.putAll(assembleDovetailCandidates(parentName, g, walks));
-        }
+        //if (targets.size() == 0) {
+        //    targets.putAll(assembleDovetailCandidates(parentName, g, walks));
+        //}
 
         if (targets.size() == 0) {
             for (int i = 0; i < walks.size(); i++) {
@@ -1094,7 +1011,7 @@ public class Call extends Module {
                                 .traversalDirection(FORWARD)
                                 .combinationOperator(OR)
                                 .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(5000)
+                                .maxBranchLength(2000)
                                 .graph(GRAPH)
                                 .links(LINKS)
                                 .make();
@@ -1104,7 +1021,7 @@ public class Call extends Module {
                                 .traversalDirection(REVERSE)
                                 .combinationOperator(OR)
                                 .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(5000)
+                                .maxBranchLength(2000)
                                 .graph(GRAPH)
                                 .links(LINKS)
                                 .make();

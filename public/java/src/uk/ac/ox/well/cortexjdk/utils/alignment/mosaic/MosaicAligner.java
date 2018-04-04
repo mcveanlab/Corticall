@@ -437,22 +437,21 @@ public class MosaicAligner {
         boolean uppercase = true;
         for (i = cp; i <= 2*maxl; i++) {
             if (i > cp && maxpath_copy[i] == maxpath_copy[i-1] && Math.abs(maxpath_pos[i] - maxpath_pos[i - 1]) > 1 || maxpath_pos[i] == lastKnownPos + 1) {
+                path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                 uppercase = !uppercase;
                 lastKnownPos = maxpath_pos[i - 1];
 
                 if (posStart != posEnd) {
-                    //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
-                    //path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                     posStart = maxpath_pos[i] - 1;
                     posEnd = maxpath_pos[i] - 1;
                 }
 
-                //sb = new StringBuilder();
-                //sb.append(StringUtil.repeatCharNTimes(' ', i - cp));
+                currentTrack = seqs.get(maxpath_copy[i]-1).getFirst();
+                sb = new StringBuilder();
+                sb.append(StringUtil.repeatCharNTimes(' ', i - cp));
             }
 
             if (i > cp && maxpath_copy[i] != maxpath_copy[i-1]) {
-                //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
                 path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
                 uppercase = true;
 
@@ -482,7 +481,6 @@ public class MosaicAligner {
         }
 
         path.add(Triple.of(currentTrack, sb.toString(), Pair.create(posStart, posEnd)));
-        //alignment.add(Triple.of(currentTrack, Pair.create(posStart, posEnd), sb.toString()));
 
         return path;
     }
