@@ -1,4 +1,4 @@
-   Copyright 2017 Kiran V Garimella and Warren Kretzschmar
+   Copyright 2017 Kiran V Garimella, Warren Kretzschmar, and Gil McVean
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
