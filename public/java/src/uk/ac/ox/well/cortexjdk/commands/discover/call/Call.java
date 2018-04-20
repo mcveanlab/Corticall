@@ -1212,7 +1212,7 @@ public class Call extends Module {
             if (hasCoverage && TraversalUtils.findVertex(g, ws.get(i).getKmerAsString()) == null) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gs = e.dfs(ws.get(i).getKmerAsString());
 
-                if (gs != null) {
+                if (gs != null && gs.vertexSet().size() > 0) {
                     Graphs.addGraph(g, gs);
                 }
             }
@@ -1267,7 +1267,7 @@ public class Call extends Module {
                 }
 
                 if (actualStart == Integer.MAX_VALUE) { actualStart = 0; }
-                if (actualEnd == -1) { actualEnd = w.size() - 1; }
+                if (actualEnd == -1 || actualEnd == actualStart) { actualEnd = w.size() - 1; }
 
                 if (shared > 0) {
                     String contig = TraversalUtils.toContig(w.subList(actualStart, actualEnd));
@@ -1280,9 +1280,11 @@ public class Call extends Module {
             for (String contig : contigs) {
                 String id = String.format("%s:%s_unknown:%s_contig%d_%s", parentName.iterator().next(), parentName.iterator().next(), parentName.iterator().next(), i, "fastasm");
 
-                targets.put(id, contig);
+                if (contig.length() > 0) {
+                    targets.put(id, contig);
 
-                i++;
+                    i++;
+                }
             }
         }
 
