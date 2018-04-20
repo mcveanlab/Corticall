@@ -3,11 +3,14 @@ package uk.ac.ox.well.cortexjdk.utils.packageutils;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.time.DurationFormatUtils;
 import org.jetbrains.annotations.NotNull;
+import sun.misc.Unsafe;
 import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.performance.PerformanceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
@@ -39,6 +42,8 @@ public class Dispatch {
             Main.getLogger().info("java -Xmx{}g -jar cortexjdk.jar {} {}", (Runtime.getRuntime().maxMemory()/(1024*1024))/1024, module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
             Main.getLogger().info("");
 
+            disableIllegalAccessWarning();
+
             Module instance = module.newInstance();
             instance.args = moduleArgs;
 
@@ -49,35 +54,9 @@ public class Dispatch {
             fields.addAll(Arrays.asList(instanceFields));
             fields.addAll(Arrays.asList(superFields));
 
-            /*
-            Set<String> specifiedArgs = new HashSet<>();
-            for (int i = 0; i < moduleArgs.length - 1; i+=2) {
-                specifiedArgs.add(moduleArgs[i]);
-            }
-
-            List<String> defaultArgs = new ArrayList<>();
-            for (Field field : fields) {
-                for (Annotation annotation : field.getDeclaredAnnotations()) {
-                    if (annotation.annotationType().equals(Argument.class)) {
-                        Argument arg = (Argument) annotation;
-
-                        if (!specifiedArgs.contains(arg.shortName()) && !specifiedArgs.contains(arg.fullName())) {
-                            if (field.get(instance) != null) {
-                                Object defaultValue = field.get(instance);
-
-                                defaultArgs.add("-" + arg.shortName() + " " + defaultValue.toString());
-                            }
-                        }
-                    }
-                }
-            }
-            */
+            //System.err.close();
 
             instance.init();
-
-            //Main.getLogger().info("{}", getBanner());
-            //Main.getLogger().info("{}", getFullCommand(moduleArgs, instance, defaultArgs));
-            //Main.getLogger().info("");
 
             Date startTime = new Date();
 
@@ -94,6 +73,10 @@ public class Dispatch {
             }
 
             Date elapsedTime = new Date((new Date()).getTime() - startTime.getTime());
+
+            //try {
+            //    System.setErr(new PrintStream(new FileOutputStream("/dev/stderr")));
+            //} catch (FileNotFoundException e) {}
 
             Main.getLogger().info("");
             Main.getLogger().info("Complete. (time) {}; (mem) {}",
@@ -145,6 +128,21 @@ public class Dispatch {
             return Main.progName + " " + version + "; " + dates;
         } else {
             return Main.progName + " unknown version; unknown build time";
+        }
+    }
+
+    // From https://stackoverflow.com/questions/46454995/how-to-hide-warning-illegal-reflective-access-in-java-9-without-jvm-argument
+    public static void disableIllegalAccessWarning() {
+        try {
+            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            Unsafe u = (Unsafe) theUnsafe.get(null);
+
+            Class cls = Class.forName("jdk.internal.module.IllegalAccessLogger");
+            Field logger = cls.getDeclaredField("logger");
+            u.putObjectVolatile(cls, u.staticFieldOffset(logger), null);
+        } catch (Exception e) {
+            // ignore
         }
     }
 }

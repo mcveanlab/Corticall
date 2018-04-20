@@ -154,7 +154,7 @@ public class CortexGraph implements DeBruijnGraph {
 //            int numItems = (int) (memPortion / recordSize);
 //            cache = new LRUMap(numItems);
 
-            cache = new LRUMap(10000);
+            cache = new LRUMap(100000);
 
             position(0);
         } catch (FileNotFoundException e) {
