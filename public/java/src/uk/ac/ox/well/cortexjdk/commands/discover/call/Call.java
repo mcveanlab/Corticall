@@ -4,6 +4,8 @@ import com.google.common.base.Joiner;
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.StringUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -118,9 +120,9 @@ public class Call extends Module {
                         allTargets.get("all").putAll(parentalTargets);
                         allTargets.put(parentName.iterator().next(), parentalTargets);
 
-                        for (String cn : parentalTargets.keySet()) {
-                            log.info("    target background={} name={} length={}", parentName.iterator().next(), cn, parentalTargets.get(cn).length());
-                        }
+                        //for (String cn : parentalTargets.keySet()) {
+                        //    log.info("    target background={} name={} length={}", parentName.iterator().next(), cn, parentalTargets.get(cn).length());
+                        //}
                     }
 
                     if (allTargets.get("all").size() > 0) {
@@ -165,18 +167,32 @@ public class Call extends Module {
 
             vcs = mergeBreakpoints(seq, vcs);
 
+            IntervalTreeMap<VariantContext> itm = new IntervalTreeMap<>();
+
             for (VariantContextBuilder vcb : vcs) {
                 VariantContextBuilder vcbn = assignCoordinates(vcb);
 
-                vcbn.rmAttribute("targets");
-                vcbn.rmAttribute("lps");
+                vcbn.rmAttributes(Arrays.asList("targets", "lps",
+                                                "flipped",
+                                                "nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
+                                                "prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
+                                                "start", "stop",
+                                                "targetName", "targetStart", "targetStop",
+                                                "sectionStart", "sectionStop",
+                                                "variantStart", "variantStop"));
 
                 VariantContext vc = vcbn.make();
 
-                svcs.add(vc);
+                Interval vit = new Interval(vc.getContig(), vc.getStart(), vc.getEnd());
+                itm.put(vit, vc);
+            }
 
+            svcs.addAll(itm.values());
+
+            for (VariantContext vc : itm.values()) {
                 log.info("{}", vc);
             }
+
             log.info("");
         }
 
@@ -644,7 +660,8 @@ public class Call extends Module {
                                     .attribute("variantStop", variantStop)
                                     .attribute("contigName", contigName)
                                     .attribute("prevBase", prevBase)
-                                    .attribute("nextBase", nextBase);
+                                    .attribute("nextBase", nextBase)
+                                    .attribute("background", lps.get(partners.getFirst()).getLeft().split(":")[0]);
 
                             vcbs.add(vcb);
                         }
@@ -711,6 +728,7 @@ public class Call extends Module {
                                 .attribute("targetName", lps.get(partners.getFirst()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getFirst()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getFirst()).getRight().getSecond())
+                                .attribute("background", lps.get(partners.getFirst()).getLeft().split(":")[0])
                                 .attribute("SVTYPE", "BND")
                                 .attribute("MATEID", mate1);
 
@@ -733,6 +751,7 @@ public class Call extends Module {
                                 .attribute("targetName", lps.get(partners.getSecond()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getSecond()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getSecond()).getRight().getSecond())
+                                .attribute("background", lps.get(partners.getSecond()).getLeft().split(":")[0])
                                 .attribute("SVTYPE", "BND")
                                 .attribute("MATEID", mate0);
 
@@ -806,7 +825,9 @@ public class Call extends Module {
                                 .attribute("variantStop", variantStop)
                                 .attribute("contigName", contigName)
                                 .attribute("prevBase", prevBase)
-                                .attribute("nextBase", nextBase);
+                                .attribute("nextBase", nextBase)
+                                .attribute("background", lps.get(prevRow).getLeft().split(":")[0])
+                        ;
 
                         if (isSymbolicStart || isSymbolicEnd) {
                             vcb.stop(variantStop)
@@ -1383,351 +1404,6 @@ public class Call extends Module {
 
         return ends;
     }
-
-    /*
-    @NotNull
-    private Map<String, String> assembleCandidateHaplotypes(Set<CanonicalKmer> rois, List<CortexVertex> ws, List<Pair<Integer, Integer>> regions, Set<String> parentName) {
-        Map<String, String> targets = new HashMap<>();
-
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        List<List<CortexVertex>> walks = new ArrayList<>();
-        List<String> contigs = new ArrayList<>();
-
-        // First build the non-novel stretches
-        for (int i = 0; i < regions.size(); i++) {
-            int lastEnd = i == 0 ? 0 : regions.get(i-1).getSecond();
-            int nextStart = i == regions.size() - 1 ? ws.size() - 1 : regions.get(i+1).getFirst();
-
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gl = assembleLeft(rois, parentName, ws, regions.get(i), lastEnd);
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gr = assembleRight(rois, parentName, ws, regions.get(i), nextStart);
-
-            Graphs.addGraph(g, gl);
-            Graphs.addGraph(g, gr);
-
-            List<CortexVertex> wl = gl.vertexSet().size() == 0 ? new ArrayList<>() : TraversalUtils.toWalk(gl, gl.vertexSet().iterator().next().getKmerAsString(), gl.edgeSet().iterator().next().getColor());
-            List<CortexVertex> wr = gr.vertexSet().size() == 0 ? new ArrayList<>() : TraversalUtils.toWalk(gr, gr.vertexSet().iterator().next().getKmerAsString(), gr.edgeSet().iterator().next().getColor());
-
-            if (wl.size() > 0 && !contigs.contains(TraversalUtils.toContig(wl))) {
-                walks.add(wl);
-                contigs.add(TraversalUtils.toContig(wl));
-            }
-
-            if (wr.size() > 0 && !contigs.contains(TraversalUtils.toContig(wr))) {
-                walks.add(wr);
-                contigs.add(TraversalUtils.toContig(wr));
-            }
-        }
-
-        targets.putAll(assembleGapFilledCandidates(parentName, g, walks, ws));
-
-        //if (targets.size() == 0) {
-        //    targets.putAll(assembleDovetailCandidates(parentName, g, walks));
-        //}
-
-        if (targets.size() == 0) {
-            for (int i = 0; i < walks.size(); i++) {
-                List<CortexVertex> w = walks.get(i);
-
-                String cc = TraversalUtils.toContig(w);
-                String id = String.format("%s:%s_unknown:contig%d_%s", parentName.iterator().next(), parentName.iterator().next(), i, "gapped");
-
-                targets.put(id, cc);
-            }
-        }
-
-        return targets;
-    }
-    */
-
-    /*
-    private Map<String, String> assembleDovetailCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks) {
-        // Now try dovetail overlaps with remaining gaps
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        Graphs.addGraph(gm, g);
-
-        int numDovetailOverlaps = 0;
-
-        for (int i = 0; i < walks.size() - 1; i++) {
-            String cb = TraversalUtils.toContig(walks.get(i));
-            String ca = TraversalUtils.toContig(walks.get(i+1));
-
-            int longestMatch = 0;
-            for (int j = 1; j < cb.length() && j < ca.length(); j++) {
-                if (cb.substring(cb.length() - j, cb.length()).equals(ca.substring(0, j))) {
-                    longestMatch = j;
-                }
-            }
-
-            if (longestMatch > 11) {
-                String cc = cb + ca.substring(longestMatch, ca.length());
-
-                CortexVertex v0 = null;
-                for (int j = 0; j <= cc.length() - GRAPH.getKmerSize(); j++) {
-                    String sk = cc.substring(j, j + GRAPH.getKmerSize());
-                    CortexRecord cr = GRAPH.findRecord(sk);
-
-                    CortexVertex v = new CortexVertexFactory()
-                            .bases(sk)
-                            .record(cr)
-                            .make();
-
-                    gm.addVertex(v);
-
-                    if (v0 != null) {
-                        gm.addEdge(v0, v, new CortexEdge(v0, v, GRAPH.getColorsForSampleNames(parentName).iterator().next(), 1.0f));
-                    }
-
-                    v0 = v;
-                }
-
-                numDovetailOverlaps++;
-            }
-        }
-
-        Map<String, String> targets = new HashMap<>();
-        if (numDovetailOverlaps > 0) {
-            targets.putAll(extractTargets(parentName, gm, "dovetail"));
-        }
-
-        return targets;
-    }
-    */
-
-    /*
-    private Map<String, String> assembleGapFilledCandidates(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, List<List<CortexVertex>> walks, List<CortexVertex> ws) {
-        DirectedGraph<CortexByteKmer, DefaultEdge> gw = new DefaultDirectedGraph<>(DefaultEdge.class);
-
-        gw.addVertex(ws.get(0).getKmerAsByteKmer());
-        for (int i = 1; i < ws.size(); i++) {
-            gw.addVertex(ws.get(i).getKmerAsByteKmer());
-            gw.addEdge(ws.get(i-1).getKmerAsByteKmer(), ws.get(i).getKmerAsByteKmer());
-        }
-
-        // Now bridge any gaps that we can
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gm = new DirectedWeightedPseudograph<>(CortexEdge.class);
-        Graphs.addGraph(gm, g);
-
-        int numGapsFilled = 0;
-
-        for (int i = 0; i < walks.size() - 1; i++) {
-            DirectedWeightedPseudograph<CortexVertex, CortexEdge> gg = new DirectedWeightedPseudograph<>(CortexEdge.class);
-            for (int j = i + 1; j < walks.size() && gg.vertexSet().size() == 0; j++) {
-                gg = assembleMiddle(parentName, walks.get(i), walks.get(j), gw);
-            }
-
-            if (gg.vertexSet().size() > 0) {
-                Graphs.addGraph(gm, gg);
-                numGapsFilled++;
-            } else {
-                TraversalEngine ef = new TraversalEngineFactory()
-                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                        .traversalDirection(FORWARD)
-                        .combinationOperator(OR)
-                        .stoppingRule(ContigStopper.class)
-                        .maxBranchLength(500)
-                        .graph(GRAPH)
-                        .links(LINKS)
-                        .make();
-
-                TraversalEngine er = new TraversalEngineFactory()
-                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                        .traversalDirection(REVERSE)
-                        .combinationOperator(OR)
-                        .stoppingRule(ContigStopper.class)
-                        .maxBranchLength(500)
-                        .graph(GRAPH)
-                        .links(LINKS)
-                        .make();
-
-                if (i < walks.size() - 1) {
-                    Graphs.addGraph(gm, ef.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
-                }
-
-                if (i > 0) {
-                    Graphs.addGraph(gm, er.dfs(walks.get(i).get(walks.get(i).size() - 1).getKmerAsString()));
-                }
-            }
-        }
-
-        Map<String, String> targets = new HashMap<>();
-        if (numGapsFilled > 0) {
-            targets.putAll(extractTargets(parentName, gm, "gapfilled"));
-        }
-
-        return targets;
-    }
-    */
-
-    /*
-    private Map<String, String> extractTargets(Set<String> parentName, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g, String suffix) {
-        Map<String, String> targets = new HashMap<>();
-        ConnectivityInspector<CortexVertex, CortexEdge> ci = new ConnectivityInspector<>(g);
-        int targetIndex = 0;
-        for (Set<CortexVertex> cs : ci.connectedSets()) {
-            List<CortexVertex> cl = TraversalUtils.toWalk(g, cs.iterator().next().getKmerAsString(), g.edgeSet().iterator().next().getColor());
-
-            String cc = TraversalUtils.toContig(cl);
-            String id = String.format("%s:%s_unknown:contig%d_%s", parentName.iterator().next(), parentName.iterator().next(), targetIndex, suffix);
-
-            if (cc.length() > 0) {
-                targets.put(id, cc);
-                targetIndex++;
-            }
-        }
-
-        return targets;
-    }
-    */
-
-    /*
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> assembleMiddle(Set<String> parentName, List<CortexVertex> wLeft, List<CortexVertex> wRight, DirectedGraph<CortexByteKmer, DefaultEdge> gw) {
-        int childColor = GRAPH.getColorForSampleName(ROIS.getSampleName(0));
-
-        for (int i = wLeft.size() - 1; i > 0; i--) {
-            Map<Integer, Set<CortexByteKmer>> cbkOut = TraversalUtils.getAllNextKmers(wLeft.get(i).getCortexRecord(), !wLeft.get(i).getKmerAsString().equals(wLeft.get(i).getCanonicalKmer().getKmerAsString()));
-            Set<CortexByteKmer> outgoingEdges = new HashSet<>();
-            for (int c : GRAPH.getColorsForSampleNames(parentName)) {
-                outgoingEdges.addAll(cbkOut.get(c));
-            }
-
-            if (gw.containsVertex(wLeft.get(i).getKmerAsByteKmer())) {
-                outgoingEdges.removeAll(Graphs.successorListOf(gw, wLeft.get(i).getKmerAsByteKmer()));
-            } else {
-                outgoingEdges.removeAll(cbkOut.get(childColor));
-            }
-
-            if (outgoingEdges.size() > 0) {
-                for (int j = 0; j < wRight.size() - 1; j++) {
-                    Map<Integer, Set<CortexByteKmer>> cbkIn = TraversalUtils.getAllPrevKmers(wRight.get(j).getCortexRecord(), !wRight.get(j).getKmerAsString().equals(wRight.get(j).getCanonicalKmer().getKmerAsString()));
-                    Set<CortexByteKmer> incomingEdges = new HashSet<>();
-                    for (int c : GRAPH.getColorsForSampleNames(parentName)) {
-                        incomingEdges.addAll(cbkIn.get(c));
-                    }
-
-                    if (gw.containsVertex(wRight.get(j).getKmerAsByteKmer())) {
-                        incomingEdges.removeAll(Graphs.predecessorListOf(gw, wRight.get(j).getKmerAsByteKmer()));
-                    } else {
-                        incomingEdges.removeAll(cbkIn.get(childColor));
-                    }
-
-                    if (incomingEdges.size() > 0) {
-                        TraversalEngine ef = new TraversalEngineFactory()
-                                .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                                .traversalDirection(FORWARD)
-                                .combinationOperator(OR)
-                                .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(2000)
-                                .graph(GRAPH)
-                                .links(LINKS)
-                                .make();
-
-                        TraversalEngine er = new TraversalEngineFactory()
-                                .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                                .traversalDirection(REVERSE)
-                                .combinationOperator(OR)
-                                .stoppingRule(DestinationStopper.class)
-                                .maxBranchLength(2000)
-                                .graph(GRAPH)
-                                .links(LINKS)
-                                .make();
-
-                        DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(wLeft.get(i-1).getKmerAsString(), wRight.get(j+1).getKmerAsString(), SequenceUtils.reverseComplement(wRight.get(wRight.size() - j - 1).getKmerAsString()));
-                        if (g == null || g.vertexSet().size() == 0) {
-                            g = er.dfs(wRight.get(j+1).getKmerAsString(), wLeft.get(i-1).getKmerAsString(), SequenceUtils.reverseComplement(wLeft.get(wLeft.size() - i).getKmerAsString()));
-                        }
-
-                        if (g != null && g.vertexSet().size() > 0) {
-                            return g;
-                        }
-                    }
-                }
-            }
-        }
-
-        return new DirectedWeightedPseudograph<>(CortexEdge.class);
-    }
-    */
-
-    /*
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> assembleLeft(Set<CanonicalKmer> rois, Set<String> parentName, List<CortexVertex> ws, Pair<Integer, Integer> region, int lastEnd) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gl = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        for (int j = region.getFirst() - 1; j > lastEnd && !rois.contains(ws.get(j).getCanonicalKmer()); j--) {
-            boolean hasCoverage = false;
-            for (int c : GRAPH.getColorsForSampleNames(parentName)) {
-                if (ws.get(j).getCortexRecord().getCoverage(c) > 0) {
-                    hasCoverage = true;
-                    break;
-                }
-            }
-
-            if (hasCoverage) {
-                TraversalEngine e = new TraversalEngineFactory()
-                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                        .traversalDirection(REVERSE)
-                        .combinationOperator(OR)
-                        .stoppingRule(ContigStopper.class)
-                        .maxBranchLength((region.getFirst() - 1) - (lastEnd + 1))
-                        .graph(GRAPH)
-                        .links(LINKS)
-                        .make();
-
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(ws.get(j).getKmerAsString());
-
-                if (g != null) {
-                    if (g.vertexSet().size() > gl.vertexSet().size()) {
-                        gl = g;
-                    } else if (gl.vertexSet().size() > 0 && g.vertexSet().size() <= gl.vertexSet().size()) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        return gl;
-    }
-    */
-
-    /*
-    private DirectedWeightedPseudograph<CortexVertex, CortexEdge> assembleRight(Set<CanonicalKmer> rois, Set<String> parentName, List<CortexVertex> ws, Pair<Integer, Integer> region, int nextStart) {
-        DirectedWeightedPseudograph<CortexVertex, CortexEdge> gr = new DirectedWeightedPseudograph<>(CortexEdge.class);
-
-        for (int j = region.getSecond() + 1; j < nextStart && !rois.contains(ws.get(j).getCanonicalKmer()); j++) {
-            boolean hasCoverage = false;
-            for (int c : GRAPH.getColorsForSampleNames(parentName)) {
-                if (ws.get(j).getCortexRecord().getCoverage(c) > 0) {
-                    hasCoverage = true;
-                    break;
-                }
-            }
-
-            if (hasCoverage) {
-                TraversalEngine e = new TraversalEngineFactory()
-                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
-                        .traversalDirection(FORWARD)
-                        .combinationOperator(OR)
-                        .stoppingRule(ContigStopper.class)
-                        .maxBranchLength((nextStart - 1) - (region.getSecond() + 1))
-                        .graph(GRAPH)
-                        .links(LINKS)
-                        .make();
-
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(ws.get(j).getKmerAsString());
-
-                if (g != null) {
-                    if (g.vertexSet().size() > gr.vertexSet().size()) {
-                        gr = g;
-                    } else if (gr.vertexSet().size() > 0 && g.vertexSet().size() <= gr.vertexSet().size()) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        return gr;
-    }
-    */
 
     private Set<CanonicalKmer> loadRois(CortexGraph rg) {
         Set<CanonicalKmer> rois = new HashSet<>();
