@@ -151,10 +151,19 @@ public class Call extends Module {
 
                         List<VariantContextBuilder> merged = mergeBubbles(lps, calls);
 
+                        Set<CanonicalKmer> sectionRois = new TreeSet<>();
+                        for (int i = 0; i <= trimmedQuery.getRight().length() - GRAPH.getKmerSize(); i++) {
+                            CanonicalKmer ck = new CanonicalKmer(trimmedQuery.getRight().substring(i, i + GRAPH.getKmerSize()));
+                            if (rois.contains(ck)) {
+                                sectionRois.add(ck);
+                            }
+                        }
+
                         for (VariantContextBuilder vcb : merged) {
                             vcb.attribute("targets", targets);
                             vcb.attribute("lps", lps);
                             vcb.attribute("sectionIndex", sectionIndex);
+                            vcb.attribute("novels", Joiner.on(",").join(sectionRois));
                         }
 
                         vcs.addAll(merged);
@@ -171,10 +180,10 @@ public class Call extends Module {
                         "targets", "lps",
                         "nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
                         "prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
-                        "targetName", "targetStart", "targetStop"
-//                        "start", "stop",
-//                        "sectionStart", "sectionStop"
-//                        "variantStart", "variantStop"
+                        "targetName", "targetStart", "targetStop",
+                        "start", "stop",
+                        "sectionStart", "sectionStop",
+                        "variantStart", "variantStop"
                 ));
 
                 VariantContext vc = vcb.make();
@@ -184,7 +193,7 @@ public class Call extends Module {
                     int start = vc.getStart();
                     int end = vc.isSymbolic() ? start : vc.getEnd();
                     String refAllele = BACKGROUNDS.containsKey(back) && BACKGROUNDS.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), start, end).getBaseString() : "?";
-                    log.info("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), vc);
+                    log.info("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), new VariantContextBuilder(vc).rmAttribute("novels").make());
 
                     svcs.add(vc);
                 }
@@ -648,7 +657,7 @@ public class Call extends Module {
                                         }
                                     }
 
-                                    String childContig = seq.substring(seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize(), seq.indexOf(kmer1.toString()));
+                                    String childContig = seq.substring(seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize(), seq.indexOf(kmer1.toString(), seq.indexOf(kmer0.toString())));
 
                                     for (String parentalContig : parentalContigs) {
                                         String inverted = SequenceUtils.reverseComplement(parentalContig.substring(GRAPH.getKmerSize(), parentalContig.length() - GRAPH.getKmerSize()));
@@ -981,13 +990,13 @@ public class Call extends Module {
             String id = String.format("CC%d", variantId);
 
             vcw.add(new VariantContextBuilder(vc)
-                .rmAttribute("NOVELS")
+                .rmAttribute("novels")
                 .attribute("CALL_ID", variantId)
                 //.id(id)
                 .make()
             );
 
-            for (String sk : vc.getAttributeAsString("NOVELS", "").split(",")) {
+            for (String sk : vc.getAttributeAsString("novels", "").split(",")) {
                 if (sk.length() > 0) {
                     CanonicalKmer ck = new CanonicalKmer(sk);
 
