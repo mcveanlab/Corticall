@@ -154,6 +154,7 @@ public class Call extends Module {
                         for (VariantContextBuilder vcb : merged) {
                             vcb.attribute("targets", targets);
                             vcb.attribute("lps", lps);
+                            vcb.attribute("sectionIndex", sectionIndex);
                         }
 
                         vcs.addAll(merged);
@@ -162,74 +163,30 @@ public class Call extends Module {
             }
 
             vcs = mergeBreakpoints(seq, vcs);
-
-            IntervalTreeMap<List<VariantContextBuilder>> itm = new IntervalTreeMap<>();
+            vcs = assignCoordinates(vcs);
+            vcs = filterBreakpoints(vcs);
 
             for (VariantContextBuilder vcb : vcs) {
-                VariantContextBuilder vcbn = assignCoordinates(vcb);
+                vcb.rmAttributes(Arrays.asList(
+                        "targets", "lps",
+                        "nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
+                        "prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
+                        "targetName", "targetStart", "targetStop"
+//                        "start", "stop",
+//                        "sectionStart", "sectionStop"
+//                        "variantStart", "variantStop"
+                ));
 
-                vcbn.rmAttributes(Arrays.asList("targets", "lps",
-                                                "nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
-                                                "prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
-                                                "start", "stop",
-                                                "targetName", "targetStart", "targetStop",
-                                                "sectionStart", "sectionStop",
-                                                "variantStart", "variantStop"));
+                VariantContext vc = vcb.make();
 
-                VariantContext vc = vcbn.make();
-
-                //svcs.add(vc);
-
-                //String back = vc.getAttributeAsString("background", "unknown");
-                //String refAllele = BACKGROUNDS.containsKey(back) ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), vc.getStart(), vc.getEnd()).getBaseString() : "?";
-                //log.info("{} {} {}", vc.getReference(), refAllele, vc);
-
-                Interval vit = new Interval(vc.getContig(), vc.getStart(), vc.getEnd());
-                if (!itm.containsKey(vit)) {
-                    itm.put(vit, new ArrayList<>());
-                }
-                itm.get(vit).add(vcbn);
-            }
-
-            Set<String> toFilter = new HashSet<>();
-            for (Interval it : itm.keySet()) {
-                boolean hasConcreteVariants = false, hasBreakpointVariants = false;
-                if (itm.get(it).size() > 1) {
-                    for (VariantContextBuilder vc : itm.get(it)) {
-                        if (!vc.make().isSymbolic()) {
-                            hasConcreteVariants = true;
-                        } else if (vc.make().hasAttribute("MATEID")) {
-                            hasBreakpointVariants = true;
-                        }
-                    }
-                }
-
-                if (hasConcreteVariants && hasBreakpointVariants) {
-                    for (VariantContextBuilder vc : itm.get(it)) {
-                        if (vc.make().isSymbolic() && vc.make().hasAttribute("MATEID")) {
-                            toFilter.add(vc.make().getID());
-                            toFilter.add(vc.make().getAttributeAsString("MATEID", "unknown"));
-                        }
-                    }
-                }
-            }
-
-            for (Interval it : itm.keySet()) {
-                for (VariantContextBuilder vc : itm.get(it)) {
-                    if (toFilter.contains(vc.make().getID())) {
-                        vc.filter("OVERLAPPING_BREAKPOINT");
-                    }
-
-                    svcs.add(vc.make());
-                }
-            }
-
-            for (List<VariantContextBuilder> vcbs : itm.values()) {
-                for (VariantContextBuilder vcb : vcbs) {
-                    VariantContext vc = vcb.make();
-                    String back = vc.getAttributeAsString("background", "unknown");
-                    String refAllele = BACKGROUNDS.containsKey(back) && BACKGROUNDS.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), vc.getStart(), vc.getEnd()).getBaseString() : "?";
+                if (!vc.isFiltered()) {
+                    String back = vc.getAttributeAsString("BACKGROUND", "unknown");
+                    int start = vc.getStart();
+                    int end = vc.isSymbolic() ? start : vc.getEnd();
+                    String refAllele = BACKGROUNDS.containsKey(back) && BACKGROUNDS.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), start, end).getBaseString() : "?";
                     log.info("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), vc);
+
+                    svcs.add(vc);
                 }
             }
 
@@ -237,6 +194,68 @@ public class Call extends Module {
         }
 
         writeVariants(rois, svcs, vcw);
+    }
+
+    @NotNull
+    private Set<VariantContextBuilder> filterBreakpoints(Set<VariantContextBuilder> vcs) {
+        IntervalTreeMap<List<VariantContextBuilder>> itm = new IntervalTreeMap<>();
+
+        for (VariantContextBuilder vcbn : vcs) {
+            VariantContext vc = vcbn.make();
+
+            Interval vit = new Interval(vc.getContig(), vc.getStart(), vc.getEnd());
+            if (!itm.containsKey(vit)) {
+                itm.put(vit, new ArrayList<>());
+            }
+            itm.get(vit).add(vcbn);
+        }
+
+        Set<String> toFilter = new HashSet<>();
+        for (Interval it : itm.keySet()) {
+            boolean hasConcreteVariants = false, hasBreakpointVariants = false;
+            if (itm.get(it).size() > 1) {
+                for (VariantContextBuilder vc : itm.get(it)) {
+                    if (!vc.make().isSymbolic()) {
+                        hasConcreteVariants = true;
+                    } else if (vc.make().hasAttribute("MATEID")) {
+                        hasBreakpointVariants = true;
+                    }
+                }
+            }
+
+            if (hasConcreteVariants && hasBreakpointVariants) {
+                for (VariantContextBuilder vc : itm.get(it)) {
+                    if (vc.make().isSymbolic() && vc.make().hasAttribute("MATEID")) {
+                        toFilter.add(vc.make().getID());
+                        toFilter.add(vc.make().getAttributeAsString("MATEID", "unknown"));
+                    }
+                }
+            }
+        }
+
+        for (Interval it : itm.keySet()) {
+            for (VariantContextBuilder vc : itm.get(it)) {
+                if (toFilter.contains(vc.make().getID())) {
+                    vc.filter("OVERLAPPING_BREAKPOINT");
+                }
+            }
+        }
+
+        Set<VariantContextBuilder> newVcbs = new HashSet<>();
+        for (List<VariantContextBuilder> vcbs : itm.values()) {
+            newVcbs.addAll(vcbs);
+        }
+
+        return newVcbs;
+    }
+
+    private Set<VariantContextBuilder> assignCoordinates(Set<VariantContextBuilder> vcs) {
+        Set<VariantContextBuilder> newVcbs = new HashSet<>();
+        for (VariantContextBuilder vcb : vcs) {
+            newVcbs.add(assignCoordinates(vcb));
+        }
+
+        return newVcbs;
     }
 
     private VariantContextBuilder assignCoordinates(VariantContextBuilder vcb) {
@@ -278,6 +297,16 @@ public class Call extends Module {
         String nextFlankFw = nextFlankBuilder.toString();
         List<SAMRecord> nextSrs = sortAlignments(nextBack, nextFlankFw);
         SAMRecord nextSr = nextSrs.size() == 0 ? null : nextSrs.get(0);
+
+        if (prevSr != null && nextSrs.size() > 0) {
+            for (SAMRecord nsr : nextSrs) {
+                if (prevSr.getContig().equals(nsr.getContig())) {
+                    nextSr = nsr;
+                    break;
+                }
+            }
+        }
+
         if (nextSr != null) {
             vcbn.attribute("nextChrom", nextSr.getContig());
             vcbn.attribute("nextStart", nextSr.getReferencePositionAtReadPosition(1) + 1);
@@ -287,27 +316,37 @@ public class Call extends Module {
 
         SAMRecord sr = null;
         List<SAMRecord> srs = null;
+        int alignStart = 0;
         if (prevSr != null && nextSr != null) {
-            sr = prevSr.getStart() < nextSr.getStart() ? prevSr : nextSr;
-            srs = prevSr.getStart() < nextSr.getStart() ? prevSrs : nextSrs;
-        } else if (prevSr != null) {
+            //sr = prevSr.getStart() < nextSr.getStart() ? prevSr : nextSr;
+            //srs = prevSr.getStart() < nextSr.getStart() ? prevSrs : nextSrs;
+            //alignStart = sr.getEnd() + 1;
+
+            if (prevSr.getStart() < nextSr.getStart()) {
+                nextSr = null;
+            } else {
+                prevSr = null;
+            }
+        }
+
+        if (prevSr != null) {
             sr = prevSr;
             srs = prevSrs;
+            alignStart = sr.getReadNegativeStrandFlag() ? sr.getStart() + 1 : sr.getEnd() + 1;
         } else if (nextSr != null) {
             sr = nextSr;
             srs = nextSrs;
+            alignStart = sr.getReadNegativeStrandFlag() ? sr.getEnd() + 1 : sr.getStart();
         }
 
         if (sr != null) {
             boolean flip = sr.getReadNegativeStrandFlag();
             List<Allele> alleles = vcbn.getAlleles();
 
-            //int alignStart = flip ? sr.getStart() + 1 : sr.getEnd() + 1;
-            int alignStart = sr.getEnd() + 1;
-
             vcbn.chr(sr.getContig());
             vcbn.start(alignStart);
             vcbn.stop(alignStart + vcb.make().getEnd() - vcb.make().getStart());
+            vcbn.attribute("flankMappingQuality", sr.getMappingQuality());
 
             if (flip) {
                 List<Allele> allelesRc = new ArrayList<>();
@@ -505,6 +544,7 @@ public class Call extends Module {
         }
 
         Map<String, VariantContextBuilder> replacements = new HashMap<>();
+        Set<Interval> removals = new HashSet<>();
 
         if (bnds.size() >= 4 && bnds.size() % 2 == 0) {
             for (int i = 0; i <= bnds.size() - 2; i += 2) {
@@ -641,6 +681,11 @@ public class Call extends Module {
                                             replacements.put(inner0.getID(), null);
                                             replacements.put(inner1.getID(), null);
                                             replacements.put(outer1.getID(), null);
+
+                                            removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
+                                            removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
+                                            removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
+                                            removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
                                         }
                                     }
                                 }
@@ -653,11 +698,15 @@ public class Call extends Module {
 
         Set<VariantContextBuilder> newcalls = new LinkedHashSet<>();
         for (VariantContextBuilder vcb : calls) {
-            if (!replacements.containsKey(vcb.make().getID())) {
-                newcalls.add(vcb);
+            if (!vcb.make().isSymbolic() && removals.contains(new Interval(vcb.make().getContig(), vcb.make().getStart(), vcb.make().getStart()))) {
+                // ignore
             } else {
-                if (replacements.get(vcb.make().getID()) != null) {
-                    newcalls.add(replacements.get(vcb.make().getID()));
+                if (!replacements.containsKey(vcb.make().getID())) {
+                    newcalls.add(vcb);
+                } else {
+                    if (replacements.get(vcb.make().getID()) != null) {
+                        newcalls.add(replacements.get(vcb.make().getID()));
+                    }
                 }
             }
         }
@@ -693,6 +742,8 @@ public class Call extends Module {
 
                             List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
 
+                            String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
+
                             VariantContextBuilder vcb = new VariantContextBuilder()
                                     .noID()
                                     .noGenotypes()
@@ -706,10 +757,10 @@ public class Call extends Module {
                                     .attribute("sectionStop", sectionStop)
                                     .attribute("variantStart", variantStart)
                                     .attribute("variantStop", variantStop)
-                                    .attribute("partitionName", contigName)
                                     .attribute("prevBase", prevBase)
                                     .attribute("nextBase", nextBase)
-                                    .attribute("background", lps.get(partners.getFirst()).getLeft().split(":")[0]);
+                                    .attribute("PARTITION_NAME", contigName)
+                                    .attribute("BACKGROUND", varBackground);
 
                             vcbs.add(vcb);
                         }
@@ -757,6 +808,9 @@ public class Call extends Module {
                         String mate0 = String.format("bnd_%s_%d", contigName, sectionStart + prevPos);
                         String mate1 = String.format("bnd_%s_%d", contigName, sectionStart + nextPos);
 
+                        String varBackground0 = lps.get(partners.getFirst()).getLeft().split(":")[0];
+                        String varBackground1 = lps.get(partners.getSecond()).getLeft().split(":")[0];
+
                         VariantContextBuilder vcb0 = new VariantContextBuilder()
                                 .id(mate0)
                                 .noGenotypes()
@@ -770,13 +824,13 @@ public class Call extends Module {
                                 .attribute("sectionStop", sectionStop)
                                 .attribute("variantStart", sectionStart + prevPos)
                                 .attribute("variantStop", sectionStart + prevPos)
-                                .attribute("partitionName", contigName)
                                 .attribute("prevBase", prevBase)
                                 .attribute("nextBase", nextBase)
                                 .attribute("targetName", lps.get(partners.getFirst()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getFirst()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getFirst()).getRight().getSecond())
-                                .attribute("background", lps.get(partners.getFirst()).getLeft().split(":")[0])
+                                .attribute("PARTITION_NAME", contigName)
+                                .attribute("BACKGROUND", varBackground0)
                                 .attribute("SVTYPE", "BND")
                                 .attribute("MATEID", mate1);
 
@@ -793,13 +847,13 @@ public class Call extends Module {
                                 .attribute("sectionStop", sectionStop)
                                 .attribute("variantStart", sectionStart + nextPos)
                                 .attribute("variantStop", sectionStart + nextPos)
-                                .attribute("partitionName", contigName)
                                 .attribute("prevBase", prevBase)
                                 .attribute("nextBase", nextBase)
                                 .attribute("targetName", lps.get(partners.getSecond()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getSecond()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getSecond()).getRight().getSecond())
-                                .attribute("background", lps.get(partners.getSecond()).getLeft().split(":")[0])
+                                .attribute("PARTITION_NAME", contigName)
+                                .attribute("BACKGROUND", varBackground1)
                                 .attribute("SVTYPE", "BND")
                                 .attribute("MATEID", mate0);
 
@@ -857,7 +911,11 @@ public class Call extends Module {
                             }
                         }
 
+                        int row = prevRow == 0 ? nextRow : prevRow;
+
                         List<Allele> alleleStrings = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
+
+                        String varBackground = row > 0 ? lps.get(row).getLeft().split(":")[0] : "unknown";
 
                         vcb
                                 .noID()
@@ -871,10 +929,10 @@ public class Call extends Module {
                                 .attribute("sectionStop", sectionStop)
                                 .attribute("variantStart", variantStart)
                                 .attribute("variantStop", variantStop)
-                                .attribute("partitionName", contigName)
                                 .attribute("prevBase", prevBase)
                                 .attribute("nextBase", nextBase)
-                                .attribute("background", lps.get(prevRow).getLeft().split(":")[0])
+                                .attribute("PARTITION_NAME", contigName)
+                                .attribute("BACKGROUND", varBackground)
                         ;
 
                         if (isSymbolicStart || isSymbolicEnd) {
@@ -1038,7 +1096,7 @@ public class Call extends Module {
         }
 
         List<SAMRecord> a = BACKGROUNDS.get(background).align(target);
-        a.removeIf(s -> s.getMappingQuality() == 0);
+        //a.removeIf(s -> s.getMappingQuality() == 0);
 
         a.sort((s1, s2) -> {
             int s1length = s1.getAlignmentEnd() - s1.getAlignmentStart();
