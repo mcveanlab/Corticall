@@ -119,10 +119,6 @@ public class Call extends Module {
 
                         allTargets.get("all").putAll(parentalTargets);
                         allTargets.put(parentName.iterator().next(), parentalTargets);
-
-                        //for (String cn : parentalTargets.keySet()) {
-                        //    log.info("    target background={} name={} length={}", parentName.iterator().next(), cn, parentalTargets.get(cn).length());
-                        //}
                     }
 
                     if (allTargets.get("all").size() > 0) {
@@ -207,7 +203,9 @@ public class Call extends Module {
         int start = vcbn.make().getAttributeAsInt("start", 0);
         StringBuilder prevFlankBuilder = new StringBuilder();
         for (int q = start; q >= 0 && getParentalRow(lps, start) == getParentalRow(lps, q); q--) {
-            prevFlankBuilder.insert(0, getParentalColumn(lps, q));
+            if (getParentalColumn(lps, q) != '-') {
+                prevFlankBuilder.insert(0, getParentalColumn(lps, q));
+            }
         }
 
         String prevBack = lps.get(getParentalRow(lps, start)).getLeft().split(":")[0];
@@ -224,7 +222,9 @@ public class Call extends Module {
         int stop = vcbn.make().getAttributeAsInt("stop", 0);
         StringBuilder nextFlankBuilder = new StringBuilder();
         for (int q = stop; q < lps.get(0).getMiddle().length() && getParentalRow(lps, stop) == getParentalRow(lps, q); q++) {
-            nextFlankBuilder.append(getParentalColumn(lps, q));
+            if (getParentalColumn(lps, q) != '-') {
+                nextFlankBuilder.append(getParentalColumn(lps, q));
+            }
         }
 
         String nextBack = lps.get(getParentalRow(lps, stop)).getLeft().split(":")[0];
