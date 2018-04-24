@@ -27,12 +27,6 @@ public class EvaluateCalls extends Module {
     @Argument(fullName="novel", shortName="n", doc="VCF of novel variants")
     public VCFFileReader VCF_NOVEL;
 
-    @Argument(fullName="contigs", shortName="c", doc="Contigs", required=false)
-    public FastaSequenceFile CONTIGS;
-
-    @Argument(fullName="background", shortName="b", doc="Background", required=false)
-    public HashMap<String, IndexedReference> BACKGROUNDS;
-
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 47;
 

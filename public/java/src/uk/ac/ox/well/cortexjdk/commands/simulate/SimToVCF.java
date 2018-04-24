@@ -103,24 +103,26 @@ public class SimToVCF extends Module {
                     log.info("{}{}", StringUtil.repeatCharNTimes(' ', sleft.length() - 1), expRefBase);
                     log.info("{}{}", StringUtil.repeatCharNTimes(' ', sleft.length() - 1), actRefBase);
 
-                    List<Allele> alleles = Arrays.asList(Allele.create(actRefBase + oldAllele, true), Allele.create(actRefBase + newAllele));
+                    if (!oldAllele.equals(newAllele)) {
+                        List<Allele> alleles = Arrays.asList(Allele.create(actRefBase + oldAllele, true), Allele.create(actRefBase + newAllele));
 
-                    VariantContext vc = new VariantContextBuilder()
-                            .chr(srBest.getContig())
-                            .alleles(alleles)
-                            .start(pos)
-                            .computeEndFromAlleles(alleles, pos)
-                            .attribute("SIM_TYPE", te.get("type"))
-                            .attribute("INDEX", te.get("index"))
-                            .attribute("OLD_HAP", oldHap.toUpperCase())
-                            .attribute("NEW_HAP", newHap.toUpperCase())
-                            .noGenotypes()
-                            .make();
+                        VariantContext vc = new VariantContextBuilder()
+                                .chr(srBest.getContig())
+                                .alleles(alleles)
+                                .start(pos)
+                                .computeEndFromAlleles(alleles, pos)
+                                .attribute("SIM_TYPE", te.get("type"))
+                                .attribute("INDEX", te.get("index"))
+                                .attribute("OLD_HAP", oldHap.toUpperCase())
+                                .attribute("NEW_HAP", newHap.toUpperCase())
+                                .noGenotypes()
+                                .make();
 
-                    log.info("{}", vc);
-                    log.info("");
+                        log.info("{}", vc);
+                        log.info("");
 
-                    svcs.add(vc);
+                        svcs.add(vc);
+                    }
                 } else {
                     log.info("skipped");
                 }
