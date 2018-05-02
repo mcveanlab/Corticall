@@ -24,14 +24,17 @@ import java.io.File;
 import java.util.*;
 
 public class EvaluateCalls extends Module {
-    @Argument(fullName="graph", shortName="g", doc="Graph")
-    public CortexGraph GRAPH;
+    //@Argument(fullName="graph", shortName="g", doc="Graph")
+    //public CortexGraph GRAPH;
 
     @Argument(fullName="known", shortName="k", doc="VCF of known variants")
     public ArrayList<VCFFileReader> VCF_KNOWNS;
 
     @Argument(fullName="novel", shortName="n", doc="VCF of novel variants")
     public ArrayList<VCFFileReader> VCF_NOVELS;
+
+    @Argument(fullName="acct", shortName="a", doc="Novel variants accounting")
+    public ArrayList<File> ACCT;
 
     @Argument(fullName="kmerSize", shortName="ks", doc="Kmer size")
     public Integer KMER_SIZE = 47;
@@ -48,6 +51,9 @@ public class EvaluateCalls extends Module {
         private int numCorrectStop = 0;
         private int numCorrectType = 0;
         private int numComplete = 0;
+        private int numNovelsExpected = 0;
+        private int numNovelsFound = 0;
+        private int numFalsePositives = 0;
 
         @Override
         public String toString() {
@@ -60,6 +66,9 @@ public class EvaluateCalls extends Module {
                     ", numCorrectStop=" + numCorrectStop +
                     ", numCorrectType=" + numCorrectType +
                     ", numComplete=" + numComplete +
+                    ", numNovelsExpected=" + numNovelsExpected +
+                    ", numNovelsFound=" + numNovelsFound +
+                    ", numFalsePositives=" + numFalsePositives +
                     '}';
         }
     }
@@ -72,7 +81,7 @@ public class EvaluateCalls extends Module {
         stats.put(type, se);
     }
 
-    private void addEntry(Map<String, StatsEntry> stats, String type, boolean correctBackground, boolean correctChromosome, boolean correctStart, boolean correctStop, boolean correctType, boolean complete) {
+    private void addEntry(Map<String, StatsEntry> stats, String type, boolean correctBackground, boolean correctChromosome, boolean correctStart, boolean correctStop, boolean correctType, boolean complete, int numNovelsExpected, int numNovelsFound) {
         StatsEntry se = stats.containsKey(type) ? stats.get(type) : new StatsEntry();
 
         se.someEvidence++;
@@ -82,6 +91,16 @@ public class EvaluateCalls extends Module {
         se.numCorrectStop += correctStop ? 1 : 0;
         se.numCorrectType += correctType ? 1 : 0;
         se.numComplete += complete ? 1 : 0;
+        se.numNovelsExpected += numNovelsExpected;
+        se.numNovelsFound += numNovelsFound;
+
+        stats.put(type, se);
+    }
+
+    private void addFp(Map<String, StatsEntry> stats, String type) {
+        StatsEntry se = stats.containsKey(type) ? stats.get(type) : new StatsEntry();
+
+        se.numFalsePositives++;
 
         stats.put(type, se);
     }
@@ -94,10 +113,20 @@ public class EvaluateCalls extends Module {
             VCFFileReader vcfKnown = VCF_KNOWNS.get(q);
             VCFFileReader vcfNovel = VCF_NOVELS.get(q);
 
+            TableReader tr = new TableReader(ACCT.get(q), "novel", "ccid");
+            Map<CanonicalKmer, String> ids = new HashMap<>();
+            for (Map<String, String> te : tr) {
+                CanonicalKmer ck = new CanonicalKmer(te.get("novel"));
+                String id = te.get("ccid");
+
+                ids.put(ck, id);
+            }
+
             Map<CanonicalKmer, Set<VariantContext>> kmerMap = new HashMap<>();
             Map<VariantContext, Set<VariantContext>> recovered = new LinkedHashMap<>();
             Set<VariantContext> unused = new HashSet<>();
 
+            int rec = 0, unu = 0, nov = 0;
             for (VariantContext kvc : vcfKnown) {
                 addEvent(stats, kvc.getAttributeAsString("SIM_TYPE", "unknown"));
 
@@ -117,33 +146,44 @@ public class EvaluateCalls extends Module {
             }
 
             for (VariantContext nvc : vcfNovel) {
-                Map<VariantContext, Integer> knownVcs = new HashMap<>();
+                if (nvc.getAttributeAsInt("flankMappingQuality", 0) == 60 && nvc.getAttributeAsList("alt_loci").size() <= 2) {
+                    nov++;
 
-                String childHap = nvc.getAttributeAsString("CHILD_HAP", "");
-                for (int i = 0; i <= childHap.length() - KMER_SIZE; i++) {
-                    String sk = childHap.substring(i, i + KMER_SIZE);
-                    CanonicalKmer ck = new CanonicalKmer(sk);
+                    Map<VariantContext, Integer> knownVcs = new HashMap<>();
 
-                    if (kmerMap.containsKey(ck)) {
-                        for (VariantContext vc : kmerMap.get(ck)) {
-                            ContainerUtils.increment(knownVcs, vc);
+                    String childHap = nvc.getAttributeAsString("CHILD_HAP", "");
+                    for (int i = 0; i <= childHap.length() - KMER_SIZE; i++) {
+                        String sk = childHap.substring(i, i + KMER_SIZE);
+                        CanonicalKmer ck = new CanonicalKmer(sk);
+
+                        if (kmerMap.containsKey(ck)) {
+                            for (VariantContext vc : kmerMap.get(ck)) {
+                                ContainerUtils.increment(knownVcs, vc);
+                            }
                         }
                     }
-                }
 
-                VariantContext bestVc = null;
-                int bestCount = 0;
-                for (VariantContext knownVc : knownVcs.keySet()) {
-                    if (knownVcs.get(knownVc) > bestCount) {
-                        bestVc = knownVc;
-                        bestCount = knownVcs.get(knownVc);
+                    VariantContext bestVc = null;
+                    int bestCount = 0;
+                    for (VariantContext knownVc : knownVcs.keySet()) {
+                        if (knownVcs.get(knownVc) > bestCount) {
+                            bestVc = knownVc;
+                            bestCount = knownVcs.get(knownVc);
+                        }
                     }
-                }
 
-                if (bestVc != null) {
-                    recovered.get(bestVc).add(nvc);
-                } else {
-                    unused.add(nvc);
+                    if (bestVc != null) {
+                        recovered.get(bestVc).add(nvc);
+                    } else {
+                        String ccid = "CC" + nvc.getAttributeAsString("CALL_ID", "");
+                        for (CanonicalKmer ck : ids.keySet()) {
+                            if (ids.get(ck).equals(ccid)) {
+                                log.info("{} {} {}", ccid, ck, nvc);
+                            }
+                        }
+
+                        unused.add(nvc);
+                    }
                 }
             }
 
@@ -162,6 +202,8 @@ public class EvaluateCalls extends Module {
                 List<VariantContext> vs = new ArrayList<>(recovered.get(bestVc));
                 vs.sort(Comparator.comparingInt(VariantContext::getStart));
 
+                int numNovelsExpected = 0;
+                int numNovelsFound = 0;
                 for (VariantContext nvc : vs) {
                     log.info("call : {} {}", nvc.getAttributeAsString("SVTYPE", "unknown"), nvc);
 
@@ -188,30 +230,113 @@ public class EvaluateCalls extends Module {
                     String newHap = bestVc.getAttributeAsString("NEW_HAP", "");
                     String childHap = nvc.getAttributeAsString("CHILD_HAP", "");
 
-                    SmithWaterman sw = new SmithWaterman();
-                    String[] a = sw.getAlignment(childHap, newHap);
+                    for (int i = 0; i <= newHap.length() - KMER_SIZE; i++) {
+                        CanonicalKmer ck = new CanonicalKmer(newHap.substring(i, i + KMER_SIZE));
+                        if (ids.containsKey(ck)) {
+                            numNovelsExpected++;
+                        }
+                    }
 
-                    log.info("  {}", a[0]);
-                    log.info("  {}", a[1]);
+                    for (int i = 0; i <= childHap.length() - KMER_SIZE; i++) {
+                        CanonicalKmer ck = new CanonicalKmer(childHap.substring(i, i + KMER_SIZE));
+                        if (ids.containsKey(ck) && !ids.get(ck).equals("absent")) {
+                            numNovelsFound++;
+                        }
+                    }
+
+                    //SmithWaterman sw = new SmithWaterman();
+                    //String[] a = sw.getAlignment(childHap, newHap);
+
+                    //log.info("  {}", a[0]);
+                    //log.info("  {}", a[1]);
                 }
 
-                addEntry(stats, bestVc.getAttributeAsString("SIM_TYPE", "unknown"), correctBackground, correctChromosome, correctStart, correctStop, correctType, complete);
+                addEntry(stats, bestVc.getAttributeAsString("SIM_TYPE", "unknown"), correctBackground, correctChromosome, correctStart, correctStop, correctType, complete, numNovelsExpected, numNovelsFound);
 
-                log.info("       back={} chr={} start={} stop={} type={} complete={}", correctBackground, correctChromosome, correctStart, correctStop, correctType, complete);
-
-                for (int i = 0; i <= bestVc.getReference().getBaseString().length() - GRAPH.getKmerSize(); i++) {
-                    String sk = bestVc.getReference().getBaseString().substring(i, i + GRAPH.getKmerSize());
-                    CortexRecord cr = GRAPH.findRecord(sk);
-
-                    log.info("{} {} {}", i, sk, cr);
-                }
-
+                log.info("       back={} chr={} start={} stop={} type={} complete={} numNovelsExpected={} numNovelsFound={}", correctBackground, correctChromosome, correctStart, correctStop, correctType, complete, numNovelsExpected, numNovelsFound);
                 log.info("");
+            }
+
+            for (VariantContext vcu : unused) {
+                //log.info("unused: {}", unused.size());
+
+                String type = "UNKNOWN";
+                if (vcu.isSNP()) {
+                    type = "SNV";
+                } else if (vcu.isSimpleInsertion()) {
+                    if (vcu.getAltAlleleWithHighestAlleleCount().length() >= 500) {
+                        type = "LARGE_INS";
+                    } else {
+                        type = "SMALL_INS";
+                    }
+                } else if (vcu.isSimpleDeletion()) {
+                    if (vcu.getReference().length() >= 500) {
+                        type = "LARGE_DEL";
+                    } else {
+                        type = "SMALL_DEL";
+                    }
+                } else if (vcu.isMNP()) {
+                    if (vcu.getReference().length() >= 500) {
+                        type = "LARGE_MNP";
+                    } else {
+                        type = "SMALL_MNP";
+                    }
+                } else if (vcu.isSymbolicOrSV()) {
+                    type = "BREAKPOINT";
+                }
+
+                addFp(stats, type);
             }
         }
 
         for (String type : stats.keySet()) {
-            log.info("{} {}", type, stats.get(type));
+            float tp0 = stats.get(type).someEvidence; // tp
+            float fn0 = stats.get(type).numEvents - stats.get(type).someEvidence; // fn
+            float fp0 = stats.get(type).numFalsePositives; // fp
+            float prec0 = tp0 / (tp0 + fp0);
+            float rec0 = tp0 / (tp0 + fn0);
+            float f10 = 2*(rec0*prec0) / (rec0 + prec0);
+
+            float tp1 = stats.get(type).numComplete; // tp
+            float fn1 = stats.get(type).numEvents - stats.get(type).numComplete; // fn
+            float fp1 = stats.get(type).numFalsePositives; // fp
+            float prec1 = tp1 / (tp1 + fp1);
+            float rec1 = tp1 / (tp1 + fn1);
+            float f11 = 2*(rec1*prec1) / (rec1 + prec1);
+
+            if (!type.equals("NAHR-DEL")) {
+                log.info("{} {} {} {} fp0={}, fp1={}, f1={} ({})",
+                        type,
+                        stats.get(type).numNovelsExpected,
+                        stats.get(type).numNovelsFound,
+                        stats.get(type).numEvents,
+
+                        fp0,
+                        fp1,
+
+                        String.format("%.2f%%", 100.0f*f10),
+                        String.format("%.2f%%", 100.0f*f11)
+                );
+
+                /*
+                log.info("{} {}", type, stats.get(type));
+                log.info("{} {} {} {} complete[tp={} fn={} fp={} prec={} rec={} f1={}]",
+                        type,
+                        stats.get(type).numNovelsExpected,
+                        stats.get(type).numNovelsFound,
+                        stats.get(type).numEvents,
+
+                        tp0,
+                        fn0,
+                        fp0,
+
+                        prec0,
+                        rec0,
+                        f10
+                );
+                */
+            }
         }
+
     }
 }

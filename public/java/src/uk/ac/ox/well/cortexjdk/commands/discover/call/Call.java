@@ -175,8 +175,9 @@ public class Call extends Module {
 
             vcs = mergeBreakpoints(seq, vcs, rois);
 
-            //vcs = mergeDoubleBreakpoints(seq, vcs);
+            vcs = mergeDoubleBreakpoints(seq, vcs);
             //vcs = mergeSingleBreakpoints(seq, vcs);
+
             vcs = assignCoordinates(vcs);
 
             for (VariantContextBuilder vcb : vcs) {
@@ -970,8 +971,18 @@ public class Call extends Module {
                 VariantContext inner0 = bnds.get(i+1).make();
 
                 List<Triple<String, String, Pair<Integer, Integer>>> lps0 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) outer0.getAttribute("lps");
-                int q0 = 0;
                 StringBuilder kmer0 = new StringBuilder();
+                int pos0 = outer0.getAttributeAsInt("start", 0);
+                while (kmer0.length() < GRAPH.getKmerSize() && pos0 >= 0) {
+                    char c = getChildColumn(lps0, pos0);
+
+                    if (c != '-' && c != ' ') {
+                        kmer0.insert(0, c);
+                    }
+                }
+                int q0 = getParentalRow(lps0, pos0);
+
+                /*
                 for (int q = 1; q < lps0.size(); q++) {
                     if (lps0.get(q).getLeft().equals(outer0.getAttributeAsString("targetName", ""))) {
                         int pos = outer0.getAttributeAsInt("start", 0);
@@ -990,18 +1001,29 @@ public class Call extends Module {
                         break;
                     }
                 }
+                */
 
                 for (int j = i + 2; j <= bnds.size() - 2; j += 2) {
                     VariantContext inner1 = bnds.get(j).make();
                     VariantContext outer1 = bnds.get(j+1).make();
 
                     List<Triple<String, String, Pair<Integer, Integer>>> lps1 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) outer1.getAttribute("lps");
-                    int q1 = 0;
                     StringBuilder kmer1 = new StringBuilder();
+                    int pos1 = outer1.getAttributeAsInt("start", 0);
+                    while (kmer1.length() < GRAPH.getKmerSize() && pos1 < lps1.get(0).getMiddle().length()) {
+                        char c = getChildColumn(lps1, pos1);
+
+                        if (c != '-' && c != ' ') {
+                            kmer1.append(c);
+                        }
+                    }
+                    int q1 = getParentalRow(lps1, pos1);
+
+                    /*
                     for (int q = 1; q < lps1.size(); q++) {
                         if (lps1.get(q).getLeft().equals(outer1.getAttributeAsString("targetName", ""))) {
                             int pos = outer1.getAttributeAsInt("start", 0);
-                            while (kmer1.length() < GRAPH.getKmerSize() && pos <= lps1.get(q).getMiddle().length()) {
+                            while (kmer1.length() < GRAPH.getKmerSize() && pos < lps1.get(q).getMiddle().length()) {
                                 char c = lps1.get(q).getMiddle().charAt(pos);
 
                                 if (c != '-') {
@@ -1016,6 +1038,7 @@ public class Call extends Module {
                             break;
                         }
                     }
+                    */
 
                     String back0 = lps0.get(q0).getLeft().split(":")[0];
                     String back1 = lps1.get(q1).getLeft().split(":")[0];
