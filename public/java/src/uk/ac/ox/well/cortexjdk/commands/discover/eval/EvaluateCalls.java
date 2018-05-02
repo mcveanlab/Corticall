@@ -305,13 +305,18 @@ public class EvaluateCalls extends Module {
             float f11 = 2*(rec1*prec1) / (rec1 + prec1);
 
             if (!type.equals("NAHR-DEL")) {
-                log.info("{} {} {} {} fp0={}, fp1={}, f1={} ({})",
+                log.info("{} {} {} {} [tp0={} fn0={} fp0={}] [tp1={} fn1={} fp1={}], f1={} ({})",
                         type,
                         stats.get(type).numNovelsExpected,
                         stats.get(type).numNovelsFound,
                         stats.get(type).numEvents,
 
+                        tp0,
+                        fn0,
                         fp0,
+
+                        tp1,
+                        fn1,
                         fp1,
 
                         String.format("%.2f%%", 100.0f*f10),
