@@ -140,9 +140,9 @@ public class Call extends Module {
                         Map<String, String> targets = allTargets.get(bestTagName);
 
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), targets);
-                        log.info("\n{}\n{}", makeNoveltyTrack(rois, trimmedQuery.getRight(), lps, true), ma);
+                        log.info("\n{}\n{}", makeNoveltyTrack(rois, lps, true), ma);
 
-                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, trimmedQuery.getRight(), lps, true);
+                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, lps, true);
 
                         List<VariantContextBuilder> calls = new ArrayList<>();
                         calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
@@ -171,9 +171,13 @@ public class Call extends Module {
                 }
             }
 
-            vcs = mergeBreakpoints(seq, vcs);
-            vcs = assignCoordinates(vcs);
             vcs = filterBreakpoints(vcs);
+
+            vcs = mergeBreakpoints(seq, vcs, rois);
+
+            //vcs = mergeDoubleBreakpoints(seq, vcs);
+            //vcs = mergeSingleBreakpoints(seq, vcs);
+            vcs = assignCoordinates(vcs);
 
             for (VariantContextBuilder vcb : vcs) {
                 vcb.rmAttributes(Arrays.asList(
@@ -464,7 +468,7 @@ public class Call extends Module {
                 altLoci.add(locus);
             }
 
-            vcbn.attribute("alt_loci", Joiner.on(";").join(altLoci));
+            vcbn.attribute("alt_loci", Joiner.on(",").join(altLoci));
         }
 
         return vcbn;
@@ -536,7 +540,412 @@ public class Call extends Module {
         return merged;
     }
 
-    private Set<VariantContextBuilder> mergeBreakpoints(String seq, Set<VariantContextBuilder> callset) {
+    private Set<VariantContextBuilder> mergeSingleBreakpoints(String seq, Set<VariantContextBuilder> callset) {
+        List<VariantContextBuilder> calls = new ArrayList<>(callset);
+
+        if (calls.size() <= 1) {
+            return callset;
+        }
+
+        List<VariantContextBuilder> bnds = new ArrayList<>();
+
+        for (int i = 0; i < calls.size(); i++) {
+            VariantContext vc = calls.get(i).make();
+            if (vc.isSymbolicOrSV() && vc.getAttributeAsString("SVTYPE", "unknown").equals("BND")) {
+                bnds.add(calls.get(i));
+            }
+        }
+
+        Map<String, VariantContextBuilder> replacements = new HashMap<>();
+        Set<Interval> removals = new HashSet<>();
+
+        for (int i = 0; i < bnds.size() - 1; i++) {
+            VariantContextBuilder vcb0 = bnds.get(i);
+            VariantContext vc0 = vcb0.make();
+
+            String back = vc0.getAttributeAsString("BACKGROUND", "");
+
+            for (int j = i + 1; j < bnds.size(); j++) {
+                VariantContextBuilder vcb1 = bnds.get(j);
+                VariantContext vc1 = vcb1.make();
+
+                List<Triple<String, String, Pair<Integer, Integer>>> lps0 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) vc0.getAttribute("lps");
+                int q0 = 0;
+                StringBuilder kmer0 = new StringBuilder();
+                for (int q = 1; q < lps0.size(); q++) {
+                    if (lps0.get(q).getLeft().equals(vc0.getAttributeAsString("targetName", ""))) {
+                        int pos = vc0.getAttributeAsInt("start", 0);
+                        while (kmer0.length() < GRAPH.getKmerSize() && pos >= 0) {
+                            char c = lps0.get(q).getMiddle().charAt(pos);
+
+                            if (c != '-') {
+                                kmer0.insert(0, c);
+                            }
+
+                            pos--;
+                        }
+
+                        q0 = q;
+
+                        break;
+                    }
+                }
+
+                List<Triple<String, String, Pair<Integer, Integer>>> lps1 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) vc1.getAttribute("lps");
+                int q1 = 0;
+                StringBuilder kmer1 = new StringBuilder();
+                for (int q = 1; q < lps1.size(); q++) {
+                    if (lps1.get(q).getLeft().equals(vc1.getAttributeAsString("targetName", ""))) {
+                        int pos = vc1.getAttributeAsInt("start", 0);
+                        while (kmer1.length() < GRAPH.getKmerSize() && pos <= lps1.get(q).getMiddle().length()) {
+                            char c = lps1.get(q).getMiddle().charAt(pos);
+
+                            if (c != '-') {
+                                kmer1.append(c);
+                            }
+
+                            pos++;
+                        }
+
+                        q1 = q;
+
+                        break;
+                    }
+                }
+
+                for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                    TraversalEngine ef = new TraversalEngineFactory()
+                            .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                            .traversalDirection(FORWARD)
+                            .combinationOperator(OR)
+                            .stoppingRule(DestinationStopper.class)
+                            .graph(GRAPH)
+                            .links(LINKS)
+                            .make();
+
+                    TraversalEngine er = new TraversalEngineFactory()
+                            .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                            .traversalDirection(REVERSE)
+                            .combinationOperator(OR)
+                            .stoppingRule(DestinationStopper.class)
+                            .graph(GRAPH)
+                            .links(LINKS)
+                            .make();
+
+                    DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(kmer0.toString(), kmer1.toString());
+                    if (g == null || g.vertexSet().size() == 0) {
+                        g = er.dfs(kmer1.toString(), kmer0.toString());
+                    }
+                }
+
+                if (BACKGROUNDS.containsKey(back) && vc0.getContig().equals(vc1.getContig()) && vc0.getAttributeAsString("MATEID", "").equals(vc1.getID())) {
+                    int pStart = vc0.getStart() < vc1.getStart() ? vc0.getStart() : vc1.getStart();
+                    int pEnd = vc0.getEnd() > vc1.getEnd() ? vc0.getEnd() : vc1.getEnd();
+                    int vStart = vc0.getAttributeAsInt("variantStart", 0) < vc1.getAttributeAsInt("variantStart", 0) ? vc0.getAttributeAsInt("variantStart", 0) : vc1.getAttributeAsInt("variantStart", 0);
+                    int vEnd = vc0.getAttributeAsInt("variantStop", 0) > vc1.getAttributeAsInt("variantStop", 0) ? vc0.getAttributeAsInt("variantStop", 0) : vc1.getAttributeAsInt("variantStop", 0);
+
+                    String parentalContig = BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc0.getContig(), pStart, pEnd).getBaseString();
+                    String childContig = seq.substring(vStart, vEnd);
+
+                    if (vc0.getAttributeAsBoolean("flipped", false)) {
+                        childContig = SequenceUtils.reverseComplement(childContig);
+                    }
+
+                    List<Allele> alleles = Arrays.asList(Allele.create(parentalContig, true), Allele.create(childContig));
+
+                    VariantContextBuilder vcb = new VariantContextBuilder(vc0)
+                            .alleles(alleles)
+                            .start(pStart)
+                            .computeEndFromAlleles(alleles, pStart)
+                            .attribute("prevBase", vc0.getAttributeAsString("prevBase", "N"))
+                            .attribute("nextBase", vc1.getAttributeAsString("nextBase", "N"))
+                            .rmAttribute("SVTYPE")
+                            .rmAttribute("MATEID");
+
+                    replacements.put(vc0.getID(), vcb);
+                    replacements.put(vc1.getID(), null);
+
+                    removals.add(new Interval(vc0.getContig(), vc0.getStart(), vc0.getStart()));
+                    removals.add(new Interval(vc1.getContig(), vc1.getStart(), vc1.getStart()));
+                }
+            }
+        }
+
+        Set<VariantContextBuilder> newcalls = new LinkedHashSet<>();
+        for (VariantContextBuilder vcb : calls) {
+            if (!vcb.make().isSymbolic() && removals.contains(new Interval(vcb.make().getContig(), vcb.make().getStart(), vcb.make().getStart()))) {
+                // ignore
+            } else {
+                if (!replacements.containsKey(vcb.make().getID())) {
+                    newcalls.add(vcb);
+                } else {
+                    if (replacements.get(vcb.make().getID()) != null) {
+                        newcalls.add(replacements.get(vcb.make().getID()));
+                    }
+                }
+            }
+        }
+
+        return newcalls;
+    }
+
+    private Set<VariantContextBuilder> mergeBreakpoints(String seq, Set<VariantContextBuilder> callset, Set<CanonicalKmer> rois) {
+        List<VariantContextBuilder> calls = new ArrayList<>(callset);
+
+        if (calls.size() <= 1) {
+            return callset;
+        }
+
+        List<VariantContextBuilder> bnds = new ArrayList<>();
+
+        for (int i = 0; i < calls.size(); i++) {
+            VariantContext vc = calls.get(i).make();
+            if (vc.isSymbolicOrSV() && vc.getAttributeAsString("SVTYPE", "unknown").equals("BND")) {
+                bnds.add(calls.get(i));
+            }
+        }
+
+        bnds.sort((vb0, vb1) -> {
+            VariantContext v0 = vb0.make();
+            VariantContext v1 = vb1.make();
+
+            if (v0.getStart() == v1.getStart()) { return 0;  }
+            if (v0.getStart() <  v1.getStart()) { return -1; }
+            return 1;
+        });
+
+        Set<VariantContextBuilder> removals = new HashSet<>();
+        Set<VariantContextBuilder> additions = new HashSet<>();
+
+        for (int i = 0; i < bnds.size() - 1; i += 2) {
+            for (int j = i + 1; j < bnds.size(); j += 2) {
+                VariantContextBuilder vb0 = bnds.get(i);
+                VariantContext v0 = vb0.make();
+                List<Triple<String, String, Pair<Integer, Integer>>> lps0 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) v0.getAttribute("lps");
+
+                VariantContextBuilder vb1 = bnds.get(j);
+                VariantContext v1 = vb1.make();
+                List<Triple<String, String, Pair<Integer, Integer>>> lps1 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) v1.getAttribute("lps");
+
+                String back0 = v0.getAttributeAsString("BACKGROUND", "");
+                String back1 = v1.getAttributeAsString("BACKGROUND", "");
+
+                String flank0 = lps0.get(0).getMiddle().substring(0, v0.getAttributeAsInt("start", 0) + 1).replaceAll("[- ]", "");
+                String flank1 = lps1.get(0).getMiddle().substring(v1.getAttributeAsInt("start", 0), lps1.get(0).getMiddle().length()).replaceAll("[- ]", "");
+
+                String kmer0 = flank0.length() - GRAPH.getKmerSize() - 1 >= 0 ? flank0.substring(flank0.length() - GRAPH.getKmerSize() - 1, flank0.length() - 1) : "";
+                String kmer1 = GRAPH.getKmerSize() + 1 < flank1.length() ? flank1.substring(1, GRAPH.getKmerSize() + 1) : "";
+
+                //String childContig = seq.substring(v0.getEnd() - GRAPH.getKmerSize() + 1, v1.getStart());
+                int c0 = v0.getEnd() - GRAPH.getKmerSize() >= 0 ? v0.getEnd() - GRAPH.getKmerSize() : 0;
+                int c1 = v1.getStart() + GRAPH.getKmerSize() + 1 < seq.length() ? v1.getStart() + GRAPH.getKmerSize() + 1 : seq.length();
+                String childContig = seq.substring(c0, c1);
+                String parentContig = null;
+
+                log.info("{} {} {} {}", i, j, kmer0, kmer1);
+
+                if (kmer0.length() == GRAPH.getKmerSize() && kmer1.length() == GRAPH.getKmerSize()) {
+                    for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                        if (parentName.contains(v0.getAttributeAsString("BACKGROUND", "unknown"))) {
+                            TraversalEngine ef = new TraversalEngineFactory()
+                                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                    .traversalDirection(FORWARD)
+                                    .combinationOperator(OR)
+                                    .stoppingRule(DestinationStopper.class)
+                                    .graph(GRAPH)
+                                    .links(LINKS)
+                                    .make();
+
+                            TraversalEngine er = new TraversalEngineFactory()
+                                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                    .traversalDirection(REVERSE)
+                                    .combinationOperator(OR)
+                                    .stoppingRule(DestinationStopper.class)
+                                    .graph(GRAPH)
+                                    .links(LINKS)
+                                    .make();
+
+                            DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = ef.dfs(kmer0, kmer1);
+                            if (g == null || g.vertexSet().size() == 0) {
+                                g = er.dfs(kmer1, kmer0);
+                            }
+
+                            if (g != null && g.vertexSet().size() > 0) {
+                                Set<String> parentalContigs = new HashSet<>();
+                                ConnectivityInspector<CortexVertex, CortexEdge> ci = new ConnectivityInspector<>(g);
+                                for (Set<CortexVertex> cvs : ci.connectedSets()) {
+                                    List<CortexVertex> w = new ArrayList<>();
+
+                                    for (CortexVertex cv : cvs) {
+                                        List<CortexVertex> wa = TraversalUtils.toWalk(g, cv.getKmerAsString(), g.edgeSet().iterator().next().getColor());
+
+                                        if (wa.size() == w.size()) {
+                                            break;
+                                        } else if (wa.size() > w.size()) {
+                                            w = wa;
+                                        }
+                                    }
+
+                                    if (w.size() > 0) {
+                                        parentalContigs.add(TraversalUtils.toContig(w));
+                                    }
+                                }
+
+                                for (String parentalContig : parentalContigs) {
+                                    //log.info("{}", parentalContig);
+                                    //log.info("{}", childContig);
+                                    //log.info("");
+
+                                    if (parentContig == null || parentalContig.length() > parentContig.length()) {
+                                        parentContig = parentalContig;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (parentContig == null) {
+                    List<SAMRecord> ss0 = sortAlignments(back0, flank0);
+                    List<SAMRecord> ss1 = sortAlignments(back1, flank1);
+
+                    SAMRecord s0 = ss0.size() > 0 ? ss0.get(0) : null;
+                    SAMRecord s1 = ss1.size() > 0 ? ss1.get(0) : null;
+
+                    if (s0 != null && s1 != null && back0.equals(back1) && s0.getContig().equals(s1.getContig()) && s0.getReadNegativeStrandFlag() == s1.getReadNegativeStrandFlag()) {
+                        String contig = s0.getContig();
+                        int left = Math.min(s1.getEnd() + 1, s0.getStart() - 1) + 1;
+                        int right = Math.max(s1.getEnd() + 1, s0.getStart() - 1) + 1;
+
+                        String parentalContig = BACKGROUNDS.get(back0).getReferenceSequence().getSubsequenceAt(contig, left, right).getBaseString();
+
+                        parentContig = s0.getReadNegativeStrandFlag() ? SequenceUtils.reverseComplement(parentalContig) : parentalContig;
+                    }
+                }
+
+                if (parentContig != null) {
+                    float fedit = pctSharedKmers(childContig, parentContig);
+                    float wedit = pctSharedKmers(SequenceUtils.reverse(childContig), parentContig);
+
+                    //SmithWaterman sw = new SmithWaterman();
+                    //String[] f = sw.getAlignment(childContig, parentContig);
+                    //float fedit = 100.0f * ((float) f[0].length() - numEdits(f)) / (float) f[0].length();
+
+                    //String[] w = sw.getAlignment(SequenceUtils.reverseComplement(childContig), parentContig);
+                    //float wedit = 100.0f * ((float) w[0].length() - numEdits(w)) / (float) w[0].length();
+
+                    //log.info("{}", fedit);
+                    //log.info("{}", f[0]);
+                    //log.info("{}", f[1]);
+
+                    //log.info("{}", wedit);
+                    //log.info("{}", w[0]);
+                    //log.info("{}", w[1]);
+
+                    if (fedit > wedit && fedit >= 50.0f && childContig.length() < 2000 && parentContig.length() < 2000) {
+                        MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
+                        Map<String, String> newTargets = new HashMap<>();
+                        newTargets.put(String.format("%s:%s_unknown:%s_contig0_merge", back0, back0, back0), parentContig);
+                        List<Triple<String, String, Pair<Integer, Integer>>> newlps = ma.align(childContig, newTargets);
+
+                        //List<Triple<String, String, Pair<Integer, Integer>>> newlps = new ArrayList<>();
+                        //newlps.add(Triple.of("query", childContig, Pair.create(0, childContig.length())));
+                        //newlps.add(Triple.of(String.format("%s:%s_unknown:%s_contig0_merge", back0, back0, back0), parentContig, Pair.create(0, childContig.length())));
+
+                        List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, newlps, true);
+
+                        //log.info("\n{}\n{}", makeNoveltyTrack(rois, newlps, true), ma);
+
+                        List<VariantContextBuilder> newCalls = new ArrayList<>();
+                        newCalls.addAll(callSmallBubbles(newlps, nrs, v0.getAttributeAsString("PARTITION_NAME", ""), 0, childContig.length()));
+
+                        newCalls = mergeBubbles(newlps, newCalls);
+
+                        for (VariantContextBuilder vcb : newCalls) {
+                            int ostart = vcb.make().getStart();
+                            int ostop = vcb.make().getEnd();
+
+                            additions.add(
+                                    vcb
+                                        .start(ostart + seq.indexOf(kmer0))
+                                        .stop(ostop + seq.indexOf(kmer0))
+                                        .attributes(v0.getAttributes())
+                            );
+                        }
+
+                        //log.info("");
+                        //calls.addAll(callLargeBubbles(newlps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                        //calls.addAll(callBreakpoints(newlps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                    } else if (wedit > fedit && wedit >= 50.0f) {
+                        List<Allele> alleles = Arrays.asList(Allele.create(parentContig, true), Allele.create(SequenceUtils.reverseComplement(childContig)));
+
+                        //log.info("Inversion");
+
+                        VariantContextBuilder vcb = new VariantContextBuilder(v0)
+                                .alleles(alleles)
+                                .computeEndFromAlleles(alleles, v0.getStart())
+                                .attribute("SVTYPE", "INV")
+                                .attribute("pctIdentity", wedit)
+                                .attribute("prevBase", v0.getAttributeAsString("prevBase", "N"))
+                                .attribute("nextBase", v1.getAttributeAsString("nextBase", "N"))
+                                .rmAttribute("MATEID");
+
+                        additions.add(vcb);
+
+                        removals.add(vb0);
+                        removals.add(vb1);
+                    }
+                }
+            }
+        }
+
+        for (VariantContextBuilder addition : additions) {
+            for (VariantContextBuilder call : calls) {
+                if (addition.make().getStart() == call.make().getStart() || addition.make().getEnd() + 1 == call.make().getEnd()) {
+                    removals.add(call);
+                }
+            }
+        }
+
+        callset.removeAll(removals);
+        callset.addAll(additions);
+
+        return callset;
+    }
+
+    private float pctSharedKmers(String a, String b) {
+        Set<String> union = new HashSet<>(), ka = new HashSet<>(), kb = new HashSet<>();
+
+        for (int i = 0; i <= a.length() - GRAPH.getKmerSize(); i++) {
+            union.add(a.substring(i, i + GRAPH.getKmerSize()));
+            ka.add(a.substring(i, i + GRAPH.getKmerSize()));
+        }
+
+        for (int i = 0; i <= b.length() - GRAPH.getKmerSize(); i++) {
+            union.add(b.substring(i, i + GRAPH.getKmerSize()));
+            kb.add(b.substring(i, i + GRAPH.getKmerSize()));
+        }
+
+        int numShared = 0;
+        for (String kmer : union) {
+            if (a.contains(kmer) && b.contains(kmer)) {
+                numShared++;
+            }
+        }
+
+        return 100.f * (float) numShared / (float) union.size();
+    }
+
+    private int numEdits(String[] a) {
+        int numEdits = 0;
+        for (int i = 0; i < a[0].length(); i++) {
+            numEdits += a[0].charAt(i) == a[1].charAt(i) ? 0 : 1;
+        }
+
+        return numEdits;
+    }
+
+    private Set<VariantContextBuilder> mergeDoubleBreakpoints(String seq, Set<VariantContextBuilder> callset) {
         List<VariantContextBuilder> calls = new ArrayList<>(callset);
 
         if (calls.size() <= 1) {
@@ -697,6 +1106,8 @@ public class Call extends Module {
                                             removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
                                         }
                                     }
+                                } else {
+
                                 }
                             }
                         }
@@ -753,6 +1164,24 @@ public class Call extends Module {
 
                             String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
 
+                            int childLeft;
+                            int numLeft = 0;
+                            for (childLeft = nr.getFirst(); childLeft > 0 && numLeft <= GRAPH.getKmerSize(); childLeft--) {
+                                if (getChildColumn(lps, childLeft) != '-') {
+                                    numLeft++;
+                                }
+                            }
+
+                            int childRight;
+                            int numRight = 0;
+                            for (childRight = nr.getSecond(); childRight < lps.get(0).getMiddle().length() && numRight <= GRAPH.getKmerSize(); childRight++) {
+                                if (getChildColumn(lps, childRight) != '-') {
+                                    numRight++;
+                                }
+                            }
+
+                            String childHap = lps.get(0).getMiddle().substring(childLeft, childRight).replaceAll("-", "");
+
                             VariantContextBuilder vcb = new VariantContextBuilder()
                                     .noID()
                                     .noGenotypes()
@@ -768,6 +1197,7 @@ public class Call extends Module {
                                     .attribute("variantStop", variantStop)
                                     .attribute("prevBase", prevBase)
                                     .attribute("nextBase", nextBase)
+                                    .attribute("CHILD_HAP", childHap)
                                     .attribute("PARTITION_NAME", contigName)
                                     .attribute("BACKGROUND", varBackground);
 
@@ -820,6 +1250,24 @@ public class Call extends Module {
                         String varBackground0 = lps.get(partners.getFirst()).getLeft().split(":")[0];
                         String varBackground1 = lps.get(partners.getSecond()).getLeft().split(":")[0];
 
+                        int childLeft;
+                        int numLeft = 0;
+                        for (childLeft = nr.getFirst(); childLeft > 0 && numLeft <= GRAPH.getKmerSize(); childLeft--) {
+                            if (getChildColumn(lps, childLeft) != '-') {
+                                numLeft++;
+                            }
+                        }
+
+                        int childRight;
+                        int numRight = 0;
+                        for (childRight = nr.getSecond(); childRight < lps.get(0).getMiddle().length() && numRight <= GRAPH.getKmerSize(); childRight++) {
+                            if (getChildColumn(lps, childRight) != '-') {
+                                numRight++;
+                            }
+                        }
+
+                        String childHap = lps.get(0).getMiddle().substring(childLeft, childRight).replaceAll("-", "");
+
                         VariantContextBuilder vcb0 = new VariantContextBuilder()
                                 .id(mate0)
                                 .noGenotypes()
@@ -838,6 +1286,7 @@ public class Call extends Module {
                                 .attribute("targetName", lps.get(partners.getFirst()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getFirst()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getFirst()).getRight().getSecond())
+                                .attribute("CHILD_HAP", childHap)
                                 .attribute("PARTITION_NAME", contigName)
                                 .attribute("BACKGROUND", varBackground0)
                                 .attribute("SVTYPE", "BND")
@@ -861,6 +1310,7 @@ public class Call extends Module {
                                 .attribute("targetName", lps.get(partners.getSecond()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getSecond()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getSecond()).getRight().getSecond())
+                                .attribute("CHILD_HAP", childHap)
                                 .attribute("PARTITION_NAME", contigName)
                                 .attribute("BACKGROUND", varBackground1)
                                 .attribute("SVTYPE", "BND")
@@ -920,6 +1370,24 @@ public class Call extends Module {
                             }
                         }
 
+                        int childLeft;
+                        int numLeft = 0;
+                        for (childLeft = nr.getFirst(); childLeft > 0 && numLeft <= GRAPH.getKmerSize(); childLeft--) {
+                            if (getChildColumn(lps, childLeft) != '-') {
+                                numLeft++;
+                            }
+                        }
+
+                        int childRight;
+                        int numRight = 0;
+                        for (childRight = nr.getSecond(); childRight < lps.get(0).getMiddle().length() && numRight <= GRAPH.getKmerSize(); childRight++) {
+                            if (getChildColumn(lps, childRight) != '-') {
+                                numRight++;
+                            }
+                        }
+
+                        String childHap = lps.get(0).getMiddle().substring(childLeft, childRight).replaceAll("-", "");
+
                         int row = prevRow == 0 ? nextRow : prevRow;
 
                         List<Allele> alleleStrings = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
@@ -940,6 +1408,7 @@ public class Call extends Module {
                                 .attribute("variantStop", variantStop)
                                 .attribute("prevBase", prevBase)
                                 .attribute("nextBase", nextBase)
+                                .attribute("CHILD_HAP", childHap)
                                 .attribute("PARTITION_NAME", contigName)
                                 .attribute("BACKGROUND", varBackground)
                         ;
@@ -1236,13 +1705,14 @@ public class Call extends Module {
         return 0;
     }
 
-    private String makeNoveltyTrack(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
+    private String makeNoveltyTrack(Set<CanonicalKmer> rois, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
         int maxLength = 0;
         for (Triple<String, String, Pair<Integer, Integer>> lp : lps) {
             String name = String.format("%s (%d-%d)", lp.getLeft(), lp.getRight().getFirst(), lp.getRight().getSecond());
             maxLength = Math.max(maxLength, name.length());
         }
 
+        String query = lps.get(0).getMiddle().replaceAll("[- ]", "");
         StringBuilder sb = new StringBuilder(StringUtil.repeatCharNTimes(' ', query.length() + 1));
         for (int i = 0; i <= query.length() - GRAPH.getKmerSize(); i++) {
             CanonicalKmer ck = new CanonicalKmer(query.substring(i, i + GRAPH.getKmerSize()));
@@ -1281,8 +1751,8 @@ public class Call extends Module {
         return String.format("%" + maxLength + "s %s", "novel", sb.toString());
     }
 
-    private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, String query, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
-        String noveltyTrack = makeNoveltyTrack(rois, query, lps, expand);
+    private List<Pair<Integer, Integer>> getNoveltyRegions(Set<CanonicalKmer> rois, List<Triple<String, String, Pair<Integer, Integer>>> lps, boolean expand) {
+        String noveltyTrack = makeNoveltyTrack(rois, lps, expand);
         noveltyTrack = noveltyTrack.replaceAll("^\\s+novel ", "");
 
         List<Pair<Integer, Integer>> regions = new ArrayList<>();

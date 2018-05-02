@@ -12,7 +12,8 @@ public class DestinationStopper extends AbstractTraversalStoppingRule<CortexVert
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        int junctionLimit = 1 + (int) Math.ceil(5.0 * Math.exp(-0.0001 * (double) s.getCurrentGraphSize()));
+        float coeff = 5.0f;
+        int junctionLimit = 1 + (int) Math.ceil(coeff * Math.exp(-0.0001 * (double) s.getCurrentGraphSize()));
 
         return s.getCurrentJunctionDepth() > junctionLimit || s.reachedMaxBranchLength();
     }
