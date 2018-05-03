@@ -12,6 +12,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.links.CortexLinks;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.ContigStopper;
 import uk.ac.ox.well.cortexjdk.utils.stoppingrules.NovelContinuationStopper;
 import uk.ac.ox.well.cortexjdk.utils.traversal.*;
@@ -32,9 +33,6 @@ public class Partition extends Module {
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROIS;
 
-    //@Argument(fullName = "novelContinuation", shortName = "n", doc = "Use the novel continuation stopper")
-    //public Boolean NOVEL_CONTINUATION_STOPPER = false;
-
     @Output
     public PrintStream out;
 
@@ -46,26 +44,12 @@ public class Partition extends Module {
                 .combinationOperator(OR)
                 .graph(GRAPH)
                 .links(LINKS)
-                //.rois(ROIS)
-                //.stoppingRule(NovelContinuationStopper.class)
                 .stoppingRule(ContigStopper.class)
                 .make();
-
-        /*
-        TraversalEngine ec = new TraversalEngineFactory()
-                .traversalColors(getTraversalColor(GRAPH, ROIS))
-                .traversalDirection(BOTH)
-                .combinationOperator(OR)
-                .graph(GRAPH)
-                .links(LINKS)
-                .rois(ROIS)
-                .stoppingRule(ContigStopper.class)
-                .make();
-                */
-
-        Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
 
         log.info("Using stopper {}", e.getConfiguration().getStoppingRule().getSimpleName());
+
+        Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
 
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
@@ -73,7 +57,6 @@ public class Partition extends Module {
                 .maxRecord(used.size())
                 .make(log);
 
-        int numContigs = 0;
         for (CanonicalKmer ck : used.keySet()) {
             pm.update();
 
@@ -95,23 +78,33 @@ public class Partition extends Module {
 
                 Pair<Integer, Integer> numMarked = markUsedRois(used, w);
 
-                out.println(">partition" + numContigs + " seed=" + ck + " subgraphSize=" + subgraphSize + " contigSize=" + w.size() + " novelsInSubgraph=" + numNovelsInSubgraph + " novelsNewlyMarked=" + numMarked.getFirst() + " novelsPreviouslyMarked=" + numMarked.getSecond());
-                out.println(TraversalUtils.toContig(w));
-
-                log.info("  * partition{} seed={} subgraphSize={} contigSize={} novelsInSubgraph={} novelsNewlyMarked={} novelsPreviouslyMarked={}", numContigs, ck, subgraphSize, w.size(), numNovelsInSubgraph, numMarked.getFirst(), numMarked.getSecond());
-
-                numContigs++;
+                log.info("  * seed={} subgraphSize={} contigSize={} novelsInSubgraph={} novelsNewlyMarked={} novelsPreviouslyMarked={}", ck, subgraphSize, w.size(), numNovelsInSubgraph, numMarked.getFirst(), numMarked.getSecond());
             }
         }
+
+        Set<String> contigs = new TreeSet<>();
 
         int numNovelKmersAssigned = 0;
         for (CanonicalKmer ck : used.keySet()) {
             if (used.get(ck) != null) {
+                String fw = TraversalUtils.toContig(used.get(ck));
+                String rc = SequenceUtils.reverseComplement(fw);
+
+                if (!contigs.contains(fw) && !contigs.contains(rc)) {
+                    contigs.add(fw);
+                }
+
                 numNovelKmersAssigned++;
             }
         }
 
-        log.info("Assigned {}/{} novel kmers to {} contigs", numNovelKmersAssigned, used.size(), numContigs);
+        int numPartitions = 0;
+        for (String partition : contigs) {
+            out.println(">partition" + numPartitions);
+            out.println(partition);
+        }
+
+        log.info("Assigned {}/{} novel kmers to {} contigs", numNovelKmersAssigned, used.size(), contigs.size());
     }
 
     private int countNovels(Map<CanonicalKmer, List<CortexVertex>> used, DirectedWeightedPseudograph<CortexVertex, CortexEdge> g) {
@@ -149,7 +142,7 @@ public class Partition extends Module {
     }
 
     private Map<CanonicalKmer, List<CortexVertex>> loadRois(CortexGraph rois) {
-        Map<CanonicalKmer, List<CortexVertex>> used = new HashMap<>();
+        Map<CanonicalKmer, List<CortexVertex>> used = new TreeMap<>();
         for (CortexRecord cr : rois) {
             used.put(cr.getCanonicalKmer(), null);
         }
