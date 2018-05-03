@@ -2,6 +2,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.links;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexColor;
 
@@ -27,12 +28,13 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     private List<CortexColor> colors = new ArrayList<>();
     private Map<String, Integer> sampleColorMap = new HashMap<>();
 
-    //private BufferedReader decoder;
-    private Reader decoder;
+    private BufferedReader buffered;
 
     private CortexLinksRecord nextRecord = null;
     private int recordsSeen = 0;
     private long recordsStart = 0;
+
+    //private String lastLine;
 
     public CortexLinksIterable(String linksString) {
         this.linksFile = new File(linksString);
@@ -44,39 +46,18 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
         loadCortexLinks(this.linksFile);
     }
 
-    private String readLine(Reader reader) {
-        StringBuffer buf = new StringBuffer();
-
-        try {
-            int c;
-            for (c = reader.read(); c != '\n' && c != -1; c = reader.read()) {
-                buf.append((char) c);
-            }
-
-            if (c == -1 && buf.length() == 0) {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new CortexJDKException("Could not read from gzipped file");
-        }
-
-        return buf.toString();
-    }
-
     private void loadCortexLinks(File cortexLinks) {
         try {
             InputStream fileStream = new FileInputStream(cortexLinks);
-
             InputStream gzipStream = new GZIPInputStream(fileStream);
-            //Reader decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-            decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-            //decoder = new BufferedReader(decoder);
+            Reader decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
+            buffered = new BufferedReader(decoder);
 
             StringBuilder headerBuilder = new StringBuilder();
             boolean inHeader = false;
 
             String line;
-            while ((line = readLine(decoder)) != null) {
+            while ((line = buffered.readLine()) != null) {
                 recordsStart += line.length() + 1;
 
                 if (line.equals("{")) { inHeader = true; }
@@ -148,7 +129,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
             }
 
             StringBuilder commentsBuilder = new StringBuilder();
-            while ((line = readLine(decoder)) != null) {
+            while ((line = buffered.readLine()) != null) {
                 if (line.startsWith("#")) {
                     commentsBuilder.append(line).append("\n");
                 } else if (!line.isEmpty() && !line.startsWith("#")) {
@@ -156,7 +137,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
                 }
 
                 recordsStart += line.length() + 1;
-                //decoder.mark(100);
+                buffered.mark(100);
             }
 
             commentsStr = commentsBuilder.toString();
@@ -166,21 +147,19 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     }
 
     private void moveToBeginningOfRecordsSection() {
-        /*
         try {
-            decoder.reset();
+            buffered.reset();
             recordsSeen = 0;
         } catch (IOException e) {
             try {
-                decoder.close();
+                buffered.close();
 
                 InputStream fileStream = new FileInputStream(this.linksFile);
                 InputStream gzipStream = new GZIPInputStream(fileStream);
-                //Reader decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-                decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-                //this.decoder = new BufferedReader(decoder);
+                Reader decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
+                buffered = new BufferedReader(decoder);
 
-                this.decoder.skip(recordsStart);
+                buffered.skip(recordsStart);
                 recordsSeen = 0;
             } catch (IOException e2) {
                 throw new CortexJDKException("Unable to restart iteration over CortexLinks file", e2);
@@ -188,57 +167,56 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
         }
 
         nextRecord = getNextRecord();
-        */
-
-        try {
-            InputStream fileStream = new FileInputStream(this.linksFile);
-            InputStream gzipStream = new GZIPInputStream(fileStream);
-            //Reader decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-            decoder = new InputStreamReader(gzipStream, Charset.forName("UTF-8"));
-
-            decoder.skip(recordsStart);
-            recordsSeen = 0;
-        } catch (IOException e2) {
-            throw new CortexJDKException("Unable to restart iteration over CortexLinks file", e2);
-        }
-
-        nextRecord = getNextRecord();
     }
 
     private CortexLinksRecord getNextRecord() {
         if (recordsSeen < numKmersWithLinks) {
-            String line = readLine(decoder);
+            try {
+                String line = buffered.readLine();
 
-            String[] kmerLine = line.split("\\s+");
-
-            String kmer = kmerLine[0];
-            int numLinks = Integer.valueOf(kmerLine[1]);
-
-            List<CortexJunctionsRecord> cjs = new ArrayList<>();
-
-            for (int i = 0; i < numLinks; i++) {
-                String[] linkLine = readLine(decoder).split("[,\\s]+");
-
-                String orientation = linkLine[0];
-                int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
-                int numJunctions = version == 4 ? Integer.valueOf(linkLine[1]) : Integer.valueOf(linkLine[2]);
-                int[] coverages = new int[numColors];
-
-                int offset = version == 4 ? 2 : 3;
-
-                for (int c = 0; c < numColors; c++) {
-                    coverages[c] = Integer.valueOf(linkLine[offset + c]);
+                /*
+                if (line == null) {
+                    Main.getLogger().info("{} {} null record, lastLine={}", recordsSeen, numKmersWithLinks, lastLine.length());
+                    Main.getLogger().info("{}", lastLine);
+                    Main.getLogger().info("{}", buffered.readLine());
                 }
 
-                String junctions = linkLine[offset + numColors];
+                lastLine = line;
+                */
 
-                CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
-                cjs.add(cj);
+                String[] kmerLine = line.split("\\s+");
+
+                String kmer = kmerLine[0];
+                int numLinks = Integer.valueOf(kmerLine[1]);
+
+                List<CortexJunctionsRecord> cjs = new ArrayList<>();
+
+                for (int i = 0; i < numLinks; i++) {
+                    String[] linkLine = buffered.readLine().split("[,\\s]+");
+
+                    String orientation = linkLine[0];
+                    int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
+                    int numJunctions = version == 4 ? Integer.valueOf(linkLine[1]) : Integer.valueOf(linkLine[2]);
+                    int[] coverages = new int[numColors];
+
+                    int offset = version == 4 ? 2 : 3;
+
+                    for (int c = 0; c < numColors; c++) {
+                        coverages[c] = Integer.valueOf(linkLine[offset + c]);
+                    }
+
+                    String junctions = linkLine[offset + numColors];
+
+                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
+                    cjs.add(cj);
+                }
+
+                recordsSeen++;
+
+                return new CortexLinksRecord(kmer, cjs);
+            } catch (IOException e) {
+                throw new CortexJDKException("Unable to parse CortexLinks record", e);
             }
-
-            recordsSeen++;
-
-            return new CortexLinksRecord(kmer, cjs);
         }
 
         return null;
@@ -275,7 +253,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
 
     public void close() {
         try {
-            this.decoder.close();
+            this.buffered.close();
         } catch (IOException e) {
             throw new CortexJDKException("Unable to close CortexLinks file", e);
         }

@@ -32,6 +32,9 @@ public class Partition extends Module {
     @Argument(fullName = "roi", shortName = "r", doc = "ROI")
     public CortexGraph ROIS;
 
+    @Argument(fullName = "novelContinuation", shortName = "n", doc = "Use the novel continuation stopper")
+    public Boolean NOVEL_CONTINUATION_STOPPER = false;
+
     @Output
     public PrintStream out;
 
@@ -70,13 +73,8 @@ public class Partition extends Module {
             pm.update();
 
             if (used.get(ck) == null) {
-                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = e.dfs(ck);
-                List<CortexVertex> w = TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
-
-                if (w.size() == 0) {
-                    g = ec.dfs(ck);
-                    w = TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
-                }
+                DirectedWeightedPseudograph<CortexVertex, CortexEdge> g = NOVEL_CONTINUATION_STOPPER ? e.dfs(ck) : ec.dfs(ck);
+                List<CortexVertex> w = NOVEL_CONTINUATION_STOPPER ? TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS)) : TraversalUtils.toWalk(g, ck, getTraversalColor(GRAPH, ROIS));
 
                 if (w.size() == 0) {
                     w = new ArrayList<>();
