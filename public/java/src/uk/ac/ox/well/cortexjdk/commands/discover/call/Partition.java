@@ -62,6 +62,8 @@ public class Partition extends Module {
 
         Map<CanonicalKmer, List<CortexVertex>> used = loadRois(ROIS);
 
+        log.info("Using stopper {}", NOVEL_CONTINUATION_STOPPER ? e.getConfiguration().getStoppingRule().getSimpleName() : ec.getConfiguration().getStoppingRule().getSimpleName());
+
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Processing novel kmers...")
                 .message("records processed")
