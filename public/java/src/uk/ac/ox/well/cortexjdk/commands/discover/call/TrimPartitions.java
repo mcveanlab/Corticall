@@ -25,6 +25,9 @@ public class TrimPartitions extends Module {
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
+    @Argument(fullName="margin", shortName="m", doc="Margin")
+    public Integer MARGIN = 500;
+
     @Output
     public PrintStream out;
 
@@ -54,8 +57,8 @@ public class TrimPartitions extends Module {
                 w.add(new CortexVertexFactory().bases(sk).make());
             }
 
-            start = (start - 100 >= 0) ? start - 100 : 0;
-            stop = (stop + 100 < w.size() - 1) ? stop + 100 : w.size() - 1;
+            start = (start - MARGIN >= 0) ? start - MARGIN : 0;
+            stop = (stop + MARGIN < w.size() - 1) ? stop + MARGIN : w.size() - 1;
 
             if (w.size() > 0) {
                 out.println(">" + rseq.getName());
