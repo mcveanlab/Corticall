@@ -4,6 +4,7 @@ import org.apache.commons.math3.util.Pair;
 import org.jetbrains.annotations.Nullable;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.ConnectivityAnnotations;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
@@ -68,7 +69,12 @@ public class TraversalEngine {
                 .make();
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsr = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == REVERSE) ? dfs(cv, false, 0, 0, new HashSet<>(), sinks) : null;
+
+        if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("Reverse dfs: {}", dfsr != null ? dfsr.vertexSet().size() : 0); }
+
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfsf = (ec.getTraversalDirection() == BOTH || ec.getTraversalDirection() == FORWARD) ? dfs(cv, true,  0, 0, new HashSet<>(), sinks) : null;
+
+        if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("Forward dfs: {}", dfsf != null ? dfsf.vertexSet().size() : 0); }
 
         DirectedWeightedPseudograph<CortexVertex, CortexEdge> dfs = null;
 
@@ -416,6 +422,8 @@ public class TraversalEngine {
                     if (goForward) { connectVertex(g, cv, null, avs); }
                     else           { connectVertex(g, cv, avs, null); }
 
+                    if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("{} {} {} {} {} {}", cv, "branch", pvs.size(), nvs.size(), avs.size(), currentJunctionDepth); }
+
                     cv = avs.iterator().next();
                 } else {
                     boolean childrenWereSuccessful = false;
@@ -427,9 +435,12 @@ public class TraversalEngine {
                             if (goForward) { connectVertex(branch, cv, null, Collections.singleton(av)); }
                             else           { connectVertex(branch, cv, Collections.singleton(av), null); }
 
+                            if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("{} {}", cv, "junction"); }
+
                             Graphs.addGraph(g, branch);
                             childrenWereSuccessful = true;
                         } else {
+                            if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("{} {}", cv, "fail"); }
                             // could mark a rejected traversal here rather than just throwing it away
                         }
                     }
@@ -437,14 +448,22 @@ public class TraversalEngine {
                     TraversalState<CortexVertex> tsChild = new TraversalState<>(cv, goForward, ec.getTraversalColors(), ec.getJoiningColors(), currentGraphSize + g.vertexSet().size(), currentJunctionDepth, g.vertexSet().size(), avs.size(), true, g.vertexSet().size() > ec.getMaxBranchLength(), ec.getRois(), sinks);
 
                     if (childrenWereSuccessful || stoppingRule.hasTraversalSucceeded(tsChild)) {
+                        if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("complete branch subtraversal"); }
+
                         return g;
                     } else {
+                        if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("abort branch subtraversal"); }
+
                         // could mark a rejected traversal here rather than just throwing it away
                     }
                 }
             } else if (stoppingRule.traversalSucceeded()) {
+                if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("complete branch traversal"); }
+
                 return g;
             } else {
+                if (getConfiguration().getDebugFlag()) { Main.getLogger().debug("abort branch traversal"); }
+
                 return null;
             }
         } while (avs.size() == 1);

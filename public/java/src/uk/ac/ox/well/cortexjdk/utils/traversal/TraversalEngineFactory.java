@@ -49,6 +49,8 @@ public class TraversalEngineFactory {
     public TraversalEngineFactory references(IndexedReference... lookups) { if (lookups != null) { Arrays.stream(lookups).forEach(r -> configuration.getReferences().add(r)); } return this; }
     public TraversalEngineFactory references(Collection<IndexedReference> lookups) { if (lookups != null) { configuration.getReferences().addAll(lookups); } return this; }
 
+    public TraversalEngineFactory debug() { configuration.setDebugFlag(); return this; }
+
     public TraversalEngine make() {
         if (configuration.getTraversalColors().size() == 0) {
             throw new CortexJDKException("Traversal color(s) must be specified.");

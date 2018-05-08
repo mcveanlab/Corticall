@@ -34,6 +34,8 @@ public class TraversalEngineConfiguration {
     private Set<ConnectivityAnnotations> links = new HashSet<>();
     private Set<IndexedReference> kls = new HashSet<>();
 
+    private boolean debug = false;
+
     public GraphCombinationOperator getGraphCombinationOperator() { return gco; }
     public void setGraphCombinationOperator(GraphCombinationOperator gco) { this.gco = gco; }
 
@@ -76,4 +78,7 @@ public class TraversalEngineConfiguration {
 
     public void setMaxWalkLength(int maxLength) { this.maxLength = maxLength; }
     public int getMaxBranchLength() { return maxLength; }
+
+    public void setDebugFlag() { this.debug = true; }
+    public boolean getDebugFlag() { return this.debug; }
 }
