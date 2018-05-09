@@ -9,6 +9,7 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
+import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
 import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalUtils;
@@ -68,6 +69,8 @@ public class VerifyAlleleCompleteness extends Module {
 
         int kmerSize = kmerMap.keySet().iterator().next().length();
 
+        Map<Integer, Map<String, String>> stats = new TreeMap<>();
+
         ReferenceSequence rseq;
         while ((rseq = FASTA.nextSequence()) != null) {
             String seq = rseq.getBaseString();
@@ -105,14 +108,26 @@ public class VerifyAlleleCompleteness extends Module {
                         String type = vm.get("type");
                         int alleleLength = vm.get("new").equals(".") ? 0 : vm.get("new").length();
 
-                        out.println(Joiner.on("\t").join(rseq.getName().split(" ")[0], type, alleleLength, numFound, numExp, numFound != numExp ? "incomplete" : "complete"));
-                    }
+                        //out.println(Joiner.on("\t").join(rseq.getName().split(" ")[0], type, alleleLength, numFound, numExp, numFound != numExp ? "incomplete" : "complete"));
 
-                    //log.info("{} {} {}/{} {}", rseq.getName(), Joiner.on(", ").join(ids), numFound, numExp, numFound != numExp);
+                        Map<String, String> entry = new LinkedHashMap<>();
+                        entry.put("variantId", String.valueOf(variantId));
+                        entry.put("type", type);
+                        entry.put("alleleLength", String.valueOf(alleleLength));
+                        entry.put("numFound", String.valueOf(numFound));
+                        entry.put("numExp", String.valueOf(numExp));
+
+                        if (!stats.containsKey(variantId) || Integer.valueOf(stats.get(variantId).get("numFound")) < numFound) {
+                            stats.put(variantId, entry);
+                        }
+                    }
                 }
-            //} else {
-                //log.info("{} {} {}/{} {}", rseq.getName(), Joiner.on(", ").join(ids), 0, 0, 0);
             }
+        }
+
+        TableWriter tw = new TableWriter(out);
+        for (Map<String, String> te : stats.values()) {
+            tw.addEntry(te);
         }
     }
 }
