@@ -116,6 +116,7 @@ public class VerifyAlleleCompleteness extends Module {
                         entry.put("alleleLength", String.valueOf(alleleLength));
                         entry.put("numFound", String.valueOf(numFound));
                         entry.put("numExp", String.valueOf(numExp));
+                        entry.put("numExp", numFound != numExp ? "incomplete" : "complete");
 
                         if (!stats.containsKey(variantId) || Integer.valueOf(stats.get(variantId).get("numFound")) < numFound) {
                             stats.put(variantId, entry);
