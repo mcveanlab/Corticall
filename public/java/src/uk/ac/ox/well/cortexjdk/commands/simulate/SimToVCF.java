@@ -115,6 +115,10 @@ public class SimToVCF extends Module {
                                 .attribute("INDEX", te.get("index"))
                                 .attribute("OLD_HAP", oldHap.toUpperCase())
                                 .attribute("NEW_HAP", newHap.toUpperCase())
+                                .attribute("SLEFT", sleft.toUpperCase())
+                                .attribute("SOLD", oldAllele)
+                                .attribute("SNEW", newAllele)
+                                .attribute("SRIGHT", sright.toUpperCase())
                                 .noGenotypes()
                                 .make();
 
