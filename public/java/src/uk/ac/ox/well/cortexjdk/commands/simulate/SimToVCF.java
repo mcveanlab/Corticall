@@ -116,8 +116,8 @@ public class SimToVCF extends Module {
                                 .attribute("OLD_HAP", oldHap.toUpperCase())
                                 .attribute("NEW_HAP", newHap.toUpperCase())
                                 .attribute("SLEFT", sleft.toUpperCase())
-                                .attribute("SOLD", oldAllele.toUpperCase())
-                                .attribute("SNEW", newAllele.toUpperCase())
+                                .attribute("SOLD", oldAllele.equals("") ? "." : oldAllele.toUpperCase())
+                                .attribute("SNEW", newAllele.equals("") ? "." : newAllele.toUpperCase())
                                 .attribute("SRIGHT", sright.toUpperCase())
                                 .noGenotypes()
                                 .make();
