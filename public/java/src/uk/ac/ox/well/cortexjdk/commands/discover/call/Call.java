@@ -106,7 +106,7 @@ public class Call extends Module {
                 log.info("Partition {}/{} (sections={}, fullname={})", rseqIndex, rseqs.size() - 1, sections.size(), rseq.getName());
 
                 for (int sectionIndex = 0; sectionIndex < sections.size(); sectionIndex++) {
-                    log.info("  section {}/{}", sectionIndex + 1, sections.size());
+                    log.debug("  section {}/{}", sectionIndex + 1, sections.size());
 
                     Triple<Integer, Integer, List<CortexVertex>> section = sections.get(sectionIndex);
 
@@ -140,7 +140,7 @@ public class Call extends Module {
                         Map<String, String> targets = allTargets.get(bestTagName);
 
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), targets);
-                        log.info("\n{}\n{}", makeNoveltyTrack(rois, lps, true), ma);
+                        log.debug("\n{}\n{}", makeNoveltyTrack(rois, lps, true), ma);
 
                         List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, lps, true);
 
@@ -198,13 +198,13 @@ public class Call extends Module {
                     int start = vc.getStart();
                     int end = vc.isSymbolic() ? start : vc.getEnd();
                     String refAllele = BACKGROUNDS.containsKey(back) && BACKGROUNDS.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), start, end).getBaseString() : "?";
-                    log.info("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), new VariantContextBuilder(vc).rmAttribute("novels").make());
+                    log.debug("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), new VariantContextBuilder(vc).rmAttribute("novels").make());
 
                     svcs.add(vc);
                 }
             }
 
-            log.info("");
+            log.debug("");
         }
 
         writeVariants(rois, svcs, vcw);
