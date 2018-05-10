@@ -139,7 +139,23 @@ public class Call extends Module {
 
                         Map<String, String> targets = allTargets.get(bestTagName);
 
-                        List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), targets);
+                        Map<String, String> labelledTargets = new HashMap<>();
+                        for (String c : targets.keySet()) {
+                            String[] p = c.split(":");
+                            if (BACKGROUNDS.containsKey(p[0])) {
+                                List<SAMRecord> ss = sortAlignments(p[0], targets.get(c));
+                                if (ss.size() > 0) {
+                                    SAMRecord s = ss.get(0);
+
+                                    String l = p[0] + ":" + s.getContig() + ":" + s.getStart() + "-" + s.getEnd() + ":" + (s.getReadNegativeStrandFlag() ? "-" : "+");
+
+                                    labelledTargets.put(l, targets.get(c));
+                                }
+                            }
+                        }
+
+                        List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), labelledTargets);
+
                         log.debug("\n{}\n{}", makeNoveltyTrack(rois, lps, true), ma);
 
                         List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, lps, true);
