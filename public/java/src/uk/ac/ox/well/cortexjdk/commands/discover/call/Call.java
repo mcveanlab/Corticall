@@ -770,7 +770,7 @@ public class Call extends Module {
                 String childContig = seq.substring(c0, c1);
                 String parentContig = null;
 
-                log.info("{} {} {} {}", i, j, kmer0, kmer1);
+                //log.info("{} {} {} {}", i, j, kmer0, kmer1);
 
                 if (kmer0.length() == GRAPH.getKmerSize() && kmer1.length() == GRAPH.getKmerSize()) {
                     for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
