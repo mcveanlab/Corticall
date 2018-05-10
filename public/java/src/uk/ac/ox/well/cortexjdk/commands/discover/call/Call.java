@@ -71,8 +71,17 @@ public class Call extends Module {
     @Argument(fullName="partitionName", shortName="pn", doc="Partitions to process", required=false)
     public HashSet<String> PARTITION_NAMES;
 
-    //@Argument(fullName="reference", shortName="R", doc="Reference", required=false)
-    //public HashMap<String, IndexedReference> REFERENCE;
+    @Argument(fullName="del", shortName="del", doc="Deletion probability")
+    public Double DEL = 0.35;
+
+    @Argument(fullName="eps", shortName="eps", doc="Epsilon probability")
+    public Double EPS = 0.99;
+
+    @Argument(fullName="rho", shortName="rho", doc="Recombination probability")
+    public Double RHO = 1e-5;
+
+    @Argument(fullName="term", shortName="term", doc="Recombination probability")
+    public Double TERM = 0.001;
 
     @Output
     public File out;
@@ -89,7 +98,8 @@ public class Call extends Module {
         Set<VariantContext> svcs = buildVariantSorter(sd);
         VariantContextWriter vcw = buildVariantWriter(sd);
 
-        MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
+        //MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
+        MosaicAligner ma = new MosaicAligner(DEL, EPS, RHO, TERM);
 
         for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
             ReferenceSequence rseq = rseqs.get(rseqIndex);
