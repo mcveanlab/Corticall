@@ -100,6 +100,7 @@ public class Call extends Module {
 
         //MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
         MosaicAligner ma = new MosaicAligner(DEL, EPS, RHO, TERM);
+        log.info("MosaicAligner initialized with del={} eps={} rho={} term={}", DEL, EPS, RHO, TERM);
 
         for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
             ReferenceSequence rseq = rseqs.get(rseqIndex);
