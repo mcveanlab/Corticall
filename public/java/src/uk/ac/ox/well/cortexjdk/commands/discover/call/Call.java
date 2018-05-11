@@ -75,10 +75,10 @@ public class Call extends Module {
     public Double DEL = 0.35;
 
     @Argument(fullName="eps", shortName="eps", doc="Epsilon probability")
-    public Double EPS = 0.99;
+    public Double EPS = 0.90;
 
     @Argument(fullName="rho", shortName="rho", doc="Recombination probability")
-    public Double RHO = 1e-5;
+    public Double RHO = 6e-4;
 
     @Argument(fullName="term", shortName="term", doc="Recombination probability")
     public Double TERM = 0.001;
@@ -1116,48 +1116,53 @@ public class Call extends Module {
                                         }
                                     }
 
-                                    String childContig = seq.substring(seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize(), seq.indexOf(kmer1.toString(), seq.indexOf(kmer0.toString())));
+                                    int index0 = seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize();
+                                    int index1 = seq.indexOf(kmer1.toString(), index0);
 
-                                    for (String parentalContig : parentalContigs) {
-                                        String inverted = SequenceUtils.reverseComplement(parentalContig.substring(GRAPH.getKmerSize(), parentalContig.length() - GRAPH.getKmerSize()));
+                                    if (index0 >= GRAPH.getKmerSize() && index1 > 0 && index1 > index0) {
 
-                                        SmithWaterman sw = new SmithWaterman();
-                                        String[] a = sw.getAlignment(childContig, inverted);
+                                        //String childContig = seq.substring(seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize(), seq.indexOf(kmer1.toString(), seq.indexOf(kmer0.toString())));
+                                        String childContig = seq.substring(index0 + GRAPH.getKmerSize(), index1);
 
-                                        int edits = 0;
-                                        for (int l = 0; l < a[0].length(); l++) {
-                                            if (a[0].charAt(l) != a[1].charAt(l)) {
-                                                edits++;
+                                        for (String parentalContig : parentalContigs) {
+                                            String inverted = SequenceUtils.reverseComplement(parentalContig.substring(GRAPH.getKmerSize(), parentalContig.length() - GRAPH.getKmerSize()));
+
+                                            SmithWaterman sw = new SmithWaterman();
+                                            String[] a = sw.getAlignment(childContig, inverted);
+
+                                            int edits = 0;
+                                            for (int l = 0; l < a[0].length(); l++) {
+                                                if (a[0].charAt(l) != a[1].charAt(l)) {
+                                                    edits++;
+                                                }
+                                            }
+
+                                            float pctIdentity = 100.0f * (((float) (a[0].length() - edits)) / ((float) a[0].length()));
+
+                                            if (pctIdentity >= 90.0) {
+                                                List<Allele> alleles = Arrays.asList(Allele.create(parentalContig, true), Allele.create(childContig));
+
+                                                VariantContextBuilder vcb = new VariantContextBuilder(outer0)
+                                                        .alleles(alleles)
+                                                        .computeEndFromAlleles(alleles, outer0.getStart())
+                                                        .attribute("SVTYPE", "INV")
+                                                        .attribute("pctIdentity", pctIdentity)
+                                                        .attribute("prevBase", outer0.getAttributeAsString("prevBase", "N"))
+                                                        .attribute("nextBase", outer1.getAttributeAsString("nextBase", "N"))
+                                                        .rmAttribute("MATEID");
+
+                                                replacements.put(outer0.getID(), vcb);
+                                                replacements.put(inner0.getID(), null);
+                                                replacements.put(inner1.getID(), null);
+                                                replacements.put(outer1.getID(), null);
+
+                                                removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
+                                                removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
+                                                removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
+                                                removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
                                             }
                                         }
-
-                                        float pctIdentity = 100.0f * (((float) (a[0].length() - edits)) / ((float) a[0].length()));
-
-                                        if (pctIdentity >= 90.0) {
-                                            List<Allele> alleles = Arrays.asList(Allele.create(parentalContig, true), Allele.create(childContig));
-
-                                            VariantContextBuilder vcb = new VariantContextBuilder(outer0)
-                                                    .alleles(alleles)
-                                                    .computeEndFromAlleles(alleles, outer0.getStart())
-                                                    .attribute("SVTYPE", "INV")
-                                                    .attribute("pctIdentity", pctIdentity)
-                                                    .attribute("prevBase", outer0.getAttributeAsString("prevBase", "N"))
-                                                    .attribute("nextBase", outer1.getAttributeAsString("nextBase", "N"))
-                                                    .rmAttribute("MATEID");
-
-                                            replacements.put(outer0.getID(), vcb);
-                                            replacements.put(inner0.getID(), null);
-                                            replacements.put(inner1.getID(), null);
-                                            replacements.put(outer1.getID(), null);
-
-                                            removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
-                                            removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
-                                            removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
-                                            removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
-                                        }
                                     }
-                                } else {
-
                                 }
                             }
                         }
@@ -1654,6 +1659,7 @@ public class Call extends Module {
     }
 
     private Triple<Integer, Integer, String> trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
+        /*
         int firstIndex = Integer.MAX_VALUE, lastIndex = 0;
         int firstNovel = -1, lastNovel = -1;
 
@@ -1688,6 +1694,9 @@ public class Call extends Module {
         if (lastNovel > lastIndex) { lastIndex = lastNovel; }
 
         return Triple.of(firstIndex, lastIndex, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex)));
+        */
+
+        return Triple.of(0, ws.size() - 1, TraversalUtils.toContig(ws));
     }
 
     private int getNumColumns(List<Triple<String, String, Pair<Integer, Integer>>> lps) {
@@ -1843,6 +1852,8 @@ public class Call extends Module {
                 .links(LINKS)
                 .make();
 
+        Set<String> contigs = new HashSet<>();
+
         for (int i = 0; i < ws.size(); i++) {
             boolean hasCoverage = false;
             for (int c : colors) {
@@ -1850,9 +1861,12 @@ public class Call extends Module {
             }
 
             if (hasCoverage && TraversalUtils.findVertex(g, ws.get(i).getKmerAsString()) == null) {
+//            if (hasCoverage) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gs = e.dfs(ws.get(i).getKmerAsString());
 
                 if (gs != null && gs.vertexSet().size() > 0) {
+                    contigs.add(TraversalUtils.toContig(TraversalUtils.toWalk(gs, ws.get(i).getKmerAsString(), gs.edgeSet().iterator().next().getColor())));
+
                     Graphs.addGraph(g, gs);
                 }
             }
@@ -1893,8 +1907,8 @@ public class Call extends Module {
                 indices.add(cv.getCanonicalKmer());
             }
 
-            Set<String> contigs = new HashSet<>();
             for (List<CortexVertex> w : walks) {
+                /*
                 int actualStart = Integer.MAX_VALUE, actualEnd = -1;
                 int shared = 0;
                 for (int i = 0; i < w.size(); i++) {
@@ -1914,6 +1928,9 @@ public class Call extends Module {
 
                     contigs.add(contig);
                 }
+                */
+
+                contigs.add(TraversalUtils.toContig(w));
             }
 
             int i = 0;
