@@ -1659,7 +1659,6 @@ public class Call extends Module {
     }
 
     private Triple<Integer, Integer, String> trimQuery(List<CortexVertex> ws, Map<String, String> targets, Set<CanonicalKmer> rois) {
-        /*
         int firstIndex = Integer.MAX_VALUE, lastIndex = 0;
         int firstNovel = -1, lastNovel = -1;
 
@@ -1694,9 +1693,8 @@ public class Call extends Module {
         if (lastNovel > lastIndex) { lastIndex = lastNovel; }
 
         return Triple.of(firstIndex, lastIndex, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex)));
-        */
 
-        return Triple.of(0, ws.size() - 1, TraversalUtils.toContig(ws));
+        //return Triple.of(0, ws.size() - 1, TraversalUtils.toContig(ws));
     }
 
     private int getNumColumns(List<Triple<String, String, Pair<Integer, Integer>>> lps) {
@@ -1908,7 +1906,7 @@ public class Call extends Module {
             }
 
             for (List<CortexVertex> w : walks) {
-                /*
+                //
                 int actualStart = Integer.MAX_VALUE, actualEnd = -1;
                 int shared = 0;
                 for (int i = 0; i < w.size(); i++) {
@@ -1928,9 +1926,9 @@ public class Call extends Module {
 
                     contigs.add(contig);
                 }
-                */
+                //
 
-                contigs.add(TraversalUtils.toContig(w));
+                //contigs.add(TraversalUtils.toContig(w));
             }
 
             int i = 0;
