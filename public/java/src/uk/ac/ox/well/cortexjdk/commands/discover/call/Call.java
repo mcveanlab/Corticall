@@ -173,7 +173,7 @@ public class Call extends Module {
 
                         List<VariantContextBuilder> calls = new ArrayList<>();
                         calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
-                        calls.addAll(callLargeBubbles(lps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                        calls.addAll(callLargeBubbles(lps, nrs, labelledTargets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
                         calls.addAll(callBreakpoints(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
 
                         List<VariantContextBuilder> merged = mergeBubbles(lps, calls);
