@@ -210,9 +210,9 @@ public class Call extends Module {
             for (VariantContextBuilder vcb : vcs) {
                 vcb.rmAttributes(Arrays.asList(
                         "targets", "lps",
-                        "nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
-                        "prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
-                        "targetName", "targetStart", "targetStop",
+                        //"nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
+                        //"prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
+                        //"targetName", "targetStart", "targetStop",
                         "start", "stop",
                         "sectionStart", "sectionStop",
                         "variantStart", "variantStop"
@@ -290,13 +290,96 @@ public class Call extends Module {
         return newVcbs;
     }
 
-    private Set<VariantContextBuilder> assignCoordinates(Set<VariantContextBuilder> vcs) {
+    private Set<VariantContextBuilder> assignCoordinates(Set<VariantContextBuilder> calls) {
         Set<VariantContextBuilder> newVcbs = new HashSet<>();
-        for (VariantContextBuilder vcb : vcs) {
-            newVcbs.add(assignCoordinates(vcb));
+        List<VariantContextBuilder> bnds = new ArrayList<>();
+        for (VariantContextBuilder vcb : calls) {
+            if (!vcb.make().hasAttribute("MATEID")) {
+                newVcbs.add(assignCoordinates(vcb));
+            } else {
+                bnds.add(vcb);
+            }
+        }
+
+        bnds.sort((vb0, vb1) -> {
+            VariantContext v0 = vb0.make();
+            VariantContext v1 = vb1.make();
+
+            if (v0.getStart() == v1.getStart()) { return 0;  }
+            if (v0.getStart() <  v1.getStart()) { return -1; }
+            return 1;
+        });
+
+        for (int i = 0; i < bnds.size() - 1; i += 2) {
+            VariantContextBuilder vcb0 = bnds.get(i);
+            VariantContextBuilder vcb1 = bnds.get(i+1);
+
+            newVcbs.addAll(assignCoordinates(vcb0, vcb1));
         }
 
         return newVcbs;
+    }
+
+    private Set<VariantContextBuilder> assignCoordinates(VariantContextBuilder vcb0, VariantContextBuilder vcb1) {
+        VariantContext v0 = vcb0.make();
+        VariantContext v1 = vcb1.make();
+        if (v0.getAttributeAsString("MATEID", "").equals(v1.getID())) {
+            List<Triple<String, String, Pair<Integer, Integer>>> lps = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) v0.getAttribute("lps");
+
+            int start0 = v0.getAttributeAsInt("start", 0) + (v0.isSNP() ? 1 : 0);
+            StringBuilder prevFlankBuilder = new StringBuilder();
+            for (int q = start0; q >= 0 && getParentalRow(lps, start0) == getParentalRow(lps, q); q--) {
+                if (getParentalColumn(lps, q) != '-') {
+                    prevFlankBuilder.insert(0, getParentalColumn(lps, q));
+                }
+            }
+
+            String prevBack = lps.get(getParentalRow(lps, start0)).getLeft().split(":")[0];
+            String prevFlank = prevFlankBuilder.toString();
+            List<SAMRecord> prevSrs = sortAlignments(prevBack, prevFlank);
+            SAMRecord prevSr = prevSrs.size() == 0 ? null : prevSrs.get(0);
+            if (prevSr != null) {
+                vcb0.attribute("prevChrom", prevSr.getContig());
+                vcb0.attribute("prevStart", prevSr.getReferencePositionAtReadPosition(1) + 1);
+                vcb0.attribute("prevStop", prevSr.getReferencePositionAtReadPosition(prevSr.getReadLength()) + 1);
+                vcb0.attribute("prevStrand", prevSr.getReadNegativeStrandFlag() ? "-" : "+");
+
+                vcb0.chr(prevSr.getContig());
+                vcb0.start(prevSr.getAlignmentEnd());
+                vcb0.stop(prevSr.getAlignmentEnd());
+                vcb0.attribute("flankMappingQuality", prevSr.getMappingQuality());
+            }
+
+            int start1 = vcb1.make().getAttributeAsInt("start", 0) - (vcb1.make().isSNP() ? 1 : 0);
+            while (getParentalColumn(lps, start1) == '-' && start1 < lps.get(0).getMiddle().length()) {
+                start1++;
+            }
+            StringBuilder nextFlankBuilder = new StringBuilder();
+            for (int q = start1; q < lps.get(0).getMiddle().length() && getParentalRow(lps, start1) == getParentalRow(lps, q); q++) {
+                if (getParentalColumn(lps, q) != '-') {
+                    nextFlankBuilder.append(getParentalColumn(lps, q));
+                }
+            }
+
+            String nextBack = lps.get(getParentalRow(lps, start1)).getLeft().split(":")[0];
+            String nextFlankFw = nextFlankBuilder.toString();
+            List<SAMRecord> nextSrs = sortAlignments(nextBack, nextFlankFw);
+            SAMRecord nextSr = nextSrs.size() == 0 ? null : nextSrs.get(0);
+
+            if (nextSr != null) {
+                vcb1.attribute("nextChrom", nextSr.getContig());
+                vcb1.attribute("nextStart", nextSr.getReferencePositionAtReadPosition(1) + 1);
+                vcb1.attribute("nextStop", nextSr.getReferencePositionAtReadPosition(nextSr.getReadLength()) + 1);
+                vcb1.attribute("nextStrand", nextSr.getReadNegativeStrandFlag() ? "-" : "+");
+
+                vcb1.chr(nextSr.getContig());
+                vcb1.start(nextSr.getAlignmentStart());
+                vcb1.stop(nextSr.getAlignmentStart());
+                vcb1.attribute("flankMappingQuality", nextSr.getMappingQuality());
+            }
+        }
+
+        return new HashSet<>(Arrays.asList(vcb0, vcb1));
     }
 
     private VariantContextBuilder assignCoordinates(VariantContextBuilder vcb) {
