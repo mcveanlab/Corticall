@@ -209,13 +209,13 @@ public class Call extends Module {
 
             for (VariantContextBuilder vcb : vcs) {
                 vcb.rmAttributes(Arrays.asList(
-                        "targets", "lps",
+                        "targets", "lps"
                         //"nextBase", "nextChrom", "nextStart", "nextStop", "nextStrand",
                         //"prevBase", "prevChrom", "prevStart", "prevStop", "prevStrand",
                         //"targetName", "targetStart", "targetStop",
-                        "start", "stop",
-                        "sectionStart", "sectionStop",
-                        "variantStart", "variantStop"
+                        //"start", "stop",
+                        //"sectionStart", "sectionStop",
+                        //"variantStart", "variantStop"
                 ));
 
                 VariantContext vc = vcb.make();
