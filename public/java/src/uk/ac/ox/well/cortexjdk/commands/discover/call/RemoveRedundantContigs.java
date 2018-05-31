@@ -22,6 +22,9 @@ public class RemoveRedundantContigs extends Module {
     @Argument(fullName="roi", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
+    @Argument(fullName="threshold", shortName="t", doc="Overlap threshold")
+    public Double THRESHOLD = 0.0;
+
     @Output
     public PrintStream out;
 
@@ -53,7 +56,7 @@ public class RemoveRedundantContigs extends Module {
 
                 double pctOverlap = pctOverlap(cksi, cksj);
 
-                if (pctOverlap >= 0.1) {
+                if (pctOverlap > THRESHOLD) {
                     log.info("{}={} {}={} {} {} {}", rseqi.getName().split(" ")[0], rseqi.length(), rseqj.getName().split(" ")[0], rseqj.length(), cksi.size(), cksj.size(), pctOverlap);
 
                     if (rseqi.length() < rseqj.length()) {
