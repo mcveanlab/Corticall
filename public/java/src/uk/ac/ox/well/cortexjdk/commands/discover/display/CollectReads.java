@@ -6,6 +6,8 @@ import htsjdk.samtools.SAMRecord;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -30,14 +32,22 @@ public class CollectReads extends Module {
         Map<String, Set<String>> chrsEnd1 = new HashMap<>();
         Map<String, Set<String>> chrsEnd2 = new HashMap<>();
 
+        log.info("Loading contig reads:");
         for (SAMRecord cr : CONTIG_READS) {
             if (cr.getMappingQuality() > 0) {
                 Map<String, SAMRecord> reads = cr.getFirstOfPairFlag() ? readsEnd1 : readsEnd2;
                 reads.put(cr.getReadName(), cr);
             }
         }
+        log.info("  loaded {} reads [{}, {}]", readsEnd1.size() + readsEnd2.size(), readsEnd1.size(), readsEnd2.size());
 
         for (SAMFileReader sfr : Arrays.asList(REF0_READS, REF1_READS)) {
+            ProgressMeter pm = new ProgressMeterFactory()
+                    .header("Loading ref reads...")
+                    .message("ref reads processed")
+                    .updateRecord(1000000)
+                    .make(log);
+
             for (SAMRecord cr : sfr) {
                 Map<String, SAMRecord> reads = cr.getFirstOfPairFlag() ? readsEnd1 : readsEnd2;
                 Map<String, Set<String>> chrs = cr.getFirstOfPairFlag() ? chrsEnd1 : chrsEnd2;
@@ -49,6 +59,8 @@ public class CollectReads extends Module {
 
                     chrs.get(cr.getReadName()).add(cr.getContig());
                 }
+
+                pm.update();
             }
         }
 
