@@ -52,7 +52,7 @@ public class CollectReads extends Module {
                 Map<String, SAMRecord> reads = cr.getFirstOfPairFlag() ? readsEnd1 : readsEnd2;
                 Map<String, Set<String>> chrs = cr.getFirstOfPairFlag() ? chrsEnd1 : chrsEnd2;
 
-                if (cr.getMappingQuality() > 0 && reads.containsKey(cr.getReadName())) {
+                if (cr.getMappingQuality() > 0 && reads.containsKey(cr.getReadName()) && cr.getContig() != null) {
                     if (!chrs.containsKey(cr.getReadName())) {
                         chrs.put(cr.getReadName(), new HashSet<>());
                     }
