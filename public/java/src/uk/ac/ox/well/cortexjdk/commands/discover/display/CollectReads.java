@@ -65,7 +65,7 @@ public class CollectReads extends Module {
         }
 
         for (String sn : readsEnd1.keySet()) {
-            if (readsEnd1.containsKey(sn) && readsEnd2.containsKey(sn)) {
+            if (readsEnd1.containsKey(sn) && readsEnd2.containsKey(sn) && chrsEnd1.containsKey(sn) && chrsEnd2.containsKey(sn)) {
                 SAMRecord cr1 = readsEnd1.get(sn);
                 SAMRecord cr2 = readsEnd2.get(sn);
 
