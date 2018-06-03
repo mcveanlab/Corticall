@@ -39,7 +39,7 @@ public class CollectReads extends Module {
 
                 out.println(Joiner.on("\t").join(
                         sr1.getReadName(), sr1.getContig(), sr1.getStart(), sr1.getEnd(), sr1.getMappingQuality(),
-                        sr2.getReadName(), sr2.getContig(), sr2.getStart(), sr2.getEnd(), sr2.getMappingQuality()
+                                           sr2.getContig(), sr2.getStart(), sr2.getEnd(), sr2.getMappingQuality()
                 ));
             }
         }
