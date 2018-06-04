@@ -345,8 +345,13 @@ public class Call extends Module {
                 vcb0.attribute("prevStrand", prevSr.getReadNegativeStrandFlag() ? "-" : "+");
 
                 vcb0.chr(prevSr.getContig());
-                vcb0.start(prevSr.getAlignmentEnd());
-                vcb0.stop(prevSr.getAlignmentEnd());
+                if (prevSr.getReadNegativeStrandFlag()) {
+                    vcb0.start(prevSr.getAlignmentStart() + 1);
+                    vcb0.stop(prevSr.getAlignmentStart() + 1);
+                } else {
+                    vcb0.start(prevSr.getAlignmentEnd() + 1);
+                    vcb0.stop(prevSr.getAlignmentEnd() + 1);
+                }
                 vcb0.attribute("flankMappingQuality", prevSr.getMappingQuality());
             }
 
@@ -373,8 +378,13 @@ public class Call extends Module {
                 vcb1.attribute("nextStrand", nextSr.getReadNegativeStrandFlag() ? "-" : "+");
 
                 vcb1.chr(nextSr.getContig());
-                vcb1.start(nextSr.getAlignmentStart());
-                vcb1.stop(nextSr.getAlignmentStart());
+                if (nextSr.getReadNegativeStrandFlag()) {
+                    vcb1.start(nextSr.getAlignmentEnd() + 1);
+                    vcb1.stop(nextSr.getAlignmentEnd() + 1);
+                } else {
+                    vcb1.start(nextSr.getAlignmentStart() + 1);
+                    vcb1.stop(nextSr.getAlignmentStart() + 1);
+                }
                 vcb1.attribute("flankMappingQuality", nextSr.getMappingQuality());
             }
         }
