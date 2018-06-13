@@ -82,16 +82,16 @@ public class AnnotateVCF extends Module {
             if (ita.containsOverlapping(it)) { label = "accessory"; }
 
             Set<String> genes = new TreeSet<>();
-            Set<String> desc = new TreeSet<>();
+            //Set<String> desc = new TreeSet<>();
             for (GFF3Record gr : itg.getOverlapping(it)) {
                 genes.add(gr.getAttribute("ID"));
-                desc.add(gr.getAttribute("description"));
+                //desc.add(gr.getAttribute("description"));
             }
 
             VariantContext newvc = new VariantContextBuilder(vc)
                     .attribute("REGION", label)
                     .attribute("GENES", Joiner.on(",").join(genes))
-                    .attribute("DESC", Joiner.on(",").join(desc))
+                    //.attribute("DESC", Joiner.on(",").join(desc))
                     .make();
 
             vcw.add(newvc);
