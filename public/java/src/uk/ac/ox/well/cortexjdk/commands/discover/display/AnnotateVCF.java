@@ -1,6 +1,8 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.display;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -14,7 +16,10 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
+import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
 import java.io.File;
 import java.util.*;
@@ -34,23 +39,40 @@ public class AnnotateVCF extends Module {
     @Argument(fullName="genes", shortName="g", doc="Genes")
     public ArrayList<GFF3> GENES;
 
+    @Argument(fullName="partitions", shortName="p", doc="Partitions")
+    public FastaSequenceFile PARTITIONS;
+
+    @Argument(fullName="rois", shortName="r", doc="ROIs")
+    public CortexGraph ROIS;
+
     @Output
     public File out;
 
     @Override
     public void execute() {
+        Set<CanonicalKmer> cks = new HashSet<>();
+        for (CortexRecord cr : ROIS) {
+            cks.add(cr.getCanonicalKmer());
+        }
+
+        Map<String, String> refs = new HashMap<>();
+        ReferenceSequence rseq;
+        while ((rseq = PARTITIONS.nextSequence()) != null) {
+            refs.put(rseq.getName().split(" ")[0], rseq.getBaseString());
+        }
+
         IntervalTreeMap<String> itc = new IntervalTreeMap<>();
         IntervalTreeMap<String> ita = new IntervalTreeMap<>();
         IntervalTreeMap<GFF3Record> itg = new IntervalTreeMap<>();
 
         TableReader trcore = new TableReader(CORE_BED, "chrom", "start", "stop", "label");
         for (Map<String, String> te : trcore) {
-            try {
-                int x = Integer.valueOf(te.get("start"));
-                int y = Integer.valueOf(te.get("stop"));
-            } catch (NumberFormatException e) {
-                log.info("{}", Joiner.on(" ").withKeyValueSeparator("=").join(te));
-            }
+//            try {
+//                int x = Integer.valueOf(te.get("start"));
+//                int y = Integer.valueOf(te.get("stop"));
+//            } catch (NumberFormatException e) {
+//                log.info("{}", Joiner.on(" ").withKeyValueSeparator("=").join(te));
+//            }
 
             Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
             itc.put(it, te.get("label"));
@@ -95,9 +117,26 @@ public class AnnotateVCF extends Module {
                 //desc.add(gr.getAttribute("description"));
             }
 
+            String pname = vc.getAttributeAsString("PARTITION_NAME", "");
+            int plength = 0;
+            int numNovels = 0;
+            if (refs.containsKey(pname)) {
+                plength = refs.get(pname).length();
+
+                for (int i = 0; i <= refs.get(pname).length() - ROIS.getKmerSize(); i++) {
+                    CanonicalKmer ck = new CanonicalKmer(refs.get(pname).substring(i, i + ROIS.getKmerSize()));
+
+                    if (cks.contains(ck)) {
+                        numNovels++;
+                    }
+                }
+            }
+
             VariantContext newvc = new VariantContextBuilder(vc)
                     .attribute("REGION", label)
                     .attribute("GENES", Joiner.on(",").join(genes))
+                    .attribute("PARTITION_LENGTH", plength)
+                    .attribute("PARTITION_NOVELS", numNovels)
                     //.attribute("DESC", Joiner.on(",").join(desc))
                     .make();
 
