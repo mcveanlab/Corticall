@@ -21,7 +21,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DirectedWeightedPseudograph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
-import uk.ac.ox.well.cortexjdk.utils.alignment.mosaic.MosaicAligner;
+import uk.ac.ox.well.cortexjdk.utils.alignment.mosaic.Tesserae;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -98,9 +98,7 @@ public class Call extends Module {
         Set<VariantContext> svcs = buildVariantSorter(sd);
         VariantContextWriter vcw = buildVariantWriter(sd);
 
-        //MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
-        MosaicAligner ma = new MosaicAligner(DEL, EPS, RHO, TERM);
-        log.info("MosaicAligner initialized with del={} eps={} rho={} term={}", DEL, EPS, RHO, TERM);
+        Tesserae ma = new Tesserae(DEL, EPS, RHO, TERM);
 
         for (int rseqIndex = 0; rseqIndex < rseqs.size(); rseqIndex++) {
             ReferenceSequence rseq = rseqs.get(rseqIndex);
@@ -964,7 +962,7 @@ public class Call extends Module {
                     //log.info("{}", w[1]);
 
                     if (fedit > wedit && fedit >= 50.0f && childContig.length() < 2000 && parentContig.length() < 2000) {
-                        MosaicAligner ma = new MosaicAligner(0.35, 0.99, 1e-5, 0.001);
+                        Tesserae ma = new Tesserae(0.35, 0.99, 1e-5, 0.001);
                         Map<String, String> newTargets = new HashMap<>();
                         newTargets.put(String.format("%s:%s_unknown:%s_contig0_merge", back0, back0, back0), parentContig);
                         List<Triple<String, String, Pair<Integer, Integer>>> newlps = ma.align(childContig, newTargets);
@@ -1697,8 +1695,17 @@ public class Call extends Module {
         List<SAMSequenceRecord> ssrs = new ArrayList<>();
         for (String id : BACKGROUNDS.keySet()) {
             IndexedReference ir = BACKGROUNDS.get(id);
-            ssrs.addAll(ir.getReferenceSequence().getSequenceDictionary().getSequences());
-            ssrs.add(new SAMSequenceRecord(id + "_unknown", rseqs.size()));
+
+            for (SAMSequenceRecord ssr : ir.getReferenceSequence().getSequenceDictionary().getSequences()) {
+                if (!ssrs.contains(ssr)) {
+                    ssrs.add(ssr);
+                }
+            }
+
+            SAMSequenceRecord ssrUnknown = new SAMSequenceRecord(id + "_unknown", rseqs.size());
+            if (!ssrs.contains(ssrUnknown)) {
+                ssrs.add(ssrUnknown);
+            }
         }
         return new SAMSequenceDictionary(ssrs);
     }

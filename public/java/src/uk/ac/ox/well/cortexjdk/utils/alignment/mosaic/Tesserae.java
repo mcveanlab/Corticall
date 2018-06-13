@@ -7,7 +7,7 @@ import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 
 import java.util.*;
 
-public class MosaicAligner {
+public class Tesserae {
     // constants
     private static final double SMALL = -1e32;
 
@@ -82,9 +82,9 @@ public class MosaicAligner {
     private List<Triple<String, String, Pair<Integer, Integer>>> path;
     private String editTrack;
 
-    public MosaicAligner() { }
+    public Tesserae() { }
 
-    public MosaicAligner(double del, double eps, double rho, double term) {
+    public Tesserae(double del, double eps, double rho, double term) {
         this.del = del;
         this.eps = eps;
         this.rho = rho;

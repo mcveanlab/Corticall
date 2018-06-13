@@ -40,7 +40,7 @@ public class TestMosaicAligner {
         targets.put("template0", templates[0]);
         targets.put("template1", templates[1]);
 
-        MosaicAligner ma = new MosaicAligner();
+        Tesserae ma = new Tesserae();
         List<Triple<String, String, Pair<Integer, Integer>>> ps = ma.align(query, targets);
 
         Assert.assertEquals(ks.size(), ps.size());
