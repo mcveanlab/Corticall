@@ -45,6 +45,13 @@ public class AnnotateVCF extends Module {
 
         TableReader trcore = new TableReader(CORE_BED, "chrom", "start", "stop", "label");
         for (Map<String, String> te : trcore) {
+            try {
+                int x = Integer.valueOf(te.get("start"));
+                int y = Integer.valueOf(te.get("stop"));
+            } catch (NumberFormatException e) {
+                log.info("{}", Joiner.on(" ").withKeyValueSeparator("=").join(te));
+            }
+
             Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
             itc.put(it, te.get("label"));
         }
