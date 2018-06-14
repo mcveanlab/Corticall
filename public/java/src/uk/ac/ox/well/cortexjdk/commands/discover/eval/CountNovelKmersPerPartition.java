@@ -62,7 +62,7 @@ public class CountNovelKmersPerPartition extends Module {
 
             out.println(Joiner.on("\t").join(rname, numNovels));
 
-            log.info("{} {} {}", rname, numNovels, Joiner.on(",").join(positions));
+            log.info("{} {} {} {}", rname, numNovels, seq.length() - ROIS.getKmerSize(), Joiner.on(",").join(positions));
         }
 
         rout.println(Joiner.on("\t").join("ck", "partition", "distanceToClosestEnd"));
