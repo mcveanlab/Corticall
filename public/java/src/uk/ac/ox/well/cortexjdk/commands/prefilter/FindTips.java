@@ -41,7 +41,8 @@ public class FindTips extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(ROI.getSampleName(0));
+        String child = ROI.getSampleName(0);
+        int childColor = GRAPH.getColorForSampleName(child);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         //Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 

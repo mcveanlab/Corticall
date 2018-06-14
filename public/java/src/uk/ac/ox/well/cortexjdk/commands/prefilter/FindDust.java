@@ -33,9 +33,6 @@ public class FindDust extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="child", shortName="c", doc="Child")
-    public String CHILD;
-
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
@@ -47,11 +44,13 @@ public class FindDust extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
+        String child = ROI.getSampleName(0);
+
+        int childColor = GRAPH.getColorForSampleName(child);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
         log.info("Colors:");
-        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(child));
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()

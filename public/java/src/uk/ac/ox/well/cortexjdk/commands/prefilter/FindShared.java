@@ -26,9 +26,6 @@ public class FindShared extends Module {
     @Argument(fullName="parents", shortName="p", doc="Parents")
     public ArrayList<String> PARENTS;
 
-    @Argument(fullName="child", shortName="c", doc="Child")
-    public String CHILD;
-
     @Argument(fullName="ignore", shortName="i", doc="Ignore specified samples", required=false)
     public ArrayList<String> IGNORE;
 
@@ -43,12 +40,13 @@ public class FindShared extends Module {
 
     @Override
     public void execute() {
-        int childColor = GRAPH.getColorForSampleName(CHILD);
+        String child = ROI.getSampleName(0);
+        int childColor = GRAPH.getColorForSampleName(child);
         Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
         Set<Integer> ignoreColors = new HashSet<>(GRAPH.getColorsForSampleNames(IGNORE));
 
         log.info("Colors:");
-        log.info(" -   child: {}", GRAPH.getColorForSampleName(CHILD));
+        log.info(" -   child: {}", GRAPH.getColorForSampleName(child));
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
         log.info(" -  ignore: {}", GRAPH.getColorsForSampleNames(IGNORE));
 
