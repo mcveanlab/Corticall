@@ -48,6 +48,7 @@ public class CountNovelKmersPerPartition extends Module {
             String seq = rseq.getBaseString();
 
             int numNovels = 0;
+            List<Integer> positions = new ArrayList<>();
             for (int i = 0; i <= seq.length() - ROIS.getKmerSize(); i++) {
                 CanonicalKmer ck = new CanonicalKmer(seq.substring(i, i + ROIS.getKmerSize()));
 
@@ -55,10 +56,11 @@ public class CountNovelKmersPerPartition extends Module {
                     numNovels++;
                     rois.get(ck).add(rname);
                     rdist.get(ck).add(Math.min(i, seq.length() - ROIS.getKmerSize() - i));
+                    positions.add(Math.min(i, seq.length() - ROIS.getKmerSize() - i));
                 }
             }
 
-            out.println(Joiner.on("\t").join(rname, numNovels));
+            out.println(Joiner.on("\t").join(rname, numNovels, Joiner.on(",").join(positions)));
 
             log.info("{} {}", rname, numNovels);
         }
