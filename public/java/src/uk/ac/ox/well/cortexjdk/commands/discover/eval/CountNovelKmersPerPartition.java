@@ -9,6 +9,8 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -57,6 +59,8 @@ public class CountNovelKmersPerPartition extends Module {
             }
 
             out.println(Joiner.on("\t").join(rname, numNovels));
+
+            log.info("{} {}", rname, numNovels);
         }
 
         rout.println(Joiner.on("\t").join("ck", "partition", "distanceToClosestEnd"));
