@@ -60,9 +60,9 @@ public class CountNovelKmersPerPartition extends Module {
                 }
             }
 
-            out.println(Joiner.on("\t").join(rname, numNovels, Joiner.on(",").join(positions)));
+            out.println(Joiner.on("\t").join(rname, numNovels));
 
-            log.info("{} {}", rname, numNovels);
+            log.info("{} {} {}", rname, numNovels, Joiner.on(",").join(positions));
         }
 
         rout.println(Joiner.on("\t").join("ck", "partition", "distanceToClosestEnd"));
