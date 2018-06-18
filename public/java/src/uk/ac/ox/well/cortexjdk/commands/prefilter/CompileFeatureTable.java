@@ -9,7 +9,10 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableWriter;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
+import uk.ac.ox.well.cortexjdk.utils.statistics.misc.StatisticsOnStream;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -35,6 +38,26 @@ public class CompileFeatureTable extends Module {
 
     @Override
     public void execute() {
+        int color = GRAPH.getColorForSampleName(ROIS.getSampleName(0));
+
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Processing graph records...")
+                .message("records processed")
+                .maxRecord(GRAPH.getNumRecords())
+                .make(log);
+
+        StatisticsOnStream sos = new StatisticsOnStream();
+
+        for (CortexRecord cr : GRAPH) {
+            sos.push(cr.getCoverage(color));
+            pm.update();
+        }
+
+        double mean = sos.getMean();
+        double sd = sos.getStandardDeviation();
+
+        log.info("  coverage mean={} sd={}", mean, sd);
+
         Set<CanonicalKmer> truth = new HashSet<>();
         for (CortexRecord cr : ROIS_TRUTH) {
             truth.add(cr.getCanonicalKmer());
@@ -44,6 +67,7 @@ public class CompileFeatureTable extends Module {
 
         for (CortexRecord cr : ROIS) {
             featureTable.put(cr.getCanonicalKmer(), new HashMap<>());
+            featureTable.get(cr.getCanonicalKmer()).put("covZScore", (((double) cr.getCoverage(0)) - mean) / sd);
         }
 
         ReferenceSequence rseq;
