@@ -93,12 +93,18 @@ public class CompileFeatureTable extends Module {
         for (CanonicalKmer ck : featureTable.keySet()) {
             Map<String, String> te = new LinkedHashMap<>();
 
-            te.put("ck", ck.getKmerAsString());
-            te.put("partitionName", String.valueOf(featureTable.get(ck).getOrDefault("partitionName", "unknown")));
-            te.put("partitionLength", String.valueOf(featureTable.get(ck).getOrDefault("partitionLength", 0)));
+            te.put("ck",                   ck.getKmerAsString());
+            te.put("partitionName",        String.valueOf(featureTable.get(ck).getOrDefault("partitionName", "unknown")));
+            te.put("partitionLength",      String.valueOf(featureTable.get(ck).getOrDefault("partitionLength", 0)));
             te.put("numNovelsInPartition", String.valueOf(featureTable.get(ck).getOrDefault("numNovelsInPartition", 0)));
             te.put("distanceFromTerminus", String.valueOf(featureTable.get(ck).getOrDefault("distanceFromTerminus", 0)));
-            te.put("compressionRatio", String.valueOf(featureTable.get(ck).getOrDefault("compressionRatio", 1.0f)));
+            te.put("compressionRatio",     String.valueOf(featureTable.get(ck).getOrDefault("compressionRatio", 1.0f)));
+
+            for (String feature : FEATURES.keySet()) {
+                te.put(feature,            String.valueOf(featureTable.get(ck).getOrDefault(feature, 0)));
+            }
+
+            te.put("truth",                String.valueOf(featureTable.get(ck).getOrDefault("truth", 0)));
 
             tw.addEntry(te);
         }
