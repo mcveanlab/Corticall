@@ -5,8 +5,12 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.gff.GFF3Record;
+import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * A set of utilities for dealing with genomic reads.
@@ -785,5 +789,26 @@ public class SequenceUtils {
         }
 
         return isValid;
+    }
+
+    public static float computeCompressionRatio(CanonicalKmer ck) {
+        float compressionRatio = 1.0f;
+
+        try {
+            byte[] b = ck.getKmerAsBytes();
+
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream(b.length);
+            GZIPOutputStream zipStream = new GZIPOutputStream(byteStream);
+            zipStream.write(b);
+            zipStream.close();
+
+            byte[] c = byteStream.toByteArray();
+
+            compressionRatio = (float) c.length / (float) b.length;
+        } catch (IOException e) {
+            throw new CortexJDKException("Could not gzip sequence to compute compression ratio for '" + ck + "'");
+        }
+
+        return compressionRatio;
     }
 }

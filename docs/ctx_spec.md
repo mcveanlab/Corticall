@@ -58,7 +58,7 @@ Each letter is represented by two bits. The conversion of bits to letters is des
 
 Bits are stored in an array of little-endian **uint64_t**s, a kmer_container, such that the lowest order bit of the last 
 **uint64_t** is the second bit of the last kmer letter.
-Letters are right-aligned in the kmer_container. The first **uint64_t** of a kmer_container is always 
+Letters are right-aligned in the kmer_container. The last **uint64_t** of a kmer_container is always 
 partially empty unless the stored kmer fits exactly into the kmer_container.
 
 #### Table 6

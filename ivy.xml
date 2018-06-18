@@ -32,6 +32,7 @@
         <dependency org="com.github.lindenb" name="jbwa" rev="1.0.0" />
         <dependency org="org.processing" name="core" rev="3.3.6" />
         <dependency org="org.processing" name="pdf" rev="3.3.6" />
+        <dependency org="org.tensorflow" name="tensorflow" rev="1.8.0" />
 
         <!-- Dependencies that can be satisifed with local repository -->
         <dependency org="be.ac.ulg.montefiore.run.jahmm" name="jahmm" rev="0.6.1" />
