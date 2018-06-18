@@ -87,7 +87,6 @@ public class CompileFeatureTable extends Module {
                     featureEntry.put("partitionLength", seq.length());
                     featureEntry.put("distanceFromTerminus", distanceFromTerminus);
                     featureEntry.put("compressionRatio", SequenceUtils.computeCompressionRatio(ck));
-                    featureEntry.put("truth", truth.contains(ck) ? 1 : 0);
 
                     novelKmersInPartition.add(ck);
                 }
@@ -128,7 +127,7 @@ public class CompileFeatureTable extends Module {
                 te.put(feature,            String.valueOf(featureTable.get(ck).getOrDefault(feature, 0)));
             }
 
-            te.put("truth",                String.valueOf(featureTable.get(ck).getOrDefault("truth", 0)));
+            te.put("truth",                truth.contains(ck) ? "1" : "0");
 
             tw.addEntry(te);
         }
