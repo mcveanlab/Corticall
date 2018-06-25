@@ -86,7 +86,7 @@ public class AnnotateVCF extends Module {
 
         for (GFF3 g : GENES) {
             for (GFF3Record gr : g) {
-                if (gr.getType().equals("gene")) {
+                if (gr.getType().contains("gene")) {
                     Interval it = new Interval(gr.getSeqid(), gr.getStart(), gr.getEnd());
                     itg.put(it, gr);
                 }
