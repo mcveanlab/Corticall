@@ -117,6 +117,18 @@ public class AnnotateVCF extends Module {
                 //desc.add(gr.getAttribute("description"));
             }
 
+            Set<String> closest = new TreeSet<>();
+            Interval itn = new Interval(vc.getContig(), vc.getStart() - 100000, vc.getEnd() + 100000);
+            List<GFF3Record> grs = new ArrayList<>(itg.getOverlapping(itn));
+            if (grs.size() > 0) {
+                grs.sort((g1, g2) -> {
+                    if (g1.getStart() == g2.getStart()) { return 0; }
+                    return Math.abs(g1.getStart() - vc.getStart()) < Math.abs(g2.getStart() - vc.getStart()) ? -1 : 1;
+                });
+
+                closest.add(grs.get(0).getAttribute("ID"));
+            }
+
             String pname = vc.getAttributeAsString("PARTITION_NAME", "");
             int plength = 0;
             int numNovels = 0;
@@ -134,7 +146,8 @@ public class AnnotateVCF extends Module {
 
             VariantContext newvc = new VariantContextBuilder(vc)
                     .attribute("REGION", label)
-                    .attribute("GENES", Joiner.on(",").join(genes))
+                    .attribute("GENE", Joiner.on(",").join(genes))
+                    .attribute("CLOSEST_GENE", Joiner.on(",").join(closest))
                     .attribute("PARTITION_LENGTH", plength)
                     .attribute("PARTITION_NOVELS", numNovels)
                     //.attribute("DESC", Joiner.on(",").join(desc))
