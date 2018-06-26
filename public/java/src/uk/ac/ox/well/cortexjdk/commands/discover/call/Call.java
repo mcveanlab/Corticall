@@ -83,6 +83,9 @@ public class Call extends Module {
     @Argument(fullName="term", shortName="term", doc="Recombination probability")
     public Double TERM = 0.001;
 
+    @Argument(fullName="disableInversions", shortName="noinv", doc="Disable inversion caller (much faster)")
+    public Boolean DISABLE_INVERSION_CALLER = false;
+
     @Output
     public File out;
 
@@ -200,7 +203,9 @@ public class Call extends Module {
 
             vcs = mergeBreakpoints(seq, vcs, rois);
 
-            vcs = mergeDoubleBreakpoints(seq, vcs);
+            if (!DISABLE_INVERSION_CALLER) {
+                vcs = mergeDoubleBreakpoints(seq, vcs);
+            }
             //vcs = mergeSingleBreakpoints(seq, vcs);
 
             vcs = assignCoordinates(vcs);
