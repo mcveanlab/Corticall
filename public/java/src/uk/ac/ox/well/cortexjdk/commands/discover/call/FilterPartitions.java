@@ -39,9 +39,9 @@ public class FilterPartitions extends Module {
         }
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
-
         Set<ReferenceSequence> toRemove = new HashSet<>();
 
+        log.info("Loading partitions...");
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
             Set<CanonicalKmer> cks = getUsedCanonicalKmers(rseq.getBaseString(), rois);
@@ -52,8 +52,12 @@ public class FilterPartitions extends Module {
                 toRemove.add(rseq);
             }
         }
+        log.info("  loaded {} partitions, {} removed", rseqs.size() + toRemove.size(), toRemove.size());
 
+        log.info("Removing redundant partitions...");
         for (int i = 0; i < rseqs.size(); i++) {
+            log.info("  {}/{}", i, rseqs.size());
+
             ReferenceSequence rseqi = rseqs.get(i);
             String seqi = rseqi.getBaseString();
             Set<CanonicalKmer> cksi = getUsedCanonicalKmers(seqi, rois);
