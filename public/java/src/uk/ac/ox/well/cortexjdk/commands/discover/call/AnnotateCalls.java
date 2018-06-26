@@ -1,4 +1,4 @@
-package uk.ac.ox.well.cortexjdk.commands.discover.display;
+package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
 import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.FastaSequenceFile;
@@ -26,7 +26,7 @@ import java.util.*;
 
 import static htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder.OutputType.VCF;
 
-public class AnnotateVCF extends Module {
+public class AnnotateCalls extends Module {
     @Argument(fullName="vcf", shortName="v", doc="VCF")
     public VCFFileReader VARIANTS;
 

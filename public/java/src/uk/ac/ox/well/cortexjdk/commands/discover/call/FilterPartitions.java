@@ -15,15 +15,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class RemoveRedundantContigs extends Module {
+public class FilterPartitions extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs")
     public FastaSequenceFile CONTIGS;
 
     @Argument(fullName="roi", shortName="r", doc="ROIs")
     public CortexGraph ROI;
 
-    @Argument(fullName="threshold", shortName="t", doc="Overlap threshold")
-    public Double THRESHOLD = 0.0;
+    @Argument(fullName="overlap_threshold", shortName="ot", doc="Overlap threshold")
+    public Double OVERLAP_THRESHOLD = 0.0;
+
+    @Argument(fullName="novel_kmer_threshold", shortName="nt", doc="Novel kmer threshold")
+    public Integer NOVEL_KMER_THRESHOLD = 5;
 
     @Output
     public PrintStream out;
@@ -37,12 +40,18 @@ public class RemoveRedundantContigs extends Module {
 
         List<ReferenceSequence> rseqs = new ArrayList<>();
 
+        Set<ReferenceSequence> toRemove = new HashSet<>();
+
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
-            rseqs.add(rseq);
-        }
+            Set<CanonicalKmer> cks = getUsedCanonicalKmers(rseq.getBaseString(), rois);
 
-        Set<ReferenceSequence> toRemove = new HashSet<>();
+            if (cks.size() > NOVEL_KMER_THRESHOLD) {
+                rseqs.add(rseq);
+            } else {
+                toRemove.add(rseq);
+            }
+        }
 
         for (int i = 0; i < rseqs.size(); i++) {
             ReferenceSequence rseqi = rseqs.get(i);
@@ -56,7 +65,7 @@ public class RemoveRedundantContigs extends Module {
 
                 double pctOverlap = pctOverlap(cksi, cksj);
 
-                if (pctOverlap > THRESHOLD) {
+                if (pctOverlap > OVERLAP_THRESHOLD) {
                     log.info("{}={} {}={} {} {} {}", rseqi.getName().split(" ")[0], rseqi.length(), rseqj.getName().split(" ")[0], rseqj.length(), cksi.size(), cksj.size(), pctOverlap);
 
                     if (rseqi.length() < rseqj.length()) {
