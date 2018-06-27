@@ -57,7 +57,7 @@ public class FilterPartitions extends Module {
         }
         log.info("  loaded {} partitions, {} removed", rseqs.size() + toRemove.size(), toRemove.size());
 
-        if (SKIP_REDUNDANCY_CHECK) {
+        if (!SKIP_REDUNDANCY_CHECK) {
             log.info("Removing redundant partitions...");
             for (int i = 0; i < rseqs.size(); i++) {
                 log.info("  {}/{}", i, rseqs.size());
