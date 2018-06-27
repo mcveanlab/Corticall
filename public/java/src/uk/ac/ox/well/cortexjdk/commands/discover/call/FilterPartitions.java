@@ -28,6 +28,9 @@ public class FilterPartitions extends Module {
     @Argument(fullName="novel_kmer_threshold", shortName="nt", doc="Novel kmer threshold")
     public Integer NOVEL_KMER_THRESHOLD = 5;
 
+    @Argument(fullName="skipRedundancyCheck", shortName="sr", doc="Skip redundancy check")
+    public Boolean SKIP_REDUNDANCY_CHECK = false;
+
     @Output
     public PrintStream out;
 
@@ -54,28 +57,30 @@ public class FilterPartitions extends Module {
         }
         log.info("  loaded {} partitions, {} removed", rseqs.size() + toRemove.size(), toRemove.size());
 
-        log.info("Removing redundant partitions...");
-        for (int i = 0; i < rseqs.size(); i++) {
-            log.info("  {}/{}", i, rseqs.size());
+        if (SKIP_REDUNDANCY_CHECK) {
+            log.info("Removing redundant partitions...");
+            for (int i = 0; i < rseqs.size(); i++) {
+                log.info("  {}/{}", i, rseqs.size());
 
-            ReferenceSequence rseqi = rseqs.get(i);
-            String seqi = rseqi.getBaseString();
-            Set<CanonicalKmer> cksi = getUsedCanonicalKmers(seqi, rois);
+                ReferenceSequence rseqi = rseqs.get(i);
+                String seqi = rseqi.getBaseString();
+                Set<CanonicalKmer> cksi = getUsedCanonicalKmers(seqi, rois);
 
-            for (int j = i+1; j < rseqs.size(); j++) {
-                ReferenceSequence rseqj = rseqs.get(j);
-                String seqj = rseqj.getBaseString();
-                Set<CanonicalKmer> cksj = getUsedCanonicalKmers(seqj, rois);
+                for (int j = i + 1; j < rseqs.size(); j++) {
+                    ReferenceSequence rseqj = rseqs.get(j);
+                    String seqj = rseqj.getBaseString();
+                    Set<CanonicalKmer> cksj = getUsedCanonicalKmers(seqj, rois);
 
-                double pctOverlap = pctOverlap(cksi, cksj);
+                    double pctOverlap = pctOverlap(cksi, cksj);
 
-                if (pctOverlap > OVERLAP_THRESHOLD) {
-                    log.info("{}={} {}={} {} {} {}", rseqi.getName().split(" ")[0], rseqi.length(), rseqj.getName().split(" ")[0], rseqj.length(), cksi.size(), cksj.size(), pctOverlap);
+                    if (pctOverlap > OVERLAP_THRESHOLD) {
+                        log.info("{}={} {}={} {} {} {}", rseqi.getName().split(" ")[0], rseqi.length(), rseqj.getName().split(" ")[0], rseqj.length(), cksi.size(), cksj.size(), pctOverlap);
 
-                    if (rseqi.length() < rseqj.length()) {
-                        toRemove.add(rseqi);
-                    } else {
-                        toRemove.add(rseqj);
+                        if (rseqi.length() < rseqj.length()) {
+                            toRemove.add(rseqi);
+                        } else {
+                            toRemove.add(rseqj);
+                        }
                     }
                 }
             }
