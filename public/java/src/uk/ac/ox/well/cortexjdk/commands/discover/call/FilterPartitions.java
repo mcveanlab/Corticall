@@ -52,11 +52,11 @@ public class FilterPartitions extends Module {
             CanonicalKmer ck0 = new CanonicalKmer(rseq.getBaseString().substring(0, ROI.getKmerSize()));
             CanonicalKmer ck1 = new CanonicalKmer(rseq.getBaseString().substring(rseq.length() - ROI.getKmerSize(), rseq.length()));
 
-            log.info("{} {} {} {}", ck0, ck0.length(), ck1, ck1.length());
-
             if (cks.size() > NOVEL_KMER_THRESHOLD && !rois.contains(ck0) && !rois.contains(ck1)) {
+                log.info("  accept: {}", rseq.getName().split(" ")[0]);
                 rseqs.add(rseq);
             } else {
+                log.info("  reject: {}", rseq.getName().split(" ")[0]);
                 toRemove.add(rseq);
             }
         }
