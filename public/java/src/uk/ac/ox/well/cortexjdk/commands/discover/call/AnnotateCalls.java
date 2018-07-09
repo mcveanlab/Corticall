@@ -131,7 +131,7 @@ public class AnnotateCalls extends Module {
             }
 
             String repeat = "NA";
-            List<String> repeats = new ArrayList<>(itrm.getOverlapping(itn));
+            List<String> repeats = new ArrayList<>(itrm.getOverlapping(it));
             if (repeats.size() > 0) {
                 repeat = repeats.get(0);
             }
