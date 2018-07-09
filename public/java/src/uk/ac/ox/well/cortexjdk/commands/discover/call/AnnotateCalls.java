@@ -30,9 +30,6 @@ public class AnnotateCalls extends Module {
     @Argument(fullName="vcf", shortName="v", doc="VCF")
     public VCFFileReader VARIANTS;
 
-    @Argument(fullName="core", shortName="c", doc="Core bed")
-    public File CORE_BED;
-
     @Argument(fullName="accessory", shortName="a", doc="Accessory bed")
     public File ACCESSORY_BED;
 
@@ -68,11 +65,13 @@ public class AnnotateCalls extends Module {
         IntervalTreeMap<String> ita = new IntervalTreeMap<>();
         IntervalTreeMap<GFF3Record> itg = new IntervalTreeMap<>();
 
+        /*
         TableReader trcore = new TableReader(CORE_BED, "chrom", "start", "stop", "label");
         for (Map<String, String> te : trcore) {
             Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
             itc.put(it, te.get("label"));
         }
+        */
 
         TableReader tracc = new TableReader(ACCESSORY_BED, "chrom", "start", "stop", "label");
         for (Map<String, String> te : tracc) {
@@ -110,8 +109,8 @@ public class AnnotateCalls extends Module {
         for (VariantContext vc : VARIANTS) {
             Interval it = new Interval(vc.getContig(), vc.getStart(), vc.getEnd());
 
-            String label = "unknown";
-            if (itc.containsOverlapping(it)) { label = "core"; }
+            String label = "core";
+            //if (itc.containsOverlapping(it)) { label = "core"; }
             if (ita.containsOverlapping(it)) { label = "accessory"; }
 
             Set<String> genes = new TreeSet<>();
