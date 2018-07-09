@@ -92,7 +92,7 @@ public class AnnotateCalls extends Module {
         for (GFF3 rm : REPEAT_MASKS) {
             for (GFF3Record r : rm) {
                 Interval it = new Interval(r.getSeqid(), r.getStart(), r.getEnd());
-                itrm.put(it, r.getAttribute("REPEAT"));
+                itrm.put(it, r.getAttribute("ID"));
             }
         }
 
