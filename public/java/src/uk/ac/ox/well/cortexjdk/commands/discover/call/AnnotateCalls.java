@@ -96,6 +96,8 @@ public class AnnotateCalls extends Module {
             }
         }
 
+        log.info("Loaded {} repeats", itrm.size());
+
         VariantContextWriter vcw = new VariantContextWriterBuilder()
             .setOutputFile(out)
             .setOutputFileType(VCF)
