@@ -36,6 +36,9 @@ public class AnnotateCalls extends Module {
     @Argument(fullName="accessory", shortName="a", doc="Accessory bed")
     public File ACCESSORY_BED;
 
+    @Argument(fullName="repeatmasks", shortName="rm", doc="Repeat masks")
+    public ArrayList<GFF3> REPEAT_MASKS;
+
     @Argument(fullName="genes", shortName="g", doc="Genes")
     public ArrayList<GFF3> GENES;
 
@@ -67,13 +70,6 @@ public class AnnotateCalls extends Module {
 
         TableReader trcore = new TableReader(CORE_BED, "chrom", "start", "stop", "label");
         for (Map<String, String> te : trcore) {
-//            try {
-//                int x = Integer.valueOf(te.get("start"));
-//                int y = Integer.valueOf(te.get("stop"));
-//            } catch (NumberFormatException e) {
-//                log.info("{}", Joiner.on(" ").withKeyValueSeparator("=").join(te));
-//            }
-
             Interval it = new Interval(te.get("chrom"), Integer.valueOf(te.get("start")), Integer.valueOf(te.get("stop")));
             itc.put(it, te.get("label"));
         }
@@ -90,6 +86,14 @@ public class AnnotateCalls extends Module {
                     Interval it = new Interval(gr.getSeqid(), gr.getStart(), gr.getEnd());
                     itg.put(it, gr);
                 }
+            }
+        }
+
+        IntervalTreeMap<String> itrm = new IntervalTreeMap<>();
+        for (GFF3 rm : REPEAT_MASKS) {
+            for (GFF3Record r : rm) {
+                Interval it = new Interval(r.getSeqid(), r.getStart(), r.getEnd());
+                itrm.put(it, r.getAttribute("REPEAT"));
             }
         }
 
@@ -111,10 +115,8 @@ public class AnnotateCalls extends Module {
             if (ita.containsOverlapping(it)) { label = "accessory"; }
 
             Set<String> genes = new TreeSet<>();
-            //Set<String> desc = new TreeSet<>();
             for (GFF3Record gr : itg.getOverlapping(it)) {
                 genes.add(gr.getAttribute("ID"));
-                //desc.add(gr.getAttribute("description"));
             }
 
             Set<String> closest = new TreeSet<>();
@@ -127,6 +129,12 @@ public class AnnotateCalls extends Module {
                 });
 
                 closest.add(grs.get(0).getAttribute("ID"));
+            }
+
+            String repeat = "NA";
+            List<String> repeats = new ArrayList<>(itrm.getOverlapping(itn));
+            if (repeats.size() > 0) {
+                repeat = repeats.get(0);
             }
 
             String pname = vc.getAttributeAsString("PARTITION_NAME", "");
@@ -148,9 +156,9 @@ public class AnnotateCalls extends Module {
                     .attribute("REGION", label)
                     .attribute("GENE", Joiner.on(",").join(genes))
                     .attribute("CLOSEST_GENE", Joiner.on(",").join(closest))
+                    .attribute("REPEAT", repeat)
                     .attribute("PARTITION_LENGTH", plength)
                     .attribute("PARTITION_NOVELS", numNovels)
-                    //.attribute("DESC", Joiner.on(",").join(desc))
                     .make();
 
             vcw.add(newvc);
