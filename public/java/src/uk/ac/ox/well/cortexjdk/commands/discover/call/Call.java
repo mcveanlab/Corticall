@@ -100,6 +100,23 @@ public class Call extends Module {
 
         log.info("Loading partitions...");
         List<ReferenceSequence> rseqs = loadPartitions();
+
+        rseqs.sort((o1, o2) -> {
+            int nk1 = 0, nk2 = 0;
+            for (int i = 0; i <= o1.length() - GRAPH.getKmerSize(); i++) {
+                CanonicalKmer ck = new CanonicalKmer(o1.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                if (rois.contains(ck)) { nk1++; }
+            }
+
+            for (int i = 0; i <= o2.length() - GRAPH.getKmerSize(); i++) {
+                CanonicalKmer ck = new CanonicalKmer(o2.getBaseString().substring(i, i + GRAPH.getKmerSize()));
+                if (rois.contains(ck)) { nk2++; }
+            }
+
+            if (nk1 == nk2) { return 0; }
+            return nk1 > nk2 ? -1 : 1;
+        });
+
         log.info("  {} partitions", rseqs.size());
 
         SAMSequenceDictionary sd = buildMergedSequenceDictionary(rseqs);
