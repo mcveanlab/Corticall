@@ -8,12 +8,15 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
+import static java.util.Map.Entry.comparingByValue;
 
 public class FilterPartitions extends Module {
     @Argument(fullName="contigs", shortName="c", doc="Contigs")
@@ -41,10 +44,17 @@ public class FilterPartitions extends Module {
             rois.add(cr.getCanonicalKmer());
         }
 
-        List<ReferenceSequence> rseqs = new ArrayList<>();
+        Map<ReferenceSequence, Integer> rseqs = new HashMap<>();
         Set<ReferenceSequence> toRemove = new HashSet<>();
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Loading partitions...")
+                .message("partitions loaded")
+                .updateRecord(50000)
+                .make(log);
+
         log.info("Loading partitions...");
+
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
             Set<CanonicalKmer> cks = getUsedCanonicalKmers(rseq.getBaseString(), rois);
@@ -54,14 +64,18 @@ public class FilterPartitions extends Module {
 
             if (cks.size() > NOVEL_KMER_THRESHOLD && !rois.contains(ck0) && !rois.contains(ck1)) {
                 //log.info("  accept: {}", rseq.getName().split(" ")[0]);
-                rseqs.add(rseq);
+                //rseqs.add(rseq);
+                rseqs.put(rseq, cks.size());
             } else {
                 //log.info("  reject: {}", rseq.getName().split(" ")[0]);
                 toRemove.add(rseq);
             }
+
+            pm.update();
         }
         log.info("  loaded {} partitions, {} removed", rseqs.size() + toRemove.size(), toRemove.size());
 
+        /*
         if (!SKIP_REDUNDANCY_CHECK) {
             log.info("Removing redundant partitions...");
             for (int i = 0; i < rseqs.size(); i++) {
@@ -90,9 +104,18 @@ public class FilterPartitions extends Module {
                 }
             }
         }
+        */
 
-        for (int i = 0; i < rseqs.size(); i++) {
-            ReferenceSequence rseqi = rseqs.get(i);
+        log.info("Sorting partitions...");
+        Map<ReferenceSequence, Integer> rseqsSorted = new LinkedHashMap<>();
+        rseqs.entrySet().stream()
+                .sorted(Map.Entry.<ReferenceSequence, Integer>comparingByValue().reversed())
+                .forEachOrdered(x -> rseqsSorted.put(x.getKey(), x.getValue()));
+
+        log.info("Writing...");
+        //for (int i = 0; i < rseqs.size(); i++) {
+        for (ReferenceSequence rseqi : rseqsSorted.keySet()) {
+            //ReferenceSequence rseqi = rseqs.get(i);
 
             if (!toRemove.contains(rseqi)) {
                 log.info("  retained: {}", rseqi.getName());
