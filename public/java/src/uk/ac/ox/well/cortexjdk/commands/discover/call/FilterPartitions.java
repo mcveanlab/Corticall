@@ -53,8 +53,6 @@ public class FilterPartitions extends Module {
                 .updateRecord(50000)
                 .make(log);
 
-        log.info("Loading partitions...");
-
         ReferenceSequence rseq;
         while ((rseq = CONTIGS.nextSequence()) != null) {
             Set<CanonicalKmer> cks = getUsedCanonicalKmers(rseq.getBaseString(), rois);

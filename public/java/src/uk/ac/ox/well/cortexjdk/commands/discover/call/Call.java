@@ -71,6 +71,9 @@ public class Call extends Module {
     @Argument(fullName="partitionName", shortName="pn", doc="Partitions to process", required=false)
     public HashSet<String> PARTITION_NAMES;
 
+    @Argument(fullName="partitionRange", shortName="pr", doc="Partition range to process", required=false)
+    public HashMap<Integer, Integer> PARTITION_RANGE;
+
     @Argument(fullName="del", shortName="del", doc="Deletion probability")
     public Double DEL = 0.35;
 
@@ -97,6 +100,12 @@ public class Call extends Module {
         log.info("Loading ROIs...");
         Set<CanonicalKmer> rois = loadRois(ROIS);
         log.info("  {} rois", rois.size());
+
+        if (PARTITION_RANGE != null) {
+            log.info("Processing contig range {}-{}", PARTITION_RANGE.keySet().iterator().next(), PARTITION_RANGE.values().iterator().next());
+        } else if (PARTITION_NAMES != null) {
+            log.info("Processing {} contigs", PARTITION_NAMES.size());
+        }
 
         log.info("Loading partitions...");
         List<ReferenceSequence> rseqs = loadPartitions();
@@ -1724,9 +1733,11 @@ public class Call extends Module {
     private List<ReferenceSequence> loadPartitions() {
         List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence rseq;
+        int index = 0;
         while ((rseq = PARTITIONS.nextSequence()) != null) {
             String[] name = rseq.getName().split(" ");
-            if (PARTITION_NAMES == null || PARTITION_NAMES.contains(name[0])) {
+            if ((PARTITION_NAMES == null || PARTITION_NAMES.contains(name[0])) &&
+                (PARTITION_RANGE == null || (PARTITION_RANGE.keySet().iterator().next() <= index && index <= PARTITION_RANGE.values().iterator().next()))) {
                 rseqs.add(rseq);
             }
         }
