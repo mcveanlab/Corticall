@@ -94,8 +94,13 @@ public class Call extends Module {
 
     @Override
     public void execute() {
+        log.info("Loading ROIs...");
         Set<CanonicalKmer> rois = loadRois(ROIS);
+        log.info("  {} rois", rois.size());
+
+        log.info("Loading partitions...");
         List<ReferenceSequence> rseqs = loadPartitions();
+        log.info("  {} partitions", rseqs.size());
 
         SAMSequenceDictionary sd = buildMergedSequenceDictionary(rseqs);
         Set<VariantContext> svcs = buildVariantSorter(sd);
