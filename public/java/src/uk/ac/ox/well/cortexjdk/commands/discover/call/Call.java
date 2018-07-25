@@ -1740,6 +1740,7 @@ public class Call extends Module {
                 (PARTITION_RANGE == null || (PARTITION_RANGE.keySet().iterator().next() <= index && index <= PARTITION_RANGE.values().iterator().next()))) {
                 rseqs.add(rseq);
             }
+            index++;
         }
         return rseqs;
     }
