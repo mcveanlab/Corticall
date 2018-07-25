@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.io.graph.cortex;
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import it.unimi.dsi.io.ByteBufferInputStream;
 import org.apache.commons.collections.map.LRUMap;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.DeBruijnGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.utils.BinaryFile;
@@ -149,12 +150,14 @@ public class CortexGraph implements DeBruijnGraph {
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-//            long maxMem = Runtime.getRuntime().maxMemory();
-//            long memPortion = maxMem / 2;
-//            int numItems = (int) (memPortion / recordSize);
-//            cache = new LRUMap(numItems);
+            long maxMem = Runtime.getRuntime().maxMemory();
+            long memPortion = maxMem / 2;
+            int numItems = (int) (memPortion / recordSize);
+            cache = new LRUMap(numItems);
 
-            cache = new LRUMap(100000);
+            Main.getLogger().info("Will cache {} CortexRecord objects", numItems);
+
+            //cache = new LRUMap(100000);
 
             position(0);
         } catch (FileNotFoundException e) {
