@@ -170,6 +170,7 @@ public class Call extends Module {
                         Map<String, String> targets = allTargets.get("all");
 
                         Map<String, String> labelledTargets = new HashMap<>();
+                        int targetNum = 0;
                         for (String c : targets.keySet()) {
                             String[] p = c.split(":");
                             if (BACKGROUNDS.containsKey(p[0])) {
@@ -181,7 +182,10 @@ public class Call extends Module {
 
                                     labelledTargets.put(l, targets.get(c));
                                 } else {
-                                    labelledTargets.put(c, targets.get(c));
+                                    String l = p[0] + ":" + targetNum;
+                                    targetNum++;
+
+                                    labelledTargets.put(l, targets.get(c));
                                 }
                             }
                         }
