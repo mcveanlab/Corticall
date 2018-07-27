@@ -180,6 +180,8 @@ public class Call extends Module {
                             }
                         }
 
+                        log.info("{} {} {}", allTargets.size(), allTargets.get("all").size(), labelledTargets.size());
+
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), labelledTargets);
 
                         log.debug("\n{}\n{}", makeNoveltyTrack(rois, lps, true), ma);
