@@ -181,7 +181,7 @@ public class Call extends Module {
                         }
 
                         log.info("{} {} {}", allTargets.size(), allTargets.get("all").size(), labelledTargets.size());
-                        log.info("{}", labelledTargets);
+                        log.info("{} {}", labelledTargets, bestTagName);
 
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), labelledTargets);
 
