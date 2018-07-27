@@ -150,6 +150,7 @@ public class Call extends Module {
                     if (allTargets.get("all").size() > 0) {
                         Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, allTargets.get("all"), rois);
 
+                        /*
                         String bestTagName = "all";
                         double llk = Double.MIN_VALUE;
                         for (String tagName : allTargets.keySet()) {
@@ -164,6 +165,9 @@ public class Call extends Module {
                         }
 
                         Map<String, String> targets = allTargets.get(bestTagName);
+                        */
+
+                        Map<String, String> targets = allTargets.get("all");
 
                         Map<String, String> labelledTargets = new HashMap<>();
                         for (String c : targets.keySet()) {
@@ -176,12 +180,11 @@ public class Call extends Module {
                                     String l = p[0] + ":" + s.getContig() + ":" + s.getStart() + "-" + s.getEnd() + ":" + (s.getReadNegativeStrandFlag() ? "-" : "+");
 
                                     labelledTargets.put(l, targets.get(c));
+                                } else {
+                                    labelledTargets.put(c, targets.get(c));
                                 }
                             }
                         }
-
-                        log.info("{} {} {}", allTargets.size(), allTargets.get("all").size(), labelledTargets.size());
-                        log.info("{} {}", labelledTargets, bestTagName);
 
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), labelledTargets);
 
