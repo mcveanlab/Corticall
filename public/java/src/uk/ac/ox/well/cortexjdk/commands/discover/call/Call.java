@@ -182,7 +182,7 @@ public class Call extends Module {
 
                                     labelledTargets.put(l, targets.get(c));
                                 } else {
-                                    String l = p[0] + ":" + targetNum;
+                                    String l = p[0] + ":unknown" + targetNum;
                                     targetNum++;
 
                                     labelledTargets.put(l, targets.get(c));
