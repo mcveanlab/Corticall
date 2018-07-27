@@ -3,6 +3,7 @@ package uk.ac.ox.well.cortexjdk.utils.alignment.mosaic;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.util.Pair;
+import uk.ac.ox.well.cortexjdk.Main;
 import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 
 import java.util.*;
@@ -426,6 +427,9 @@ public class Tesserae {
         }
 
         editTrack = sb.toString();
+
+        Main.getLogger().debug("panel: {} {}", panel.size(), panel);
+        Main.getLogger().debug("     : {} {}", cp, seqs.size());
 
         // Prepare copying tracks
         String currentTrack = seqs.get(maxpath_copy[cp]-1).getFirst();
