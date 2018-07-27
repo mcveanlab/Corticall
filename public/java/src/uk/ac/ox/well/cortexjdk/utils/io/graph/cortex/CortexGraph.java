@@ -150,14 +150,14 @@ public class CortexGraph implements DeBruijnGraph {
 
             mappedRecordBuffer = ByteBufferInputStream.map(in.getChannel(), FileChannel.MapMode.READ_ONLY);
 
-            long maxMem = Runtime.getRuntime().maxMemory();
-            long memPortion = maxMem / 2;
-            int numItems = (int) (memPortion / recordSize);
-            cache = new LRUMap(numItems);
+            //long maxMem = Runtime.getRuntime().maxMemory();
+            //long memPortion = maxMem / 2;
+            //int numItems = (int) (memPortion / recordSize);
+            //cache = new LRUMap(numItems);
 
-            Main.getLogger().info("Will cache {} CortexRecord objects", numItems);
+            //Main.getLogger().info("Will cache {} CortexRecord objects", numItems);
 
-            //cache = new LRUMap(100000);
+            cache = new LRUMap(1000000);
 
             position(0);
         } catch (FileNotFoundException e) {
