@@ -428,8 +428,8 @@ public class Tesserae {
 
         editTrack = sb.toString();
 
-        Main.getLogger().debug("panel: {} {}", panel.size(), panel);
-        Main.getLogger().debug("     : {} {}", cp, seqs.size());
+        Main.getLogger().info("panel: {} {}", panel.size(), panel);
+        Main.getLogger().info("     : {} {}", cp, seqs.size());
 
         // Prepare copying tracks
         String currentTrack = seqs.get(maxpath_copy[cp]-1).getFirst();
