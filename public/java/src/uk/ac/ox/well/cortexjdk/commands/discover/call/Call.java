@@ -71,9 +71,6 @@ public class Call extends Module {
     @Argument(fullName="partitionName", shortName="pn", doc="Partitions to process", required=false)
     public HashSet<String> PARTITION_NAMES;
 
-    @Argument(fullName="partitionRange", shortName="pr", doc="Partition range to process", required=false)
-    public HashMap<Integer, Integer> PARTITION_RANGE;
-
     @Argument(fullName="del", shortName="del", doc="Deletion probability")
     public Double DEL = 0.35;
 
@@ -101,9 +98,7 @@ public class Call extends Module {
         Set<CanonicalKmer> rois = loadRois(ROIS);
         log.info("  {} rois", rois.size());
 
-        if (PARTITION_RANGE != null) {
-            log.info("Processing contig range {}-{}", PARTITION_RANGE.keySet().iterator().next(), PARTITION_RANGE.values().iterator().next());
-        } else if (PARTITION_NAMES != null) {
+        if (PARTITION_NAMES != null) {
             log.info("Processing {} contigs", PARTITION_NAMES.size());
         }
 
@@ -138,36 +133,15 @@ public class Call extends Module {
 
                     List<CortexVertex> ws = section.getRight();
 
-                    Map<String, Map<String, String>> allTargets = new HashMap<>();
-                    allTargets.put("all", new HashMap<>());
+                    Map<String, String> targets = new HashMap<>();
                     for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
                         Map<String, String> parentalTargets = fasterAssembleCandidateHaplotypes(ws, parentName);
 
-                        allTargets.get("all").putAll(parentalTargets);
-                        allTargets.put(parentName.iterator().next(), parentalTargets);
+                        targets.putAll(parentalTargets);
                     }
 
-                    if (allTargets.get("all").size() > 0) {
-                        Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, allTargets.get("all"), rois);
-
-                        /*
-                        String bestTagName = "all";
-                        double llk = Double.MIN_VALUE;
-                        for (String tagName : allTargets.keySet()) {
-                            if (allTargets.get(tagName).size() > 0) {
-                                ma.align(trimmedQuery.getRight(), allTargets.get(tagName));
-
-                                if (ma.getMaximumLogLikelihood() > llk) {
-                                    bestTagName = tagName;
-                                    llk = ma.getMaximumLogLikelihood();
-                                }
-                            }
-                        }
-
-                        Map<String, String> targets = allTargets.get(bestTagName);
-                        */
-
-                        Map<String, String> targets = allTargets.get("all");
+                    if (targets.size() > 0) {
+                        Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, targets, rois);
 
                         Map<String, String> labelledTargets = new HashMap<>();
                         int targetNum = 0;
@@ -224,12 +198,8 @@ public class Call extends Module {
             }
 
             vcs = filterBreakpoints(vcs);
-
             vcs = mergeBreakpoints(seq, vcs, rois);
-
-            if (!DISABLE_INVERSION_CALLER) {
-                vcs = mergeDoubleBreakpoints(seq, vcs);
-            }
+            if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
             //vcs = mergeSingleBreakpoints(seq, vcs);
 
             vcs = assignCoordinates(vcs);
@@ -479,10 +449,6 @@ public class Call extends Module {
         List<SAMRecord> srs = null;
         int alignStart = 0;
         if (prevSr != null && nextSr != null) {
-            //sr = prevSr.getStart() < nextSr.getStart() ? prevSr : nextSr;
-            //srs = prevSr.getStart() < nextSr.getStart() ? prevSrs : nextSrs;
-            //alignStart = sr.getEnd() + 1;
-
             if (prevSr.getStart() < nextSr.getStart()) {
                 nextSr = null;
             } else {
@@ -884,13 +850,10 @@ public class Call extends Module {
                 String kmer0 = flank0.length() - GRAPH.getKmerSize() - 1 >= 0 ? flank0.substring(flank0.length() - GRAPH.getKmerSize() - 1, flank0.length() - 1) : "";
                 String kmer1 = GRAPH.getKmerSize() + 1 < flank1.length() ? flank1.substring(1, GRAPH.getKmerSize() + 1) : "";
 
-                //String childContig = seq.substring(v0.getEnd() - GRAPH.getKmerSize() + 1, v1.getStart());
                 int c0 = v0.getEnd() - GRAPH.getKmerSize() >= 0 ? v0.getEnd() - GRAPH.getKmerSize() : 0;
                 int c1 = v1.getStart() + GRAPH.getKmerSize() + 1 < seq.length() ? v1.getStart() + GRAPH.getKmerSize() + 1 : seq.length();
                 String childContig = seq.substring(c0, c1);
                 String parentContig = null;
-
-                //log.info("{} {} {} {}", i, j, kmer0, kmer1);
 
                 if (kmer0.length() == GRAPH.getKmerSize() && kmer1.length() == GRAPH.getKmerSize()) {
                     for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
@@ -940,10 +903,6 @@ public class Call extends Module {
                                 }
 
                                 for (String parentalContig : parentalContigs) {
-                                    //log.info("{}", parentalContig);
-                                    //log.info("{}", childContig);
-                                    //log.info("");
-
                                     if (parentContig == null || parentalContig.length() > parentContig.length()) {
                                         parentContig = parentalContig;
                                     }
@@ -975,34 +934,13 @@ public class Call extends Module {
                     float fedit = pctSharedKmers(childContig, parentContig);
                     float wedit = pctSharedKmers(SequenceUtils.reverse(childContig), parentContig);
 
-                    //SmithWaterman sw = new SmithWaterman();
-                    //String[] f = sw.getAlignment(childContig, parentContig);
-                    //float fedit = 100.0f * ((float) f[0].length() - numEdits(f)) / (float) f[0].length();
-
-                    //String[] w = sw.getAlignment(SequenceUtils.reverseComplement(childContig), parentContig);
-                    //float wedit = 100.0f * ((float) w[0].length() - numEdits(w)) / (float) w[0].length();
-
-                    //log.info("{}", fedit);
-                    //log.info("{}", f[0]);
-                    //log.info("{}", f[1]);
-
-                    //log.info("{}", wedit);
-                    //log.info("{}", w[0]);
-                    //log.info("{}", w[1]);
-
                     if (fedit > wedit && fedit >= 50.0f && childContig.length() < 2000 && parentContig.length() < 2000) {
                         Tesserae ma = new Tesserae(0.35, 0.99, 1e-5, 0.001);
                         Map<String, String> newTargets = new HashMap<>();
                         newTargets.put(String.format("%s:%s_unknown:%s_contig0_merge", back0, back0, back0), parentContig);
                         List<Triple<String, String, Pair<Integer, Integer>>> newlps = ma.align(childContig, newTargets);
 
-                        //List<Triple<String, String, Pair<Integer, Integer>>> newlps = new ArrayList<>();
-                        //newlps.add(Triple.of("query", childContig, Pair.create(0, childContig.length())));
-                        //newlps.add(Triple.of(String.format("%s:%s_unknown:%s_contig0_merge", back0, back0, back0), parentContig, Pair.create(0, childContig.length())));
-
                         List<Pair<Integer, Integer>> nrs = getNoveltyRegions(rois, newlps, true);
-
-                        //log.info("\n{}\n{}", makeNoveltyTrack(rois, newlps, true), ma);
 
                         List<VariantContextBuilder> newCalls = new ArrayList<>();
                         newCalls.addAll(callSmallBubbles(newlps, nrs, v0.getAttributeAsString("PARTITION_NAME", ""), 0, childContig.length()));
@@ -1020,14 +958,8 @@ public class Call extends Module {
                                         .attributes(v0.getAttributes())
                             );
                         }
-
-                        //log.info("");
-                        //calls.addAll(callLargeBubbles(newlps, nrs, targets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
-                        //calls.addAll(callBreakpoints(newlps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
                     } else if (wedit > fedit && wedit >= 50.0f) {
                         List<Allele> alleles = Arrays.asList(Allele.create(parentContig, true), Allele.create(SequenceUtils.reverseComplement(childContig)));
-
-                        //log.info("Inversion");
 
                         VariantContextBuilder vcb = new VariantContextBuilder(v0)
                                 .alleles(alleles)
@@ -1129,27 +1061,6 @@ public class Call extends Module {
                 }
                 int q0 = getParentalRow(lps0, pos0);
 
-                /*
-                for (int q = 1; q < lps0.size(); q++) {
-                    if (lps0.get(q).getLeft().equals(outer0.getAttributeAsString("targetName", ""))) {
-                        int pos = outer0.getAttributeAsInt("start", 0);
-                        while (kmer0.length() < GRAPH.getKmerSize() && pos >= 0) {
-                            char c = lps0.get(q).getMiddle().charAt(pos);
-
-                            if (c != '-') {
-                                kmer0.insert(0, c);
-                            }
-
-                            pos--;
-                        }
-
-                        q0 = q;
-
-                        break;
-                    }
-                }
-                */
-
                 for (int j = i + 2; j <= bnds.size() - 2; j += 2) {
                     VariantContext inner1 = bnds.get(j).make();
                     VariantContext outer1 = bnds.get(j+1).make();
@@ -1165,27 +1076,6 @@ public class Call extends Module {
                         }
                     }
                     int q1 = getParentalRow(lps1, pos1);
-
-                    /*
-                    for (int q = 1; q < lps1.size(); q++) {
-                        if (lps1.get(q).getLeft().equals(outer1.getAttributeAsString("targetName", ""))) {
-                            int pos = outer1.getAttributeAsInt("start", 0);
-                            while (kmer1.length() < GRAPH.getKmerSize() && pos < lps1.get(q).getMiddle().length()) {
-                                char c = lps1.get(q).getMiddle().charAt(pos);
-
-                                if (c != '-') {
-                                    kmer1.append(c);
-                                }
-
-                                pos++;
-                            }
-
-                            q1 = q;
-
-                            break;
-                        }
-                    }
-                    */
 
                     String back0 = lps0.get(q0).getLeft().split(":")[0];
                     String back1 = lps1.get(q1).getLeft().split(":")[0];
@@ -1240,8 +1130,6 @@ public class Call extends Module {
                                     int index1 = seq.indexOf(kmer1.toString(), index0);
 
                                     if (index0 >= GRAPH.getKmerSize() && index1 > 0 && index1 > index0) {
-
-                                        //String childContig = seq.substring(seq.indexOf(kmer0.toString()) + GRAPH.getKmerSize(), seq.indexOf(kmer1.toString(), seq.indexOf(kmer0.toString())));
                                         String childContig = seq.substring(index0 + GRAPH.getKmerSize(), index1);
 
                                         for (String parentalContig : parentalContigs) {
@@ -1636,7 +1524,6 @@ public class Call extends Module {
             vcw.add(new VariantContextBuilder(vc)
                 .rmAttribute("novels")
                 .attribute("CALL_ID", variantId)
-                //.id(id)
                 .make()
             );
 
@@ -1743,14 +1630,11 @@ public class Call extends Module {
     private List<ReferenceSequence> loadPartitions() {
         List<ReferenceSequence> rseqs = new ArrayList<>();
         ReferenceSequence rseq;
-        int index = 0;
         while ((rseq = PARTITIONS.nextSequence()) != null) {
             String[] name = rseq.getName().split(" ");
-            if ((PARTITION_NAMES == null || PARTITION_NAMES.contains(name[0])) &&
-                (PARTITION_RANGE == null || (PARTITION_RANGE.keySet().iterator().next() <= index && index <= PARTITION_RANGE.values().iterator().next()))) {
+            if (PARTITION_NAMES == null || PARTITION_NAMES.contains(name[0])) {
                 rseqs.add(rseq);
             }
-            index++;
         }
         return rseqs;
     }
@@ -1761,7 +1645,6 @@ public class Call extends Module {
         }
 
         List<SAMRecord> a = BACKGROUNDS.get(background).align(target);
-        //a.removeIf(s -> s.getMappingQuality() == 0);
 
         a.sort((s1, s2) -> {
             int s1length = s1.getAlignmentEnd() - s1.getAlignmentStart();
@@ -1772,17 +1655,9 @@ public class Call extends Module {
             int nm2 = s2.getIntegerAttribute("NM");
             int mq2 = s1.getMappingQuality();
 
-            if (s1length != s2length) {
-                return s1length > s2length ? -1 : 1;
-            }
-
-            if (nm1 != nm2) {
-                return nm1 < nm2 ? -1 : 1;
-            }
-
-            if (mq1 != mq2) {
-                return mq1 > mq2 ? -1 : 1;
-            }
+            if (s1length != s2length) { return s1length > s2length ? -1 : 1; }
+            if (nm1 != nm2) { return nm1 < nm2 ? -1 : 1; }
+            if (mq1 != mq2) { return mq1 > mq2 ? -1 : 1; }
 
             return 0;
         });
@@ -1825,8 +1700,6 @@ public class Call extends Module {
         if (lastNovel > lastIndex) { lastIndex = lastNovel; }
 
         return Triple.of(firstIndex, lastIndex, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex)));
-
-        //return Triple.of(0, ws.size() - 1, TraversalUtils.toContig(ws));
     }
 
     private int getNumColumns(List<Triple<String, String, Pair<Integer, Integer>>> lps) {
@@ -1991,7 +1864,6 @@ public class Call extends Module {
             }
 
             if (hasCoverage && TraversalUtils.findVertex(g, ws.get(i).getKmerAsString()) == null) {
-//            if (hasCoverage) {
                 DirectedWeightedPseudograph<CortexVertex, CortexEdge> gs = e.dfs(ws.get(i).getKmerAsString());
 
                 if (gs != null && gs.vertexSet().size() > 0) {
@@ -2038,7 +1910,6 @@ public class Call extends Module {
             }
 
             for (List<CortexVertex> w : walks) {
-                //
                 int actualStart = Integer.MAX_VALUE, actualEnd = -1;
                 int shared = 0;
                 for (int i = 0; i < w.size(); i++) {
@@ -2058,9 +1929,6 @@ public class Call extends Module {
 
                     contigs.add(contig);
                 }
-                //
-
-                //contigs.add(TraversalUtils.toContig(w));
             }
 
             int i = 0;
