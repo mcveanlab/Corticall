@@ -54,7 +54,7 @@ public class GetKmersSpanningVariants extends Module {
     private Set<String> recursivelyGenerateCombinations(List<VariantContext> affectingVariants, List<String> alleles, int pos, int seqLength) {
         List<Integer> indices = new ArrayList<>();
 
-        for (int i = 0; i < affectingVariants.size(); i++) { indices.add(i); }
+        for (int i = 0; i < affectingVariants.size() && i <= 10; i++) { indices.add(i); }
 
         Set<List<Integer>> loos = new HashSet<>();
         loos.add(new ArrayList<>());
@@ -62,7 +62,7 @@ public class GetKmersSpanningVariants extends Module {
         loos.addAll(generateCombinatoricLists(indices));
 
         int start = pos - WINDOW_SIZE >= 0 ? pos - WINDOW_SIZE : 0;
-        int stop = pos + WINDOW_SIZE < alleles.size() && pos + WINDOW_SIZE < seqLength ? pos + WINDOW_SIZE : alleles.size();
+        int stop = pos + WINDOW_SIZE < seqLength ? pos + WINDOW_SIZE : seqLength - 1;
 
         Set<String> haplotypes = new HashSet<>();
         for (List<Integer> loo : loos) {
@@ -158,7 +158,7 @@ public class GetKmersSpanningVariants extends Module {
                         //log.info("  {}", vc);
                     //}
 
-                    Set<String> haplotypes = affectingVariants.size() <= 10 ? recursivelyGenerateCombinations(affectingVariants, alleles, i, seq.length()) : new HashSet<>();
+                    Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariants, alleles, i, seq.length());
 
                     Set<String> kmers = new HashSet<>();
                     for (String haplotype : haplotypes) {
