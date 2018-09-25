@@ -24,6 +24,9 @@ public class GetKmersSpanningVariants extends Module {
     @Argument(fullName="windowSize", shortName="w", doc="Window size")
     public Integer WINDOW_SIZE = 50;
 
+    @Argument(fullName="variantLimit", shortName="l", doc="Variant limit")
+    public Integer VARIANT_LIMIT = 50;
+
     @Output
     public PrintStream out;
 
@@ -54,7 +57,7 @@ public class GetKmersSpanningVariants extends Module {
     private Set<String> recursivelyGenerateCombinations(List<VariantContext> affectingVariants, List<String> alleles, int pos, int seqLength) {
         List<Integer> indices = new ArrayList<>();
 
-        for (int i = 0; i < affectingVariants.size() && i <= 10; i++) { indices.add(i); }
+        for (int i = 0; i < affectingVariants.size(); i++) { indices.add(i); }
 
         Set<List<Integer>> loos = new HashSet<>();
         loos.add(new ArrayList<>());
@@ -152,13 +155,18 @@ public class GetKmersSpanningVariants extends Module {
                     }
 
                     List<VariantContext> affectingVariants = new ArrayList<>(affectingVariantsSet);
+                    List<VariantContext> affectingVariantsSubset = new ArrayList<>();
+
+                    for (int q = 0; q < VARIANT_LIMIT; q++) {
+                        affectingVariantsSubset.add(affectingVariants.get(q));
+                    }
 
                     //log.info("{} {} {} {}", name, i, alleles.get(i), affectingVariantsSet.size());
                     //for (VariantContext vc : affectingVariantsSet) {
                         //log.info("  {}", vc);
                     //}
 
-                    Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariants, alleles, i, seq.length());
+                    Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, alleles, i, seq.length());
 
                     Set<String> kmers = new HashSet<>();
                     for (String haplotype : haplotypes) {
@@ -168,7 +176,7 @@ public class GetKmersSpanningVariants extends Module {
                         }
                     }
 
-                    log.info("    {} (w={}): affectingVariants={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), haplotypes.size(), kmers.size());
+                    log.info("    {} (w={}): affectingVariants={} affectingVariantsSubset={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), affectingVariantsSubset.size(), haplotypes.size(), kmers.size());
 
                     int kindex = 0;
                     for (String kmer : kmers) {
