@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.playground.eval;
 
+import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -29,6 +30,9 @@ public class GetKmersSpanningVariants extends Module {
 
     @Output
     public PrintStream out;
+
+    @Output(fullName="statsOut", shortName="so", doc="Stats out")
+    public PrintStream sout;
 
     private List<List<Integer>> generateCombinatoricLists(List<Integer> indices) {
         List<List<Integer>> loos = new ArrayList<>();
@@ -103,6 +107,7 @@ public class GetKmersSpanningVariants extends Module {
 
         log.info("Loading variants...");
         int numVariants = 0;
+        int numUsableVariants = 0;
         for (VariantContext vc : VCF) {
             if (numVariants % 10000 == 0) {
                 log.info("  loaded {}", numVariants);
@@ -119,8 +124,13 @@ public class GetKmersSpanningVariants extends Module {
                 }
 
                 allVcs.get(vc.getChr()).get(vc.getStart() - 1).add(vc);
+                numUsableVariants++;
             }
         }
+
+        int numUsedVariants = 0;
+        int numWindows = 0;
+        int numWindowsScaledDown = 0;
 
         log.info("Processing reference...");
         ReferenceSequence rseq;
@@ -140,7 +150,7 @@ public class GetKmersSpanningVariants extends Module {
                 Set<VariantContext> vcs = allVcs.containsKey(name) && allVcs.get(name).containsKey(i) ? allVcs.get(name).get(i) : null;
 
                 if (vcs != null) {
-                    log.info("    {} {}", i, vcs);
+                    log.debug("    {} {}", i, vcs);
 
                     Set<VariantContext> affectingVariantsSet = new HashSet<>(vcs);
 
@@ -161,6 +171,8 @@ public class GetKmersSpanningVariants extends Module {
 
                     for (int q = 0; q < VARIANT_LIMIT && q < affectingVariants.size(); q++) {
                         affectingVariantsSubset.add(affectingVariants.get(q));
+
+                        numUsedVariants++;
                     }
 
                     //log.info("{} {} {} {}", name, i, alleles.get(i), affectingVariantsSet.size());
@@ -178,7 +190,12 @@ public class GetKmersSpanningVariants extends Module {
                         }
                     }
 
-                    log.info("    {} (w={}): affectingVariants={} affectingVariantsSubset={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), affectingVariantsSubset.size(), haplotypes.size(), kmers.size());
+                    log.debug("    {} (w={}): affectingVariants={} affectingVariantsSubset={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), affectingVariantsSubset.size(), haplotypes.size(), kmers.size());
+
+                    numWindows++;
+                    if (affectingVariantsSubset.size() < affectingVariants.size()) {
+                        numWindowsScaledDown++;
+                    }
 
                     int kindex = 0;
                     for (String kmer : kmers) {
@@ -199,6 +216,9 @@ public class GetKmersSpanningVariants extends Module {
                 }
             }
         }
+
+        sout.println("numVariants\tnumUsableVariants\tnumUsedVariants\tnumWindows\tnumWindowsScaledDown");
+        sout.println(Joiner.on("\t").join(numVariants, numUsableVariants, numUsedVariants, numWindows, numWindowsScaledDown));
     }
 }
 
