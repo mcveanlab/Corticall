@@ -157,7 +157,7 @@ public class GetKmersSpanningVariants extends Module {
                     List<VariantContext> affectingVariants = new ArrayList<>(affectingVariantsSet);
                     List<VariantContext> affectingVariantsSubset = new ArrayList<>();
 
-                    for (int q = 0; q < VARIANT_LIMIT; q++) {
+                    for (int q = 0; q < VARIANT_LIMIT && q < affectingVariants.size(); q++) {
                         affectingVariantsSubset.add(affectingVariants.get(q));
                     }
 
