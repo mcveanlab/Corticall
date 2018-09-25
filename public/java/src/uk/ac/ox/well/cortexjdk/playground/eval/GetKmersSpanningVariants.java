@@ -168,6 +168,8 @@ public class GetKmersSpanningVariants extends Module {
                         }
                     }
 
+                    log.info("    {} (w={}): affectingVariants={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), haplotypes.size(), kmers.size());
+
                     int kindex = 0;
                     for (String kmer : kmers) {
                         out.println(">" + name + ":" + (i+1) + "." + kindex);
