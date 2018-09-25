@@ -26,7 +26,7 @@ public class GetKmersSpanningVariants extends Module {
     public Integer WINDOW_SIZE = 50;
 
     @Argument(fullName="variantLimit", shortName="l", doc="Variant limit")
-    public Integer VARIANT_LIMIT = 10;
+    public Integer VARIANT_LIMIT = 12;
 
     @Output
     public PrintStream out;
@@ -174,11 +174,6 @@ public class GetKmersSpanningVariants extends Module {
 
                         numUsedVariants++;
                     }
-
-                    //log.info("{} {} {} {}", name, i, alleles.get(i), affectingVariantsSet.size());
-                    //for (VariantContext vc : affectingVariantsSet) {
-                        //log.info("  {}", vc);
-                    //}
 
                     Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, alleles, i, seq.length());
 
