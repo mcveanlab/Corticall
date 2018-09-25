@@ -51,6 +51,29 @@ public class TestMosaicAligner {
         }
     }
 
+    @Test
+    private void smallTest() {
+        String[] templates = { "GTAGGCGAGTCCCGTTTATA", "CCACAGAAGATGACGCCATT" };
+
+        Map<String, String> targets = new HashMap<>();
+        targets.put("template0", templates[0]);
+        targets.put("template1", templates[1]);
+
+        String query = "GTAGGCGAGATGACGCCAT";
+
+        Tesserae ma = new Tesserae();
+        List<Triple<String, String, Pair<Integer, Integer>>> ps = ma.align(query, targets);
+
+        Assert.assertEquals(3, ps.size());
+
+        /*
+            query (0-18) GTAGGCGAGATGACGCCAT
+                         |||||||||||||||||||
+         template0 (0-6) GTAGGCG
+        template1 (7-18)        AGATGACGCCAT
+         */
+    }
+
     private int unsharedKmers(String s1, String s2, int k) {
         Set<String> ks1 = new HashSet<>();
         Set<String> ks2 = new HashSet<>();
