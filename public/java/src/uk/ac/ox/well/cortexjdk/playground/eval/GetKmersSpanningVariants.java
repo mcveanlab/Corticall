@@ -25,7 +25,7 @@ public class GetKmersSpanningVariants extends Module {
     public Integer WINDOW_SIZE = 50;
 
     @Argument(fullName="variantLimit", shortName="l", doc="Variant limit")
-    public Integer VARIANT_LIMIT = 50;
+    public Integer VARIANT_LIMIT = 10;
 
     @Output
     public PrintStream out;
