@@ -140,6 +140,8 @@ public class GetKmersSpanningVariants extends Module {
                 Set<VariantContext> vcs = allVcs.containsKey(name) && allVcs.get(name).containsKey(i) ? allVcs.get(name).get(i) : null;
 
                 if (vcs != null) {
+                    log.info("    {} {}", i, vcs);
+
                     Set<VariantContext> affectingVariantsSet = new HashSet<>(vcs);
 
                     for (int j = i; j >= 0 && j >= i - WINDOW_SIZE; j--) {
