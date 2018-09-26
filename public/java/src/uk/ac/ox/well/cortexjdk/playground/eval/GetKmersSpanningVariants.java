@@ -173,6 +173,8 @@ public class GetKmersSpanningVariants extends Module {
                         affectingVariantsSubset.add(affectingVariants.get(q));
 
                         numUsedVariants++;
+
+                        log.debug("     - {}", affectingVariants.get(q));
                     }
 
                     Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, alleles, i, seq.length());
