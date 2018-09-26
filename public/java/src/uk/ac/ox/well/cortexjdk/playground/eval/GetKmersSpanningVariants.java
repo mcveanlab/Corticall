@@ -68,7 +68,8 @@ public class GetKmersSpanningVariants extends Module {
         loos.add(indices);
         loos.addAll(generateCombinatoricLists(indices));
 
-        int start = pos - WINDOW_SIZE >= 0 ? pos - WINDOW_SIZE : 0;
+        //int start = pos - WINDOW_SIZE >= 0 ? pos - WINDOW_SIZE : 0;
+        int start = pos;
         int stop = pos + WINDOW_SIZE < seqLength ? pos + WINDOW_SIZE : seqLength - 1;
 
         Set<String> haplotypes = new HashSet<>();
@@ -154,11 +155,13 @@ public class GetKmersSpanningVariants extends Module {
 
                     Set<VariantContext> affectingVariantsSet = new HashSet<>(vcs);
 
+                    /*
                     for (int j = i; j >= 0 && j >= i - WINDOW_SIZE; j--) {
                         if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
                             affectingVariantsSet.addAll(allVcs.get(name).get(j));
                         }
                     }
+                    */
 
                     for (int j = i; j < seq.length() && j <= i + WINDOW_SIZE; j++) {
                         if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
