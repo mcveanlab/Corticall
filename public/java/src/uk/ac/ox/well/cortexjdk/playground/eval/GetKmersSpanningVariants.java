@@ -181,7 +181,7 @@ public class GetKmersSpanningVariants extends Module {
 
                     int q = 0;
                     for (VariantContext vc : affectingVariantsSet) {
-                        if (q >= VARIANT_LIMIT) {
+                        if (q < VARIANT_LIMIT) {
                             affectingVariantsSubset.add(vc);
 
                             numUsedVariants++;
