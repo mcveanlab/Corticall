@@ -154,7 +154,7 @@ public class GetKmersSpanningVariants extends Module {
                 Set<VariantContext> vcs = allVcs.containsKey(name) && allVcs.get(name).containsKey(i) ? allVcs.get(name).get(i) : null;
 
                 if (vcs != null) {
-                    log.debug("    {} {}", i, vcs);
+                    log.debug("    {} {}", i+1, vcs);
 
                     Set<VariantContext> affectingVariantsSet = new TreeSet<>((v1, v2) -> {
                         if (v1.getContig().equals(v2.getContig())) {
@@ -163,7 +163,6 @@ public class GetKmersSpanningVariants extends Module {
 
                         return 0;
                     });
-                    affectingVariantsSet.addAll(vcs);
 
                     for (int j = i; j < seq.length() && j <= i + WINDOW_SIZE; j++) {
                         if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
