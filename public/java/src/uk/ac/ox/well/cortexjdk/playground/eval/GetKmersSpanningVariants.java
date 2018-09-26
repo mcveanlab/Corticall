@@ -1,5 +1,6 @@
 package uk.ac.ox.well.cortexjdk.playground.eval;
 
+import com.google.api.services.genomics.model.Variant;
 import com.google.common.base.Joiner;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -26,7 +27,7 @@ public class GetKmersSpanningVariants extends Module {
     public Integer WINDOW_SIZE = 50;
 
     @Argument(fullName="variantLimit", shortName="l", doc="Variant limit")
-    public Integer VARIANT_LIMIT = 12;
+    public Integer VARIANT_LIMIT = 10;
 
     @Output
     public PrintStream out;
@@ -58,9 +59,11 @@ public class GetKmersSpanningVariants extends Module {
         return loos;
     }
 
-    private Set<String> recursivelyGenerateCombinations(List<VariantContext> affectingVariants, List<String> alleles, int pos, int seqLength) {
+    private Set<String> recursivelyGenerateCombinations(Set<VariantContext> variants, List<String> alleles, int pos, int seqLength) {
+        List<VariantContext> affectingVariants = new ArrayList<>(variants);
         List<Integer> indices = new ArrayList<>();
 
+        //for (int i = 0; i < affectingVariants.size(); i++) { indices.add(i); }
         for (int i = 0; i < affectingVariants.size(); i++) { indices.add(i); }
 
         Set<List<Integer>> loos = new HashSet<>();
@@ -155,14 +158,6 @@ public class GetKmersSpanningVariants extends Module {
 
                     Set<VariantContext> affectingVariantsSet = new HashSet<>(vcs);
 
-                    /*
-                    for (int j = i; j >= 0 && j >= i - WINDOW_SIZE; j--) {
-                        if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
-                            affectingVariantsSet.addAll(allVcs.get(name).get(j));
-                        }
-                    }
-                    */
-
                     for (int j = i; j < seq.length() && j <= i + WINDOW_SIZE; j++) {
                         if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
                             affectingVariantsSet.addAll(allVcs.get(name).get(j));
@@ -170,7 +165,7 @@ public class GetKmersSpanningVariants extends Module {
                     }
 
                     List<VariantContext> affectingVariants = new ArrayList<>(affectingVariantsSet);
-                    List<VariantContext> affectingVariantsSubset = new ArrayList<>();
+                    Set<VariantContext> affectingVariantsSubset = new TreeSet<>();
 
                     for (int q = 0; q < VARIANT_LIMIT && q < affectingVariants.size(); q++) {
                         affectingVariantsSubset.add(affectingVariants.get(q));
@@ -206,7 +201,7 @@ public class GetKmersSpanningVariants extends Module {
                     }
 
                     int nextpos = i;
-                    for (VariantContext vc : affectingVariants) {
+                    for (VariantContext vc : affectingVariantsSubset) {
                         if (vc.getStart() - 1 > nextpos) {
                             nextpos = vc.getStart() - 1;
                         }
