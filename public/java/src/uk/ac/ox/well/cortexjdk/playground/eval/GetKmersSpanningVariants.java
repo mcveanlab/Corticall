@@ -156,7 +156,7 @@ public class GetKmersSpanningVariants extends Module {
                 if (vcs != null) {
                     log.debug("    {} {}", i, vcs);
 
-                    Set<VariantContext> affectingVariantsSet = new HashSet<>(vcs);
+                    Set<VariantContext> affectingVariantsSet = new TreeSet<>(vcs);
 
                     for (int j = i; j < seq.length() && j <= i + WINDOW_SIZE; j++) {
                         if (allVcs.containsKey(name) && allVcs.get(name).containsKey(j)) {
@@ -164,15 +164,21 @@ public class GetKmersSpanningVariants extends Module {
                         }
                     }
 
-                    List<VariantContext> affectingVariants = new ArrayList<>(affectingVariantsSet);
                     Set<VariantContext> affectingVariantsSubset = new TreeSet<>();
 
-                    for (int q = 0; q < VARIANT_LIMIT && q < affectingVariants.size(); q++) {
-                        affectingVariantsSubset.add(affectingVariants.get(q));
+                    int q = 0;
+                    for (VariantContext vc : affectingVariantsSet) {
+                        if (q >= VARIANT_LIMIT) {
+                            affectingVariantsSubset.add(vc);
 
-                        numUsedVariants++;
+                            numUsedVariants++;
 
-                        log.debug("     - {}", affectingVariants.get(q));
+                            log.debug("     - [incl] {}", vc);
+                        } else {
+                            log.debug("     - [skip] {}", vc);
+                        }
+
+                        q++;
                     }
 
                     Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, alleles, i, seq.length());
@@ -185,10 +191,10 @@ public class GetKmersSpanningVariants extends Module {
                         }
                     }
 
-                    log.debug("    {} (w={}): affectingVariants={} affectingVariantsSubset={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariants.size(), affectingVariantsSubset.size(), haplotypes.size(), kmers.size());
+                    log.debug("    {} (w={}): affectingVariants={} affectingVariantsSubset={} haplotypes={} kmers={}", i, WINDOW_SIZE, affectingVariantsSet.size(), affectingVariantsSubset.size(), haplotypes.size(), kmers.size());
 
                     numWindows++;
-                    if (affectingVariantsSubset.size() < affectingVariants.size()) {
+                    if (affectingVariantsSubset.size() < affectingVariantsSet.size()) {
                         numWindowsScaledDown++;
                     }
 
