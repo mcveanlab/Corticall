@@ -140,10 +140,6 @@ public class Call extends Module {
                         targets.putAll(parentalTargets);
                     }
 
-                    for (String key : targets.keySet()) {
-                        log.debug("  {}: {}", key, targets.get(key));
-                    }
-
                     if (targets.size() > 0) {
                         Triple<Integer, Integer, String> trimmedQuery = trimQuery(ws, targets, rois);
 
@@ -166,6 +162,10 @@ public class Call extends Module {
                                     labelledTargets.put(l, targets.get(c));
                                 }
                             }
+                        }
+
+                        for (String key : labelledTargets.keySet()) {
+                            log.debug("  {}: {}", key, labelledTargets.get(key));
                         }
 
                         List<Triple<String, String, Pair<Integer, Integer>>> lps = ma.align(trimmedQuery.getRight(), labelledTargets);
