@@ -1222,9 +1222,6 @@ public class Call extends Module {
                             int variantStart = sectionStart + i;
                             int variantStop = sectionStart + i + 1;
 
-                            //char prevBase = Character.toUpperCase(getParentalColumn(lps, i));
-                            //char nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1));
-
                             char prevBase, nextBase;
 
                             int q = -1;
@@ -1241,9 +1238,8 @@ public class Call extends Module {
 
                             String subtarget = target.substring(start, stop);
 
-                            log.debug("  {} {} {} {} {} {}", variantStart, variantStop, i, prevBase, nextBase, subtarget);
+                            //log.debug("  {} {} {} {} {} {}", variantStart, variantStop, i, prevBase, nextBase, subtarget);
 
-                            /*
                             List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
 
                             String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
@@ -1286,7 +1282,6 @@ public class Call extends Module {
                                     .attribute("BACKGROUND", varBackground);
 
                             vcbs.add(vcb);
-                            */
                         }
                     }
                 }
