@@ -1229,6 +1229,7 @@ public class Call extends Module {
 
                             log.debug("  {} {} {} {} {} {}", variantStart, variantStop, i, prevBase, nextBase, subtarget);
 
+                            /*
                             List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
 
                             String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
@@ -1271,6 +1272,7 @@ public class Call extends Module {
                                     .attribute("BACKGROUND", varBackground);
 
                             vcbs.add(vcb);
+                            */
                         }
                     }
                 }
