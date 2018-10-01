@@ -1227,6 +1227,8 @@ public class Call extends Module {
 
                             String subtarget = target.substring(start, stop);
 
+                            log.debug("  {} {} {} {} {} {}", variantStart, variantStop, i, prevBase, nextBase, subtarget);
+
                             List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
 
                             String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
