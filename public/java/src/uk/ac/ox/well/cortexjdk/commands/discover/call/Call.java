@@ -1222,8 +1222,22 @@ public class Call extends Module {
                             int variantStart = sectionStart + i;
                             int variantStop = sectionStart + i + 1;
 
-                            char prevBase = Character.toUpperCase(getParentalColumn(lps, i));
-                            char nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1));
+                            //char prevBase = Character.toUpperCase(getParentalColumn(lps, i));
+                            //char nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1));
+
+                            char prevBase, nextBase;
+
+                            int q = -1;
+                            do {
+                                q++;
+                                prevBase = Character.toUpperCase(getParentalColumn(lps, i - q));
+                            } while (prevBase == '-' && i - q > 1);
+
+                            q = -1;
+                            do {
+                                q++;
+                                nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1 + q));
+                            } while (nextBase == '-');
 
                             String subtarget = target.substring(start, stop);
 
