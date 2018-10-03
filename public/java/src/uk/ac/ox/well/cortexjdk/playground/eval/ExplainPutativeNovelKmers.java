@@ -57,6 +57,6 @@ public class ExplainPutativeNovelKmers extends Module {
             }
         }
 
-        out.println(Joiner.on("\t").join(GRAPH.getSampleName(2), mappedUniquely, mappedNonuniquely);
+        out.println(Joiner.on("\t").join(GRAPH.getSampleName(2), mappedUniquely, mappedNonuniquely));
     }
 }
