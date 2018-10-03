@@ -94,10 +94,10 @@ public class GetKmersSpanningVariants extends Module {
                     VariantContext vc = vcMap.get(i);
 
                     if (vc.isSNP() || vc.isSimpleInsertion()) {
-                        sb.append(vc.getGenotype(0).getGenotypeString());
+                        sb.append(vc.getAltAlleleWithHighestAlleleCount());
                     } else if (vc.isSimpleDeletion()) {
-                        sb.append(vc.getGenotype(0).getGenotypeString());
-                        i += vc.getReference().length();
+                        sb.append(vc.getAltAlleleWithHighestAlleleCount());
+                        i += vc.getReference().length() - 1;
                     }
                 } else {
                     sb.append(alleles.get(i));
