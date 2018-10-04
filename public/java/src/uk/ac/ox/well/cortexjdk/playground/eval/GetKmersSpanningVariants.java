@@ -7,8 +7,10 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
 import uk.ac.ox.well.cortexjdk.commands.Module;
+import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -59,7 +61,7 @@ public class GetKmersSpanningVariants extends Module {
         return loos;
     }
 
-    private Set<String> recursivelyGenerateCombinations(Set<VariantContext> variants, List<String> alleles, int pos, int seqLength) {
+    private Set<String> recursivelyGenerateCombinations(Set<VariantContext> variants, List<String> alleles, int pos, int seqLength, Map<String, List<String>> allAlleles) {
         List<VariantContext> affectingVariants = new ArrayList<>(variants);
         List<Integer> indices = new ArrayList<>();
 
@@ -98,6 +100,47 @@ public class GetKmersSpanningVariants extends Module {
                     } else if (vc.isSimpleDeletion()) {
                         sb.append(vc.getAltAlleleWithHighestAlleleCount());
                         i += vc.getReference().length() - 1;
+                    } else if (vc.isSymbolicOrSV()) {
+                        String[] pieces = vc.getAltAlleleWithHighestAlleleCount().getDisplayString().split("[\\[\\]]");
+
+                        boolean extendDirectionIsLeft = vc.getAltAlleleWithHighestAlleleCount().getDisplayString().contains("]");
+                        boolean joinedAfter = pieces[0].matches("^\\w+");
+                        boolean isRC = (extendDirectionIsLeft && joinedAfter) || (!extendDirectionIsLeft && !joinedAfter);
+
+                        String t = joinedAfter ? pieces[0] : pieces[pieces.length - 1];
+
+                        int bndStart = vc.getAttributeAsInt("END", 0);
+                        int bndEnd = extendDirectionIsLeft ? bndStart - WINDOW_SIZE : bndStart + WINDOW_SIZE;
+                        int bndDir = extendDirectionIsLeft ? -1 : 1;
+
+                        StringBuilder bndBuild = new StringBuilder();
+
+                        for (int j = bndStart; j != bndEnd; j += bndDir) {
+                            bndBuild.append(allAlleles.get(vc.getAttributeAsString("CHR2", vc.getContig())).get(j - 1));
+                        }
+
+                        String bnd = bndBuild.toString();
+                        if (isRC) {
+                            bnd = SequenceUtils.reverseComplement(bnd);
+                        }
+
+                        sb.append(t);
+                        sb.append(bnd);
+
+                        /*
+                        if (vc.hasAttribute("CONSENSUS")) {
+                            SmithWaterman sw = new SmithWaterman();
+                            String[] res = sw.getAlignment(sb.toString(), vc.getAttributeAsString("CONSENSUS", ""));
+
+                            log.info("{}", res[0]);
+                            log.info("{}", res[1]);
+                            log.info("");
+                        }
+                        */
+                    }
+
+                    if (vc.hasAttribute("CONSENSUS")) {
+                        haplotypes.add(vc.getAttributeAsString("CONSENSUS", ""));
                     }
                 } else {
                     sb.append(alleles.get(i));
@@ -141,6 +184,9 @@ public class GetKmersSpanningVariants extends Module {
         int numWindows = 0;
         int numWindowsScaledDown = 0;
 
+        Map<String, List<String>> allAlleles = new LinkedHashMap<>();
+        Map<String, String> allSeqs = new HashMap<>();
+
         log.info("Processing reference...");
         ReferenceSequence rseq;
         while ((rseq = REFERENCE.nextSequence()) != null) {
@@ -154,6 +200,14 @@ public class GetKmersSpanningVariants extends Module {
             for (int i = 0; i < seq.length(); i++) {
                 alleles.add(seq.substring(i, i + 1));
             }
+
+            allAlleles.put(name, alleles);
+            allSeqs.put(name, seq);
+        }
+
+        log.info("Processing variants...");
+        for (String name : allAlleles.keySet()) {
+            String seq = allSeqs.get(name);
 
             for (int i = 0; i <= seq.length() - KMER_SIZE; i++) {
                 Set<VariantContext> vcs = allVcs.containsKey(name) && allVcs.get(name).containsKey(i) ? allVcs.get(name).get(i) : null;
@@ -198,7 +252,9 @@ public class GetKmersSpanningVariants extends Module {
                         q++;
                     }
 
-                    Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, alleles, i, seq.length());
+                    Set<String> haplotypes = recursivelyGenerateCombinations(affectingVariantsSubset, allAlleles.get(name), i, seq.length(), allAlleles);
+
+
 
                     Set<String> kmers = new HashSet<>();
                     for (String haplotype : haplotypes) {
