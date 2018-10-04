@@ -115,7 +115,7 @@ public class GetKmersSpanningVariants extends Module {
 
                         StringBuilder bndBuild = new StringBuilder();
 
-                        for (int j = bndStart; j != bndEnd; j += bndDir) {
+                        for (int j = bndStart; j != bndEnd && j > 0 && j < allAlleles.get(vc.getAttributeAsString("CHR2", vc.getContig())).size(); j += bndDir) {
                             bndBuild.append(allAlleles.get(vc.getAttributeAsString("CHR2", vc.getContig())).get(j - 1));
                         }
 
