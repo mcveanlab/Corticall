@@ -199,6 +199,10 @@ public class Call extends Module {
                 }
             }
 
+            for (VariantContextBuilder vcb : vcs) {
+                log.debug("{}", vcb.make());
+            }
+
             vcs = filterBreakpoints(vcs);
             vcs = mergeBreakpoints(seq, vcs, rois);
             if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
@@ -852,8 +856,15 @@ public class Call extends Module {
                 String kmer0 = flank0.length() - GRAPH.getKmerSize() - 1 >= 0 ? flank0.substring(flank0.length() - GRAPH.getKmerSize() - 1, flank0.length() - 1) : "";
                 String kmer1 = GRAPH.getKmerSize() + 1 < flank1.length() ? flank1.substring(1, GRAPH.getKmerSize() + 1) : "";
 
-                int c0 = v0.getEnd() - GRAPH.getKmerSize() >= 0 ? v0.getEnd() - GRAPH.getKmerSize() : 0;
-                int c1 = v1.getStart() + GRAPH.getKmerSize() + 1 < seq.length() ? v1.getStart() + GRAPH.getKmerSize() + 1 : seq.length();
+                //int a0 = v0.getEnd() - GRAPH.getKmerSize() >= 0 ? v0.getEnd() - GRAPH.getKmerSize() : 0;
+                //int a1 = v1.getStart() + GRAPH.getKmerSize() + 1 < seq.length() ? v1.getStart() + GRAPH.getKmerSize() + 1 : seq.length();
+
+                int a0 = flank0.length();
+                int a1 = flank0.length() + (v1.getAttributeAsInt("start", 0) - v0.getAttributeAsInt("start", 0)) - 1;
+
+                int c0 = Math.min(a0, a1);
+                int c1 = Math.max(a0, a1);
+
                 String childContig = seq.substring(c0, c1);
                 String parentContig = null;
 
