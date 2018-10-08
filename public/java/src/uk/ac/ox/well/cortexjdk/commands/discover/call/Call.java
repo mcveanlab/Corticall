@@ -199,10 +199,6 @@ public class Call extends Module {
                 }
             }
 
-            for (VariantContextBuilder vcb : vcs) {
-                log.debug("{}", vcb.make());
-            }
-
             vcs = filterBreakpoints(vcs);
             vcs = mergeBreakpoints(seq, vcs, rois);
             if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
