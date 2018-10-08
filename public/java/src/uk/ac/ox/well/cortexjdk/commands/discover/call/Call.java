@@ -1,6 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import htsjdk.samtools.*;
 import htsjdk.samtools.reference.FastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -50,23 +51,20 @@ public class Call extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
-    public ArrayList<CortexLinks> LINKS;
-
     @Argument(fullName = "rois", shortName = "r", doc = "Rois")
     public CortexGraph ROIS;
 
     @Argument(fullName="partitions", shortName="p", doc="Partitions")
     public FastaSequenceFile PARTITIONS;
 
-    @Argument(fullName="mother", shortName="m", doc="Mother's sample name")
-    public LinkedHashSet<String> MOTHER;
+    @Argument(fullName="backgrounds", shortName="b", doc="Background sample name(s)")
+    public LinkedHashSet<String> BACKGROUNDS;
 
-    @Argument(fullName="father", shortName="f", doc="Father's sample name")
-    public LinkedHashSet<String> FATHER;
+    @Argument(fullName="references", shortName="R", doc="Reference(s)", required=false)
+    public HashMap<String, IndexedReference> REFERENCES;
 
-    @Argument(fullName="background", shortName="b", doc="Background", required=false)
-    public HashMap<String, IndexedReference> BACKGROUNDS;
+    @Argument(fullName = "links", shortName = "l", doc = "Links", required=false)
+    public ArrayList<CortexLinks> LINKS;
 
     @Argument(fullName="partitionName", shortName="pn", doc="Partitions to process", required=false)
     public HashSet<String> PARTITION_NAMES;
@@ -134,8 +132,8 @@ public class Call extends Module {
                     List<CortexVertex> ws = section.getRight();
 
                     Map<String, String> targets = new HashMap<>();
-                    for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
-                        Map<String, String> parentalTargets = fasterAssembleCandidateHaplotypes(ws, parentName);
+                    for (String parentName : BACKGROUNDS) {
+                        Map<String, String> parentalTargets = fasterAssembleCandidateHaplotypes(ws, Sets.newHashSet(parentName));
 
                         targets.putAll(parentalTargets);
                     }
@@ -147,7 +145,7 @@ public class Call extends Module {
                         int targetNum = 0;
                         for (String c : targets.keySet()) {
                             String[] p = c.split(":");
-                            if (BACKGROUNDS.containsKey(p[0])) {
+                            if (REFERENCES.containsKey(p[0])) {
                                 List<SAMRecord> ss = sortAlignments(p[0], targets.get(c));
                                 if (ss.size() > 0) {
                                     SAMRecord s = ss.get(0);
@@ -225,7 +223,7 @@ public class Call extends Module {
                     String back = vc.getAttributeAsString("BACKGROUND", "unknown");
                     int start = vc.getStart();
                     int end = vc.isSymbolic() ? start : vc.getEnd();
-                    String refAllele = BACKGROUNDS.containsKey(back) && BACKGROUNDS.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), start, end).getBaseString() : "?";
+                    String refAllele = REFERENCES.containsKey(back) && REFERENCES.get(back).getReferenceSequence().getSequenceDictionary().getSequence(vc.getContig()) != null ? REFERENCES.get(back).getReferenceSequence().getSubsequenceAt(vc.getContig(), start, end).getBaseString() : "?";
                     log.debug("{} {} {} {}", vc.getReference(), refAllele, vc.getFilters(), new VariantContextBuilder(vc).rmAttribute("novels").make());
 
                     svcs.add(vc);
@@ -526,7 +524,7 @@ public class Call extends Module {
 
                         for (int m = 1; m < lps.size(); m++) {
                             if (lps.get(m).getLeft().equals(contigName)) {
-                                if (BACKGROUNDS.containsKey(back)) {
+                                if (REFERENCES.containsKey(back)) {
                                     List<SAMRecord> mrs = sortAlignments(back, lps.get(m).getMiddle().replaceAll(" ", ""));
 
                                     if (mrs.size() > 0) {
@@ -552,7 +550,7 @@ public class Call extends Module {
 
                         for (int m = 1; m < lps.size(); m++) {
                             if (lps.get(m).getLeft().equals(contigName)) {
-                                if (BACKGROUNDS.containsKey(back)) {
+                                if (REFERENCES.containsKey(back)) {
                                     List<SAMRecord> mrs = sortAlignments(back, lps.get(m).getMiddle().replaceAll(" ", ""));
 
                                     if (mrs.size() > 0) {
@@ -731,9 +729,9 @@ public class Call extends Module {
                     }
                 }
 
-                for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                for (String parentName : BACKGROUNDS) {
                     TraversalEngine ef = new TraversalEngineFactory()
-                            .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                            .traversalColors(GRAPH.getColorForSampleName(parentName))
                             .traversalDirection(FORWARD)
                             .combinationOperator(OR)
                             .stoppingRule(DestinationStopper.class)
@@ -742,7 +740,7 @@ public class Call extends Module {
                             .make();
 
                     TraversalEngine er = new TraversalEngineFactory()
-                            .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                            .traversalColors(GRAPH.getColorForSampleName(parentName))
                             .traversalDirection(REVERSE)
                             .combinationOperator(OR)
                             .stoppingRule(DestinationStopper.class)
@@ -756,13 +754,13 @@ public class Call extends Module {
                     }
                 }
 
-                if (BACKGROUNDS.containsKey(back) && vc0.getContig().equals(vc1.getContig()) && vc0.getAttributeAsString("MATEID", "").equals(vc1.getID())) {
+                if (REFERENCES.containsKey(back) && vc0.getContig().equals(vc1.getContig()) && vc0.getAttributeAsString("MATEID", "").equals(vc1.getID())) {
                     int pStart = vc0.getStart() < vc1.getStart() ? vc0.getStart() : vc1.getStart();
                     int pEnd = vc0.getEnd() > vc1.getEnd() ? vc0.getEnd() : vc1.getEnd();
                     int vStart = vc0.getAttributeAsInt("variantStart", 0) < vc1.getAttributeAsInt("variantStart", 0) ? vc0.getAttributeAsInt("variantStart", 0) : vc1.getAttributeAsInt("variantStart", 0);
                     int vEnd = vc0.getAttributeAsInt("variantStop", 0) > vc1.getAttributeAsInt("variantStop", 0) ? vc0.getAttributeAsInt("variantStop", 0) : vc1.getAttributeAsInt("variantStop", 0);
 
-                    String parentalContig = BACKGROUNDS.get(back).getReferenceSequence().getSubsequenceAt(vc0.getContig(), pStart, pEnd).getBaseString();
+                    String parentalContig = REFERENCES.get(back).getReferenceSequence().getSubsequenceAt(vc0.getContig(), pStart, pEnd).getBaseString();
                     String childContig = seq.substring(vStart, vEnd);
 
                     if (vc0.getAttributeAsBoolean("flipped", false)) {
@@ -860,10 +858,10 @@ public class Call extends Module {
                 String parentContig = null;
 
                 if (kmer0.length() == GRAPH.getKmerSize() && kmer1.length() == GRAPH.getKmerSize()) {
-                    for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                    for (String parentName : BACKGROUNDS) {
                         if (parentName.contains(v0.getAttributeAsString("BACKGROUND", "unknown"))) {
                             TraversalEngine ef = new TraversalEngineFactory()
-                                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                    .traversalColors(GRAPH.getColorForSampleName(parentName))
                                     .traversalDirection(FORWARD)
                                     .combinationOperator(OR)
                                     .stoppingRule(DestinationStopper.class)
@@ -872,7 +870,7 @@ public class Call extends Module {
                                     .make();
 
                             TraversalEngine er = new TraversalEngineFactory()
-                                    .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                    .traversalColors(GRAPH.getColorForSampleName(parentName))
                                     .traversalDirection(REVERSE)
                                     .combinationOperator(OR)
                                     .stoppingRule(DestinationStopper.class)
@@ -928,7 +926,7 @@ public class Call extends Module {
                         int left = Math.min(s1.getEnd() + 1, s0.getStart() - 1) + 1;
                         int right = Math.max(s1.getEnd() + 1, s0.getStart() - 1) + 1;
 
-                        String parentalContig = BACKGROUNDS.get(back0).getReferenceSequence().getSubsequenceAt(contig, left, right).getBaseString();
+                        String parentalContig = REFERENCES.get(back0).getReferenceSequence().getSubsequenceAt(contig, left, right).getBaseString();
 
                         parentContig = s0.getReadNegativeStrandFlag() ? SequenceUtils.reverseComplement(parentalContig) : parentalContig;
                     }
@@ -1085,10 +1083,10 @@ public class Call extends Module {
                     String back1 = lps1.get(q1).getLeft().split(":")[0];
 
                     if (back0.equals(back1)) {
-                        for (Set<String> parentName : Arrays.asList(MOTHER, FATHER)) {
+                        for (String parentName : BACKGROUNDS) {
                             if (parentName.contains(back0)) {
                                 TraversalEngine ef = new TraversalEngineFactory()
-                                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                        .traversalColors(GRAPH.getColorForSampleName(parentName))
                                         .traversalDirection(FORWARD)
                                         .combinationOperator(OR)
                                         .stoppingRule(DestinationStopper.class)
@@ -1097,7 +1095,7 @@ public class Call extends Module {
                                         .make();
 
                                 TraversalEngine er = new TraversalEngineFactory()
-                                        .traversalColors(GRAPH.getColorsForSampleNames(parentName))
+                                        .traversalColors(GRAPH.getColorForSampleName(parentName))
                                         .traversalDirection(REVERSE)
                                         .combinationOperator(OR)
                                         .stoppingRule(DestinationStopper.class)
@@ -1626,8 +1624,8 @@ public class Call extends Module {
     @NotNull
     private SAMSequenceDictionary buildMergedSequenceDictionary(List<ReferenceSequence> rseqs) {
         List<SAMSequenceRecord> ssrs = new ArrayList<>();
-        for (String id : BACKGROUNDS.keySet()) {
-            IndexedReference ir = BACKGROUNDS.get(id);
+        for (String id : REFERENCES.keySet()) {
+            IndexedReference ir = REFERENCES.get(id);
 
             for (SAMSequenceRecord ssr : ir.getReferenceSequence().getSequenceDictionary().getSequences()) {
                 if (!ssrs.contains(ssr)) {
@@ -1657,11 +1655,11 @@ public class Call extends Module {
     }
 
     private List<SAMRecord> sortAlignments(String background, String target) {
-        if (!BACKGROUNDS.containsKey(background)) {
+        if (!REFERENCES.containsKey(background)) {
             return new ArrayList<>();
         }
 
-        List<SAMRecord> a = BACKGROUNDS.get(background).align(target);
+        List<SAMRecord> a = REFERENCES.get(background).align(target);
 
         a.sort((s1, s2) -> {
             int s1length = s1.getAlignmentEnd() - s1.getAlignmentStart();

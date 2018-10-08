@@ -207,7 +207,7 @@ public class EvaluateCalls extends Module {
                 for (VariantContext nvc : vs) {
                     log.info("call : {} {}", nvc.getAttributeAsString("SVTYPE", "unknown"), nvc);
 
-                    if (bestVc.getContig().contains(nvc.getAttributeAsString("BACKGROUND", "unknown"))) {
+                    if (bestVc.getContig().contains(nvc.getAttributeAsString("BACKGROUND_SAMPLES", "unknown"))) {
                         correctBackground = true;
                     }
 

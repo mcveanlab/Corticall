@@ -53,7 +53,7 @@ public class Explore extends Module {
         List<CortexVertex> w = TraversalUtils.toWalk(g, BEGIN, GRAPH.getColorForSampleName("3D7"));
 
         /*
-        Map<Integer, List<List<List<CortexVertex>>>> m = TraversalUtils.fill(w, GRAPH, LINKS, new HashSet<>(GRAPH.getColorsForSampleNames(SAMPLES)), 0);
+        Map<Integer, List<List<List<CortexVertex>>>> m = TraversalUtils.fill(w, GRAPH, BACKGROUND_LINKS, new HashSet<>(GRAPH.getColorsForSampleNames(SAMPLES)), 0);
 
         for (int c : m.keySet()) {
             String sample = GRAPH.getSampleName(c);
