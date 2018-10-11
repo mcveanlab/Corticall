@@ -620,31 +620,35 @@ public class Call extends Module {
                         }
                     }
 
-                    List<Allele> alleles = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
+                    if (pBuilder.length() != 0 && cBuilder.length() != 0) {
+                        List<Allele> alleles = Arrays.asList(Allele.create(pBuilder.toString(), true), Allele.create(cBuilder.toString()));
 
-                    char prevBase = getChildColumn(lps, start0);
-                    char nextBase = getChildColumn(lps, stop1);
+                        char prevBase = getChildColumn(lps, start0);
+                        char nextBase = getChildColumn(lps, stop1);
 
-                    int sectionStart = calls.get(i).make().getAttributeAsInt("sectionStart", 0);
+                        int sectionStart = calls.get(i).make().getAttributeAsInt("sectionStart", 0);
 
-                    VariantContextBuilder vcb = new VariantContextBuilder(calls.get(i))
-                            .alleles(alleles)
-                            .start(sectionStart + start0)
-                            .computeEndFromAlleles(alleles, sectionStart + start0)
-                            .attribute("start", start0)
-                            .attribute("stop", stop1)
-                            .attribute("variantStart", sectionStart + start0)
-                            .attribute("variantStop", sectionStart + stop1)
-                            .attribute("prevBase", prevBase)
-                            .attribute("nextBase", nextBase);
+                        VariantContextBuilder vcb = new VariantContextBuilder(calls.get(i))
+                                .alleles(alleles)
+                                .start(sectionStart + start0)
+                                .computeEndFromAlleles(alleles, sectionStart + start0)
+                                .attribute("start", start0)
+                                .attribute("stop", stop1)
+                                .attribute("variantStart", sectionStart + start0)
+                                .attribute("variantStop", sectionStart + stop1)
+                                .attribute("prevBase", prevBase)
+                                .attribute("nextBase", nextBase);
 
-                    if (cBuilder.substring(1, cBuilder.length()).equals(SequenceUtils.reverseComplement(pBuilder.substring(1, pBuilder.length())))) {
-                        vcb.attribute("SVTYPE", "INV");
+                        if (cBuilder.substring(1, cBuilder.length()).equals(SequenceUtils.reverseComplement(pBuilder.substring(1, pBuilder.length())))) {
+                            vcb.attribute("SVTYPE", "INV");
+                        }
+
+                        merged.add(vcb);
+
+                        i = i + 1;
+                    } else {
+                        merged.add(calls.get(i));
                     }
-
-                    merged.add(vcb);
-
-                    i = i + 1;
                 } else {
                     merged.add(calls.get(i));
                 }
