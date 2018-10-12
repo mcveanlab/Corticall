@@ -192,6 +192,8 @@ public class Call extends Module {
                             vcb.attribute("lps", lps);
                             vcb.attribute("sectionIndex", sectionIndex);
                             vcb.attribute("novels", Joiner.on(",").join(sectionRois));
+
+                            log.debug("{} {}", vcb.getAlleles(), vcb);
                         }
 
                         vcs.addAll(merged);
