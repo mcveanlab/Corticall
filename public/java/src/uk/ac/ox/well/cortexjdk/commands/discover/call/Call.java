@@ -196,7 +196,7 @@ public class Call extends Module {
 
                             log.debug("{} {}", vcb.getAlleles(), vcb);
 
-                            if (vcb.getAlleles().get(0).equals(vcb.getAlleles().get(1))) {
+                            if (vcb.getAlleles().get(0).getBaseString().equals(vcb.getAlleles().get(1).getBaseString())) {
                                 toRemove.add(vcb);
                             }
                         }
