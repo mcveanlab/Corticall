@@ -187,6 +187,7 @@ public class Call extends Module {
                             }
                         }
 
+                        Set<VariantContextBuilder> toRemove = new HashSet<>();
                         for (VariantContextBuilder vcb : merged) {
                             vcb.attribute("targets", targets);
                             vcb.attribute("lps", lps);
@@ -194,6 +195,16 @@ public class Call extends Module {
                             vcb.attribute("novels", Joiner.on(",").join(sectionRois));
 
                             log.debug("{} {}", vcb.getAlleles(), vcb);
+
+                            if (vcb.getAlleles().get(0).equals(vcb.getAlleles().get(1))) {
+                                toRemove.add(vcb);
+                            }
+                        }
+
+                        if (toRemove.size() > 0) {
+                            log.debug("{} {}", toRemove.size(), merged.size());
+                            merged.removeAll(toRemove);
+                            log.debug("{} {}", toRemove.size(), merged.size());
                         }
 
                         vcs.addAll(merged);
