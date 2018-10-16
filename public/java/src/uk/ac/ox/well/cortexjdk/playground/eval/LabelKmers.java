@@ -8,6 +8,8 @@ import uk.ac.ox.well.cortexjdk.utils.containers.ContainerUtils;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
+import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -33,8 +35,15 @@ public class LabelKmers extends Module {
         Map<CanonicalKmer, Boolean> kmerGenotypes = new HashMap<>();
         Map<CanonicalKmer, String> kmerLabels = new HashMap<>();
 
+        ProgressMeter pm = new ProgressMeterFactory()
+                .header("Loading ROIs")
+                .message("records processed")
+                .maxRecord(ROIS.getNumRecords())
+                .make(log);
+
         for (CortexRecord cr : ROIS) {
             kmerGenotypes.put(cr.getCanonicalKmer(), false);
+            kmerLabels.put(cr.getCanonicalKmer(), "unknown");
 
             List<String> labels = new ArrayList<>();
 
@@ -50,10 +59,14 @@ public class LabelKmers extends Module {
             } else {
                 kmerLabels.put(cr.getCanonicalKmer(), "unknown");
             }
+
+            pm.update();
         }
 
         for (CortexRecord cr : HOM_VAR_KMERS) {
-            kmerGenotypes.put(cr.getCanonicalKmer(), true);
+            if (kmerGenotypes.containsKey(cr.getCanonicalKmer())) {
+                kmerGenotypes.put(cr.getCanonicalKmer(), true);
+            }
         }
 
         Map<String, Integer> countRef = new HashMap<>();
@@ -78,6 +91,7 @@ public class LabelKmers extends Module {
         for (String bg : BACKGROUNDS) {
             out.println(Joiner.on("\t").join(bg, countRef.get(bg), countVar.get(bg)));
         }
+        out.println(Joiner.on("\t").join("unknown", countRef.get("unknown"), countVar.get("unknown")));
     }
 }
 
