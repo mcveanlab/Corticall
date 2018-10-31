@@ -51,6 +51,8 @@ public class LabelKmers extends Module {
                 CortexRecord gr = GRAPH.findRecord(cr.getCanonicalKmer());
                 if (gr != null && gr.getCoverage(GRAPH.getColorForSampleName(bg)) > 0) {
                     labels.add(bg);
+                } else {
+                    int a = 5;
                 }
             }
 

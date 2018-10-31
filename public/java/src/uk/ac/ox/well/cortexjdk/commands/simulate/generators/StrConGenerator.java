@@ -16,7 +16,7 @@ public class StrConGenerator implements VariantGenerator {
     public int getSeqIndex() { return seqIndex; }
 
     @Override
-    public GeneratedVariant permute(String seq, int posIndex, Random rng) {
+    public GeneratedVariant permute(String seq, int posIndex, Random rng, int length) {
         List<Integer> loci = new ArrayList<>();
 
         int s = rng.nextInt(4) + 2;
@@ -52,10 +52,10 @@ public class StrConGenerator implements VariantGenerator {
             }
         }
 
-        int n = rng.nextInt(numAdjacentRepeats - 1) + 1;
+        int n = rng.nextInt(numAdjacentRepeats - 1) + 2;
 
         String oldAllele = seq.substring(l, l + (n*s));
-        String newAllele = "";
+        String newAllele = seq.substring(l, l + s);
 
         return new GeneratedVariant(getType(), getSeqIndex(), l, oldAllele, newAllele);
     }

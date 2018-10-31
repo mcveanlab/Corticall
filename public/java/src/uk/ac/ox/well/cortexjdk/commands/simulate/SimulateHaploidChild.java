@@ -6,6 +6,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
+import uk.ac.ox.well.cortexjdk.CortexJDK;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.simulate.generators.*;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
@@ -50,8 +51,8 @@ public class SimulateHaploidChild extends Module {
     @Argument(fullName="seed", shortName="s", doc="Random seed")
     public Long SEED = System.currentTimeMillis();
 
-    @Argument(fullName="numBubbles", shortName="b", doc="Number of bubbles per type per chr")
-    public Integer NUM_BUBBLES = 1;
+    @Argument(fullName="numBubbles", shortName="b", doc="Number of bubbles to simulate")
+    public Integer NUM_BUBBLES = 4;
 
     @Argument(fullName="kmerSize", shortName="k", doc="Kmer size")
     public Integer KMER_SIZE = 47;
@@ -116,28 +117,51 @@ public class SimulateHaploidChild extends Module {
             pm.update();
         }
 
+        log.info("Adding variants...");
         Set<GeneratedVariant> vs = new TreeSet<>();
 
         vs.addAll(makeNAHR(seqs, gffs));
 
-        for (int i = 0; i < CHRS1.size(); i++) {
-            Pair<List<String>, List<Integer>> res = seqs.get(i);
+        for (int numBubble = 0; numBubble < NUM_BUBBLES; numBubble++) {
+            int chrIndex = rng.nextInt(CHRS1.size());
+            Pair<List<String>, List<Integer>> res = seqs.get(chrIndex);
             List<String> pieces = res.getFirst();
 
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeDelGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeInsGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new LargeInvGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallDelGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallInsGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallInvGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SmallMnpGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new SnvGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new StrConGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new StrExpGenerator(i)));
-            vs.addAll(makeBubble(pieces, NUM_BUBBLES, rng, new TandemDuplicationGenerator(i)));
+            int variantType = rng.nextInt(8);
+
+            //for (int variantType = 0; variantType < 8; variantType++) {
+                switch (variantType) {
+                    case 0:
+                        vs.addAll(makeBubble(pieces, 1, rng, new InsGenerator(chrIndex)));
+                        break;
+                    case 1:
+                        vs.addAll(makeBubble(pieces, 1, rng, new StrExpGenerator(chrIndex)));
+                        break;
+                    case 2:
+                        vs.addAll(makeBubble(pieces, 1, rng, new TandemDuplicationGenerator(chrIndex)));
+                        break;
+                    case 3:
+                        vs.addAll(makeBubble(pieces, 1, rng, new DelGenerator(chrIndex)));
+                        break;
+                    case 4:
+                        vs.addAll(makeBubble(pieces, 1, rng, new StrConGenerator(chrIndex)));
+                        break;
+                    case 5:
+                        vs.addAll(makeBubble(pieces, 1, rng, new MnpGenerator(chrIndex)));
+                        break;
+                    case 6:
+                        vs.addAll(makeBubble(pieces, 1, rng, new InvGenerator(chrIndex)));
+                        break;
+                    case 7:
+                    default:
+                        vs.addAll(makeBubble(pieces, 1, rng, new SnvGenerator(chrIndex)));
+                }
+            //}
         }
+        log.info("  added {} variants", vs.size());
 
         Set<CortexBinaryKmer> cbks = getParentalKmers(REF1, REF2, KMER_SIZE);
+        //Set<CortexBinaryKmer> cbks = new HashSet<>();
 
         log.info("Collapsing into new linear haploid reference...");
         List<String> newSeqs = collapse(seqs, cbks, vs);
@@ -208,6 +232,11 @@ public class SimulateHaploidChild extends Module {
             StringBuilder sb = newSbs.get(gv.seqIndex);
 
             //log.info("{} {} {}", i, gv, sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length()));
+
+            String oldAlleleCheck = sb.substring(gv.posIndex, gv.posIndex + gv.oldAllele.length());
+            if (!oldAlleleCheck.equals(gv.oldAllele)) {
+                throw new CortexJDKException("WTF?");
+            }
 
             sb = sb.replace(gv.posIndex, gv.posIndex + gv.oldAllele.length(), gv.newAllele);
 
@@ -333,8 +362,9 @@ public class SimulateHaploidChild extends Module {
         for (int i = 0; i < num; i++) {
             GeneratedVariant gv;
             do {
-                int posIndex = rng.nextInt(seq.length() - 1110) + 105;
-                gv = v.permute(seq, posIndex, rng);
+                int length = rng.nextInt(1000);
+                int posIndex = rng.nextInt(seq.length() - 2*length) + length;
+                gv = v.permute(seq, posIndex, rng, length);
             } while (gv.getOldAllele().contains("N") || gv.getNewAllele().contains("N"));
 
             vs.add(gv);

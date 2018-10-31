@@ -48,6 +48,8 @@ public class TestMosaicAligner {
         for (int i = 0; i < ks.size(); i++) {
             Assert.assertEquals(ps.get(i).getLeft(), ks.get(i).getLeft());
             Assert.assertTrue(unsharedKmers(ps.get(i).getMiddle().replaceAll(" ", ""), ks.get(i).getMiddle().replaceAll(" ", ""), 47) <= 2);
+
+            System.out.println(ma);
         }
     }
 
@@ -65,6 +67,36 @@ public class TestMosaicAligner {
         List<Triple<String, String, Pair<Integer, Integer>>> ps = ma.align(query, targets);
 
         Assert.assertEquals(3, ps.size());
+
+        /*
+            query (0-18) GTAGGCGAGATGACGCCAT
+                         |||||||||||||||||||
+         template0 (0-6) GTAGGCG
+        template1 (7-18)        AGATGACGCCAT
+         */
+    }
+
+    @Test
+    private void anotherSmallTest() {
+        String query = "CGAACAGGATGTAGGCGAGATGACGCCATTTATTCTTTTCGTGCATAACAAAACGATAGTAG";
+
+        String[] templates = {
+                       "CGAACAGGATCAGGGATAAAACAAATTGATTATTCTTTTCGTGCATAACACGATAGTAG",
+                       "GTCATACGACCGTAGGCGAGATGACGCCATTTATTACGGATATTATATTTATATA"
+        };
+
+        Map<String, String> targets = new HashMap<>();
+        targets.put("template0", templates[0]);
+        targets.put("template1", templates[1]);
+        //targets.put("template2", templates[2]);
+        //targets.put("template3", templates[3]);
+
+        Tesserae ma = new Tesserae();
+        List<Triple<String, String, Pair<Integer, Integer>>> ps = ma.align(query, targets);
+
+        //Assert.assertEquals(3, ps.size());
+
+        System.out.println(ma);
 
         /*
             query (0-18) GTAGGCGAGATGACGCCAT

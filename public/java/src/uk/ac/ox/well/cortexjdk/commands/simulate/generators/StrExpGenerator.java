@@ -18,7 +18,7 @@ public class StrExpGenerator implements VariantGenerator {
     public int getSeqIndex() { return seqIndex; }
 
     @Override
-    public GeneratedVariant permute(String seq, int posIndex, Random rng) {
+    public GeneratedVariant permute(String seq, int posIndex, Random rng, int length) {
         List<Integer> loci = new ArrayList<>();
 
         int s = rng.nextInt(4) + 2;
@@ -37,5 +37,14 @@ public class StrExpGenerator implements VariantGenerator {
         int n = rng.nextInt(4) + 2;
 
         return new GeneratedVariant(getType(), getSeqIndex(), l, repeatUnit, StringUtils.repeat(repeatUnit, n));
+        //return new GeneratedVariant(getType(), getSeqIndex(), l, seq.substring(l - 1, l), seq.substring(l - 1, l) + StringUtils.repeat(repeatUnit, n));
+
+        /*
+        return new GeneratedVariant(getType(),
+                                    getSeqIndex(),
+                                    l + repeatUnit.length() - 1,
+                                    repeatUnit.substring(repeatUnit.length() - 1, repeatUnit.length()),
+                                    StringUtils.repeat(repeatUnit, n));
+                                    */
     }
 }

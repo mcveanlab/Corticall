@@ -3,8 +3,6 @@ package uk.ac.ox.well.cortexjdk.utils.alignment.mosaic;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.util.Pair;
-import uk.ac.ox.well.cortexjdk.Main;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 
 import java.util.*;
 
@@ -46,11 +44,12 @@ public class Tesserae {
 
     private double[] emiss_gap_nt = { 0.2, 0.2, 0.2, 0.2, 0.2 };
     private double[][] emiss_match_nt = {
-            {0.2, 0.2, 0.2, 0.2, 0.2},
-            {0.2, 0.9, 0.05, 0.025, 0.025},
-            {0.2, 0.05, 0.9, 0.025, 0.025},
-            {0.2, 0.025, 0.025, 0.9, 0.05},
-            {0.2, 0.025, 0.025, 0.05, 0.9},
+            //    T      C      A      G
+            {0.2, 0.2,   0.2,   0.2,   0.2},
+            {0.2, 0.9,   0.05,  0.025, 0.025}, // T
+            {0.2, 0.05,  0.9,   0.025, 0.025}, // C
+            {0.2, 0.025, 0.025, 0.9,   0.05},  // A
+            {0.2, 0.025, 0.025, 0.05,  0.9},   // G
     };
 
     // internal

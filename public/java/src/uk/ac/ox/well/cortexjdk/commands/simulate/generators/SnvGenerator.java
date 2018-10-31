@@ -16,7 +16,7 @@ public class SnvGenerator implements VariantGenerator {
     }
 
     @Override
-    public GeneratedVariant permute(String seq, int posIndex, Random rng) {
+    public GeneratedVariant permute(String seq, int posIndex, Random rng, int length) {
         final char[] bases = { 'A', 'C', 'G', 'T' };
 
         char base;

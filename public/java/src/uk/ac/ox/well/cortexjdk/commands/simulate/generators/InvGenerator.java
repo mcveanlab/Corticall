@@ -4,21 +4,19 @@ import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.util.Random;
 
-public class SmallInvGenerator implements VariantGenerator {
+public class InvGenerator implements VariantGenerator {
     private int seqIndex;
 
-    public SmallInvGenerator(int seqIndex) { this.seqIndex = seqIndex; }
+    public InvGenerator(int seqIndex) { this.seqIndex = seqIndex; }
 
     @Override
-    public String getType() { return "SMALL_INV"; }
+    public String getType() { return "INV"; }
 
     @Override
     public int getSeqIndex() { return seqIndex; }
 
     @Override
-    public GeneratedVariant permute(String seq, int posIndex, Random rng) {
-        int length = rng.nextInt(18) + 2;
-
+    public GeneratedVariant permute(String seq, int posIndex, Random rng, int length) {
         String oldAllele = seq.substring(posIndex, posIndex + length);
         String newAllele = SequenceUtils.reverseComplement(oldAllele);
 
