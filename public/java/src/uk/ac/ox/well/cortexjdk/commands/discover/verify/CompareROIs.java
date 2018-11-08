@@ -6,6 +6,7 @@ import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -65,7 +66,7 @@ public class CompareROIs extends Module {
         out.println("t=" + trs.size() + " e=" + ers.size() + " pt=" + privateToTruth + " pe=" + privateToEval + " o=" + overlap);
 
         for (CanonicalKmer ck : kmersPrivateToEval) {
-            log.info("pe: {} {}", ck, GRAPH.findRecord(ck));
+            log.info("pe: {} {} {}", ck, GRAPH.findRecord(ck), SequenceUtils.computeCompressionRatio(ck));
         }
     }
 }
