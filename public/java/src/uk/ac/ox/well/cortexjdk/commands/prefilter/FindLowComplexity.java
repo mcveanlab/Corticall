@@ -1,9 +1,7 @@
 package uk.ac.ox.well.cortexjdk.commands.prefilter;
 
-import org.jgrapht.Graph;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
-import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraphWriter;
@@ -11,22 +9,14 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeter;
 import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
-import uk.ac.ox.well.cortexjdk.utils.stoppingrules.DustStopper;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexEdge;
-import uk.ac.ox.well.cortexjdk.utils.traversal.CortexVertex;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngine;
-import uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineFactory;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.AND;
-import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
-
-@Description(text="Find chains of low-complexity kmers")
-public class FindDust extends Module {
+public class FindLowComplexity extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph")
     public CortexGraph GRAPH;
 
@@ -36,62 +26,43 @@ public class FindDust extends Module {
     @Argument(fullName="roi", shortName="r", doc="ROI")
     public CortexGraph ROI;
 
+    @Argument(fullName="crThreshold", shortName="t", doc="Complexity threshold")
+    public Float COMPLEXITY_THRESHOLD = 0.7f;
+
     @Output
     public File out;
-
-    //@Output(fullName="excluded_out", shortName="xo", doc="Excluded kmers output file")
-    //public File dust_out;
 
     @Override
     public void execute() {
         String child = ROI.getSampleName(0);
 
-        int childColor = GRAPH.getColorForSampleName(child);
-        Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
+        //int childColor = GRAPH.getColorForSampleName(child);
+        //Set<Integer> parentColors = new HashSet<>(GRAPH.getColorsForSampleNames(PARENTS));
 
         log.info("Colors:");
         log.info(" -   child: {}", GRAPH.getColorForSampleName(child));
         log.info(" - parents: {}", GRAPH.getColorsForSampleNames(PARENTS));
 
         ProgressMeter pm = new ProgressMeterFactory()
-                .header("Finding dust")
+                .header("Finding low complexity kmers")
                 .message("records processed")
                 .maxRecord(ROI.getNumRecords())
                 .make(log);
 
-        Set<CanonicalKmer> dust = new HashSet<>();
-        int numDustChains = 0;
-
-        TraversalEngine e = new TraversalEngineFactory()
-                .traversalDirection(BOTH)
-                .combinationOperator(AND)
-                .traversalColors(childColor)
-                .joiningColors(parentColors)
-                .stoppingRule(DustStopper.class)
-                .rois(ROI)
-                .graph(GRAPH)
-                .make();
+        Set<CanonicalKmer> lowComplexity = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
-            if (!dust.contains(rr.getCanonicalKmer()) && isDust(rr, 0)) {
-                Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
+            log.info("{} {} {}", rr.getCanonicalKmer(), SequenceUtils.computeCompressionRatio(rr.getCanonicalKmer()), isLowComplexity(rr, COMPLEXITY_THRESHOLD));
 
-                if (dfs != null && dfs.vertexSet().size() > 0) {
-                    numDustChains++;
+            if (isLowComplexity(rr, COMPLEXITY_THRESHOLD)) {
+                lowComplexity.add(rr.getCanonicalKmer());
 
-                    log.debug("    dust chain {}, seed {}, {} vertices", numDustChains, rr.getKmerAsString(), dfs.vertexSet().size());
-
-                    for (CortexVertex av : dfs.vertexSet()) {
-                        dust.add(av.getCanonicalKmer());
-                    }
-
-                }
             }
 
             pm.update();
         }
 
-        log.info("Found {} dust kmer chains ({} kmers total)", numDustChains, dust.size());
+        log.info("Found {} low complexity kmers", lowComplexity.size());
 
         log.info("Writing...");
 
@@ -103,7 +74,7 @@ public class FindDust extends Module {
 
         int numKept = 0, numExcluded = 0;
         for (CortexRecord rr : ROI) {
-            if (!dust.contains(rr.getCanonicalKmer())) {
+            if (!lowComplexity.contains(rr.getCanonicalKmer())) {
                 //cgw.addRecord(rr);
                 numKept++;
             } else {
@@ -122,7 +93,9 @@ public class FindDust extends Module {
         );
     }
 
-    private boolean isDust(CortexRecord cr, int color) {
-        return cr.getInDegree(color) + cr.getOutDegree(color) > 4;
+    private boolean isLowComplexity(CortexRecord cr, float cratioThreshold) {
+        float cratio = SequenceUtils.computeCompressionRatio(cr.getCanonicalKmer());
+
+        return cratio < cratioThreshold;
     }
 }

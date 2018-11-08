@@ -44,6 +44,8 @@ public class CompareROIs extends Module {
 
         int privateToTruth = 0, privateToEval = 0, overlap = 0;
 
+        Set<CanonicalKmer> kmersPrivateToEval = new HashSet<>();
+
         for (CanonicalKmer ck : all) {
             if (trs.containsKey(ck)) {
                 if (ers.containsKey(ck)) {
@@ -55,10 +57,15 @@ public class CompareROIs extends Module {
                 }
             } else {
                 privateToEval++;
+                kmersPrivateToEval.add(ck);
             }
         }
 
         log.info("t={} e={} pt={} pe={} o={}", trs.size(), ers.size(), privateToTruth, privateToEval, overlap);
         out.println("t=" + trs.size() + " e=" + ers.size() + " pt=" + privateToTruth + " pe=" + privateToEval + " o=" + overlap);
+
+        for (CanonicalKmer ck : kmersPrivateToEval) {
+            log.info("pe: {} {}", ck, GRAPH.findRecord(ck));
+        }
     }
 }
