@@ -213,7 +213,7 @@ public class Call extends Module {
             }
 
             vcs = filterBreakpoints(vcs);
-            vcs = mergeBreakpoints(seq, vcs, rois);
+            //vcs = mergeBreakpoints(seq, vcs, rois);
             if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
             //vcs = mergeSingleBreakpoints(seq, vcs);
 

@@ -27,7 +27,7 @@ public class FindLowComplexity extends Module {
     public CortexGraph ROI;
 
     @Argument(fullName="crThreshold", shortName="t", doc="Complexity threshold")
-    public Float COMPLEXITY_THRESHOLD = 0.7f;
+    public Float COMPLEXITY_THRESHOLD = 0.70f;
 
     @Output
     public File out;

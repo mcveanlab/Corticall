@@ -34,7 +34,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
     private int recordsSeen = 0;
     private long recordsStart = 0;
 
-    //private String lastLine;
+    private String lastLine;
 
     public CortexLinksIterable(String linksString) {
         this.linksFile = new File(linksString);
@@ -174,7 +174,7 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
             try {
                 String line = buffered.readLine();
 
-                /*
+                //
                 if (line == null) {
                     Main.getLogger().info("{} {} null record, lastLine={}", recordsSeen, numKmersWithLinks, lastLine.length());
                     Main.getLogger().info("{}", lastLine);
@@ -182,38 +182,41 @@ public class CortexLinksIterable implements Iterable<CortexLinksRecord>, Iterato
                 }
 
                 lastLine = line;
-                */
-
-                String[] kmerLine = line.split("\\s+");
-
-                String kmer = kmerLine[0];
-                int numLinks = Integer.valueOf(kmerLine[1]);
-
-                List<CortexJunctionsRecord> cjs = new ArrayList<>();
-
-                for (int i = 0; i < numLinks; i++) {
-                    String[] linkLine = buffered.readLine().split("[,\\s]+");
-
-                    String orientation = linkLine[0];
-                    int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
-                    int numJunctions = version == 4 ? Integer.valueOf(linkLine[1]) : Integer.valueOf(linkLine[2]);
-                    int[] coverages = new int[numColors];
-
-                    int offset = version == 4 ? 2 : 3;
-
-                    for (int c = 0; c < numColors; c++) {
-                        coverages[c] = Integer.valueOf(linkLine[offset + c]);
-                    }
-
-                    String junctions = linkLine[offset + numColors];
-
-                    CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
-                    cjs.add(cj);
-                }
+                //
 
                 recordsSeen++;
 
-                return new CortexLinksRecord(kmer, cjs);
+                if (line != null) {
+                    String[] kmerLine = line.split("\\s+");
+
+                    String kmer = kmerLine[0];
+                    int numLinks = Integer.valueOf(kmerLine[1]);
+
+                    List<CortexJunctionsRecord> cjs = new ArrayList<>();
+
+                    for (int i = 0; i < numLinks; i++) {
+                        String[] linkLine = buffered.readLine().split("[,\\s]+");
+
+                        String orientation = linkLine[0];
+                        int numKmers = version == 4 ? -1 : Integer.valueOf(linkLine[1]);
+                        int numJunctions = version == 4 ? Integer.valueOf(linkLine[1]) : Integer.valueOf(linkLine[2]);
+                        int[] coverages = new int[numColors];
+
+                        int offset = version == 4 ? 2 : 3;
+
+                        for (int c = 0; c < numColors; c++) {
+                            coverages[c] = Integer.valueOf(linkLine[offset + c]);
+                        }
+
+                        String junctions = linkLine[offset + numColors];
+
+                        CortexJunctionsRecord cj = new CortexJunctionsRecord(orientation.equals("F"), numKmers, numJunctions, coverages, junctions);
+                        cjs.add(cj);
+                    }
+
+
+                    return new CortexLinksRecord(kmer, cjs);
+                }
             } catch (IOException e) {
                 throw new CortexJDKException("Unable to parse CortexLinks record", e);
             }
