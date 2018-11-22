@@ -52,7 +52,7 @@ public class FindLowComplexity extends Module {
         Set<CanonicalKmer> lowComplexity = new HashSet<>();
 
         for (CortexRecord rr : ROI) {
-            log.info("{} {} {}", rr.getCanonicalKmer(), SequenceUtils.computeCompressionRatio(rr.getCanonicalKmer()), isLowComplexity(rr, COMPLEXITY_THRESHOLD));
+            //log.info("{} {} {}", rr.getCanonicalKmer(), SequenceUtils.computeCompressionRatio(rr.getCanonicalKmer()), isLowComplexity(rr, COMPLEXITY_THRESHOLD));
 
             if (isLowComplexity(rr, COMPLEXITY_THRESHOLD)) {
                 lowComplexity.add(rr.getCanonicalKmer());
