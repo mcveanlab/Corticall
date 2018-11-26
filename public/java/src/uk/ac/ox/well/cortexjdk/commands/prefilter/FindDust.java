@@ -60,6 +60,8 @@ public class FindDust extends Module {
                 .make(log);
 
         Set<CanonicalKmer> dust = new HashSet<>();
+
+        /*
         int numDustChains = 0;
 
         TraversalEngine e = new TraversalEngineFactory()
@@ -71,9 +73,13 @@ public class FindDust extends Module {
                 .rois(ROI)
                 .graph(GRAPH)
                 .make();
+                */
 
         for (CortexRecord rr : ROI) {
             if (!dust.contains(rr.getCanonicalKmer()) && isDust(rr, 0)) {
+                dust.add(rr.getCanonicalKmer());
+
+                /*
                 Graph<CortexVertex, CortexEdge> dfs = e.dfs(rr.getKmerAsString());
 
                 if (dfs != null && dfs.vertexSet().size() > 0) {
@@ -86,12 +92,14 @@ public class FindDust extends Module {
                     }
 
                 }
+                */
             }
 
             pm.update();
         }
 
-        log.info("Found {} dust kmer chains ({} kmers total)", numDustChains, dust.size());
+        //log.info("Found {} dust kmer chains ({} kmers total)", numDustChains, dust.size());
+        log.info("Found {} dust kmers", dust.size());
 
         log.info("Writing...");
 
