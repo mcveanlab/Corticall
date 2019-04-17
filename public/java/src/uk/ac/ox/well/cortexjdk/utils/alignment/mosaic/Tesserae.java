@@ -124,12 +124,12 @@ public class Tesserae {
         this.nseq = targets.size() + 1;
         this.maxl = getMaxLength(query, targets);
 
-        vt_m = new double[nseq+1][maxl+1][maxl+1];
-        vt_i = new double[nseq+1][maxl+1][maxl+1];
-        vt_d = new double[nseq+1][maxl+1][maxl+1];
-        tb_m = new double[nseq+1][maxl+1][maxl+1];
-        tb_i = new double[nseq+1][maxl+1][maxl+1];
-        tb_d = new double[nseq+1][maxl+1][maxl+1];
+        vt_m = new double[nseq+1][maxl+1][query.length()+1];
+        vt_i = new double[nseq+1][maxl+1][query.length()+1];
+        vt_d = new double[nseq+1][maxl+1][query.length()+1];
+        tb_m = new double[nseq+1][maxl+1][query.length()+1];
+        tb_i = new double[nseq+1][maxl+1][query.length()+1];
+        tb_d = new double[nseq+1][maxl+1][query.length()+1];
 
         who_copy = new int[nseq+1];
         Arrays.fill(who_copy, 1);
@@ -167,13 +167,22 @@ public class Tesserae {
         path = new ArrayList<>();
     }
 
-    private int getMaxLength(String query, Map<String, String> targets) {
+    private static int getMaxLength(String query, Map<String, String> targets) {
         int maxLength = query.length();
         for (String target : targets.values()) {
             maxLength = Math.max(maxLength, target.length());
         }
 
         return maxLength;
+    }
+
+    private static int argmax(double[] vec) {
+        if (vec==null) { return -1; }
+        int max=0;
+        for (int i=1; i<vec.length; ++i) {
+            if(vec[max] < vec[i]) { max = i; }
+        }
+        return max;
     }
 
     private List<Triple<String, String, Pair<Integer, Integer>>> alignAll(Map<String, String> panel) {
@@ -212,6 +221,7 @@ public class Tesserae {
         double max_r = SMALL;
 
         seq = 1;
+        int seq_10 = 10;
         for (String target : panel.values()) {
             if (who_copy[seq] == 1) {
                 for (int pos_seq = 1; pos_seq <= target.length(); pos_seq++) {
@@ -222,13 +232,11 @@ public class Tesserae {
                     vt_i[seq][pos_seq][1] += lsi[convert(query.charAt(0))];
 
                     if (pos_seq > 0) {
-                        vt_d[seq][pos_seq][1] = vt_m[seq][pos_seq - 1][1] + ldel;
-                        tb_d[seq][pos_seq][1] = seq * 10 + 1 + (pos_seq - 1) / tb_divisor;
+                        double[] vt_d_n = {vt_m[seq][pos_seq - 1][1] + ldel, vt_d[seq][pos_seq - 1][1] + leps};
+                        int i = argmax(vt_d_n);
 
-                        if ((vt_d[seq][pos_seq - 1][1] + leps) > vt_d[seq][pos_seq][1]) {
-                            vt_d[seq][pos_seq][1] = vt_d[seq][pos_seq - 1][1] + leps;
-                            tb_d[seq][pos_seq][1] = seq * 10 + 3 + (pos_seq - 1) / tb_divisor;
-                        }
+                        vt_d[seq][pos_seq][1] = vt_d_n[i];
+                        tb_d[seq][pos_seq][1] = seq_10 + 2*i+1 + (pos_seq - 1) / tb_divisor;
                     }
 
                     if (vt_m[seq][pos_seq][1] > max_r) {
@@ -247,11 +255,13 @@ public class Tesserae {
             }
 
             seq++;
+            seq_10+=10;
         }
 
         for (int pos_target = 2; pos_target <= l1; pos_target++) {
             double max_rn = SMALL + max_r;
             seq = 1;
+            seq_10 = 10;
             for (String target : panel.values()) {
                 if (who_copy[seq] == 1) {
                     for (int pos_seq = 1; pos_seq <= target.length(); pos_seq++) {
@@ -259,22 +269,16 @@ public class Tesserae {
                         vt_m[seq][pos_seq][pos_target] = max_r + lrho + lpiM - lsizeL;
                         tb_m[seq][pos_seq][pos_target] = who_max*10 + state_max + pos_max/tb_divisor;
 
-                        // Compare to MM
-                        if ((vt_m[seq][pos_seq-1][pos_target-1] + lmm) > vt_m[seq][pos_seq][pos_target]) {
-                            vt_m[seq][pos_seq][pos_target] = vt_m[seq][pos_seq-1][pos_target-1] + lmm;
-                            tb_m[seq][pos_seq][pos_target] = seq*10 + 1 + (pos_seq-1)/tb_divisor;
-                        }
+                        double[] vt_m_n = {
+                            vt_m[seq][pos_seq-1][pos_target-1] + lmm,
+                            vt_i[seq][pos_seq-1][pos_target-1] + lgm,
+                            vt_d[seq][pos_seq-1][pos_target-1] + ldm
+                        };
+                        int i = argmax(vt_m_n);
 
-                        // Compare to IM
-                        if ((vt_i[seq][pos_seq-1][pos_target-1] + lgm) > vt_m[seq][pos_seq][pos_target]) {
-                            vt_m[seq][pos_seq][pos_target] = vt_i[seq][pos_seq-1][pos_target-1] + lgm;
-                            tb_m[seq][pos_seq][pos_target] = seq*10 + 2 + (pos_seq-1)/tb_divisor;
-                        }
-
-                        // Compare to DM
-                        if ((vt_d[seq][pos_seq-1][pos_target-1] + ldm) > vt_m[seq][pos_seq][pos_target]) {
-                            vt_m[seq][pos_seq][pos_target] = vt_d[seq][pos_seq-1][pos_target-1] + ldm;
-                            tb_m[seq][pos_seq][pos_target] = seq*10 + 3 + (pos_seq-1)/tb_divisor;
+                        if (vt_m_n[i] > vt_m[seq][pos_seq][pos_target]) {
+                            vt_m[seq][pos_seq][pos_target] = vt_m_n[i];
+                            tb_m[seq][pos_seq][pos_target] = seq_10 + i+1 + (pos_seq-1)/tb_divisor;
                         }
 
                         // Add in state match
@@ -284,16 +288,15 @@ public class Tesserae {
                         vt_i[seq][pos_seq][pos_target] = max_r + lrho + lpiI - lsizeL;
                         tb_i[seq][pos_seq][pos_target] = who_max*10 + state_max + pos_max/tb_divisor;
 
-                        // Compare to MI
-                        if ((vt_m[seq][pos_seq][pos_target-1] + ldel) > vt_i[seq][pos_seq][pos_target]) {
-                            vt_i[seq][pos_seq][pos_target] = vt_m[seq][pos_seq][pos_target-1] + ldel;
-                            tb_i[seq][pos_seq][pos_target] = seq*10 + 1 + pos_seq/tb_divisor;
-                        }
+                        double[] vt_i_n = {
+                            vt_m[seq][pos_seq][pos_target-1] + ldel,
+                            vt_i[seq][pos_seq][pos_target-1] + leps
+                        };
+                        i = argmax(vt_i_n);
 
-                        // Compare to II
-                        if ((vt_i[seq][pos_seq][pos_target-1] + leps) > vt_i[seq][pos_seq][pos_target]) {
-                            vt_i[seq][pos_seq][pos_target] = vt_i[seq][pos_seq][pos_target-1] + leps;
-                            tb_i[seq][pos_seq][pos_target] = seq*10 + 2 + pos_seq/tb_divisor;
+                        if (vt_i_n[i] > vt_i[seq][pos_seq][pos_target]) {
+                            vt_i[seq][pos_seq][pos_target] = vt_i_n[i];
+                            tb_i[seq][pos_seq][pos_target] = seq_10 + i+1 + pos_seq/tb_divisor;
                         }
 
                         // Add in state insert
@@ -302,15 +305,14 @@ public class Tesserae {
 
                         // Delete
                         if (pos_target < l1 && pos_seq > 1) {
-                            // Initialize with match
-                            vt_d[seq][pos_seq][pos_target] = vt_m[seq][pos_seq-1][pos_target] + ldel;
-                            tb_d[seq][pos_seq][pos_target] = seq*10 + 1 + (pos_seq-1)/tb_divisor;
+                            double[] vt_d_n = {
+                                vt_m[seq][pos_seq-1][pos_target] + ldel,
+                                vt_d[seq][pos_seq-1][pos_target] + leps
+                            };
+                            i = argmax(vt_d_n);
 
-                            // Compare to DD
-                            if ((vt_d[seq][pos_seq-1][pos_target] + leps) > vt_d[seq][pos_seq][pos_target]) {
-                                vt_d[seq][pos_seq][pos_target] = vt_d[seq][pos_seq-1][pos_target] + leps;
-                                tb_d[seq][pos_seq][pos_target] = seq*10 + 3 + (pos_seq-1)/tb_divisor;
-                            }
+                            vt_d[seq][pos_seq][pos_target] = vt_m_n[i];
+                            tb_d[seq][pos_seq][pos_target] = seq_10 + 2*i+1 + (pos_seq-1)/tb_divisor;
                         }
 
                         if (vt_m[seq][pos_seq][pos_target] > max_rn) {
@@ -329,6 +331,7 @@ public class Tesserae {
                 }
 
                 seq++;
+                seq_10+=10;
             }
 
             max_r = max_rn;
@@ -345,22 +348,21 @@ public class Tesserae {
         maxpath_state[cp] = state_max;
         maxpath_pos[cp] = pos_max;
 
+        double tb_next = 0.0;
         int pos_target = l1;
         int who_next = 0, state_next = 0, pos_next = 0;
         while (pos_target >= 1) {
             if (state_max == 1) {
-                who_next = (int) (tb_m[who_max][pos_max][pos_target]) / 10;
-                state_next = (int) (tb_m[who_max][pos_max][pos_target] - who_next*10);
-                pos_next = (int) ((tb_m[who_max][pos_max][pos_target] - who_next*10 - state_next)*tb_divisor + 1e-6);
+                tb_next = tb_m[who_max][pos_max][pos_target];
             } else if (state_max == 2) {
-                who_next = (int) (tb_i[who_max][pos_max][pos_target]) / 10;
-                state_next = (int) (tb_i[who_max][pos_max][pos_target] - who_next*10);
-                pos_next = (int) ((tb_i[who_max][pos_max][pos_target] - who_next*10-state_next)*tb_divisor + 1e-6);
+                tb_next = tb_i[who_max][pos_max][pos_target];
             } else if (state_max == 3) {
-                who_next = (int) (tb_d[who_max][pos_max][pos_target]) / 10;
-                state_next = (int) (tb_d[who_max][pos_max][pos_target] - who_next*10);
-                pos_next = (int) ((tb_d[who_max][pos_max][pos_target] - who_next*10-state_next)*tb_divisor + 1e-6);
+                tb_next = tb_d[who_max][pos_max][pos_target];
             }
+
+            who_next = (int) (tb_next) / 10;
+            state_next = (int) (tb_next - who_next*10);
+            pos_next = (int) ((tb_next - who_next*10 - state_next)*tb_divisor + 1e-6);
 
             cp--;
 
@@ -492,7 +494,7 @@ public class Tesserae {
         return path;
     }
 
-    private int convert(char c) {
+    private static int convert(char c) {
         switch (c) {
             case 'A': return 3;
             case 'C': return 2;
