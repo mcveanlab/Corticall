@@ -172,6 +172,8 @@ public class SimulateHaploidChild extends Module {
             }
 
             vs.addAll(v);
+
+            seqIndices.add(chrIndex);
         }
 
         log.info("Collapsing into new linear haploid reference...");
