@@ -36,14 +36,14 @@ public class NovelPartitionStopper extends AbstractTraversalStoppingRule<CortexV
             distanceFromSeed = 0;
         }
 
-        boolean stopNow = distanceFromSeed > 2000 || s.getCurrentJunctionDepth() > 3 || s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || (s.getNumAdjacentEdges() > 1 && s.childBranchesAlreadyTraversed());
+        boolean stopNow = distanceFromSeed > 2000 || s.getCurrentJunctionDepth() > 0 || s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || (s.getNumAdjacentEdges() > 1 && s.childBranchesAlreadyTraversed());
 
         return foundNovelKmers && stopNow;
     }
 
     @Override
     public boolean hasTraversalFailed(TraversalState<CortexVertex> s) {
-        boolean stopNow = distanceFromSeed > 2000 || s.getCurrentJunctionDepth() > 3 || s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || (s.getNumAdjacentEdges() > 1 && s.childBranchesAlreadyTraversed());
+        boolean stopNow = distanceFromSeed > 2000 || s.getCurrentJunctionDepth() > 0 || s.reachedMaxBranchLength() || s.getNumAdjacentEdges() == 0 || (s.getNumAdjacentEdges() > 1 && s.childBranchesAlreadyTraversed());
 
         return !foundNovelKmers && stopNow;
     }

@@ -25,13 +25,15 @@ public class CortexVertex implements Serializable {
 
     private Set<String> kmerSources = new TreeSet<>();
     private int copyIndex = 0;
+    private int index = 0;
 
-    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources, int copyIndex) {
+    public CortexVertex(CortexByteKmer sk, CortexRecord cr, Interval locus, Set<String> kmerSources, int copyIndex, int index) {
         this.sk = sk;
         this.cr = cr;
         this.locus = locus;
         this.kmerSources = kmerSources;
         this.copyIndex = copyIndex;
+        this.index = index;
     }
 
     public String getKmerAsString() { return new String(sk.getKmer()); }
@@ -44,9 +46,15 @@ public class CortexVertex implements Serializable {
 
     public int getCopyIndex() { return copyIndex; }
 
+    public int getIndex() { return index; }
+
     public Interval getLocus() { return locus; }
 
     public Set<String> getSources() { return kmerSources; }
+
+    public void setCopyIndex(int copyIndex) { this.copyIndex = copyIndex; }
+
+    public void setIndex(int index) { this.index = index; }
 
     public void setLocus(Interval locus) {
         this.locus = locus;
@@ -63,6 +71,7 @@ public class CortexVertex implements Serializable {
 
         CortexVertex that = (CortexVertex) o;
 
+        if (index != that.index) return false;
         if (copyIndex != that.copyIndex) return false;
         if (sk != null ? !sk.equals(that.sk) : that.sk != null) return false;
         if (cr != null ? !cr.equals(that.cr) : that.cr != null) return false;
@@ -77,6 +86,7 @@ public class CortexVertex implements Serializable {
         result = 31 * result + (locus != null ? locus.hashCode() : 0);
         result = 31 * result + (kmerSources != null ? kmerSources.hashCode() : 0);
         result = 31 * result + copyIndex;
+        result = 31 * result + index;
         return result;
     }
 
@@ -84,6 +94,7 @@ public class CortexVertex implements Serializable {
     public String toString() {
         return "CortexVertex{" +
                 "sk=" + sk +
+                ", index=" + index +
                 ", copyIndex=" + copyIndex +
                 ", cr=" + cr +
                 ", locus=" + locus +

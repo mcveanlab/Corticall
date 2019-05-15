@@ -115,7 +115,7 @@ public class Call extends Module {
             String seq = rseq.getBaseString();
 
             List<CortexVertex> w = loadChildWalk(rseq, GRAPH);
-            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 100, 500);
+            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 20000, 20000);
 
             Set<VariantContextBuilder> vcs = buildVariantContextBuilderSorter(sd);
 
@@ -175,6 +175,7 @@ public class Call extends Module {
                         List<VariantContextBuilder> calls = new ArrayList<>();
                         calls.addAll(callSmallBubbles(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
                         calls.addAll(callLargeBubbles(lps, nrs, labelledTargets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
+                        calls.addAll(callRepeats(lps, nrs, labelledTargets, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
                         calls.addAll(callBreakpoints(lps, nrs, rseq.getName().split(" ")[0], section.getLeft() + trimmedQuery.getLeft(), section.getMiddle() + trimmedQuery.getLeft()));
 
                         List<VariantContextBuilder> merged = mergeBubbles(lps, calls);
@@ -212,7 +213,7 @@ public class Call extends Module {
                 }
             }
 
-            vcs = filterBreakpoints(vcs);
+            //vcs = filterBreakpoints(vcs);
             //vcs = mergeBreakpoints(seq, vcs, rois);
             if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
             //vcs = mergeSingleBreakpoints(seq, vcs);
@@ -1297,6 +1298,101 @@ public class Call extends Module {
                                     .attribute("variantStop", variantStop)
                                     .attribute("prevBase", prevBase)
                                     .attribute("nextBase", nextBase)
+                                    .attribute("CALL_FUNC", "largeBubble")
+                                    .attribute("CHILD_HAP", childHap)
+                                    .attribute("PARTITION_NAME", contigName)
+                                    .attribute("BACKGROUND", varBackground);
+
+                            vcbs.add(vcb);
+                        }
+                    }
+                }
+            }
+        }
+
+        return vcbs;
+    }
+
+    private List<VariantContextBuilder> callRepeats(List<Triple<String, String, Pair<Integer, Integer>>> lps, List<Pair<Integer, Integer>> nrs, Map<String, String> targets, String contigName, int sectionStart, int sectionStop) {
+        List<VariantContextBuilder> vcbs = new ArrayList<>();
+
+        for (Pair<Integer, Integer> nr : nrs) {
+            for (int i = nr.getFirst(); i <= nr.getSecond(); i++) {
+                if (isRecomb(lps, i)) {
+                    Pair<Integer, Integer> partners = recombPartners(lps, i);
+
+                    String name0 = lps.get(partners.getFirst()).getLeft();
+                    String name1 = lps.get(partners.getSecond()).getLeft();
+
+                    if (name0.equals(name1)) {
+                        String target = targets.get(lps.get(partners.getFirst()).getLeft());
+
+                        int start0 = lps.get(partners.getFirst()).getRight().getFirst();
+                        int start1 = lps.get(partners.getSecond()).getRight().getFirst();
+
+                        int stop0 = lps.get(partners.getFirst()).getRight().getSecond() + 1;
+                        int stop1 = lps.get(partners.getSecond()).getRight().getSecond() + 1;
+
+                        if (start0 == start1 && stop0 == stop1) {
+                            int variantStart = sectionStart + i;
+                            int variantStop = sectionStart + i + 1;
+
+                            char prevBase, nextBase;
+
+                            int q = -1;
+                            do {
+                                q++;
+                                prevBase = Character.toUpperCase(getParentalColumn(lps, i - q));
+                            } while (prevBase == '-' && i - q > 1);
+
+                            q = -1;
+                            do {
+                                q++;
+                                nextBase = Character.toUpperCase(getParentalColumn(lps, i + 1 + q));
+                            } while (nextBase == '-');
+
+                            String subtarget = target.substring(start0, stop0);
+
+                            //log.debug("  {} {} {} {} {} {}", variantStart, variantStop, i, prevBase, nextBase, subtarget);
+
+                            List<Allele> alleles = Arrays.asList(Allele.create(String.valueOf(prevBase), true), Allele.create(String.valueOf(prevBase) + subtarget));
+
+                            String varBackground = lps.get(partners.getFirst()).getLeft().split(":")[0];
+
+                            int childLeft;
+                            int numLeft = 0;
+                            for (childLeft = nr.getFirst(); childLeft > 0 && numLeft <= GRAPH.getKmerSize(); childLeft--) {
+                                if (getChildColumn(lps, childLeft) != '-') {
+                                    numLeft++;
+                                }
+                            }
+
+                            int childRight;
+                            int numRight = 0;
+                            for (childRight = nr.getSecond(); childRight < lps.get(0).getMiddle().length() && numRight <= GRAPH.getKmerSize(); childRight++) {
+                                if (getChildColumn(lps, childRight) != '-') {
+                                    numRight++;
+                                }
+                            }
+
+                            String childHap = lps.get(0).getMiddle().substring(childLeft, childRight).replaceAll("-", "");
+
+                            VariantContextBuilder vcb = new VariantContextBuilder()
+                                    .noID()
+                                    .noGenotypes()
+                                    .chr(contigName)
+                                    .alleles(alleles)
+                                    .start(variantStart)
+                                    .computeEndFromAlleles(alleles, sectionStart + i)
+                                    .attribute("start", i)
+                                    .attribute("stop", i + 1)
+                                    .attribute("sectionStart", sectionStart)
+                                    .attribute("sectionStop", sectionStop)
+                                    .attribute("variantStart", variantStart)
+                                    .attribute("variantStop", variantStop)
+                                    .attribute("prevBase", prevBase)
+                                    .attribute("nextBase", nextBase)
+                                    .attribute("CALL_FUNC", "repeats")
                                     .attribute("CHILD_HAP", childHap)
                                     .attribute("PARTITION_NAME", contigName)
                                     .attribute("BACKGROUND", varBackground);
@@ -1386,6 +1482,7 @@ public class Call extends Module {
                                 .attribute("targetName", lps.get(partners.getFirst()).getLeft())
                                 .attribute("targetStart", lps.get(partners.getFirst()).getRight().getFirst())
                                 .attribute("targetStop", lps.get(partners.getFirst()).getRight().getSecond())
+                                .attribute("CALL_FUNC", "breakpoints")
                                 .attribute("CHILD_HAP", childHap)
                                 .attribute("PARTITION_NAME", contigName)
                                 .attribute("BACKGROUND", varBackground0)
@@ -1508,6 +1605,7 @@ public class Call extends Module {
                                 .attribute("variantStop", variantStop)
                                 .attribute("prevBase", prevBase)
                                 .attribute("nextBase", nextBase)
+                                .attribute("CALL_FUNC", "smallBubble")
                                 .attribute("CHILD_HAP", childHap)
                                 .attribute("PARTITION_NAME", contigName)
                                 .attribute("BACKGROUND", varBackground)
@@ -1547,6 +1645,7 @@ public class Call extends Module {
 
         return vcbs;
     }
+
 
     private void writeVariants(Set<CanonicalKmer> rois, Set<VariantContext> svcs, VariantContextWriter vcw) {
         Map<CanonicalKmer, String> acct = new TreeMap<>();
@@ -1706,9 +1805,13 @@ public class Call extends Module {
         int firstIndex = Integer.MAX_VALUE, lastIndex = 0;
         int firstNovel = -1, lastNovel = -1;
 
-        Map<CanonicalKmer, Integer> pos = new HashMap<>();
+        Map<CanonicalKmer, List<Integer>> pos = new HashMap<>();
         for (int i = 0; i < ws.size(); i++) {
-            pos.put(ws.get(i).getCanonicalKmer(), i);
+            if (!pos.containsKey(ws.get(i).getCanonicalKmer())) {
+                pos.put(ws.get(i).getCanonicalKmer(), new ArrayList<>());
+            }
+
+            pos.get(ws.get(i).getCanonicalKmer()).add(i);
 
             if (rois.contains(ws.get(i).getCanonicalKmer())) {
                 if (firstNovel == -1) {
@@ -1725,10 +1828,11 @@ public class Call extends Module {
                 CanonicalKmer ck = new CanonicalKmer(sk);
 
                 if (pos.containsKey(ck)) {
-                    int index = pos.get(ck);
+                    int fi = pos.get(ck).get(0);
+                    int li = pos.get(ck).get(pos.get(ck).size() - 1);
 
-                    if (index < firstIndex) { firstIndex = index; }
-                    if (index > lastIndex) { lastIndex = index; }
+                    if (fi < firstIndex) { firstIndex = fi; }
+                    if (li > lastIndex) { lastIndex = li; }
                 }
             }
         }
@@ -1736,7 +1840,7 @@ public class Call extends Module {
         if (firstNovel < firstIndex) { firstIndex = firstNovel; }
         if (lastNovel > lastIndex) { lastIndex = lastNovel; }
 
-        return Triple.of(firstIndex, lastIndex, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex)));
+        return Triple.of(firstIndex, lastIndex + 1, TraversalUtils.toContig(ws.subList(firstIndex, lastIndex + 1)));
     }
 
     private int getNumColumns(List<Triple<String, String, Pair<Integer, Integer>>> lps) {

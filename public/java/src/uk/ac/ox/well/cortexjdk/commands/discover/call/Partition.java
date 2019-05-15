@@ -27,6 +27,8 @@ import java.util.*;
 
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.GraphCombinationOperator.OR;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.BOTH;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
+import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
 public class Partition extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
@@ -87,7 +89,8 @@ public class Partition extends Module {
                 .graph(GRAPH)
                 .links(LINKS)
                 .rois(ROIS)
-                .stoppingRule(LINK_NOVELS ? NovelPartitionStopper.class : NovelKmerLimitedContigStopper.class)
+                //.stoppingRule(LINK_NOVELS ? NovelPartitionStopper.class : NovelKmerLimitedContigStopper.class)
+                .stoppingRule(LINK_NOVELS ? NovelPartitionStopper.class : ContigStopper.class)
                 .make();
 
         log.info("Using stopper {}", e.getConfiguration().getStoppingRule().getSimpleName());
@@ -209,7 +212,7 @@ public class Partition extends Module {
                 }
             }
 
-            out.println(">partition" + numPartitions + " numNovels=" + numNovels);
+            out.println(">partition" + numPartitions + " len=" + (partition.length() - GRAPH.getKmerSize() + 1) + " numNovels=" + numNovels);
             out.println(partition);
 
             numPartitions++;

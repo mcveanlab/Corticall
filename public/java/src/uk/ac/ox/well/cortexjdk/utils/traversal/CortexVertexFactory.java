@@ -13,6 +13,7 @@ public class CortexVertexFactory {
     private Interval locus = null;
     private Set<String> kmerSources = new HashSet<>();
     private int copyIndex = 0;
+    private int index = 0;
 
     public CortexVertexFactory vertex(CortexVertex v) {
         bases(v.getKmerAsByteKmer());
@@ -20,6 +21,7 @@ public class CortexVertexFactory {
         locus(v.getLocus());
         sources(v.getSources());
         copyIndex(v.getCopyIndex());
+        index(v.getIndex());
 
         return this;
     }
@@ -36,8 +38,7 @@ public class CortexVertexFactory {
     public CortexVertexFactory source(String source) { this.kmerSources.add(source); return this; }
 
     public CortexVertexFactory copyIndex(int copyIndex) { this.copyIndex = copyIndex; return this; }
+    public CortexVertexFactory index(int index) { this.index = index; return this; }
 
-    public CortexVertex make() {
-        return new CortexVertex(bk, cr, locus, kmerSources, copyIndex);
-    }
+    public CortexVertex make() { return new CortexVertex(bk, cr, locus, kmerSources, copyIndex, index); }
 }

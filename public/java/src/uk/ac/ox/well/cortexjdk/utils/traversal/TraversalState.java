@@ -15,6 +15,7 @@ final public class TraversalState<V> {
     final private int currentGraphSize;
     final private int currentBranchSize;
     final private int numAdjacentEdges;
+    final private int numAdjacentReverseEdges;
     final private boolean childrenAlreadyTraversed;
     final private DeBruijnGraph rois;
     final private boolean reachedMaxBranchLength;
@@ -28,6 +29,7 @@ final public class TraversalState<V> {
                           int currentJunctionDepth,
                           int currentBranchSize,
                           int numAdjacentEdges,
+                          int numAdjacentReverseEdges,
                           boolean childrenAlreadyTraversed,
                           boolean reachedMaxBranchLength,
                           DeBruijnGraph rois,
@@ -41,6 +43,7 @@ final public class TraversalState<V> {
         this.currentJunctionDepth = currentJunctionDepth;
         this.currentBranchSize = currentBranchSize;
         this.numAdjacentEdges = numAdjacentEdges;
+        this.numAdjacentReverseEdges = numAdjacentReverseEdges;
         this.childrenAlreadyTraversed = childrenAlreadyTraversed;
         this.rois = rois;
         this.reachedMaxBranchLength = reachedMaxBranchLength;
@@ -65,6 +68,8 @@ final public class TraversalState<V> {
     public int getCurrentBranchSize() { return currentBranchSize; }
 
     public int getNumAdjacentEdges() { return numAdjacentEdges; }
+
+    public int getNumAdjacentReverseEdges() { return numAdjacentReverseEdges; }
 
     public boolean childBranchesAlreadyTraversed() { return childrenAlreadyTraversed; }
 
