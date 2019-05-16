@@ -394,10 +394,12 @@ public class SimulateHaploidChild extends Module {
                         nalt = SequenceUtils.reverseComplement(nalt);
                     }
 
+                    /*
                     SmithWaterman smw = new SmithWaterman();
                     String[] a = smw.getAlignment(v2, nalt);
                     log.info("a0: {}", a[0]);
                     log.info("a1: {}", a[1]);
+                    */
 
                     vs.add(new GeneratedVariant("NAHR-INS", Integer.valueOf(g2.getSeqid()), g2.getStart(), v2, nalt, vres.getRight()));
                     vs.add(new GeneratedVariant("NAHR-DEL", Integer.valueOf(g1.getSeqid()), g1.getStart(), v1, ""));
