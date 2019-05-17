@@ -498,16 +498,6 @@ public class SimulateHaploidChild extends Module {
             }
         }
 
-        Interval[] i1 = new Interval[v1.length() + 1];
-        for (int i = 0; i < v1.length() + 1; i++) {
-            if (g1.getStrand() == GFF3Record.Strand.POSITIVE) {
-                i1[i] = new Interval(v1ref, v1start + i, v1start + i, false, ".");
-            } else {
-                i1[i] = new Interval(v1ref, v1end - i, v1end - i, true, ".");
-            }
-        }
-        String seq1 = (g1.getStrand() == GFF3Record.Strand.POSITIVE) ? v1 : SequenceUtils.reverseComplement(v1);
-
         String v2 = Joiner.on("").join(seqs.get(Integer.valueOf(g2.getSeqid())).getFirst()).substring(g2.getStart(), g2.getEnd());
         String v2ref = g2.getSeqid();
         int v2start = g2.getStart();
@@ -524,7 +514,17 @@ public class SimulateHaploidChild extends Module {
             }
         }
 
-        Interval[] i2 = new Interval[v1.length() + 1];
+        Interval[] i1 = new Interval[Math.max(v1.length(), v2.length()) + 1];
+        for (int i = 0; i < v1.length() + 1; i++) {
+            if (g1.getStrand() == GFF3Record.Strand.POSITIVE) {
+                i1[i] = new Interval(v1ref, v1start + i, v1start + i, false, ".");
+            } else {
+                i1[i] = new Interval(v1ref, v1end - i, v1end - i, true, ".");
+            }
+        }
+        String seq1 = (g1.getStrand() == GFF3Record.Strand.POSITIVE) ? v1 : SequenceUtils.reverseComplement(v1);
+
+        Interval[] i2 = new Interval[Math.max(v1.length(), v2.length()) + 1];
         for (int i = 0; i < v1.length() + 1; i++) {
             if (g2.getStrand() == GFF3Record.Strand.POSITIVE) {
                 i2[i] = new Interval(v2ref, v2start + i, v2start + i, false, ".");
