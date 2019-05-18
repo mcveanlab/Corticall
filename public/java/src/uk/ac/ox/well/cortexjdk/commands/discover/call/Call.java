@@ -51,7 +51,7 @@ public class Call extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
 
-    @Argument(fullName = "rois", shortName = "r", doc = "Rois")
+    @Argument(fullName = "rois", shortName = "r", doc = "ROIs")
     public CortexGraph ROIS;
 
     @Argument(fullName="partitions", shortName="p", doc="Partitions")
@@ -80,6 +80,12 @@ public class Call extends Module {
 
     @Argument(fullName="term", shortName="term", doc="Recombination probability")
     public Double TERM = 0.001;
+
+    @Argument(fullName="window", shortName="w", doc="Novel window")
+    public Integer WINDOW = 200;
+
+    @Argument(fullName="distance", shortName="d", doc="Novel window")
+    public Integer SPLIT_DISTANCE = 2000;
 
     @Argument(fullName="disableInversions", shortName="noinv", doc="Disable inversion caller (much faster)")
     public Boolean DISABLE_INVERSION_CALLER = false;
@@ -115,7 +121,7 @@ public class Call extends Module {
             String seq = rseq.getBaseString();
 
             List<CortexVertex> w = loadChildWalk(rseq, GRAPH);
-            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, 20000, 20000);
+            List<Triple<Integer, Integer, List<CortexVertex>>> sections = sectionContig(rois, w, WINDOW, SPLIT_DISTANCE);
 
             Set<VariantContextBuilder> vcs = buildVariantContextBuilderSorter(sd);
 
