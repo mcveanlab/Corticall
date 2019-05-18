@@ -151,7 +151,9 @@ public class TraversalEngine {
 
         Set<CortexByteKmer> combinedPrevKmers = new HashSet<>();
         for (int c : ec.getTraversalColors()) {
-            combinedPrevKmers.addAll(prevKmers.get(c));
+            if (prevKmers != null && prevKmers.containsKey(c)) {
+                combinedPrevKmers.addAll(prevKmers.get(c));
+            }
         }
 
         if (combinedPrevKmers.size() > 0) {
@@ -196,7 +198,9 @@ public class TraversalEngine {
 
         Set<CortexByteKmer> combinedNextKmers = new HashSet<>();
         for (int c : ec.getTraversalColors()) {
-            combinedNextKmers.addAll(nextKmers.get(c));
+            if (nextKmers != null && nextKmers.containsKey(c)) {
+                combinedNextKmers.addAll(nextKmers.get(c));
+            }
         }
 
         if (combinedNextKmers.size() > 0) {
