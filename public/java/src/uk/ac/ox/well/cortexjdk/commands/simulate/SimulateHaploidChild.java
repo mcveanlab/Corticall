@@ -9,7 +9,6 @@ import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.simulate.generators.*;
-import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
@@ -91,7 +90,7 @@ public class SimulateHaploidChild extends Module {
     public void execute() {
         initialize();
 
-        List<Pair<List<String>, List<Integer>>> seqs = new ArrayList<>();
+        List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs = new ArrayList<>();
         List<GFF3Record> gffs = new ArrayList<>();
 
         ProgressMeter pm = new ProgressMeterFactory()
@@ -109,19 +108,21 @@ public class SimulateHaploidChild extends Module {
             EmpiricalDistribution ed = new EmpiricalDistribution(dp, rng);
             int numRecombs = ed.draw();
 
-            Pair<List<String>, List<Integer>> res = recombine(seq1, seq2, numRecombs, KMER_SIZE, 0.10f);
-            gffs.addAll(liftover(res.getFirst(), i, CHRS1.get(i), CHRS2.get(i)));
+            Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>> res = recombine(seq1, seq2, numRecombs, KMER_SIZE, 0.10f);
+            gffs.addAll(liftover(res.getLeft(), i, CHRS1.get(i), CHRS2.get(i)));
 
             seqs.add(res);
 
-            int start = 0;
-            for (int j = 0; j < res.getFirst().size(); j++) {
-                String piece = res.getFirst().get(j);
-                int sw = res.getSecond().get(j);
+            //int start = 0;
+            for (int j = 0; j < res.getLeft().size(); j++) {
+                int sw = res.getMiddle().get(j);
 
-                vout.println(Joiner.on("\t").join(-1, i+1, start, start + piece.length(), PARENTS.get(sw - 1), "RECOMB", ".", ".", ".", ".", ".", ".", "."));
+                int start = res.getRight().get(j).getFirst();
+                int stop = res.getRight().get(j).getSecond();
 
-                start += piece.length();
+                vout.println(Joiner.on("\t").join(-1, i+1, start, stop, PARENTS.get(sw - 1), "RECOMB", ".", ".", ".", ".", ".", ".", "."));
+
+                //start += piece.length();
             }
 
             pm.update();
@@ -135,8 +136,8 @@ public class SimulateHaploidChild extends Module {
 
         for (int numBubble = 0; numBubble < NUM_VARIANTS; numBubble++) {
             int chrIndex = rng.nextInt(CHRS1.size());
-            Pair<List<String>, List<Integer>> res = seqs.get(chrIndex);
-            List<String> pieces = res.getFirst();
+            Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>> res = seqs.get(chrIndex);
+            List<String> pieces = res.getLeft();
 
             int variantType = rng.nextInt(10);
             Set<GeneratedVariant> v;
@@ -172,8 +173,10 @@ public class SimulateHaploidChild extends Module {
             }
 
             vs.addAll(v);
+        }
 
-            seqIndices.add(chrIndex);
+        for (GeneratedVariant gv : vs) {
+            seqIndices.add(gv.seqIndex);
         }
 
         log.info("Collapsing into new linear haploid reference...");
@@ -194,7 +197,6 @@ public class SimulateHaploidChild extends Module {
                 fout2.println(r2.getBaseString());
             }
         }
-
     }
 
     private Set<CortexBinaryKmer> getParentalKmers(IndexedFastaSequenceFile ref1, IndexedFastaSequenceFile ref2, int kmerSize) {
@@ -234,15 +236,15 @@ public class SimulateHaploidChild extends Module {
         return cbks;
     }
 
-    private List<String> collapse(List<Pair<List<String>, List<Integer>>> seqs, Set<CortexBinaryKmer> cbks, Set<GeneratedVariant> vs) {
+    private List<String> collapse(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, Set<CortexBinaryKmer> cbks, Set<GeneratedVariant> vs) {
         List<GeneratedVariant> lvs = new ArrayList<>(vs);
 
         List<StringBuilder> newSbs = new ArrayList<>();
         for (int i = 0; i < seqs.size(); i++) {
             StringBuilder sbs = new StringBuilder();
-            for (int j = 0; j < seqs.get(i).getSecond().size(); j++) {
-                String sb = seqs.get(i).getFirst().get(j);
-                int sw = seqs.get(i).getSecond().get(j);
+            for (int j = 0; j < seqs.get(i).getMiddle().size(); j++) {
+                String sb = seqs.get(i).getLeft().get(j);
+                int sw = seqs.get(i).getMiddle().get(j);
 
                 sb = sw == 1 ? sb.toUpperCase() : sb.toLowerCase();
 
@@ -336,7 +338,7 @@ public class SimulateHaploidChild extends Module {
         return newSeqs;
     }
 
-    private Set<GeneratedVariant> makeNAHR(List<Pair<List<String>, List<Integer>>> seqs, List<GFF3Record> gffs) {
+    private Set<GeneratedVariant> makeNAHR(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, List<GFF3Record> gffs) {
         Set<GeneratedVariant> vs = new TreeSet<>();
         Triple<List<String>, List<Integer>, List<Pair<Interval, Interval>>> vres = null;
 
@@ -348,10 +350,10 @@ public class SimulateHaploidChild extends Module {
             }
 
             GFF3Record g1 = gffs.get(vi1);
-            String v1 = Joiner.on("").join(seqs.get(Integer.valueOf(g1.getSeqid())).getFirst()).substring(g1.getStart(), g1.getEnd());
+            String v1 = Joiner.on("").join(seqs.get(Integer.valueOf(g1.getSeqid())).getLeft()).substring(g1.getStart(), g1.getEnd());
 
             GFF3Record g2 = gffs.get(vi2);
-            String v2 = Joiner.on("").join(seqs.get(Integer.valueOf(g2.getSeqid())).getFirst()).substring(g2.getStart(), g2.getEnd());
+            String v2 = Joiner.on("").join(seqs.get(Integer.valueOf(g2.getSeqid())).getLeft()).substring(g2.getStart(), g2.getEnd());
 
             if (g1.getInterval().length() > 500 && g2.getInterval().length() > 500) {
                 int numVarRecombs = rng.nextInt(5) + 2;
@@ -481,8 +483,8 @@ public class SimulateHaploidChild extends Module {
         return d;
     }
 
-    private Triple<List<String>, List<Integer>, List<Pair<Interval, Interval>>> recombine(List<Pair<List<String>, List<Integer>>> seqs, GFF3Record g1, GFF3Record g2, int numRecombs) {
-        String v1 = Joiner.on("").join(seqs.get(Integer.valueOf(g1.getSeqid())).getFirst()).substring(g1.getStart(), g1.getEnd());
+    private Triple<List<String>, List<Integer>, List<Pair<Interval, Interval>>> recombine(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, GFF3Record g1, GFF3Record g2, int numRecombs) {
+        String v1 = Joiner.on("").join(seqs.get(Integer.valueOf(g1.getSeqid())).getLeft()).substring(g1.getStart(), g1.getEnd());
         String v1ref = g1.getSeqid();
         int v1start = g1.getStart();
         int v1end = g1.getEnd();
@@ -498,7 +500,7 @@ public class SimulateHaploidChild extends Module {
             }
         }
 
-        String v2 = Joiner.on("").join(seqs.get(Integer.valueOf(g2.getSeqid())).getFirst()).substring(g2.getStart(), g2.getEnd());
+        String v2 = Joiner.on("").join(seqs.get(Integer.valueOf(g2.getSeqid())).getLeft()).substring(g2.getStart(), g2.getEnd());
         String v2ref = g2.getSeqid();
         int v2start = g2.getStart();
         int v2end = g2.getEnd();
@@ -585,7 +587,7 @@ public class SimulateHaploidChild extends Module {
         return Triple.of(pieces, switches, loci);
     }
 
-    private Pair<List<String>, List<Integer>> recombine(String seq1, String seq2, int numRecombs) {
+    private Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>> recombine(String seq1, String seq2, int numRecombs) {
         boolean order = rng.nextBoolean();
         String[] seqs = order ? new String[] { seq1, seq2 } : new String[] { seq2, seq1 };
         int[] parents = order ? new int[] { 1, 2 } : new int[] { 2, 1 };
@@ -624,10 +626,10 @@ public class SimulateHaploidChild extends Module {
             drawFromFirst = !drawFromFirst;
         }
 
-        return new Pair<>(pieces, switches);
+        return Triple.of(pieces, switches, recombPositions);
     }
 
-    private Pair<List<String>, List<Integer>> recombine(String seq1, String seq2, int numRecombs, int kmerSize, float windowPct) {
+    private Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>> recombine(String seq1, String seq2, int numRecombs, int kmerSize, float windowPct) {
         boolean order = rng.nextBoolean();
         String[] seqs = order ? new String[] { seq1, seq2 } : new String[] { seq2, seq1 };
         int[] parents = order ? new int[] { 1, 2 } : new int[] { 2, 1 };
@@ -659,6 +661,7 @@ public class SimulateHaploidChild extends Module {
 
         List<String> pieces = new ArrayList<>();
         List<Integer> switches = new ArrayList<>();
+        List<Pair<Integer, Integer>> recombs = new ArrayList<>();
 
         boolean drawFromFirst = true;
         for (int i = 0; i < recombPositions.size() - 1; i++) {
@@ -668,15 +671,17 @@ public class SimulateHaploidChild extends Module {
             if (drawFromFirst) {
                 pieces.add(seqs[0].substring(p0.getFirst(), p1.getFirst()));
                 switches.add(parents[0]);
+                recombs.add(new Pair<>(p0.getFirst(), p1.getFirst()));
             } else {
                 pieces.add(seqs[1].substring(p0.getSecond(), p1.getSecond()));
                 switches.add(parents[1]);
+                recombs.add(new Pair<>(p0.getSecond(), p1.getSecond()));
             }
 
             drawFromFirst = !drawFromFirst;
         }
 
-        return new Pair<>(pieces, switches);
+        return Triple.of(pieces, switches, recombs);
     }
 
     private Map<String, Integer> kmerize(String seq, int kmerSize) {
