@@ -311,7 +311,7 @@ public class Tesserae {
                             };
                             i = argmax(vt_d_n);
 
-                            vt_d[seq][pos_seq][pos_target] = vt_m_n[i];
+                            vt_d[seq][pos_seq][pos_target] = vt_d_n[i];
                             tb_d[seq][pos_seq][pos_target] = seq_10 + 2*i+1 + (pos_seq-1)/tb_divisor;
                         }
 
