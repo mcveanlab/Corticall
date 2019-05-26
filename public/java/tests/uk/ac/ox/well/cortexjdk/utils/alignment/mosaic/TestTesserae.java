@@ -9,7 +9,7 @@ import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.util.*;
 
-public class TestMosaicAligner {
+public class TestTesserae {
     @Test
     public void testMosaicAlignment() {
         String[] templates = { new String(SequenceUtils.generateRandomNucleotideSequenceOfLengthN(1000)),

@@ -18,6 +18,7 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
     public String parent;
     public Interval start;
     public Interval stop;
+    public int index;
 
     public GeneratedVariant(String type, int seqIndex, int posIndex, String oldAllele, String newAllele) {
         this.type = type;
@@ -37,7 +38,7 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
         this.seedRight = seedRight;
     }
 
-    public GeneratedVariant(String type, int seqIndex, int posIndex, String oldAllele, String newAllele, String seedLeft, String seedRight, String parent, Interval start, Interval stop) {
+    public GeneratedVariant(String type, int seqIndex, int posIndex, String oldAllele, String newAllele, String seedLeft, String seedRight, String parent, Interval start, Interval stop, int index) {
         this.type = type;
         this.oldAllele = oldAllele;
         this.newAllele = newAllele;
@@ -48,6 +49,7 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
         this.parent = parent;
         this.start = start;
         this.stop = stop;
+        this.index = index;
     }
 
     public GeneratedVariant(String type, int seqIndex, int posIndex, String oldAllele, String newAllele, List<Pair<Interval, Interval>> loci) {
@@ -87,6 +89,12 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
                 ", posIndex=" + posIndex +
                 ", oldAllele='" + oldAllele + '\'' +
                 ", newAllele='" + newAllele + '\'' +
+                ", loci=" + loci +
+                ", seedLeft='" + seedLeft + '\'' +
+                ", seedRight='" + seedRight + '\'' +
+                ", parent='" + parent + '\'' +
+                ", start=" + start +
+                ", stop=" + stop +
                 '}';
     }
 
@@ -105,7 +113,9 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
         if (loci != null ? !loci.equals(that.loci) : that.loci != null) return false;
         if (seedLeft != null ? !seedLeft.equals(that.seedLeft) : that.seedLeft != null) return false;
         if (seedRight != null ? !seedRight.equals(that.seedRight) : that.seedRight != null) return false;
-        return parent != null ? parent.equals(that.parent) : that.parent == null;
+        if (parent != null ? !parent.equals(that.parent) : that.parent != null) return false;
+        if (start != null ? !start.equals(that.start) : that.start != null) return false;
+        return stop != null ? stop.equals(that.stop) : that.stop == null;
     }
 
     @Override
@@ -119,6 +129,8 @@ public class GeneratedVariant implements Comparable<GeneratedVariant> {
         result = 31 * result + (seedLeft != null ? seedLeft.hashCode() : 0);
         result = 31 * result + (seedRight != null ? seedRight.hashCode() : 0);
         result = 31 * result + (parent != null ? parent.hashCode() : 0);
+        result = 31 * result + (start != null ? start.hashCode() : 0);
+        result = 31 * result + (stop != null ? stop.hashCode() : 0);
         return result;
     }
 }

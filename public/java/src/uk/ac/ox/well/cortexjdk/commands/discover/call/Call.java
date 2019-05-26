@@ -84,7 +84,7 @@ public class Call extends Module {
     @Argument(fullName="window", shortName="w", doc="Novel window")
     public Integer WINDOW = 200;
 
-    @Argument(fullName="distance", shortName="d", doc="Novel window")
+    @Argument(fullName="distance", shortName="d", doc="Split partition if novel runs are further apart than this")
     public Integer SPLIT_DISTANCE = 2000;
 
     @Argument(fullName="disableInversions", shortName="noinv", doc="Disable inversion caller (much faster)")
@@ -201,7 +201,7 @@ public class Call extends Module {
                             vcb.attribute("sectionIndex", sectionIndex);
                             vcb.attribute("novels", Joiner.on(",").join(sectionRois));
 
-                            log.debug("{} {}", vcb.getAlleles(), vcb);
+                            //log.debug("{} {}", vcb.getAlleles(), vcb);
 
                             if (vcb.getAlleles().get(0).getBaseString().equals(vcb.getAlleles().get(1).getBaseString())) {
                                 toRemove.add(vcb);
@@ -209,9 +209,9 @@ public class Call extends Module {
                         }
 
                         if (toRemove.size() > 0) {
-                            log.debug("{} {}", toRemove.size(), merged.size());
+                            //log.debug("{} {}", toRemove.size(), merged.size());
                             merged.removeAll(toRemove);
-                            log.debug("{} {}", toRemove.size(), merged.size());
+                            //log.debug("{} {}", toRemove.size(), merged.size());
                         }
 
                         vcs.addAll(merged);
@@ -221,7 +221,7 @@ public class Call extends Module {
 
             //vcs = filterBreakpoints(vcs);
             //vcs = mergeBreakpoints(seq, vcs, rois);
-            if (!DISABLE_INVERSION_CALLER) { vcs = mergeDoubleBreakpoints(seq, vcs); }
+            vcs = mergeDoubleBreakpoints(seq, vcs);
             //vcs = mergeSingleBreakpoints(seq, vcs);
 
             vcs = assignCoordinates(vcs);
@@ -1056,7 +1056,7 @@ public class Call extends Module {
         return numEdits;
     }
 
-    private Set<VariantContextBuilder> mergeDoubleBreakpoints(String seq, Set<VariantContextBuilder> callset) {
+    private Set<VariantContextBuilder> mergeDoubleBreakpointsOld(String seq, Set<VariantContextBuilder> callset) {
         List<VariantContextBuilder> calls = new ArrayList<>(callset);
 
         if (calls.size() <= 1) {
@@ -1203,6 +1203,132 @@ public class Call extends Module {
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<VariantContextBuilder> newcalls = new LinkedHashSet<>();
+        for (VariantContextBuilder vcb : calls) {
+            if (!vcb.make().isSymbolic() && removals.contains(new Interval(vcb.make().getContig(), vcb.make().getStart(), vcb.make().getStart()))) {
+                // ignore
+            } else {
+                if (!replacements.containsKey(vcb.make().getID())) {
+                    newcalls.add(vcb);
+                } else {
+                    if (replacements.get(vcb.make().getID()) != null) {
+                        newcalls.add(replacements.get(vcb.make().getID()));
+                    }
+                }
+            }
+        }
+
+        return newcalls;
+    }
+
+    private Set<VariantContextBuilder> mergeDoubleBreakpoints(String seq, Set<VariantContextBuilder> callset) {
+        List<VariantContextBuilder> calls = new ArrayList<>(callset);
+
+        if (calls.size() <= 1) {
+            return callset;
+        }
+
+        List<VariantContextBuilder> bnds = new ArrayList<>();
+
+        for (int i = 0; i < calls.size(); i++) {
+            VariantContext vc = calls.get(i).make();
+            if (vc.isSymbolicOrSV() && vc.getAttributeAsString("SVTYPE", "unknown").equals("BND")) {
+                bnds.add(calls.get(i));
+            }
+        }
+
+        Map<String, VariantContextBuilder> replacements = new HashMap<>();
+        Set<Interval> removals = new HashSet<>();
+
+        if (bnds.size() >= 4 && bnds.size() % 2 == 0) {
+            for (int i = 0; i <= bnds.size() - 2; i += 2) {
+                VariantContext outer0 = bnds.get(i).make();
+                VariantContext inner0 = bnds.get(i+1).make();
+
+                List<Triple<String, String, Pair<Integer, Integer>>> lps0 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) outer0.getAttribute("lps");
+                StringBuilder kmer0 = new StringBuilder();
+                int pos0 = outer0.getAttributeAsInt("start", 0);
+                while (kmer0.length() < GRAPH.getKmerSize() && pos0 >= 0) {
+                    char c = getChildColumn(lps0, pos0);
+
+                    if (c != '-' && c != ' ') {
+                        kmer0.insert(0, c);
+                    }
+                }
+                int q0 = getParentalRow(lps0, pos0);
+
+                for (int j = i + 2; j <= bnds.size() - 2; j += 2) {
+                    VariantContext inner1 = bnds.get(j).make();
+                    VariantContext outer1 = bnds.get(j+1).make();
+
+                    List<Triple<String, String, Pair<Integer, Integer>>> lps1 = (ArrayList<Triple<String, String, Pair<Integer, Integer>>>) outer1.getAttribute("lps");
+                    StringBuilder kmer1 = new StringBuilder();
+                    int pos1 = outer1.getAttributeAsInt("start", 0);
+                    while (kmer1.length() < GRAPH.getKmerSize() && pos1 < lps1.get(0).getMiddle().length()) {
+                        char c = getChildColumn(lps1, pos1);
+
+                        if (c != '-' && c != ' ') {
+                            kmer1.append(c);
+                        }
+                    }
+                    int q1 = getParentalRow(lps1, pos1);
+
+                    String back0 = lps0.get(q0).getLeft().split(":")[0];
+                    String back1 = lps1.get(q1).getLeft().split(":")[0];
+
+                    if (back0.equals(back1)) {
+                        for (String parentName : BACKGROUNDS) {
+                            if (parentName.contains(back0) && getParentalRow(lps0, pos0+1) == getParentalRow(lps1, pos1-1)) {
+                                int innerRecombRow = getParentalRow(lps0, pos0+1);
+                                boolean isReverse = lps0.get(innerRecombRow).getLeft().endsWith("-");
+
+                                StringBuilder sbalt = new StringBuilder();
+                                StringBuilder sbref = new StringBuilder();
+
+                                for (int f = pos0+1; f <= pos1-1; f++) {
+                                    sbalt.append(getChildColumn(lps0, f));
+                                    sbref.append(getParentalColumn(lps0, f));
+                                }
+
+                                String alt = sbalt.toString();
+                                String ref = sbref.toString();
+
+                                String svtype = "unknown";
+                                if (alt.length() > ref.length()) { svtype = "INS"; }
+                                else if (alt.length() < ref.length()) { svtype = "DEL"; }
+                                else if (alt.length() == ref.length()) { svtype = "MNP"; }
+
+                                if (isReverse) {
+                                    alt = SequenceUtils.reverseComplement(alt);
+                                    svtype = "INV";
+                                }
+
+                                List<Allele> alleles = Arrays.asList(Allele.create(ref, true), Allele.create(alt));
+
+                                VariantContextBuilder vcb = new VariantContextBuilder(outer0)
+                                        .alleles(alleles)
+                                        .computeEndFromAlleles(alleles, outer0.getStart())
+                                        .attribute("SVTYPE", svtype)
+                                        .attribute("prevBase", outer0.getAttributeAsString("prevBase", "N"))
+                                        .attribute("nextBase", outer1.getAttributeAsString("nextBase", "N"))
+                                        .rmAttribute("MATEID");
+
+                                replacements.put(outer0.getID(), vcb);
+                                replacements.put(inner0.getID(), null);
+                                replacements.put(inner1.getID(), null);
+                                replacements.put(outer1.getID(), null);
+
+                                removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
+                                removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
+                                removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
+                                removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
                             }
                         }
                     }
