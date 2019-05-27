@@ -84,8 +84,8 @@ public class EvaluateVariants extends Module {
         log.info("With links:");
         evaluateCalls(TRUTH_TABLE, CALLS_LINKS, NOVELS);
 
-        log.info("Without links:");
-        evaluateCalls(TRUTH_TABLE, CALLS_NO_LINKS, NOVELS);
+        //log.info("Without links:");
+        //evaluateCalls(TRUTH_TABLE, CALLS_NO_LINKS, NOVELS);
     }
 
     private void evaluateCalls(File truthTableF, File callsF, File novelsF) {
@@ -407,86 +407,132 @@ public class EvaluateVariants extends Module {
                         }
                     } else if (gv.type.equals("SNV")) {
                         ContainerUtils.increment(simTable.get("SNVs"), "N");
-                        simTable.get("SNVs").put("Novels", simTable.get("SNVs").get("Novels") + indexToNumNovels.get(gv.index));
-                        if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("SNVs"), "TP"); }
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("SNVs").put("Novels", simTable.get("SNVs").get("Novels") + indexToNumNovels.get(gv.index));
+                        if (cvs.get(gv).size() > 0) {
+                            ContainerUtils.increment(simTable.get("SNVs"), "TP");
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("SNVs").put("Novels recovered", simTable.get("SNVs").get("Novels recovered") + indexToNumNovels.get(gv.index));
+                        }
                         else { ContainerUtils.increment(simTable.get("SNVs"), "FN"); }
                     } else if (gv.type.equals("INS")) {
                         if (gv.getNewAllele().length() <= 100) {
                             ContainerUtils.increment(simTable.get("Insertions (random, 1-100)"), "N");
-                            //simTable.get("Insertions (random, 1-100)").put("Novels", simTable.get("Insertions (random, 1-100)").get("Novels") + indexToNumNovels.get(gv.index));
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Insertions (random, 1-100)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (random, 1-100)").put("Novels", simTable.get("Insertions (random, 1-100)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Insertions (random, 1-100)"), "TP");
+                                if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (random, 1-100)").put("Novels recovered", simTable.get("Insertions (random, 1-100)").get("Novels recovered") + indexToNumNovels.get(gv.index));
+                            }
                             else { ContainerUtils.increment(simTable.get("Insertions (random, 1-100)"), "FN"); }
                         } else if (gv.getNewAllele().length() <= 500) {
                             ContainerUtils.increment(simTable.get("Insertions (random, 101-500)"), "N");
-                            //simTable.get("Insertions (random, 101-500)").put("Novels", simTable.get("Insertions (random, 101-500)").get("Novels") + indexToNumNovels.get(gv.index));
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Insertions (random, 101-500)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (random, 101-500)").put("Novels", simTable.get("Insertions (random, 101-500)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Insertions (random, 101-500)"), "TP");
+                                if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (random, 101-500)").put("Novels recovered", simTable.get("Insertions (random, 101-500)").get("Novels recovered") + indexToNumNovels.get(gv.index));
+                            }
                             else { ContainerUtils.increment(simTable.get("Insertions (random, 101-500)"), "FN"); }
                         } else {
                             ContainerUtils.increment(simTable.get("Insertions (random, 501-1000)"), "N");
-                            //simTable.get("Insertions (random, 501-1000)").put("Novels", simTable.get("Insertions (random, 501-1000)").get("Novels") + indexToNumNovels.get(gv.index));
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Insertions (random, 501-1000)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (random, 501-1000)").put("Novels", simTable.get("Insertions (random, 501-1000)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Insertions (random, 501-1000)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("Insertions (random, 501-1000)"), "FN"); }
                         }
                     } else if (gv.type.equals("STR_EXP")) {
                         ContainerUtils.increment(simTable.get("Insertions (STR expansions)"), "N");
-                        //simTable.get("Insertions (STR expansions)").put("Novels", simTable.get("Insertions (STR expansions)").get("Novels") + indexToNumNovels.get(gv.index));
-                        if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Insertions (STR expansions)"), "TP"); }
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (STR expansions)").put("Novels", simTable.get("Insertions (STR expansions)").get("Novels") + indexToNumNovels.get(gv.index));
+                        if (cvs.get(gv).size() > 0) {
+                            ContainerUtils.increment(simTable.get("Insertions (STR expansions)"), "TP");
+                        }
                         else { ContainerUtils.increment(simTable.get("Insertions (STR expansions)"), "FN"); }
                     } else if (gv.type.equals("TD")) {
                         ContainerUtils.increment(simTable.get("Insertions (tandem duplications)"), "N");
-                        //simTable.get("Insertions (tandem duplications)").put("Novels", simTable.get("Insertions (tandem duplications)").get("Novels") + indexToNumNovels.get(gv.index));
-                        if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Insertions (tandem duplications)"), "TP"); }
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("Insertions (tandem duplications)").put("Novels", simTable.get("Insertions (tandem duplications)").get("Novels") + indexToNumNovels.get(gv.index));
+                        if (cvs.get(gv).size() > 0) {
+                            ContainerUtils.increment(simTable.get("Insertions (tandem duplications)"), "TP");
+                        }
                         else { ContainerUtils.increment(simTable.get("Insertions (tandem duplications)"), "FN"); }
                     } else if (gv.type.equals("DEL") || gv.type.equals("NAHR-DEL")) {
                         if (gv.getOldAllele().length() <= 100) {
                             ContainerUtils.increment(simTable.get("Deletions (random, 1-100)"), "N");
-                            //simTable.get("").put("Novels", simTable.get("").get("Novels") + indexToNumNovels.get(gv.index));
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Deletions (random, 1-100)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Deletions (random, 1-100)").put("Novels", simTable.get("Deletions (random, 1-100)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Deletions (random, 1-100)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("Deletions (random, 1-100)"), "FN"); }
                         } else if (gv.getOldAllele().length() <= 500) {
                             ContainerUtils.increment(simTable.get("Deletions (random, 101-500)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Deletions (random, 101-500)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Deletions (random, 101-500)").put("Novels", simTable.get("Deletions (random, 101-500)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Deletions (random, 101-500)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("Deletions (random, 101-500)"), "FN"); }
                         } else {
                             ContainerUtils.increment(simTable.get("Deletions (random, 501-1000)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Deletions (random, 501-1000)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("Deletions (random, 501-1000)").put("Novels", simTable.get("Deletions (random, 501-1000)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("Deletions (random, 501-1000)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("Deletions (random, 501-1000)"), "FN"); }
                         }
                     } else if (gv.type.equals("STR_CON")) {
                         ContainerUtils.increment(simTable.get("Deletions (STR contractions)"), "N");
-                        if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("Deletions (STR contractions)"), "TP"); }
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("Deletions (STR contractions)").put("Novels", simTable.get("Deletions (STR contractions)").get("Novels") + indexToNumNovels.get(gv.index));
+                        if (cvs.get(gv).size() > 0) {
+                            ContainerUtils.increment(simTable.get("Deletions (STR contractions)"), "TP");
+                        }
                         else { ContainerUtils.increment(simTable.get("Deletions (STR contractions)"), "FN"); }
                     } else if (gv.type.equals("MNP")) {
                         if (gv.getOldAllele().length() <= 100) {
                             ContainerUtils.increment(simTable.get("MNVs (random, 1-100)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (random, 1-100)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (random, 1-100)").put("Novels", simTable.get("MNVs (random, 1-100)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (random, 1-100)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (random, 1-100)"), "FN"); }
                         } else if (gv.getOldAllele().length() <= 500) {
                             ContainerUtils.increment(simTable.get("MNVs (random, 101-500)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (random, 101-500)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (random, 101-500)").put("Novels", simTable.get("MNVs (random, 101-500)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (random, 101-500)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (random, 101-500)"), "FN"); }
                         } else {
                             ContainerUtils.increment(simTable.get("MNVs (random, 501-1000)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (random, 501-1000)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (random, 501-1000)").put("Novels", simTable.get("MNVs (random, 501-1000)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (random, 501-1000)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (random, 501-1000)"), "FN"); }
                         }
                     } else if (gv.type.equals("INV")) {
                         if (gv.getOldAllele().length() <= 100) {
                             ContainerUtils.increment(simTable.get("MNVs (inversions, 1-100)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (inversions, 1-100)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (inversions, 1-100)").put("Novels", simTable.get("MNVs (inversions, 1-100)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (inversions, 1-100)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (inversions, 1-100)"), "FN"); }
                         } else if (gv.getOldAllele().length() <= 500) {
                             ContainerUtils.increment(simTable.get("MNVs (inversions, 101-500)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (inversions, 101-500)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (inversions, 101-500)").put("Novels", simTable.get("MNVs (inversions, 101-500)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (inversions, 101-500)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (inversions, 101-500)"), "FN"); }
                         } else {
                             ContainerUtils.increment(simTable.get("MNVs (inversions, 501-1000)"), "N");
-                            if (cvs.get(gv).size() > 0) { ContainerUtils.increment(simTable.get("MNVs (inversions, 501-1000)"), "TP"); }
+                            if (indexToNumNovels.containsKey(gv.index)) simTable.get("MNVs (inversions, 501-1000)").put("Novels", simTable.get("MNVs (inversions, 501-1000)").get("Novels") + indexToNumNovels.get(gv.index));
+                            if (cvs.get(gv).size() > 0) {
+                                ContainerUtils.increment(simTable.get("MNVs (inversions, 501-1000)"), "TP");
+                            }
                             else { ContainerUtils.increment(simTable.get("MNVs (inversions, 501-1000)"), "FN"); }
                         }
                     } else if (gv.type.equals("NAHR-INS")) {
                         nahrs_exp++;
                         ContainerUtils.increment(simTable.get("NAHRs"), "N");
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("NAHRs").put("Novels", simTable.get("NAHRs").get("Novels") + indexToNumNovels.get(gv.index));
+                        if (indexToNumNovels.containsKey(gv.index)) simTable.get("NAHRs (complete)").put("Novels", simTable.get("NAHRs (complete)").get("Novels") + indexToNumNovels.get(gv.index));
 
                         if (cvs.get(gv).size() >= 2) {
                             ContainerUtils.increment(simTable.get("NAHRs"), "TP");
