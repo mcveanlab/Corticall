@@ -1313,23 +1313,25 @@ public class Call extends Module {
 
                                 List<Allele> alleles = Arrays.asList(Allele.create(ref, true), Allele.create(alt));
 
-                                VariantContextBuilder vcb = new VariantContextBuilder(outer0)
-                                        .alleles(alleles)
-                                        .computeEndFromAlleles(alleles, outer0.getStart())
-                                        .attribute("SVTYPE", svtype)
-                                        .attribute("prevBase", outer0.getAttributeAsString("prevBase", "N"))
-                                        .attribute("nextBase", outer1.getAttributeAsString("nextBase", "N"))
-                                        .rmAttribute("MATEID");
+                                if (!alleles.get(0).equals(alleles.get(1), true)) {
+                                    VariantContextBuilder vcb = new VariantContextBuilder(outer0)
+                                            .alleles(alleles)
+                                            .computeEndFromAlleles(alleles, outer0.getStart())
+                                            .attribute("SVTYPE", svtype)
+                                            .attribute("prevBase", outer0.getAttributeAsString("prevBase", "N"))
+                                            .attribute("nextBase", outer1.getAttributeAsString("nextBase", "N"))
+                                            .rmAttribute("MATEID");
 
-                                replacements.put(outer0.getID(), vcb);
-                                replacements.put(inner0.getID(), null);
-                                replacements.put(inner1.getID(), null);
-                                replacements.put(outer1.getID(), null);
+                                    replacements.put(outer0.getID(), vcb);
+                                    replacements.put(inner0.getID(), null);
+                                    replacements.put(inner1.getID(), null);
+                                    replacements.put(outer1.getID(), null);
 
-                                removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
-                                removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
-                                removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
-                                removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
+                                    removals.add(new Interval(outer0.getContig(), outer0.getStart(), outer0.getStart()));
+                                    removals.add(new Interval(inner0.getContig(), inner0.getStart(), inner0.getStart()));
+                                    removals.add(new Interval(inner1.getContig(), inner1.getStart(), inner1.getStart()));
+                                    removals.add(new Interval(outer1.getContig(), outer1.getStart(), outer1.getStart()));
+                                }
                             }
                         }
                     }
