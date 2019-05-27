@@ -1287,7 +1287,7 @@ public class Call extends Module {
                         for (String parentName : BACKGROUNDS) {
                             if (parentName.contains(back0) && getParentalRow(lps0, pos0+1) == getParentalRow(lps1, pos1-1)) {
                                 int innerRecombRow = getParentalRow(lps0, pos0+1);
-                                boolean refIsReverse = lps0.get(getParentalRow(lps0, pos0+1)).getLeft().endsWith("-");
+                                boolean refIsReverse = lps0.get(getParentalRow(lps0, pos0)).getLeft().endsWith("-");
                                 boolean altIsReverse = lps0.get(innerRecombRow).getLeft().endsWith("-");
 
                                 StringBuilder sbalt = new StringBuilder();
@@ -1309,7 +1309,7 @@ public class Call extends Module {
                                 else if (alt.length() < ref.length()) { svtype = "DEL"; }
                                 else if (alt.length() == ref.length()) { svtype = "MNP"; }
 
-                                if (refIsReverse != altIsReverse) { svtype = "INV"; }
+                                if (refIsReverse != altIsReverse && ref.equals(SequenceUtils.reverseComplement(alt))) { svtype = "INV"; }
 
                                 List<Allele> alleles = Arrays.asList(Allele.create(ref, true), Allele.create(alt));
 
