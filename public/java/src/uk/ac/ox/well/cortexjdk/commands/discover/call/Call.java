@@ -1304,6 +1304,9 @@ public class Call extends Module {
                                 if (refIsReverse) { ref = SequenceUtils.reverseComplement(ref); }
                                 if (altIsReverse) { alt = SequenceUtils.reverseComplement(alt); }
 
+                                alt = alt.replaceAll("-", "");
+                                ref = ref.replaceAll("-", "");
+
                                 String svtype = "unknown";
                                 if (alt.length() > ref.length()) { svtype = "INS"; }
                                 else if (alt.length() < ref.length()) { svtype = "DEL"; }
