@@ -1,0 +1,8 @@
+source_code	sec_sample_accession	cn_culture	cn_seq	chemistry	fasta
+3D7	NA	SI	CSHL	P5C3	NA
+HB3	ERS712858	SI	SI	P6C4	http://ftp.sanger.ac.uk/pub/project/pathogens/Plasmodium/falciparum/PF3K/ReferenceGenomes_Version1/GENOMES/PfHB3.April2018.fasta.gz
+DD2	ERS639545	SI	SI	P6C4	http://ftp.sanger.ac.uk/pub/project/pathogens/Plasmodium/falciparum/PF3K/ReferenceGenomes_Version1/GENOMES/PfDd2.April2018.fasta.gz
+7G8	ERS686280	SI	SI	P6C4	http://ftp.sanger.ac.uk/pub/project/pathogens/Plasmodium/falciparum/PF3K/ReferenceGenomes_Version1/GENOMES/Pf7G8.April2018.fasta.gz
+GB4	NA	NIH	CSHL	P6C4	NA
+803	NA	NIH	CSHL	P6C4	NA
+36F11	NA	NIH	CSHL	P6C4	NA
