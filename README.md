@@ -26,7 +26,7 @@ CortexJDK is a Java class library for performing efficient, low-memory traversal
 
 CortexJDK handles the heavy lifting when operating with these data structures, permitting developers to concentrate on the genome analysis and variant calling tools that can be written on top of this API.
 
-CortexJDK also contains the graph-based de novo mutation calling software, Corticall.  These tools may be split into their own repository at a later date.
+CortexJDK also contains the graph-based de novo mutation calling software, Corticall.  This tool may be split into its own repository at a later date.
 
 
 Availability
