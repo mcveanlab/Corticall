@@ -1,6 +1,8 @@
 CortexJDK: A Java API for manipulating (Mc)Cortex de novo assembly graph and link data.
 =========
 
+[![Build Status](https://travis-ci.org/mcveanlab/CortexJDK.svg?branch=master)](https://travis-ci.org/mcveanlab/CortexJDK)
+
 Quick start
 -----------
 
