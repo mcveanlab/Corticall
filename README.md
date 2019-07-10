@@ -20,7 +20,7 @@ CortexJDK is a Java class library for performing efficient, low-memory traversal
 * performing simple walks (i.e. extracting a contig, optionally using links to disambiguate junction choices)
 * performing walks assisted by one or more reference sequences in a manner consistent with link information
 * performing depth-first searches with custom stopping rules (useful for finding interesting graph motifs)
-* aligning kmers and contigs back to reference sequences
+* aligning k-mers and contigs back to reference sequences
 
 CortexJDK handles the heavy lifting when operating with these data structures, permitting developers to concentrate on the genome analysis and variant calling tools that can be written on top of this API.
 
@@ -65,7 +65,7 @@ To get help for a specific command (e.g. "Call"):
 Support
 -------
 
-Please contact Kiran Garimella (<kiran@well.ox.ac.uk>) with any questions/comments/concerns/cake.  Feedback, bug reports, and pull requests are welcome.
+Please contact Kiran V Garimella (<kiran@broadinstitute.org>) with any questions/comments/concerns/cake.  Feedback, bug reports, and pull requests are welcome.
 
 
 Citing CortexJDK
