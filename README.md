@@ -73,6 +73,6 @@ Citing CortexJDK
 
 A manuscript is currently being prepared.  Other Cortex-related publications are as follows:
 
-* Integrating long-range connectivity information into de Bruijn graphs, Turner, Garimella, Iqbal, McVean (Biorxiv Preprint) (2017) (doi:10.1101/147777) http://www.biorxiv.org/content/early/2017/06/09/147777
+* Integrating long-range connectivity information into de Bruijn graphs, Turner, Garimella, Iqbal, McVean (Bioinformatics) (2018) (doi:10.1093/bioinformatics/bty157) https://www.ncbi.nlm.nih.gov/pubmed/29554215
 
 * De novo assembly and genotyping of variants using colored de Bruijn graphs, Iqbal, Caccamo, Turner, Flicek, McVean (Nature Genetics) (2012) (doi:10.1038/ng.1028) http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3272472
