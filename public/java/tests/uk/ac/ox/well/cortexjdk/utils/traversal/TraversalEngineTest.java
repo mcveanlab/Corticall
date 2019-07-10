@@ -156,7 +156,7 @@ public class TraversalEngineTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void testMultipleTraversalColors() {
         Map<String, Collection<String>> haplotypes = new LinkedHashMap<>();
         haplotypes.put("mom", Collections.singletonList("AGTTCTGATCTAGGCTATATGCT"));
