@@ -70,6 +70,11 @@ Support
 Please contact Kiran V Garimella (<kiran@broadinstitute.org>) with any questions/comments/concerns/cake.  Feedback, bug reports, and pull requests are welcome.
 
 
+Related projects
+----------------
+For a pythonic take on programmatically accessing McCortex linked multi-color de Bruijn graphs, see Winni Kretzschmar's [cortexpy](https://pypi.org/project/cortexpy/) project.
+
+
 Citing CortexJDK
 ----------------
 
