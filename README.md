@@ -75,8 +75,8 @@ Related projects
 For a pythonic take on programmatically accessing McCortex linked multi-color de Bruijn graphs, see Winni Kretzschmar's [cortexpy](https://pypi.org/project/cortexpy/) project.
 
 
-Citation
---------
+Citations
+---------
 
 The original multi-color de Bruijn graph paper can be found at:
 
