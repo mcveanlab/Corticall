@@ -75,11 +75,19 @@ Related projects
 For a pythonic take on programmatically accessing McCortex linked multi-color de Bruijn graphs, see Winni Kretzschmar's [cortexpy](https://pypi.org/project/cortexpy/) project.
 
 
-Citing CortexJDK
-----------------
+Citation
+--------
 
-A manuscript is currently being prepared.  Other Cortex-related publications are as follows:
+The original multi-color de Bruijn graph paper can be found at:
 
-* Integrating long-range connectivity information into de Bruijn graphs, Turner, Garimella, Iqbal, McVean (Bioinformatics) (2018) (doi:10.1093/bioinformatics/bty157) https://www.ncbi.nlm.nih.gov/pubmed/29554215
+* "De novo assembly and genotyping of variants using colored de Bruijn graphs", Iqbal, Caccamo, Turner, Flicek, McVean (Nature Genetics) (2012) (doi:10.1038/ng.1028) http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3272472
 
-* De novo assembly and genotyping of variants using colored de Bruijn graphs, Iqbal, Caccamo, Turner, Flicek, McVean (Nature Genetics) (2012) (doi:10.1038/ng.1028) http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3272472
+Our manuscript on linked multi-color de Bruijn graphs is now available via Bioinformatics at:
+
+* "Integrating long-range connectivity information into de Bruijn graphs", Turner, Garimella, Iqbal, McVean (Bioinformatics) (2018) (doi:10.1093/bioinformatics/bty157) https://www.ncbi.nlm.nih.gov/pubmed/29554215
+
+A manuscript preprint for Corticall, our de novo assembly approach to de novo mutation detection in pathogens, can be found at:
+
+* "Detection of simple and complex de novo mutations without, with, or with multiple reference sequences", Garimella, Iqbal, Krause, Campino, Kekre, Drury, Kwiatkowski, Sa, Wellems, McVean (2019) (doi:10.1101/698910) https://www.biorxiv.org/content/10.1101/698910v1
+
+A manuscript for CortexJDK is currently being prepared.
