@@ -1,0 +1,11 @@
+name: sv
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+dependencies:
+  - samtools
+  - delly
+  - manta
+  - lumpy-sv
+  - gridss

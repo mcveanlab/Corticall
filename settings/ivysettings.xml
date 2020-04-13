@@ -7,7 +7,7 @@
                 <artifact pattern="${repository.dir}/[organisation]/[artifact]-[revision].[ext]" />
                 <ivy pattern="${repository.dir}/[organisation]/[module]-[revision].xml" />
             </filesystem>
-            <ibiblio name="maven" root="http://repo1.maven.org/maven2" m2compatible="true" />
+            <ibiblio name="maven" root="https://repo1.maven.org/maven2" m2compatible="true" />
         </chain>
     </resolvers>
 </ivysettings>
