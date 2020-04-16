@@ -1,8 +1,6 @@
 Corticall: A graph-based de novo mutation caller based on traversing (Mc)Cortex de novo assembly graph and link data.
 =========
 
-[![Build Status](https://travis-ci.org/mcveanlab/Corticall.svg?branch=master)](https://travis-ci.org/mcveanlab/Corticall)
-
 Quick start
 -----------
 
