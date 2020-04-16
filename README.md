@@ -1,7 +1,7 @@
 Corticall: A graph-based de novo mutation caller based on traversing (Mc)Cortex de novo assembly graph and link data.
 =========
 
-[![Build Status](https://travis-ci.org/mcveanlab/CortexJDK.svg?branch=master)](https://travis-ci.org/mcveanlab/CortexJDK)
+[![Build Status](https://travis-ci.org/mcveanlab/Corticall.svg?branch=master)](https://travis-ci.org/mcveanlab/Corticall)
 
 Quick start
 -----------
@@ -55,7 +55,7 @@ Installation
 To download and compile:
 
     git clone https://github.com/mcveanlab/Corticall
-    cd CortexJDK
+    cd Corticall
     ant
 
 To run (and get a listing of available commands):
