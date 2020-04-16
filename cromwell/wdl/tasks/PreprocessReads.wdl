@@ -10,18 +10,14 @@ task MergedPairedEndReads {
         RuntimeAttr? runtime_attr_override
     }
 
-    Int disk_size = 10
+    Int disk_size = 4*ceil(size(end1, "GB") + size(end2, "GB"))
 
     String prefix = basename(end1, ".end1.fq.gz")
 
     command <<<
         set -euxo pipefail
 
-        flash ~{end1} ~{end2} -o ~{prefix}
-
-        gzip ~{prefix}.extendedFrags.fastq
-        gzip ~{prefix}.notCombined_1.fastq
-        gzip ~{prefix}.notCombined_2.fastq
+        flash -z ~{end1} ~{end2} -o ~{prefix}
     >>>
 
     output {
@@ -157,7 +153,7 @@ task Downsample {
         RuntimeAttr? runtime_attr_override
     }
 
-    Int est_records_to_sample = ceil(target_cov*23000000.0/(2.0*read_length))
+    Int est_records_to_sample = ceil(target_cov*23332839.0/(2.0*read_length))
     Int final_records_to_sample = if num_records <= est_records_to_sample then 0 else est_records_to_sample
 
     Int disk_size = 4*ceil(size(end1, "GB") + size(end2, "GB"))

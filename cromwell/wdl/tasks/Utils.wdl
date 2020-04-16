@@ -132,14 +132,14 @@ task CountFastqRecords {
 
         FILE="~{fastq}"
         if [[ "$FILE" =~ \.fastq$ ]] || [[ "$FILE" =~ \.fq$ ]]; then
-            cat ~{fastq} | awk '{s++}END{print s/4}'
+            cat ~{fastq} | awk '{s++}END{print s/4}' > num_records.txt
         elif [[ "$FILE" =~ \.fastq.gz$ ]] || [[ "$FILE" =~ \.fq.gz$ ]]; then
-            zcat ~{fastq} | awk '{s++}END{print s/4}'
+            zcat ~{fastq} | awk '{s++}END{print s/4}' > num_records.txt
         fi
     >>>
 
     output {
-        Int num_records = read_int(stdout())
+        File num_records = "num_records.txt"
     }
 
     #########################
@@ -174,11 +174,13 @@ task CountFastaRecords {
     Int disk_size = ceil(2 * size(fasta, "GiB"))
 
     command <<<
-        grep -c '>' ~{fasta}
+        set -euxo pipefail
+
+        grep -c '>' ~{fasta} > num_records.txt
     >>>
 
     output {
-        Int num_records = read_int(stdout())
+        File num_records = "num_records.txt"
     }
 
     #########################
@@ -213,11 +215,13 @@ task CountBamRecords {
     Int disk_size = ceil(2 * size(bam, "GiB"))
 
     command <<<
-        samtools view ~{bam} | wc -l
+        set -euxo pipefail
+
+        samtools view ~{bam} | wc -l > num_records.txt
     >>>
 
     output {
-        Int num_records = read_int(stdout())
+        File num_records = "num_records.txt"
     }
 
     #########################
@@ -340,24 +344,26 @@ task GrepCountUniqueBamRecords {
 
 task ReadLength {
     input {
-        String fq
+        File fq
 
         RuntimeAttr? runtime_attr_override
     }
 
+    Int disk_size = 2*ceil(size(fq, "GB"))
+
     command <<<
-        gsutil cat ~{fq} | zcat | head -2 | tail -1 | awk '{ print length($0) }'
+        zcat ~{fq} | head -2 | tail -1 | awk '{ print length($0) }' > rl.txt
     >>>
 
     output {
-        Int read_length = read_int(stdout())
+        File read_length = "rl.txt"
     }
 
     #########################
     RuntimeAttr default_attr = object {
         cpu_cores:          1,
         mem_gb:             1,
-        disk_gb:            1,
+        disk_gb:            disk_size,
         boot_disk_gb:       10,
         preemptible_tries:  2,
         max_retries:        1,

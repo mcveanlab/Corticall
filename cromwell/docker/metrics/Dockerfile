@@ -4,7 +4,7 @@ MAINTAINER Kiran V Garimella
 
 # install some utilities
 RUN apt-get update -m
-RUN apt-get install wget datamash bsdmainutils git-lfs
+RUN apt-get install -y wget datamash bsdmainutils git-lfs bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion
 
 # install conda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /miniconda.sh \
@@ -14,6 +14,8 @@ ENV PATH=/miniconda/bin/:/miniconda/envs/metrics/bin/:/root/google-cloud-sdk/bin
 # install conda packages
 COPY ./environment.yml /
 RUN conda env create -f /environment.yml && conda clean -a
+RUN echo "source activate metrics" > ~/.bashrc
+RUN activate metrics
 
 # install more R packages
 #RUN set -e \

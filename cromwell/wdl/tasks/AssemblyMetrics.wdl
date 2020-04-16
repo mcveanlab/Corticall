@@ -1,44 +1,57 @@
 version 1.0
 
 import "Structs.wdl"
+import "Finalize.wdl" as FF
 
-task FindFastqs {
+workflow AssemblyMetrics {
     input {
-        String gcs_input_dir
+        File ref
+        Array[File] asms
+    }
+
+    call Quast { input: ref = ref, asms = asms }
+
+    output {
+        File report_txt = Quast.report_txt
+        File report_html = Quast.report_html
+        File report_pdf = Quast.report_pdf
+        File transposed_report_txt = Quast.transposed_report_txt
+    }
+}
+
+task Quast {
+    input {
+        File ref
+        Array[File] asms
 
         RuntimeAttr? runtime_attr_override
     }
 
-    String indir = sub(gcs_input_dir, "/$", "")
+    Int disk_size = 10
+    Int cpus = 4
 
     command <<<
         set -euxo pipefail
 
-        gsutil ls ~{indir}/*.end1.fq.gz | sort > end1.txt
-        gsutil ls ~{indir}/*.end2.fq.gz | sort > end2.txt
-
-        echo 'END1:'
-        cat end1.txt
-
-        echo 'END2:'
-        cat end2.txt
+        quast -o quast_results -r ~{ref} -m 1 -t ~{cpus} ~{sep=' ' asms}
     >>>
 
     output {
-        String cross = basename(gcs_input_dir)
-        Array[String] end1 = read_lines("end1.txt")
-        Array[String] end2 = read_lines("end2.txt")
+        File report_txt = "quast_results/report.txt"
+        File report_html = "quast_results/report.html"
+        File report_pdf = "quast_results/report.pdf"
+        File transposed_report_txt = "quast_results/transposed_report.txt"
     }
 
     #########################
     RuntimeAttr default_attr = object {
-        cpu_cores:          1,
-        mem_gb:             1,
-        disk_gb:            10,
+        cpu_cores:          cpus,
+        mem_gb:             4,
+        disk_gb:            disk_size,
         boot_disk_gb:       10,
         preemptible_tries:  0,
         max_retries:        0,
-        docker:             "quay.io/corticall/utils:0.1.0"
+        docker:             "quay.io/biocontainers/quast:5.0.2--1"
     }
     RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
     runtime {

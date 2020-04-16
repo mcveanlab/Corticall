@@ -7,3 +7,6 @@ dependencies:
   - samtools
   - bedtools
   - java-jdk
+  - joblib
+  - matplotlib
+  - quast

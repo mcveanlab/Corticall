@@ -18,6 +18,6 @@ RUN apt-get install -y --no-install-recommends curl git \
 RUN curl https://sdk.cloud.google.com | bash
 
 # install Corticall
-RUN git clone https://github.com/mcveanlab/CortexJDK.git \
+RUN git clone https://github.com/mcveanlab/CortexJDK.git -b paper_revisions \
     && cd CortexJDK \
     && ant dist

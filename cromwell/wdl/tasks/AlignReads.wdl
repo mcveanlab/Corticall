@@ -23,7 +23,7 @@ task BwaMem {
         RuntimeAttr? runtime_attr_override
     }
 
-    Int disk_size = 4*ceil(size(end1, "GB") + size(end2, "GB") + size(ref_dict, "GB") + size(ref_fasta, "GB") + size(ref_fasta_amb, "GB") + size(ref_fasta_ann, "GB") + size(ref_fasta_bwt, "GB") + size(ref_fasta_fai, "GB") + size(ref_fasta_pac, "GB") + size(ref_fasta_sa, "GB"))
+    Int disk_size = 20*ceil(size(end1, "GB") + size(end2, "GB") + size(ref_dict, "GB") + size(ref_fasta, "GB") + size(ref_fasta_amb, "GB") + size(ref_fasta_ann, "GB") + size(ref_fasta_bwt, "GB") + size(ref_fasta_fai, "GB") + size(ref_fasta_pac, "GB") + size(ref_fasta_sa, "GB"))
 
     command <<<
         set -euxo pipefail
@@ -79,7 +79,7 @@ task BwaMemSingle {
         RuntimeAttr? runtime_attr_override
     }
 
-    Int disk_size = 4*ceil(size(reads, "GB") + size(ref_dict, "GB") + size(ref_fasta, "GB") + size(ref_fasta_amb, "GB") + size(ref_fasta_ann, "GB") + size(ref_fasta_bwt, "GB") + size(ref_fasta_fai, "GB") + size(ref_fasta_pac, "GB") + size(ref_fasta_sa, "GB"))
+    Int disk_size = 20*ceil(size(reads, "GB") + size(ref_dict, "GB") + size(ref_fasta, "GB") + size(ref_fasta_amb, "GB") + size(ref_fasta_ann, "GB") + size(ref_fasta_bwt, "GB") + size(ref_fasta_fai, "GB") + size(ref_fasta_pac, "GB") + size(ref_fasta_sa, "GB"))
 
     command <<<
         set -euxo pipefail

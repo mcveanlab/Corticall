@@ -6,3 +6,4 @@ channels:
 dependencies:
   - samtools
   - mccortex
+  - cd-hit

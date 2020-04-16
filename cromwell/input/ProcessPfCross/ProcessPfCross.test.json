@@ -3,16 +3,12 @@
 
     "ProcessPfCross.parents": [
         {
-            "sample": "3D7",
-            "ref":    "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/3D7/PlasmoDB-29_Pfalciparum3D7_Genome.fasta",
-            "ill":  [ "gs://broad-dsde-methods-kiran/pfcrosses/fastq/test/PG0051-C.ERR019061.end1.fq.gz",
-                      "gs://broad-dsde-methods-kiran/pfcrosses/fastq/test/PG0051-C.ERR019061.end2.fq.gz" ]
+            "ref_name": "3D7",
+            "ref":      "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/3D7/PlasmoDB-29_Pfalciparum3D7_Genome.fasta"
         },
         {
-            "sample": "HB3",
-            "ref":    "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/HB3/PfHB3.V1.fasta"
-            "ill":  [ "gs://broad-dsde-methods-kiran/pfcrosses/fastq/test/PG0052-C.ERR019054.end1.fq.gz",
-                      "gs://broad-dsde-methods-kiran/pfcrosses/fastq/test/PG0052-C.ERR019054.end2.fq.gz" ]
+            "ref_name": "HB3",
+            "ref":      "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/HB3/PfHB3.V1.fasta"
         }
     ],
 

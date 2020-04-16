@@ -1,22 +1,33 @@
 {
-    "PfCrosses.gcs_input_dir":     "gs://broad-dsde-methods-kiran/pfcrosses/fastq/HB3xDD2",
+    "ProcessPfCross.gcs_input_dir":     "gs://broad-dsde-methods-kiran/pfcrosses/fastq/HB3xDD2",
 
-    "PfCrosses.ref_dict":          "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.dict",
-    "PfCrosses.ref_fasta":         "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta",
-    "PfCrosses.ref_fasta_amb":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.amb",
-    "PfCrosses.ref_fasta_ann":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.ann",
-    "PfCrosses.ref_fasta_bwt":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.bwt",
-    "PfCrosses.ref_fasta_fai":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.fai",
-    "PfCrosses.ref_fasta_pac":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.pac",
-    "PfCrosses.ref_fasta_sa":      "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.sa",
+    "ProcessPfCross.parents": [
+        {
+            "ref_name": "HB3",
+            "ref":      "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/HB3/PfHB3.V1.fasta"
+        },
+        {
+            "ref_name": "DD2",
+            "ref":      "gs://broad-dsde-methods-kiran/pfcrosses/pacbio/DD2/PfDd2_2D4.V1.fasta"
+        }
+    ],
 
-    "PfCrosses.tandem_repeat_bed": "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/pf.trf.bed",
-    "PfCrosses.ref_flat":          "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/refFlat.txt",
-    "PfCrosses.dbsnp_vcf":         "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/dbsnp_fake.3D7.vcf.gz",
-    "PfCrosses.dbsnp_tbi":         "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/dbsnp_fake.3D7.vcf.gz.tbi",
+    "ProcessPfCross.ref_dict":          "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.dict",
+    "ProcessPfCross.ref_fasta":         "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta",
+    "ProcessPfCross.ref_fasta_amb":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.amb",
+    "ProcessPfCross.ref_fasta_ann":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.ann",
+    "ProcessPfCross.ref_fasta_bwt":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.bwt",
+    "ProcessPfCross.ref_fasta_fai":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.fai",
+    "ProcessPfCross.ref_fasta_pac":     "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.pac",
+    "ProcessPfCross.ref_fasta_sa":      "gs://broad-dsde-methods-kiran/pfcrosses/reference/pfalciparum3D7/PlasmoDB-46_Pfalciparum3D7_Genome.fasta.sa",
 
-    "PfCrosses.mt_chr_name":       "Pf_M76611",
-    "PfCrosses.metrics_locus":     "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/metric_intervals.interval_list",
+    "ProcessPfCross.tandem_repeat_bed": "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/pf.trf.bed",
+    "ProcessPfCross.ref_flat":          "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/refFlat.txt",
+    "ProcessPfCross.dbsnp_vcf":         "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/dbsnp_fake.3D7.vcf.gz",
+    "ProcessPfCross.dbsnp_tbi":         "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/dbsnp_fake.3D7.vcf.gz.tbi",
 
-    "PfCrosses.gcs_out_root_dir":  "gs://broad-dsde-methods-kiran/pfcrosses/output/HB3xDD2/"
+    "ProcessPfCross.mt_chr_name":       "Pf_M76611",
+    "ProcessPfCross.metrics_locus":     "gs://broad-dsde-methods-kiran/pfcrosses/references/pfalciparum3D7/metric_intervals.interval_list",
+
+    "ProcessPfCross.gcs_out_root_dir":  "gs://broad-dsde-methods-kiran/pfcrosses/output/HB3xDD2/"
 }

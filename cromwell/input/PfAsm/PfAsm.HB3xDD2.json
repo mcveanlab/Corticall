@@ -1,5 +1,0 @@
-{
-    "PfAsm.gcs_input_dir": "gs://broad-dsde-methods-kiran/pfcrosses/fastq/HB3xDD2",
-
-    "PfAsm.gcs_out_root_dir": "gs://broad-dsde-methods-kiran/pfcrosses/output/assemblies"
-}

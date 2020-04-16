@@ -309,7 +309,7 @@ task FlagStats {
 
 task ReadLength {
     input {
-        String bam
+        File bam
 
         RuntimeAttr? runtime_attr_override
     }
@@ -318,7 +318,6 @@ task ReadLength {
     Int disk_size = 2*ceil(size(bam, "GB"))
 
     command <<<
-        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
         samtools view ~{bam} | head -1 | awk '{ print length($10) }' > ~{basename}.read_length.txt
     >>>
 
