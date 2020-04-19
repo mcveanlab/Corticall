@@ -325,7 +325,7 @@ public class SimulateHaploidChild extends Module {
 
             int nki = 0;
             for (String nk : novelKmers) {
-                kout.println(Joiner.on("\t").join(i, novelKmers.size(), nki, nk));
+                kout.println(Joiner.on("\t").join(i, novelKmers.size(), nki, nk, gv.type, gv.seqIndex, gv.posIndex, gv.oldAllele, gv.newAllele));
                 nki++;
             }
         }
