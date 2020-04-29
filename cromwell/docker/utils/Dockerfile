@@ -1,9 +1,9 @@
 FROM ubuntu:latest
 
 # install base packages
-RUN apt-get update --fix-missing
-RUN apt-get install -y --no-install-recommends git ssh ca-certificates libssl-dev curl python python3.6 time wget \
-	&& rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends git ssh ca-certificates libssl-dev curl python python3.6 time wget gcc make libc6-dev zlib1g-dev && \
+	rm -rf /var/lib/apt/lists/*
 
 # install Flash paired-end merger
 RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11-Linux-x86_64.tar.gz && \
@@ -23,3 +23,9 @@ RUN conda env create -f /environment.yml \
 
 # install gsutil
 RUN curl https://sdk.cloud.google.com | bash
+
+# install readsim
+RUN git clone https://github.com/noporpoise/readsim.git \
+    && cd readsim \
+    && make \
+    && mv readsim /usr/local/bin

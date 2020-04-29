@@ -1,5 +1,5 @@
-VERSION = 0.1.1
-TAG = quay.io/corticall/utils:$(VERSION)
+VERSION = 0.1.0
+TAG = quay.io/corticall/gridss:$(VERSION)
 
 all: build push
 

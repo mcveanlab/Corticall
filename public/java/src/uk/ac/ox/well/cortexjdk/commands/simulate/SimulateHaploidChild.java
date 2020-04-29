@@ -1,14 +1,25 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.simulate.generators.*;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
@@ -20,8 +31,11 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.statistics.distributions.EmpiricalDistribution;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+
+import static htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder.OutputType.VCF;
 
 /**
  * Created by kiran on 19/11/2017.
@@ -75,9 +89,13 @@ public class SimulateHaploidChild extends Module {
     @Output(fullName="kmersOut", shortName="ko", doc="Kmers out")
     public PrintStream kout;
 
+    @Output(fullName="truthOut", shortName="to", doc="Truth out")
+    public File tout;
+
     private Random rng;
 
     private void initialize() {
+        log.info("{} {} {}", CHRS1.size(), CHRS2.size(), MUS.size());
         if (CHRS1.size() != CHRS2.size() || CHRS1.size() != MUS.size()) {
             throw new CortexJDKException("Array size mismatch");
         }
@@ -188,8 +206,8 @@ public class SimulateHaploidChild extends Module {
                 out.println(">chr" + (i + 1));
                 out.println(newSeqs.get(i));
 
-                ReferenceSequence r1 = REF1.getSequence(REF1.getSequenceDictionary().getSequence(i).getSequenceName());
-                ReferenceSequence r2 = REF2.getSequence(REF2.getSequenceDictionary().getSequence(i).getSequenceName());
+                ReferenceSequence r1 = REF1.getSequence(REF1.getSequenceDictionary().getSequence(i+1).getSequenceName());
+                ReferenceSequence r2 = REF2.getSequence(REF2.getSequenceDictionary().getSequence(i+1).getSequenceName());
 
                 fout1.println(">" + r1.getName());
                 fout1.println(r1.getBaseString());
@@ -197,12 +215,115 @@ public class SimulateHaploidChild extends Module {
                 fout2.println(r2.getBaseString());
             }
         }
+
+        log.info("Writing truth VCF...");
+        SAMSequenceDictionary sd = buildMergedSequenceDictionary(REF1.getSequenceDictionary(), REF2.getSequenceDictionary());
+        VariantContextWriter vcw = buildVariantWriter(sd);
+
+        for (GeneratedVariant gv : vs) {
+            ReferenceSequence r;
+            if (gv.parent.equalsIgnoreCase("HB3")) {
+                r = REF1.getSequence(REF1.getSequenceDictionary().getSequence(gv.seqIndex + 1).getSequenceName());
+            } else {
+                r = REF2.getSequence(REF2.getSequenceDictionary().getSequence(gv.seqIndex + 1).getSequenceName());
+            }
+
+            String s = r.getBaseString().toUpperCase();
+            int indexStart = s.indexOf(gv.seedLeft.toUpperCase()) + gv.seedLeft.length();
+            int indexStop = s.indexOf(gv.seedRight.toUpperCase());
+
+            VariantContext vc = new VariantContextBuilder()
+                    .chr(r.getName())
+                    .start(indexStart + 1)
+                    .stop(indexStop)
+                    .alleles(Arrays.asList(Allele.create(gv.oldAllele, true), Allele.create(gv.newAllele)))
+                    .attribute("TYPE", gv.type)
+                    .attribute("SEED_LEFT", gv.seedLeft)
+                    .attribute("SEED_RIGHT", gv.seedRight)
+                    .passFilters()
+                    .noGenotypes()
+                    .make();
+
+            vcw.add(vc);
+
+            log.info("{} {} {}", indexStart, indexStop, gv);
+        }
+
+        vcw.close();
+    }
+
+    @NotNull
+    private VariantContextWriter buildVariantWriter(SAMSequenceDictionary ssd) {
+        VariantContextWriter vcw = new VariantContextWriterBuilder()
+                .setOutputFile(tout)
+                .setOutputFileType(VCF)
+                .setOption(Options.DO_NOT_WRITE_GENOTYPES)
+                .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
+                .unsetOption(Options.INDEX_ON_THE_FLY)
+                .build();
+
+        VCFHeader vcfHeader = new VCFHeader();
+        vcfHeader.setSequenceDictionary(ssd);
+        vcw.writeHeader(vcfHeader);
+        return vcw;
+    }
+
+    @NotNull
+    private Set<VariantContext> buildVariantSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((v1, v2) -> {
+            if (v1 != null && v2 != null) {
+                int sid0 = sid.getOrDefault(v1.getContig(), 0);
+                int sid1 = sid.getOrDefault(v2.getContig(), 0);
+
+                if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+                if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+                if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
+            }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private Set<VariantContextBuilder> buildVariantContextBuilderSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((vb1, vb2) -> {
+            VariantContext v1 = vb1.make();
+            VariantContext v2 = vb2.make();
+
+            int sid0 = sid.getOrDefault(v1.getContig(), 0);
+            int sid1 = sid.getOrDefault(v2.getContig(), 0);
+
+            if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+            if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+            if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private SAMSequenceDictionary buildMergedSequenceDictionary(SAMSequenceDictionary d1, SAMSequenceDictionary d2) {
+        List<SAMSequenceRecord> ssrs = new ArrayList<>();
+        ssrs.addAll(d1.getSequences());
+        ssrs.addAll(d2.getSequences());
+
+        return new SAMSequenceDictionary(ssrs);
     }
 
     private Set<CortexBinaryKmer> getParentalKmers(IndexedFastaSequenceFile ref1, IndexedFastaSequenceFile ref2, int kmerSize) {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Computing parental kmers...")
-                .message("processed")
+                .message("contigs processed")
                 .maxRecord(ref1.getSequenceDictionary().size() + ref2.getSequenceDictionary().size())
                 .make(log);
 
@@ -270,6 +391,9 @@ public class SimulateHaploidChild extends Module {
             String seedLeft = sb.substring(gv.posIndex - 100, gv.posIndex);
             String seedRight = sb.substring(gv.posIndex + gv.newAllele.length(), gv.posIndex + gv.newAllele.length() + 100);
 
+            gv.seedLeft = seedLeft;
+            gv.seedRight = seedRight;
+
             Set<String> novelKmers = new LinkedHashSet<>();
             for (int p = gv.posIndex - 100; p <= gv.posIndex + gv.newAllele.length() + 100 - KMER_SIZE; p++) {
                 String sk = sb.substring(p, p + KMER_SIZE).toUpperCase();
@@ -281,6 +405,8 @@ public class SimulateHaploidChild extends Module {
             }
 
             IndexedFastaSequenceFile parentRef = Character.isUpperCase(seedLeft.charAt(0)) ? REF1 : REF2;
+            gv.parent = Character.isUpperCase(seedLeft.charAt(0)) ? "HB3" : "DD2";
+
             ReferenceSequence parentSeq = parentRef.getSequence(parentRef.getSequenceDictionary().getSequence(gv.getSeqIndex()+1).getSequenceName());
             int refPosLeft = parentSeq.getBaseString().toUpperCase().indexOf(seedLeft.toUpperCase()) + seedLeft.length();
             int refPosRight = parentSeq.getBaseString().toUpperCase().indexOf(seedRight.toUpperCase()) + 1;

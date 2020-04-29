@@ -4,8 +4,8 @@
                       University of Oxford
   -->
 
-<project name="cortexjdk" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
-    <description>Compile and distribute CortexJDK</description>
+<project name="corticall" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <description>Compile and distribute Corticall</description>
 
     <property name="src.dir" value="public/java" />
     <property name="src.R.dir" value="public/R" />
@@ -92,7 +92,7 @@
             <fileset dir="${src.html.dir}" />
         </copy>
 
-        <jar jarfile="${jars.dir}/cortexjdk.jar">
+        <jar jarfile="${jars.dir}/corticall.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
                 <include name="**/*.properties" />
@@ -111,7 +111,7 @@
         </jar>
     </target>
 
-    <!-- Prepare to make a jar file with all the CortexJDK code and dependencies -->
+    <!-- Prepare to make a jar file with all the Corticall code and dependencies -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="${staging.dir}" />
 
@@ -120,11 +120,11 @@
         </unjar>
     </target>
 
-    <!-- Create a single executable jar with all of the CortexJDK and dependency code wrapped up -->
+    <!-- Create a single executable jar with all of the Corticall and dependency code wrapped up -->
     <target name="dist" depends="tidy,compile,stage" description="bundle up an executable for distribution">
         <mkdir dir="${dist.dir}" />
 
-        <jar jarfile="${dist.dir}/cortexjdk.jar">
+        <jar jarfile="${dist.dir}/corticall.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.properties" />
                 <include name="**/*.R" />

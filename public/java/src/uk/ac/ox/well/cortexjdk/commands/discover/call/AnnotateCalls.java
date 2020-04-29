@@ -1,7 +1,9 @@
 package uk.ac.ox.well.cortexjdk.commands.discover.call;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.FastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
@@ -20,6 +22,7 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexRecord;
 import uk.ac.ox.well.cortexjdk.utils.io.table.TableReader;
 import uk.ac.ox.well.cortexjdk.utils.kmer.CanonicalKmer;
+import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 
 import java.io.File;
 import java.util.*;
@@ -45,6 +48,9 @@ public class AnnotateCalls extends Module {
     @Argument(fullName="rois", shortName="r", doc="ROIs")
     public CortexGraph ROIS;
 
+    @Argument(fullName="reference", shortName="R", doc="Reference")
+    public ArrayList<IndexedFastaSequenceFile> REFERENCE;
+
     @Output
     public File out;
 
@@ -64,6 +70,7 @@ public class AnnotateCalls extends Module {
         IntervalTreeMap<String> itc = new IntervalTreeMap<>();
         IntervalTreeMap<String> ita = new IntervalTreeMap<>();
         IntervalTreeMap<GFF3Record> itg = new IntervalTreeMap<>();
+        IntervalTreeMap<GFF3Record> ite = new IntervalTreeMap<>();
 
         /*
         TableReader trcore = new TableReader(CORE_BED, "chrom", "start", "stop", "label");
@@ -84,6 +91,11 @@ public class AnnotateCalls extends Module {
                 if (gr.getType().contains("gene")) {
                     Interval it = new Interval(gr.getSeqid(), gr.getStart(), gr.getEnd());
                     itg.put(it, gr);
+                }
+
+                if (gr.getType().contains("exon")) {
+                    Interval it = new Interval(gr.getSeqid(), gr.getStart(), gr.getEnd());
+                    ite.put(it, gr);
                 }
             }
         }
@@ -118,9 +130,78 @@ public class AnnotateCalls extends Module {
             Set<String> genes = new TreeSet<>();
             for (GFF3Record gr : itg.getOverlapping(it)) {
                 genes.add(gr.getAttribute("ID"));
+
+                for (GFF3 g : GENES) {
+                    List<GFF3Record> gs = new ArrayList<>(GFF3.getType("exon", g.getContained(gr)));
+                    if (!gs.isEmpty()) {
+                        gs.sort((g1, g2) -> {
+                            if (g1.getStart() == g2.getStart()) { return 0; }
+                            return g1.getStart() < g2.getStart() ? -1 : 1;
+                        });
+
+                        if (!vc.isSymbolic()) {
+                            for (IndexedFastaSequenceFile ref : REFERENCE) {
+                                for (SAMSequenceRecord ssra : ref.getSequenceDictionary().getSequences()) {
+                                    if (ssra.getSequenceName().equals(gr.getSeqid())) {
+                                        List<List<String>> chr = new ArrayList<>();
+                                        String seq = ref.getSequence(gr.getSeqid()).getBaseString();
+                                        for (int i = 0; i < seq.length(); i++) {
+                                            List<String> ns = new ArrayList<>();
+                                            ns.add(String.valueOf(seq.charAt(i)).toUpperCase());
+                                            chr.add(ns);
+                                        }
+
+                                        StringBuilder ob = new StringBuilder();
+                                        for (GFF3Record exongr : gs) {
+                                            for (int i = exongr.getStart() - 1; i < exongr.getEnd(); i++) {
+                                                ob.append(chr.get(i).get(0));
+                                            }
+                                        }
+
+                                        if (gr.getStrand() == GFF3Record.Strand.NEGATIVE) {
+                                            StringBuilder rb = new StringBuilder(SequenceUtils.reverseComplement(ob.toString()));
+                                            ob = rb;
+                                        }
+
+                                        for (int i = vc.getStart() - 1; i < vc.getEnd(); i++) {
+                                            chr.set(i, Arrays.asList(""));
+                                        }
+                                        chr.set(vc.getStart() - 1, Arrays.asList(vc.getAlternateAllele(0).getBaseString().toLowerCase()));
+
+                                        StringBuilder sb = new StringBuilder();
+                                        for (GFF3Record exongr : gs) {
+                                            for (int i = exongr.getStart() - 1; i < exongr.getEnd(); i++) {
+                                                sb.append(chr.get(i).get(0));
+                                            }
+                                        }
+
+                                        if (gr.getStrand() == GFF3Record.Strand.NEGATIVE) {
+                                            StringBuilder rb = new StringBuilder(SequenceUtils.reverseComplement(sb.toString()));
+                                            sb = rb;
+                                        }
+
+                                        log.info(ob.toString());
+                                        log.info(sb.toString());
+
+                                        int ca = 0;
+                                        int cc = 0;
+                                        for (int i = 0; i < ob.length(); i++, cc++) {
+                                            if (cc > 2) { ca++; cc = 0; }
+                                            if (sb.charAt(i) != ob.charAt(i)) {
+                                                log.info("{} {} {} {} {}", i, ca, cc, sb.charAt(i), ob.charAt(i));
+                                            }
+                                        }
+
+                                        log.info("");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            Set<String> closest = new TreeSet<>();
+            Set<String> closestGene = new TreeSet<>();
             Interval itn = new Interval(vc.getContig(), vc.getStart() - 100000, vc.getEnd() + 100000);
             List<GFF3Record> grs = new ArrayList<>(itg.getOverlapping(itn));
             if (grs.size() > 0) {
@@ -129,7 +210,7 @@ public class AnnotateCalls extends Module {
                     return Math.abs(g1.getStart() - vc.getStart()) < Math.abs(g2.getStart() - vc.getStart()) ? -1 : 1;
                 });
 
-                closest.add(grs.get(0).getAttribute("ID"));
+                closestGene.add(grs.get(0).getAttribute("ID"));
             }
 
             String repeat = "NA";
@@ -155,8 +236,9 @@ public class AnnotateCalls extends Module {
 
             VariantContext newvc = new VariantContextBuilder(vc)
                     .attribute("REGION", label)
+                    .attribute("GENIC", genes.size() > 0 ? "true" : "false")
                     .attribute("GENE", Joiner.on(",").join(genes))
-                    .attribute("CLOSEST_GENE", Joiner.on(",").join(closest))
+                    .attribute("CLOSEST_GENE", Joiner.on(",").join(closestGene))
                     .attribute("REPEAT", repeat)
                     .attribute("PARTITION_LENGTH", plength)
                     .attribute("PARTITION_NOVELS", numNovels)

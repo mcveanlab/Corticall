@@ -6,3 +6,6 @@ channels:
 dependencies:
   - java-jdk
   - ant
+  - mccortex
+  - cd-hit
+  - samtools

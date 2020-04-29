@@ -26,6 +26,7 @@ import uk.ac.ox.well.cortexjdk.utils.alignment.mosaic.Tesserae;
 import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.alignment.sw.SmithWaterman;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
+import uk.ac.ox.well.cortexjdk.utils.arguments.Description;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.containers.ContainerUtils;
 import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
@@ -47,6 +48,7 @@ import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfigurati
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.FORWARD;
 import static uk.ac.ox.well.cortexjdk.utils.traversal.TraversalEngineConfiguration.TraversalDirection.REVERSE;
 
+@Description(text="Call DNMs in a single sample within a pedigree graph")
 public class Call extends Module {
     @Argument(fullName = "graph", shortName = "g", doc = "Graph")
     public CortexGraph GRAPH;
@@ -78,7 +80,7 @@ public class Call extends Module {
     @Argument(fullName="rho", shortName="rho", doc="Recombination probability")
     public Double RHO = 6e-4;
 
-    @Argument(fullName="term", shortName="term", doc="Recombination probability")
+    @Argument(fullName="term", shortName="term", doc="Termination probability")
     public Double TERM = 0.001;
 
     @Argument(fullName="window", shortName="w", doc="Novel window")
