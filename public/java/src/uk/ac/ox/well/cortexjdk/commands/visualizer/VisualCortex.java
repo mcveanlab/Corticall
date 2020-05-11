@@ -10,7 +10,6 @@ import uk.ac.ox.well.cortexjdk.utils.io.graph.cortex.CortexGraph;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.GraphVisualizationFactory;
 import uk.ac.ox.well.cortexjdk.utils.visualizer.GraphVisualizer;
 
-@Description(text="Starts the server for visualizing assembly data")
 public class VisualCortex extends Module {
     @Argument(fullName="graph", shortName="g", doc="Graph", required=false)
     public CortexGraph GRAPH;

@@ -1,14 +1,26 @@
 package uk.ac.ox.well.cortexjdk.commands.simulate;
 
 import com.google.common.base.Joiner;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Interval;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.util.Pair;
+import org.jetbrains.annotations.NotNull;
 import uk.ac.ox.well.cortexjdk.commands.Module;
 import uk.ac.ox.well.cortexjdk.commands.simulate.generators.*;
+import uk.ac.ox.well.cortexjdk.utils.alignment.reference.IndexedReference;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Argument;
 import uk.ac.ox.well.cortexjdk.utils.arguments.Output;
 import uk.ac.ox.well.cortexjdk.utils.exceptions.CortexJDKException;
@@ -20,8 +32,11 @@ import uk.ac.ox.well.cortexjdk.utils.progress.ProgressMeterFactory;
 import uk.ac.ox.well.cortexjdk.utils.sequence.SequenceUtils;
 import uk.ac.ox.well.cortexjdk.utils.statistics.distributions.EmpiricalDistribution;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+
+import static htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder.OutputType.VCF;
 
 /**
  * Created by kiran on 19/11/2017.
@@ -35,6 +50,9 @@ public class SimulateHaploidChild extends Module {
 
     @Argument(fullName="ref2", shortName="r2", doc="Ref 2")
     public IndexedFastaSequenceFile REF2;
+
+    @Argument(fullName="canonicalRef", shortName="cr", doc="Canonical ref")
+    public IndexedReference CANREF;
 
     @Argument(fullName="chrs1", shortName="c1", doc="Chrs 1")
     public ArrayList<String> CHRS1;
@@ -75,9 +93,16 @@ public class SimulateHaploidChild extends Module {
     @Output(fullName="kmersOut", shortName="ko", doc="Kmers out")
     public PrintStream kout;
 
+    @Output(fullName="truthOut", shortName="to", doc="Truth out")
+    public File tout;
+
+    @Output(fullName="truthOut2", shortName="to2", doc="Truth out2")
+    public File tout2;
+
     private Random rng;
 
     private void initialize() {
+        log.info("{} {} {}", CHRS1.size(), CHRS2.size(), MUS.size());
         if (CHRS1.size() != CHRS2.size() || CHRS1.size() != MUS.size()) {
             throw new CortexJDKException("Array size mismatch");
         }
@@ -130,6 +155,7 @@ public class SimulateHaploidChild extends Module {
 
         log.info("Adding variants...");
         Set<GeneratedVariant> vs = new TreeSet<>();
+        List<Pair<Interval, Interval>> co = new ArrayList<>();
         Set<Integer> seqIndices = new HashSet<>();
 
         //vs.addAll(makeNAHR(seqs, gffs));
@@ -165,7 +191,9 @@ public class SimulateHaploidChild extends Module {
                     v = makeBubble(pieces, 1, rng, new InvGenerator(chrIndex));
                     break;
                 case 7:
-                    v = makeNAHR(seqs, gffs);
+                    Pair<Set<GeneratedVariant>, List<Pair<Interval, Interval>>> p = makeNAHR(seqs, gffs);
+                    v = p.getFirst();
+                    co.addAll(p.getSecond());
                     break;
                 case 8:
                 default:
@@ -181,15 +209,15 @@ public class SimulateHaploidChild extends Module {
 
         log.info("Collapsing into new linear haploid reference...");
         Set<CortexBinaryKmer> cbks = getParentalKmers(REF1, REF2, KMER_SIZE);
-        List<String> newSeqs = collapse(seqs, cbks, vs);
+        List<String> newSeqs = collapse(seqs, cbks, vs, co);
 
         for (int i = 0; i < newSeqs.size(); i++) {
             if (seqIndices.contains(i)) {
                 out.println(">chr" + (i + 1));
                 out.println(newSeqs.get(i));
 
-                ReferenceSequence r1 = REF1.getSequence(REF1.getSequenceDictionary().getSequence(i).getSequenceName());
-                ReferenceSequence r2 = REF2.getSequence(REF2.getSequenceDictionary().getSequence(i).getSequenceName());
+                ReferenceSequence r1 = REF1.getSequence(REF1.getSequenceDictionary().getSequence(i+1).getSequenceName());
+                ReferenceSequence r2 = REF2.getSequence(REF2.getSequenceDictionary().getSequence(i+1).getSequenceName());
 
                 fout1.println(">" + r1.getName());
                 fout1.println(r1.getBaseString());
@@ -197,12 +225,178 @@ public class SimulateHaploidChild extends Module {
                 fout2.println(r2.getBaseString());
             }
         }
+
+        log.info("Writing truth VCFs...");
+        SAMSequenceDictionary sd = buildMergedSequenceDictionary(REF1.getSequenceDictionary(), REF2.getSequenceDictionary());
+        VariantContextWriter vcw = buildVariantWriter(sd, tout);
+
+        for (GeneratedVariant gv : vs) {
+            ReferenceSequence r;
+            if (gv.parent.equalsIgnoreCase("HB3")) {
+                r = REF1.getSequence(REF1.getSequenceDictionary().getSequence(gv.seqIndex + 1).getSequenceName());
+            } else {
+                r = REF2.getSequence(REF2.getSequenceDictionary().getSequence(gv.seqIndex + 1).getSequenceName());
+            }
+
+            String s = r.getBaseString().toUpperCase();
+            int indexStart = s.indexOf(gv.seedLeft.toUpperCase()) + gv.seedLeft.length();
+            int indexStop = s.indexOf(gv.seedRight.toUpperCase());
+
+            if (gv.newAllele.equalsIgnoreCase("")) {
+                gv.newAllele = String.valueOf(gv.seedLeft.charAt(gv.seedLeft.length() - 1));
+            }
+
+            if (gv.oldAllele.equalsIgnoreCase("")) {
+                gv.oldAllele = String.valueOf(gv.seedLeft.charAt(gv.seedLeft.length() - 1));
+            }
+
+            List<Allele> alleles = Arrays.asList(Allele.create(gv.oldAllele, true), Allele.create(gv.newAllele));
+
+            if (!gv.oldAllele.equalsIgnoreCase(gv.newAllele)) {
+                VariantContext vc = new VariantContextBuilder()
+                        .chr(r.getName())
+                        .start(indexStart + 1)
+                        .computeEndFromAlleles(alleles, indexStart + 1)
+                        .alleles(alleles)
+                        .attribute("TYPE", gv.type)
+                        .attribute("SEED_LEFT", gv.seedLeft)
+                        .attribute("SEED_RIGHT", gv.seedRight)
+                        .passFilters()
+                        .noGenotypes()
+                        .make();
+
+                vcw.add(vc);
+            }
+
+            log.info("{} {} {}", indexStart, indexStop, gv);
+        }
+
+        vcw.close();
+
+        VariantContextWriter vcw2 = buildVariantWriter(CANREF.getReferenceSequence().getSequenceDictionary(), tout2);
+
+        for (GeneratedVariant gv : vs) {
+            String refName = CANREF.getReferenceSequence().getSequenceDictionary().getSequence(gv.seqIndex).getSequenceName();
+            String hap = gv.seedLeft + gv.oldAllele + gv.seedRight;
+            List<SAMRecord> srs = CANREF.align(hap);
+            List<SAMRecord> prs = new ArrayList<>();
+
+            for (SAMRecord sr : srs) {
+                if (sr.getContig().equalsIgnoreCase(CANREF.getReferenceSequence().getSequenceDictionary().getSequence(gv.seqIndex).getSequenceName())) {
+                    prs.add(sr);
+                }
+            }
+
+            if (prs.size() == 1 && !prs.get(0).getCigar().isClipped()) {
+                int indexStart = prs.get(0).getStart() + gv.seedLeft.length();
+                int indexStop = prs.get(0).getStart() + gv.seedLeft.length() + gv.oldAllele.length();
+
+                if (gv.newAllele.equalsIgnoreCase("")) {
+                    gv.newAllele = String.valueOf(gv.seedLeft.charAt(gv.seedLeft.length()-1));
+                }
+
+                if (gv.oldAllele.equalsIgnoreCase("")) {
+                    gv.oldAllele = String.valueOf(gv.seedLeft.charAt(gv.seedLeft.length()-1));
+                }
+
+                List<Allele> alleles = Arrays.asList(Allele.create(gv.oldAllele, true), Allele.create(gv.newAllele));
+
+                if (!gv.oldAllele.equalsIgnoreCase(gv.newAllele)) {
+                    VariantContext vc = new VariantContextBuilder()
+                            .chr(refName)
+                            .start(indexStart + 1)
+                            .computeEndFromAlleles(alleles, indexStart + 1)
+                            .alleles(alleles)
+                            .attribute("TYPE", gv.type)
+                            .attribute("SEED_LEFT", gv.seedLeft)
+                            .attribute("SEED_RIGHT", gv.seedRight)
+                            .attribute("CIGAR", prs.get(0).getCigar().toString())
+                            .passFilters()
+                            .noGenotypes()
+                            .make();
+
+                    vcw2.add(vc);
+                }
+
+                log.info("{} {} {}", indexStart, indexStop, gv);
+            }
+        }
+
+        vcw2.close();
+    }
+
+    @NotNull
+    private VariantContextWriter buildVariantWriter(SAMSequenceDictionary ssd, File o) {
+        VariantContextWriter vcw = new VariantContextWriterBuilder()
+                .setOutputFile(o)
+                .setOutputFileType(VCF)
+                .setOption(Options.DO_NOT_WRITE_GENOTYPES)
+                .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
+                .unsetOption(Options.INDEX_ON_THE_FLY)
+                .build();
+
+        VCFHeader vcfHeader = new VCFHeader();
+        vcfHeader.setSequenceDictionary(ssd);
+        vcw.writeHeader(vcfHeader);
+        return vcw;
+    }
+
+    @NotNull
+    private Set<VariantContext> buildVariantSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((v1, v2) -> {
+            if (v1 != null && v2 != null) {
+                int sid0 = sid.getOrDefault(v1.getContig(), 0);
+                int sid1 = sid.getOrDefault(v2.getContig(), 0);
+
+                if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+                if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+                if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
+            }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private Set<VariantContextBuilder> buildVariantContextBuilderSorter(SAMSequenceDictionary ssd) {
+        Map<String, Integer> sid = new HashMap<>();
+        for (int i = 0; i < ssd.getSequences().size(); i++) {
+            sid.put(ssd.getSequence(i).getSequenceName(), i);
+        }
+
+        return new TreeSet<>((vb1, vb2) -> {
+            VariantContext v1 = vb1.make();
+            VariantContext v2 = vb2.make();
+
+            int sid0 = sid.getOrDefault(v1.getContig(), 0);
+            int sid1 = sid.getOrDefault(v2.getContig(), 0);
+
+            if (sid0 != sid1) { return sid0 < sid1 ? -1 : 1; }
+            if (v1.getStart() != v2.getStart()) { return v1.getStart() < v2.getStart() ? -1 : 1; }
+            if (v1.isSymbolic() != v2.isSymbolic()) { return v1.isSymbolic() ? 1 : -1; }
+
+            return 0;
+        });
+    }
+
+    @NotNull
+    private SAMSequenceDictionary buildMergedSequenceDictionary(SAMSequenceDictionary d1, SAMSequenceDictionary d2) {
+        List<SAMSequenceRecord> ssrs = new ArrayList<>();
+        ssrs.addAll(d1.getSequences());
+        ssrs.addAll(d2.getSequences());
+
+        return new SAMSequenceDictionary(ssrs);
     }
 
     private Set<CortexBinaryKmer> getParentalKmers(IndexedFastaSequenceFile ref1, IndexedFastaSequenceFile ref2, int kmerSize) {
         ProgressMeter pm = new ProgressMeterFactory()
                 .header("Computing parental kmers...")
-                .message("processed")
+                .message("contigs processed")
                 .maxRecord(ref1.getSequenceDictionary().size() + ref2.getSequenceDictionary().size())
                 .make(log);
 
@@ -236,7 +430,7 @@ public class SimulateHaploidChild extends Module {
         return cbks;
     }
 
-    private List<String> collapse(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, Set<CortexBinaryKmer> cbks, Set<GeneratedVariant> vs) {
+    private List<String> collapse(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, Set<CortexBinaryKmer> cbks, Set<GeneratedVariant> vs, List<Pair<Interval, Interval>> co) {
         List<GeneratedVariant> lvs = new ArrayList<>(vs);
 
         List<StringBuilder> newSbs = new ArrayList<>();
@@ -270,6 +464,9 @@ public class SimulateHaploidChild extends Module {
             String seedLeft = sb.substring(gv.posIndex - 100, gv.posIndex);
             String seedRight = sb.substring(gv.posIndex + gv.newAllele.length(), gv.posIndex + gv.newAllele.length() + 100);
 
+            gv.seedLeft = seedLeft;
+            gv.seedRight = seedRight;
+
             Set<String> novelKmers = new LinkedHashSet<>();
             for (int p = gv.posIndex - 100; p <= gv.posIndex + gv.newAllele.length() + 100 - KMER_SIZE; p++) {
                 String sk = sb.substring(p, p + KMER_SIZE).toUpperCase();
@@ -281,6 +478,8 @@ public class SimulateHaploidChild extends Module {
             }
 
             IndexedFastaSequenceFile parentRef = Character.isUpperCase(seedLeft.charAt(0)) ? REF1 : REF2;
+            gv.parent = Character.isUpperCase(seedLeft.charAt(0)) ? "HB3" : "DD2";
+
             ReferenceSequence parentSeq = parentRef.getSequence(parentRef.getSequenceDictionary().getSequence(gv.getSeqIndex()+1).getSequenceName());
             int refPosLeft = parentSeq.getBaseString().toUpperCase().indexOf(seedLeft.toUpperCase()) + seedLeft.length();
             int refPosRight = parentSeq.getBaseString().toUpperCase().indexOf(seedRight.toUpperCase()) + 1;
@@ -289,6 +488,12 @@ public class SimulateHaploidChild extends Module {
                 List<Pair<Interval, Interval>> loci = gv.getLoci();
 
                 for (Pair<Interval, Interval> locus : loci) {
+                    String oldAllele = locus.getFirst().getContig().contains("HB3") ?
+                        REF1.getSubsequenceAt(locus.getFirst().getContig(), locus.getFirst().getStart() - 99, locus.getFirst().getEnd() + 99).getBaseString() :
+                        REF2.getSubsequenceAt(locus.getFirst().getContig(), locus.getFirst().getStart() - 99, locus.getFirst().getEnd() + 99).getBaseString();
+
+                    String newAllele = locus.getFirst().getName() + locus.getSecond().getName();
+
                     vout.println(Joiner.on("\t").join(
                             i,
                             gv.getSeqIndex() + 1,
@@ -296,10 +501,14 @@ public class SimulateHaploidChild extends Module {
                             gv.getPosIndex() + gv.newAllele.length(),
                             Character.isUpperCase(seedLeft.charAt(0)) ? PARENTS.get(0) : PARENTS.get(1),
                             gv.getType(),
-                            gv.getOldAllele().length() == 0 ? "." : gv.getOldAllele(),
-                            gv.getNewAllele().length() == 0 ? "." : gv.getNewAllele(),
-                            seedLeft,
-                            seedRight,
+                            //".",
+                            //".",
+                            //gv.getOldAllele().length() == 0 ? "." : gv.getOldAllele(),
+                            //gv.getNewAllele().length() == 0 ? "." : gv.getNewAllele(),
+                            oldAllele,
+                            newAllele,
+                            locus.getFirst().getName(),
+                            locus.getSecond().getName(),
                             parentSeq.getName(),
                             locus.getFirst().getContig() + ":" + locus.getFirst().getStart() + "-" + locus.getFirst().getEnd() + ":" + (locus.getFirst().isNegativeStrand() ? "-" : "+"),
                             locus.getSecond().getContig() + ":" + locus.getSecond().getStart() + "-" + locus.getSecond().getEnd() + ":" + (locus.getSecond().isNegativeStrand() ? "-" : "+")
@@ -325,7 +534,7 @@ public class SimulateHaploidChild extends Module {
 
             int nki = 0;
             for (String nk : novelKmers) {
-                kout.println(Joiner.on("\t").join(i, novelKmers.size(), nki, nk));
+                kout.println(Joiner.on("\t").join(i, novelKmers.size(), nki, nk, gv.type, gv.seqIndex, gv.posIndex, gv.oldAllele, gv.newAllele));
                 nki++;
             }
         }
@@ -338,7 +547,7 @@ public class SimulateHaploidChild extends Module {
         return newSeqs;
     }
 
-    private Set<GeneratedVariant> makeNAHR(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, List<GFF3Record> gffs) {
+    private Pair<Set<GeneratedVariant>, List<Pair<Interval, Interval>>> makeNAHR(List<Triple<List<String>, List<Integer>, List<Pair<Integer, Integer>>>> seqs, List<GFF3Record> gffs) {
         Set<GeneratedVariant> vs = new TreeSet<>();
         Triple<List<String>, List<Integer>, List<Pair<Interval, Interval>>> vres = null;
 
@@ -409,7 +618,10 @@ public class SimulateHaploidChild extends Module {
             }
         } while (vres == null);
 
-        return vs;
+//        return Pair
+//        return vs;
+
+        return new Pair<>(vs, vres.getRight());
     }
 
     private Set<GFF3Record> liftover(List<String> pieces, int seqIndex, String chr1, String chr2) {
@@ -576,6 +788,26 @@ public class SimulateHaploidChild extends Module {
                 switches.add(parents[1]);
                 l = new Pair<>(ii2[p1.getSecond()], ii1[p1.getSecond()]);
             }
+
+            IndexedFastaSequenceFile ref1 = l.getFirst().getContig().contains("HB3") ? REF1 : REF2;
+
+            String seedLeft;
+            if (l.getFirst().isPositiveStrand()) {
+                seedLeft = ref1.getSubsequenceAt(l.getFirst().getContig(), l.getFirst().getStart() - 99, l.getFirst().getStart()).getBaseString();
+            } else {
+                seedLeft = SequenceUtils.reverseComplement(ref1.getSubsequenceAt(l.getFirst().getContig(), l.getFirst().getStart() + 1, l.getFirst().getStart() + 100).getBaseString());
+            }
+
+            String seedRight;
+            if (l.getSecond().isPositiveStrand()) {
+                seedRight = ref1.getSubsequenceAt(l.getSecond().getContig(), l.getSecond().getStart() + 1, l.getSecond().getStart() + 100).getBaseString();
+            } else {
+                seedRight = SequenceUtils.reverseComplement(ref1.getSubsequenceAt(l.getSecond().getContig(), l.getSecond().getStart() - 99, l.getSecond().getStart()).getBaseString());
+            }
+
+            Interval a = new Interval(l.getFirst().getContig(), l.getFirst().getStart(), l.getFirst().getEnd(), l.getFirst().isNegativeStrand(), seedLeft);
+            Interval b = new Interval(l.getSecond().getContig(), l.getSecond().getStart(), l.getSecond().getEnd(), l.getSecond().isNegativeStrand(), seedRight);
+            l = new Pair<>(a, b);
 
             drawFromFirst = !drawFromFirst;
 

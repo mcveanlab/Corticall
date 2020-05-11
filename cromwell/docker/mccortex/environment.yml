@@ -1,0 +1,8 @@
+name: mccortex
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+dependencies:
+  - samtools
+  - mccortex

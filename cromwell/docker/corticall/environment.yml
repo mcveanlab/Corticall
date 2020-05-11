@@ -1,0 +1,11 @@
+name: corticall
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+dependencies:
+  - java-jdk
+  - ant
+  - mccortex
+  - cd-hit
+  - samtools

@@ -167,7 +167,7 @@ public class Main {
         System.out.println();
         System.out.format("Version: %s.%s.%s (%s)%n", prop.get("major.version"), prop.get("minor.version"), prop.get("git.version"), prop.getProperty("git.version.long"));
         System.out.println("Times:   (repo) " + gitDate + "; (build) " + buildDate);
-        System.out.println("Contact: Kiran V Garimella <kiran@well.ox.ac.uk>");
+        System.out.println("Contact: Kiran V Garimella <kiran@broadinstitute.org>");
         System.out.println();
 
         System.out.println("Usage:   java -jar " + progName.toLowerCase() + ".jar <command> [options]");

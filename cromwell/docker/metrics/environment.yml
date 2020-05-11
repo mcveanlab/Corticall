@@ -1,0 +1,12 @@
+name: metrics
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+dependencies:
+  - samtools
+  - bedtools
+  - java-jdk
+  - joblib
+  - matplotlib
+  - quast

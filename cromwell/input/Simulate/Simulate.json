@@ -1,0 +1,45 @@
+{
+    "Simulate.refs": {
+        "3D7": {
+            "dict":  "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.dict",
+            "fasta": "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta",
+            "amb":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.amb",
+            "ann":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.ann",
+            "bwt":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.bwt",
+            "fai":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.fai",
+            "pac":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.pac",
+            "sa":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.sa",
+            "ctx":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.ctx",
+            "so":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7_Genome.fasta.sources",
+            "gff":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PlasmoDB-32_Pfalciparum3D7.gff"
+        },
+        "HB3": {
+            "dict":  "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.dict",
+            "fasta": "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta",
+            "amb":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.amb",
+            "ann":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.ann",
+            "bwt":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.bwt",
+            "fai":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.fai",
+            "pac":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.pac",
+            "sa":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.sa",
+            "ctx":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.k47.ctx",
+            "gff":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudo.out.gff3",
+            "so":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfHB3_SI_SI/pseudochr.fasta.sources"
+        },
+        "DD2": {
+            "dict":  "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.dict",
+            "fasta": "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta",
+            "amb":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.amb",
+            "ann":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.ann",
+            "bwt":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.bwt",
+            "fai":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.fai",
+            "pac":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.pac",
+            "sa":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.sa",
+            "ctx":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.k47.ctx",
+            "gff":   "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudo.out.gff3",
+            "so":    "gs://broad-dsde-methods-kiran/pfcrosses/resources/assemblies/PfDD2_SI_SI/pseudochr.fasta.sources"
+        }
+    },
+
+    "Simulate.gcs_out_root_dir":  "gs://broad-dsde-methods-kiran/pfcrosses/results/Simulate/"
+}
