@@ -1,4 +1,4 @@
-VERSION = 0.1.5
+VERSION = 0.1.9
 TAG = quay.io/corticall/corticall:$(VERSION)
 
 all: build push

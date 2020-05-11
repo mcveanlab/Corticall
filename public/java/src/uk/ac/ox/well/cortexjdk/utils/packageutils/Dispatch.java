@@ -39,7 +39,7 @@ public class Dispatch {
             Class<? extends Module> module = (Class<? extends Module>) Class.forName(moduleName);
 
             Main.getLogger().info("{}", getBanner());
-            Main.getLogger().info("java -Xmx{}g -jar cortexjdk.jar {} {}", (Runtime.getRuntime().maxMemory()/(1024*1024))/1024, module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
+            Main.getLogger().info("java -Xmx{}g -jar corticall.jar {} {}", (Runtime.getRuntime().maxMemory()/(1024*1024))/1024, module.getSimpleName(), Joiner.on(" ").join(moduleArgs));
             Main.getLogger().info("");
 
             disableIllegalAccessWarning();

@@ -11,7 +11,7 @@ import "tasks/Finalize.wdl" as FF
 
 workflow Simulate {
     input {
-        Int num_samples = 1000
+        Int num_samples = 1200
         #Array[Int] covs = [ 120, 100, 80, 60, 40, 30, 20, 10, 5 ]
         Array[Int] covs = [ 120 ]
         Object refs
@@ -23,7 +23,7 @@ workflow Simulate {
     call PrepareParentResources as PrepareHB3 { input: dict = refs['HB3']['dict'], gff = refs['HB3']['gff'] }
     call PrepareParentResources as PrepareDD2 { input: dict = refs['DD2']['dict'], gff = refs['DD2']['gff'] }
 
-    scatter (index in range(1)) {
+    scatter (index in range(num_samples)) {
         call SimulateHaploidChild {
             input:
                 p = [ "HB3", "DD2" ],
@@ -35,14 +35,15 @@ workflow Simulate {
                 m = [ 0.499806172257622, 0.807757414029959, 0.929297453545848, 1.06255217143551, 1.20641344962446,
                       1.2815130851906,   1.30862778925489,  1.33637900760334,  1.40569169260802, 1.55242281561059,
                       1.90505374014534,  2.13950216259681,  2.79687360203287,  3.16560944406413 ],
-                i = index
+                i = index,
+                a = refs
         }
 
-        call SimulatePerfectReads as ReadsParent0 { input: fasta = SimulateHaploidChild.p0_fasta }
+        call SimulateReads as ReadsParent0 { input: fasta = SimulateHaploidChild.p0_fasta, error_rate = 0.0 }
         call AddQuals as AddQualsP0E1 { input: fa = ReadsParent0.end1 }
         call AddQuals as AddQualsP0E2 { input: fa = ReadsParent0.end2 }
 
-        call SimulatePerfectReads as ReadsParent1 { input: fasta = SimulateHaploidChild.p1_fasta }
+        call SimulateReads as ReadsParent1 { input: fasta = SimulateHaploidChild.p1_fasta, error_rate = 0.0 }
         call AddQuals as AddQualsP1E1 { input: fa = ReadsParent1.end1 }
         call AddQuals as AddQualsP1E2 { input: fa = ReadsParent1.end2 }
 
@@ -60,7 +61,7 @@ workflow Simulate {
         }
 
         scatter (cov in covs) {
-            call SimulateReads { input: child_fasta = SimulateHaploidChild.child_fasta, cov = cov, index = index }
+            call SimulateReads { input: fasta = SimulateHaploidChild.child_fasta, cov = cov, index = index }
             call BuildGraph { input: end1 = SimulateReads.end1, end2 = SimulateReads.end2, sample_name = "child" + index }
             call ThreadReads { input: end1 = SimulateReads.end1, end2 = SimulateReads.end2, ctx = BuildGraph.ctx }
             call ThreadRef as ThreadRef0 { input: ref = SimulateHaploidChild.p0_fasta, ctx = BuildGraph.ctx, ref_name = "HB3" }
@@ -98,7 +99,8 @@ workflow Simulate {
                     joined = Join.trio_ctx,
                     rois = RemoveKmers.rois_filtered_ctx,
                     partitions = PartitionWithoutLinks.partitions,
-                    refs = refs
+                    refs = refs,
+                    prefix = "corticall.wolinks"
             }
 
             call Corticall as CorticallWithLinks {
@@ -107,7 +109,8 @@ workflow Simulate {
                     rois = RemoveKmers.rois_filtered_ctx,
                     partitions = PartitionWithLinks.partitions,
                     links = [ ThreadReads.links, ThreadRef0.links, ThreadRef1.links ],
-                    refs = refs
+                    refs = refs,
+                    prefix = "corticall.wlinks"
             }
 
             call JoinCtxs { input: ctxs = [ GetTruthROIs.rois_truth_ctx, RemoveKmers.rois_filtered_ctx ] }
@@ -122,74 +125,69 @@ workflow Simulate {
                     cov = cov
             }
 
-#            call FF.FinalizeToDir as FinalizeStats {
-#                input:
-#                    files  = [ EvaluateAccuracy.stats ],
-#                    outdir = outdir + "/child" + index + "/" + cov
-#            }
-
-            call AddQuals as AddQualsEnd1 { input: fa = SimulateReads.end1 }
-            call AddQuals as AddQualsEnd2 { input: fa = SimulateReads.end2 }
-
             String ID = "sim"
             String SM = "child" + index
             String PL = "ILLUMINA"
             String RG = "@RG\\tID:~{ID}\\tSM:~{SM}\\tPL:~{PL}"
 
+            call AddQuals as AddQualsEnd1 { input: fa = SimulateReads.end1 }
+            call AddQuals as AddQualsEnd2 { input: fa = SimulateReads.end2 }
+
             Array[File] end1s = [ AddQualsEnd1.fq, AddQualsP0E1.fq, AddQualsP1E1.fq ]
             Array[File] end2s = [ AddQualsEnd2.fq, AddQualsP0E2.fq, AddQualsP1E2.fq ]
 
-            scatter (ref_name in [ 'HB3', 'DD2' ]) {
+            scatter (ref_name in [ '3D7', 'HB3', 'DD2' ]) {
                 scatter (p in zip(end1s, end2s)) {
                     call AR.BwaMem as BwaMem {
                         input:
                             end1 = p.left,
                             end2 = p.right,
 
-                            ref_dict = refs[ref_name]['dict'],
-                            ref_fasta = refs[ref_name]['fasta'],
+                            ref_dict      = refs[ref_name]['dict'],
+                            ref_fasta     = refs[ref_name]['fasta'],
                             ref_fasta_amb = refs[ref_name]['amb'],
                             ref_fasta_ann = refs[ref_name]['ann'],
                             ref_fasta_bwt = refs[ref_name]['bwt'],
                             ref_fasta_fai = refs[ref_name]['fai'],
                             ref_fasta_pac = refs[ref_name]['pac'],
-                            ref_fasta_sa = refs[ref_name]['sa'],
+                            ref_fasta_sa  = refs[ref_name]['sa'],
 
                             RG = RG,
                     }
 
                     call Delly {
                         input:
-                            bam = BwaMem.aligned_bam,
-                            bai = BwaMem.aligned_bai,
-                            ref = refs[ref_name]['fasta'],
+                            bam   = BwaMem.aligned_bam,
+                            bai   = BwaMem.aligned_bai,
+                            ref   = refs[ref_name]['fasta'],
                             label = ref_name
                     }
 
                     call Manta {
                         input:
-                            bam = BwaMem.aligned_bam,
-                            bai = BwaMem.aligned_bai,
-                            ref = refs[ref_name]['fasta'],
-                            fai = refs[ref_name]['fai'],
+                            bam   = BwaMem.aligned_bam,
+                            bai   = BwaMem.aligned_bai,
+                            ref   = refs[ref_name]['fasta'],
+                            fai   = refs[ref_name]['fai'],
                             label = ref_name
                     }
 
-#                    call Lumpy {
-#                        input:
-#                            bam = BwaMem.aligned_bam,
-#                            bai = BwaMem.aligned_bai,
-#                            ref = refs[ref_name]['fasta'],
-#                            fai = refs[ref_name]['fai'],
-#                    }
-
                     call HC {
                         input:
-                            bam  = BwaMem.aligned_bam,
-                            bai  = BwaMem.aligned_bai,
-                            ref  = refs[ref_name]['fasta'],
-                            dict = refs[ref_name]['dict'],
-                            fai  = refs[ref_name]['fai'],
+                            bam   = BwaMem.aligned_bam,
+                            bai   = BwaMem.aligned_bai,
+                            ref   = refs[ref_name]['fasta'],
+                            dict  = refs[ref_name]['dict'],
+                            fai   = refs[ref_name]['fai'],
+                            label = ref_name
+                    }
+
+                    call VG {
+                        input:
+                            end1  = p.left,
+                            end2  = p.right,
+                            ref1  = SimulateHaploidChild.p0_fasta,
+                            ref2  = SimulateHaploidChild.p1_fasta,
                             label = ref_name
                     }
 
@@ -198,18 +196,96 @@ workflow Simulate {
                             bam = BwaMem.aligned_bam,
                             bai = BwaMem.aligned_bai,
 
-                            ref_dict = refs[ref_name]['dict'],
-                            ref_fasta = refs[ref_name]['fasta'],
+                            ref_dict      = refs[ref_name]['dict'],
+                            ref_fasta     = refs[ref_name]['fasta'],
                             ref_fasta_amb = refs[ref_name]['amb'],
                             ref_fasta_ann = refs[ref_name]['ann'],
                             ref_fasta_bwt = refs[ref_name]['bwt'],
                             ref_fasta_fai = refs[ref_name]['fai'],
                             ref_fasta_pac = refs[ref_name]['pac'],
-                            ref_fasta_sa = refs[ref_name]['sa'],
+                            ref_fasta_sa  = refs[ref_name]['sa'],
 
                             label = ref_name
                     }
                 }
+            }
+
+            call FilterRefBasedVariants as FilterDellyOn3D7 {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Delly.vcf[0][0] ],
+                    parent_vcfs = [ Delly.vcf[0][1], Delly.vcf[0][2] ],
+                    prefix      = "delly.filtered.ref"
+            }
+
+            call FilterRefBasedVariants as FilterMantaOn3D7 {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Manta.vcf[0][0] ],
+                    parent_vcfs = [ Manta.vcf[0][1], Manta.vcf[0][2] ],
+                    prefix      = "manta.filtered.ref"
+            }
+
+            call FilterRefBasedVariants as FilterHCOn3D7 {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ HC.vcf[0][0] ],
+                    parent_vcfs = [ HC.vcf[0][1], HC.vcf[0][2] ],
+                    prefix      = "hc.filtered.ref"
+            }
+
+            call FilterRefBasedVariants as FilterGridssOn3D7 {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Gridss.vcf[0][0] ],
+                    parent_vcfs = [ Gridss.vcf[0][1], Gridss.vcf[0][2] ],
+                    prefix      = "gridss.filtered.ref"
+            }
+
+            call FilterRefBasedVariants as FilterDellyOnParents {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Delly.vcf[1][0], Delly.vcf[2][0] ],
+                    parent_vcfs = [ Delly.vcf[1][1], Delly.vcf[2][1], Delly.vcf[1][2], Delly.vcf[2][2] ],
+                    prefix      = "delly.filtered.parents"
+            }
+
+            call FilterRefBasedVariants as FilterMantaOnParents {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Manta.vcf[1][0], Manta.vcf[2][0] ],
+                    parent_vcfs = [ Manta.vcf[1][1], Manta.vcf[2][1], Manta.vcf[1][2], Manta.vcf[2][2] ],
+                    prefix      = "manta.filtered.parents"
+            }
+
+            call FilterRefBasedVariants as FilterHCOnParents {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ HC.vcf[1][0], HC.vcf[2][0] ],
+                    parent_vcfs = [ HC.vcf[1][1], HC.vcf[2][1], HC.vcf[1][2], HC.vcf[2][2] ],
+                    window      = 10,
+                    prefix      = "hc.filtered.parents"
+            }
+
+            call FilterRefBasedVariants as FilterGridssOnParents {
+                input:
+                    refs        = refs,
+                    child_vcfs  = [ Gridss.vcf[1][0], Gridss.vcf[2][0] ],
+                    parent_vcfs = [ Gridss.vcf[1][1], Gridss.vcf[2][1], Gridss.vcf[1][2], Gridss.vcf[2][2] ],
+                    prefix      = "gridss.filtered.parents"
+            }
+
+            call FF.FinalizeToDir as FinalizeFilteredCalls {
+                input:
+                    files = [
+                        SimulateHaploidChild.child_novelkmers, SimulateHaploidChild.child_variants, SimulateHaploidChild.child_vcf, SimulateHaploidChild.child_3D7_vcf,
+                        CorticallWithoutLinks.vcf, CorticallWithoutLinks.acct, CorticallWithLinks.vcf, CorticallWithLinks.acct,
+                        FilterDellyOn3D7.filtered_vcf, FilterDellyOnParents.filtered_vcf,
+                        FilterHCOn3D7.filtered_vcf, FilterHCOnParents.filtered_vcf,
+                        FilterGridssOn3D7.filtered_vcf, FilterGridssOnParents.filtered_vcf,
+                        FilterMantaOn3D7.filtered_vcf, FilterMantaOnParents.filtered_vcf,
+                    ],
+                    outdir = outdir + "/child" + index + "/" + cov + "/"
             }
         }
     }
@@ -225,11 +301,24 @@ task SimulateHaploidChild {
         Array[File] c
         Array[Float] m
         Int i
+        Object a
 
         RuntimeAttr? runtime_attr_override
     }
 
-    Int disk_size = 1
+    File dict3D7 = a["3D7"]["dict"]
+    File ref3D7 = a["3D7"]["fasta"]
+    File amb3D7 = a["3D7"]["amb"]
+    File ann3D7 = a["3D7"]["ann"]
+    File bwt3D7 = a["3D7"]["bwt"]
+    File fai3D7 = a["3D7"]["fai"]
+    File pac3D7 = a["3D7"]["pac"]
+    File sa3D7 = a["3D7"]["sa"]
+    File ctx3D7 = a["3D7"]["ctx"]
+    File gff3D7 = a["3D7"]["gff"]
+    File so3D7 = a["3D7"]["so"]
+
+    Int disk_size = 10
 
     command <<<
         set -euxo pipefail
@@ -239,24 +328,27 @@ task SimulateHaploidChild {
             -r1 ~{r[0]} -r2 ~{r[1]} \
             -g1 ~{g[0]} -g2 ~{g[1] }\
             -c1 ~{c[0]} -c2 ~{c[1]} \
+            -cr ~{ref3D7} \
             -m ~{sep=',' m} \
             -s ~{i} \
             -v 3 \
             -o child.fasta \
             -fo1 p0.fasta \
             -fo2 p1.fasta \
+            -ko child.novelkmers.txt \
             -vo child.variants.txt \
             -to child.variants.vcf \
-            -ko child.novelkmers.txt
+            -to2 child.variants.3D7.vcf
     >>>
 
     output {
         File child_fasta = "child.fasta"
         File p0_fasta = "p0.fasta"
         File p1_fasta = "p1.fasta"
-        File child_variants = "child.variants.txt"
-        File child_vcf = "vhild.variants.vcf"
         File child_novelkmers = "child.novelkmers.txt"
+        File child_variants = "child.variants.txt"
+        File child_vcf = "child.variants.vcf"
+        File child_3D7_vcf = "child.variants.3D7.vcf"
     }
 
     #########################
@@ -267,7 +359,7 @@ task SimulateHaploidChild {
         boot_disk_gb:       10,
         preemptible_tries:  2,
         max_retries:        0,
-        docker:             "quay.io/corticall/corticall:0.1.5"
+        docker:             "quay.io/corticall/corticall:0.1.9"
     }
     RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
     runtime {
@@ -478,53 +570,14 @@ task ListFiles {
     }
 }
 
-task SimulatePerfectReads {
-    input {
-        File fasta
-
-        RuntimeAttr? runtime_attr_override
-    }
-
-    Int disk_size = 1
-
-    command <<<
-        set -euxo pipefail
-
-        readsim -r ~{fasta} -l 76 -i 250 -d 120 -g 0 -e 0 parent
-    >>>
-
-    output {
-        File end1 = "parent.1.fa.gz"
-        File end2 = "parent.2.fa.gz"
-    }
-
-    #########################
-    RuntimeAttr default_attr = object {
-        cpu_cores:          1,
-        mem_gb:             4,
-        disk_gb:            disk_size,
-        boot_disk_gb:       10,
-        preemptible_tries:  2,
-        max_retries:        0,
-        docker:             "quay.io/corticall/utils:0.1.1"
-    }
-    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
-    runtime {
-        cpu:                    select_first([runtime_attr.cpu_cores,         default_attr.cpu_cores])
-        memory:                 select_first([runtime_attr.mem_gb,            default_attr.mem_gb]) + " GiB"
-        disks: "local-disk " +  select_first([runtime_attr.disk_gb,           default_attr.disk_gb]) + " HDD"
-        bootDiskSizeGb:         select_first([runtime_attr.boot_disk_gb,      default_attr.boot_disk_gb])
-        preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
-        maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
-        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
-    }
-}
-
 task SimulateReads {
     input {
-        File child_fasta
-        Int cov
-        Int index
+        File fasta
+        Int cov = 120
+        Int index = 0
+        Int length = 76
+        Int insert_size = 250
+        Float error_rate = 0.005
 
         RuntimeAttr? runtime_attr_override
     }
@@ -534,12 +587,12 @@ task SimulateReads {
     command <<<
         set -euxo pipefail
 
-        readsim -r ~{child_fasta} -l 76 -i 250 -d ~{cov} -g ~{index} -e 0.005 child
+        readsim -r ~{fasta} -l ~{length} -i ~{insert_size} -d ~{cov} -g ~{index} -e ~{error_rate} reads
     >>>
 
     output {
-        File end1 = "child.1.fa.gz"
-        File end2 = "child.2.fa.gz"
+        File end1 = "reads.1.fa.gz"
+        File end2 = "reads.2.fa.gz"
     }
 
     #########################
@@ -668,7 +721,7 @@ task ThreadRef {
     }
 
     Int cpus = 8
-    Int disk_size = 10*ceil(size([ref, ctx], "GB"))
+    Int disk_size = 10 + 10*ceil(size([ref, ctx], "GB"))
 
     command <<<
         set -euxo pipefail
@@ -1077,8 +1130,11 @@ task Partition {
             mccortex63 contigs -f -m ~{mem}G -p ~{sep=' -p ' links} -M -s novels.txt -o contigs.fa ~{child_ctx}
         fi
 
-        cd-hit-est -T 0 -M 4000 -c 0.95 -i contigs.fa -o contigs.dedup.fa
+        cd-hit-est -T 0 -M 0 -c 0.95 -i contigs.fa -o contigs.dedup.fa
     >>>
+
+    #grep -v '^>' contigs.fa | awk '{ print length($0) }'
+    #awk '{ print substr($0, 1, 1e6) }' contigs.fa > contigs.trimmed.fa
 
     output {
         File partitions = "contigs.dedup.fa"
@@ -1092,7 +1148,7 @@ task Partition {
         boot_disk_gb:       10,
         preemptible_tries:  2,
         max_retries:        0,
-        docker:             "quay.io/corticall/mccortex:0.3.0"
+        docker:             "quay.io/corticall/mccortex:0.3.1"
     }
     RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
     runtime {
@@ -1279,6 +1335,7 @@ task Corticall {
         File partitions
         Object refs
         Array[File] links = []
+        String prefix
 
         RuntimeAttr? runtime_attr_override
     }
@@ -1330,9 +1387,9 @@ task Corticall {
         set -euxo pipefail
 
         mccortex63 view -k ~{rois} | wc -l
-        grep -c '>' ~{partitions}
+        grep -v '>' ~{partitions} | awk '{ print length($0) }'
 
-        java -Xmx~{mem}g -jar /usr/local/bin/corticall.jar Call \
+        java -Dloglevel=DEBUG -Xmx~{mem}g -jar /usr/local/bin/corticall.jar Call \
             -g ~{joined} \
             -r ~{rois} \
             -p ~{partitions} \
@@ -1340,13 +1397,13 @@ task Corticall {
             -R 3D7:~{ref3D7} \
             -R HB3:~{refHB3} \
             -R DD2:~{refDD2} \
-            -o corticall.vcf \
-            -ao acct.txt
+            -o ~{prefix}.vcf \
+            -ao ~{prefix}.acct.txt
     >>>
 
     output {
-        File vcf = "corticall.vcf"
-        File acct = "acct.txt"
+        File vcf = "~{prefix}.vcf"
+        File acct = "~{prefix}.acct.txt"
     }
 
     #########################
@@ -1531,7 +1588,7 @@ task HC {
     command <<<
         set -euxo pipefail
 
-        gatk HaplotypeCaller -R ~{ref} -I ~{bam} -ploidy 1 -DF WellformedReadFilter -O hc.~{label}.vcf
+        gatk HaplotypeCaller -R ~{ref} -I ~{bam} -ploidy 1 --max-reads-per-alignment-start 200 --max-assembly-region-size 1000 -DF WellformedReadFilter -O hc.~{label}.vcf
     >>>
 
     output {
@@ -1614,6 +1671,61 @@ task Gridss {
     }
 }
 
+task VG {
+    input {
+        File end1
+        File end2
+        File ref1
+        File ref2
+
+        String label
+
+        RuntimeAttr? runtime_attr_override
+    }
+
+    Int num_cpus = 4
+    Int mem = 16
+    Int disk_size = 10 + 10*ceil(size([end1, end2, ref1, ref2], "GB"))
+
+    command <<<
+        set -euxo pipefail
+
+        vg construct -r ~{ref1} -r ~{ref2} > ref.vg
+        vg index -t ~{num_cpus} -x ref.xg -g ref.gcsa -k 16 ref.vg
+        vg map -t ~{num_cpus} -d ref -f ~{end1} -f ~{end2} > aln.gam
+        vg pack -x ref.xg -g aln.gam -Q 5 -o aln.pack
+        vg augment ref.vg aln.gam -A aug.gam > aug.vg
+        vg index aug.vg -x aug.xg
+        vg pack -x aug.xg -g aug.gam -Q 5 -o aln_aug.pack
+        vg call aug.xg -k aln_aug.pack -f ~{ref1} -f ~{ref2} -d 1 -s ~{label} > vg.~{label}.vcf
+    >>>
+
+    output {
+        File vcf = "vg.~{label}.vcf"
+    }
+
+    #########################
+    RuntimeAttr default_attr = object {
+        cpu_cores:          num_cpus,
+        mem_gb:             mem,
+        disk_gb:            disk_size,
+        boot_disk_gb:       10,
+        preemptible_tries:  0,
+        max_retries:        0,
+        docker:             "quay.io/vgteam/vg:v1.23.0"
+    }
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+    runtime {
+        cpu:                    select_first([runtime_attr.cpu_cores,         default_attr.cpu_cores])
+        memory:                 select_first([runtime_attr.mem_gb,            default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " +  select_first([runtime_attr.disk_gb,           default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb:         select_first([runtime_attr.boot_disk_gb,      default_attr.boot_disk_gb])
+        preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
+        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
+    }
+}
+
 task AddQuals {
     input {
         File fa
@@ -1648,6 +1760,96 @@ task AddQuals {
         preemptible_tries:  0,
         max_retries:        0,
         docker:             "us.gcr.io/broad-dsp-lrma/lr-align:0.1.26"
+    }
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+    runtime {
+        cpu:                    select_first([runtime_attr.cpu_cores,         default_attr.cpu_cores])
+        memory:                 select_first([runtime_attr.mem_gb,            default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " +  select_first([runtime_attr.disk_gb,           default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb:         select_first([runtime_attr.boot_disk_gb,      default_attr.boot_disk_gb])
+        preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
+        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
+    }
+}
+
+task FilterRefBasedVariants {
+    input {
+        Object refs
+        Array[File] child_vcfs
+        Array[File] parent_vcfs
+        String prefix
+        Int window = 10000
+
+        RuntimeAttr? runtime_attr_override
+    }
+
+    File dict3D7 = refs["3D7"]["dict"]
+    File ref3D7 = refs["3D7"]["fasta"]
+    File amb3D7 = refs["3D7"]["amb"]
+    File ann3D7 = refs["3D7"]["ann"]
+    File bwt3D7 = refs["3D7"]["bwt"]
+    File fai3D7 = refs["3D7"]["fai"]
+    File pac3D7 = refs["3D7"]["pac"]
+    File sa3D7 = refs["3D7"]["sa"]
+    File ctx3D7 = refs["3D7"]["ctx"]
+    File gff3D7 = refs["3D7"]["gff"]
+    File so3D7 = refs["3D7"]["so"]
+
+    File dictHB3 = refs["HB3"]["dict"]
+    File refHB3 = refs["HB3"]["fasta"]
+    File ambHB3 = refs["HB3"]["amb"]
+    File annHB3 = refs["HB3"]["ann"]
+    File bwtHB3 = refs["HB3"]["bwt"]
+    File faiHB3 = refs["HB3"]["fai"]
+    File pacHB3 = refs["HB3"]["pac"]
+    File saHB3 = refs["HB3"]["sa"]
+    File ctxHB3 = refs["HB3"]["ctx"]
+    File gffHB3 = refs["HB3"]["gff"]
+    File soHB3 = refs["HB3"]["so"]
+
+    File dictDD2 = refs["DD2"]["dict"]
+    File refDD2 = refs["DD2"]["fasta"]
+    File ambDD2 = refs["DD2"]["amb"]
+    File annDD2 = refs["DD2"]["ann"]
+    File bwtDD2 = refs["DD2"]["bwt"]
+    File faiDD2 = refs["DD2"]["fai"]
+    File pacDD2 = refs["DD2"]["pac"]
+    File saDD2 = refs["DD2"]["sa"]
+    File ctxDD2 = refs["DD2"]["ctx"]
+    File gffDD2 = refs["DD2"]["gff"]
+    File soDD2 = refs["DD2"]["so"]
+
+    Int disk_size = 1 + 10*ceil(size([dict3D7, ref3D7, amb3D7, ann3D7, bwt3D7, fai3D7, pac3D7, sa3D7, ctx3D7, gff3D7, so3D7,
+                                      dictHB3, refHB3, ambHB3, annHB3, bwtHB3, faiHB3, pacHB3, saHB3, ctxHB3, gffHB3, soHB3,
+                                      dictDD2, refDD2, ambDD2, annDD2, bwtDD2, faiDD2, pacDD2, saDD2, ctxDD2, gffDD2, soDD2], "GB"))
+    Int mem_full = 8
+    Int mem = mem_full - 1
+
+    command <<<
+        set -euxo pipefail
+
+        java -Xmx~{mem}g -jar /usr/local/bin/corticall.jar FilterRefBasedVariants \
+            -R ~{ref3D7} -R ~{refHB3} -R ~{refDD2} \
+            -cv ~{sep=' -cv ' child_vcfs} \
+            -pv ~{sep=' -pv ' parent_vcfs} \
+            -w ~{window} \
+            -o ~{prefix}.vcf
+    >>>
+
+    output {
+        File filtered_vcf = "~{prefix}.vcf"
+    }
+
+    #########################
+    RuntimeAttr default_attr = object {
+        cpu_cores:          1,
+        mem_gb:             mem_full,
+        disk_gb:            disk_size,
+        boot_disk_gb:       10,
+        preemptible_tries:  2,
+        max_retries:        0,
+        docker:             "quay.io/corticall/corticall:0.1.9"
     }
     RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
     runtime {
